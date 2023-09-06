@@ -6,7 +6,7 @@ The ESIpy program is aimed to the calculation of population analysis and aromati
 - aromaticity(mol, mf, Smo, ring, calc, mci, av1245, num_threads): Compute population analyses, delocalization analyses and aromaticity indicators from the AOMs (variable Smo). The variable 'ring' is either a list or a list of lists containing the indices of the atoms for the aromaticity calculations. 'mci' and 'av1245' are boolean variables to compute the MCI and AV1425 indices, respectively. Multi-core processing is supported, albeit the speed-up is non-linear.
 
 # Utilities
-- write_int(mol, mf, molname, Smo, ring, None): Writes the AOMs as an input for Dr. Matito's ESI-3D code. The atomic files are stored in a directory, as well as a general input for the program ('molname'.bad).
+- write_int(mol, mf, molname, Smo, ring, None): Writes the AOMs as an input for Dr. Matito's ESI-3D code. The atomic files are stored in a directory, as well as a general input for the program ('molname'.bad). The ring variable is not mandatory but recommended.
 
 # Installation
 To install PySCF it is recommended to create a conda environment as follows:
