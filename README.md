@@ -24,3 +24,7 @@ mkdir ~/ESIpy
 cd ~/ESIpy
 git clone git@github.com:jgrebol/ESIpy.git
 ```
+Add to your ```.bashrc``` file:
+```
+export PYTHONPATH=~/ESIpy/ESIpy:$PYTHONPATH (or the directory where it is located)
+```
