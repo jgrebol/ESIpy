@@ -28,3 +28,9 @@ Add to your ```.bashrc``` file:
 ```
 export PYTHONPATH=~/ESIpy/ESIpy:$PYTHONPATH (or the directory where it is located)
 ```
+
+# Further implementations
+- Adaptation: Correlated calculations.
+- Function: Aromaticity from a Smo file (without mol or mf).
+- Function: Aproximations for the MCI calculation in large systems.
+- Utility: Compute the exact MCI for n=14 from precomputed permutations.
