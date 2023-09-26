@@ -1,7 +1,7 @@
 import esi 
 from pyscf import gto, dft, scf # In this case scf is mandatory
 
-molname = 'benzene'
+molname = '08-from_chk'
 
 mol=gto.Mole()
 mol.atom='''
