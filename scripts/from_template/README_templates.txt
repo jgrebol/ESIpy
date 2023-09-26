@@ -1,11 +1,12 @@
 
-By running the **pythonize.sh** script (as ./pythonize.sh), all **.xyz** files will be converted
+By running the bash script **pythonize.sh** (as ./pythonize.sh), all **.xyz** files will be converted
 into the corresponding python files using the **template.py** file as
 reference. The proper way to use these tools is to copy the **pythonize.sh**
 and **template.sh** files to the working directory.
 
-- The **template.py** files needs to be customized according to the author's
-  necessities (feel free to use the provided templates).
+- The **template.py** file needs to be customized according to the author's
+  necessities (feel free to use the provided templates, but remember to adapt the number of
+  lines above the molecular coordinates in **template.py**).
 
 - The **.xyz** files should contain only the geometries. They need to be located in
   the same directory where the **pythonize.sh** script is.
