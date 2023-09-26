@@ -2,7 +2,7 @@ import esi
 from pyscf import gto, scf, lib, cc
 from numpy import linalg
 
-molname = 'benzene_ccsd'
+molname = '06-CCSD'
 
 mol=gto.Mole()
 mol.atom='''
