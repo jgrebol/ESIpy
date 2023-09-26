@@ -1,3 +1,4 @@
+# How to generate ESIpy's scripts from a template
 
 By running the bash script **pythonize.sh** (as ./pythonize.sh), all **.xyz** files will be converted
 into the corresponding python files using the **template.py** file as
