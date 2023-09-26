@@ -27,8 +27,8 @@ mol.verbose = 0
 mol.max_memory = 4000
 mol.build()
 
-mf = dft.UKS(mol)
-mf.xc = 'B3LYPg'
+mf = dft.RKS(mol)
+mf.xc = 'B3LYP'
 mf.kernel()
 
 ring = [7,3,1,2,6,10]
