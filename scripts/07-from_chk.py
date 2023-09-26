@@ -27,13 +27,13 @@ mol.max_memory = 4000
 mol.build()
 
 mf = dft.RKS(mol)
-mf.xc = 'B3LYPg'
+mf.xc = 'B3LYP'
 
 #1 To save the checkout file as a .pychk
 mf.chkfile = molname + '.pychk'
 mf.kernel()
 
-#2 Starting the kernel from the density matrix stored in the .pychk file
+#2 Starting the kernel from the density matrix stored in the .pychk file, performing only one cicle
 mo_coeff = scf.chkfile.load(molname+'.pychk', 'scf/mo_coeff')
 mo_occ = scf.chkfile.load(molname+'.pychk', 'scf/mo_occ')
 dm = mf.make_rdm1(mo_coeff, mo_occ)
