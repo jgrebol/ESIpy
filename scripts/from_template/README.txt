@@ -1,23 +1,29 @@
-# How to generate ESIpy's scripts from a template
+# XYZ to Python Converter
 
-By running the bash script **pythonize.sh** (as ./pythonize.sh), all **.xyz** files will be converted
-into the corresponding python files using the **template.py** file as
-reference. The proper way to use these tools is to copy the **pythonize.sh**
-and **template.sh** files to the working directory.
+This tool automates the conversion of **.xyz** files into corresponding Python files using the provided **template.py** as a reference.
 
-- The **template.py** file needs to be customized according to the author's
-  necessities (feel free to use the provided templates, but remember to adapt the number of
-  lines above the molecular coordinates in **template.py**).
+## Prerequisites
 
-- The **.xyz** files should contain only the geometries. They need to be located in
-  the same directory where the **pythonize.sh** script is.
+1. **template.py**: Customize this file according to your specific requirements. You can start with the provided template, but ensure that you adjust the number of lines above the molecular coordinates in **template.py** to match your data format.
 
-- The **pythonize.sh** script can be altered in the working directory by using
-  ** chmod u+rwx pythonize.sh **. When ran, it will insert all the coordinates
-  as the geometries according to the template.
+## Usage
 
-To test the utility, run the pythonize.sh script and it will create an
-example.py with the Python structure from the template.py file and the
-coordinates from the example.xyz. There is no limit on how many .xyz need to
-be created.
+1. Copy the following files to your working directory:
+   - `pythonize.sh`
+   - `template.py`
 
+2. Ensure that your **.xyz** files contain only the molecular geometries. Place these **.xyz** files in the same directory where the `pythonize.sh` script is located.
+
+3. Modify the permissions of the `pythonize.sh` script using the following command:
+   ```bash
+   chmod u+rwx pythonize.sh
+   ```
+4. Run the pythonize.sh script to perform the conversion:
+  ```bash
+  ./pythonize.sh
+  ```
+This script will automatically insert the molecular coordinates into the Python structure according to the template.
+
+## Testing
+
+To test the utility, execute the pythonize.sh script. It will create a Python file (e.g., example.py) with the Python structure derived from the template.py file and the coordinates from the corresponding .xyz file. You can repeat this process for any number of .xyz files you need to convert.
