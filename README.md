@@ -28,7 +28,7 @@ Add to your ```.bashrc``` file:
 ```
 export PYTHONPATH=~/ESIpy/ESIpy:$PYTHONPATH (or the directory where it is located)
 ```
-For a more detailed installation guide, please check PySCF's webpage at [PySCF's installation guide(https://pyscf.org/install.html)].
+For a more detailed installation guide, please check PySCF's webpage at [PySCF's installation guide](https://pyscf.org/install.html).
 
 # Further implementations
 - Function: Aromaticity from a Smo file (without mol or mf).
