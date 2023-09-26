@@ -1,5 +1,5 @@
 # ESIpy
-The ESIpy program is aimed to the calculation of population analysis and aromaticity indicators from different Hilbert space partitions using the PySCF. At the moment only single-determinant wavefunctions for restricted and unrestricted calculations can be computed. The atomic partitions supported from the program are Mulliken, Löwdin, meta-Löwdin, Natural Atomic Orbitals (NAO) and Intrinsic Atomic Orbitals (IAO). The ESIpy respository contains the esi.py main code as well as several example scripts. Due to a bug in NAO's symmetry-averaged density matrix (Issue #1755), NAOs need to be used from ```esinao.py``` in the same manner.
+The ESIpy program is aimed to the calculation of population analysis and aromaticity indicators from different Hilbert space partitions using the PySCF modules. The program supports both restricted and unrestricted calculations for single-determinant wave functions and restricted for correlated wavefunctions. The atomic partitions supported from the program are Mulliken, Löwdin, meta-Löwdin, Natural Atomic Orbitals (NAO) and Intrinsic Atomic Orbitals (IAO). The ESIpy respository contains the esi.py main code as well as several example scripts. Due to a bug in NAO's symmetry-averaged density matrix (Issue #1755), NAOs need to be used from ```esinao.py``` in the same manner.
 
 # Features
 - make_aoms(mol, mf, calc): From PySCF's 'mol' and 'mf' objects and 'calc' as a string containing the desired partition ('mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'), generate a list of matrices containing the Atomic Overlap Matrices (AOMs).
@@ -16,7 +16,7 @@ conda create --name pyscf_env python=3.9
 and install PySCF as:
 ```
 conda activate pyscf_env
-pip install pyscf
+conda install -c pyscf_env pyscf
 ```
 To install ESIpy in your local working stations:
 ```
@@ -28,9 +28,9 @@ Add to your ```.bashrc``` file:
 ```
 export PYTHONPATH=~/ESIpy/ESIpy:$PYTHONPATH (or the directory where it is located)
 ```
+For a more detailed installation guide, please check PySCF's webpage at [PySCF's installation guide(https://pyscf.org/install.html)].
 
 # Further implementations
-- Adaptation: Correlated calculations.
 - Function: Aromaticity from a Smo file (without mol or mf).
 - Function: Aproximations for the MCI calculation in large systems.
 - Utility: Compute the exact MCI for n=14 from precomputed permutations.
