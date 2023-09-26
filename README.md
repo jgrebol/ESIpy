@@ -7,7 +7,7 @@ The ESIpy program is aimed to the calculation of population analysis and aromati
 
 ## Utilities
 - write_int(mol, mf, molname, Smo, ring, None): Writes the AOMs as an input for Dr. Matito's ESI-3D code. The atomic files are stored in a directory, as well as a general input for the program ('molname'.bad). The ring variable is not mandatory but recommended.
-- XYZ to Python conversion: By running a Bash script on a variety of files containing exclusively molecular geometries, automatically prepare the necessary Python files. For further information see the [from_template](./from_template) directory.
+- XYZ to Python conversion: By running a Bash script on a variety of files containing exclusively molecular geometries, automatically prepare the necessary Python files. For further information see the [from_template](./scripts/from_template) directory.
 
 # Installation
 To install PySCF it is recommended to create a conda environment as follows:
