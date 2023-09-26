@@ -1,12 +1,13 @@
 # ESIpy
 The ESIpy program is aimed to the calculation of population analysis and aromaticity indicators from different Hilbert space partitions using the PySCF modules. The program supports both restricted and unrestricted calculations for single-determinant wave functions and restricted for correlated wavefunctions. The atomic partitions supported from the program are Mulliken, Löwdin, meta-Löwdin, Natural Atomic Orbitals (NAO) and Intrinsic Atomic Orbitals (IAO). The ESIpy respository contains the esi.py main code as well as several example scripts. Due to a bug in NAO's symmetry-averaged density matrix (Issue #1755), NAOs need to be used from ```esinao.py``` in the same manner.
 
-# Features
+## Features
 - make_aoms(mol, mf, calc): From PySCF's 'mol' and 'mf' objects and 'calc' as a string containing the desired partition ('mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'), generate a list of matrices containing the Atomic Overlap Matrices (AOMs).
 - aromaticity(mol, mf, Smo, ring, calc, mci, av1245, num_threads): Compute population analyses, delocalization analyses and aromaticity indicators from the AOMs (variable Smo). The variable 'ring' is either a list or a list of lists containing the indices of the atoms for the aromaticity calculations. 'mci' and 'av1245' are boolean variables to compute the MCI and AV1425 indices, respectively. Multi-core processing for the MCI calculation is supported, albeit the speed-up is non-linear.
 
-# Utilities
+## Utilities
 - write_int(mol, mf, molname, Smo, ring, None): Writes the AOMs as an input for Dr. Matito's ESI-3D code. The atomic files are stored in a directory, as well as a general input for the program ('molname'.bad). The ring variable is not mandatory but recommended.
+- XYZ to Python conversion: By running a Bash script on a variety of files containing exclusively molecular geometries, automatically prepare the necessary Python files. For further information see the [from_template](./from_template) directory.
 
 # Installation
 To install PySCF it is recommended to create a conda environment as follows:
