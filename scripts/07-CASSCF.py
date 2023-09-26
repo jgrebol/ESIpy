@@ -2,7 +2,7 @@ import esi
 from pyscf import gto, scf, lib, mcscf
 import numpy as np
 
-molname = 'benzene_casscf'
+molname = '07-CASSCF'
 
 mol=gto.Mole()
 mol.atom='''
