@@ -1,7 +1,7 @@
 import esi 
 from pyscf import gto, dft
 
-molname = '01-RKS'
+molname = 'benzene'
 
 mol=gto.Mole()
 mol.atom='''
@@ -33,7 +33,7 @@ mf.kernel()
 ring = [7,3,1,2,6,10]
 calc = 'meta_lowdin'
 
-Smo = esi.make_aom(mol,mf,calc=calc)
+Smo = esi.make_aoms(mol,mf,calc=calc)
 esi.aromaticity(mol, mf, Smo, ring, calc=calc, mci=True, av1245=True, num_threads=1)
 
 

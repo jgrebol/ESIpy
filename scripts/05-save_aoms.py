@@ -1,5 +1,6 @@
 import esi 
 from pyscf import gto, dft
+import numpy as np
 
 molname = 'benzene'
 
@@ -26,7 +27,7 @@ mol.verbose = 0
 mol.max_memory = 4000
 mol.build()
 
-mf = dft.UKS(mol)
+mf = dft.RKS(mol)
 mf.xc = 'B3LYP'
 mf.kernel()
 
@@ -36,4 +37,6 @@ calc = 'meta_lowdin'
 Smo = esi.make_aoms(mol,mf,calc=calc)
 esi.aromaticity(mol, mf, Smo, ring, calc=calc, mci=True, av1245=True, num_threads=1)
 
+with open('benzene.npy', 'wb') as f:
+   np.save(f, Smo) # Saving in a binary file the AOMs
 

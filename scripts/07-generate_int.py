@@ -1,7 +1,7 @@
-import esi 
-from pyscf import gto, dft
+import esi_v0 
+from pyscf import gto, scf
 
-molname = 'benzene'
+molname = 'test'
 
 mol=gto.Mole()
 mol.atom='''
@@ -21,19 +21,19 @@ mol.atom='''
 mol.basis = 'sto-3g'
 mol.spin = 0
 mol.charge = 0
+#mol.cart= True
 mol.symmetry = False
 mol.verbose = 0
 mol.max_memory = 4000
 mol.build()
 
-mf = dft.UKS(mol)
-mf.xc = 'B3LYP'
+mf = scf.RHF(mol)
 mf.kernel()
 
 ring = [7,3,1,2,6,10]
 calc = 'meta_lowdin'
 
-Smo = esi.make_aoms(mol,mf,calc=calc)
-esi.aromaticity(mol, mf, Smo, ring, calc=calc, mci=True, av1245=True, num_threads=1)
+Smo = esi_v0.make_aoms(mol,mf,calc=calc)
+esi_v0.write_int(mol, mf, molname, Smo, ring, calc=calc)
 
 
