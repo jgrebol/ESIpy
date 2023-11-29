@@ -90,7 +90,7 @@ def aromaticity_from_aoms(Smo, rings, calc=None, wf=None, mci=False, av1245=Fals
    print(' ** Localization & Delocalization Indices **  ')
    print(' ** For Hilbert Space Atomic Partitioning **  ')
    print(' -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ')
-   print('  Application to Aromaticity Calculations\n  Joan Grebol\n  See manual.pdf for citation of this program.')
+   print('  Application to Aromaticity Calculations\n  Joan Grebol')
    print(' -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ')
    print(' Number of Atoms:          {}'.format(np.shape(Smo)[1]))
 
