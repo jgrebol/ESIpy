@@ -8,7 +8,7 @@ The ESIpy program is aimed to the calculation of population analysis and aromati
 - Sole functions to compute each of the aromaticity indicators (Iring, MCI, AV1245 and PDI, see scripts/08-separate_indicators.py).
 
 ## Utilities
-- write_int(mol, mf, molname, Smo, ring, None): Writes the AOMs as an input for Dr. Eduard Matito's ESI-3D code. The atomic files are stored in a self-created directory, as well as a general input for the program ('molname'.bad). The ring variable is not mandatory but recommended.
+- write_int(mol, mf, molname, Smo, ring, None): Writes the AOMs as an input for Dr. Eduard Matito's ESI-3D code (see scripts/07-generate_int.py). The atomic files are stored in a self-created directory, as well as a general input for the program ('molname'.bad). The ring variable is not mandatory but recommended.
 
 # Installation
 To install PySCF it is recommended to create a conda environment as follows:
