@@ -10,7 +10,13 @@ The ESIpy program is aimed to the calculation of population analysis and aromati
 ## Utilities
 - write_int(mol, mf, molname, Smo, ring, None): Writes the AOMs as an input for Dr. Eduard Matito's ESI-3D code (see scripts/07-generate_int.py). The atomic files are stored in a self-created directory, as well as a general input for the program ('molname'.bad). The ring variable is not mandatory but recommended.
 
-# Installation
+## Theoretical background
+
+For single-determinant wave functions, the electron density can be expressed in terms of the exchange correlation potential as:
+
+$\rho_{xc}=\int\rho$
+
+## Installation
 To install PySCF it is recommended to create a conda environment as follows:
 ```
 conda create --name pyscf_env python=3.9
