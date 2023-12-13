@@ -48,7 +48,7 @@ To install ESIpy in your local working stations:
 ```
 mkdir ~/ESIpy
 cd ~/ESIpy
-git clone git@github.com:jgrebol/ESIpy.git
+git clone https://github.com/jgrebol/ESIpy.git
 ```
 Add to your ```.bashrc``` file:
 ```
