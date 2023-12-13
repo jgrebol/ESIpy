@@ -5,11 +5,11 @@ The ESIpy program is aimed to the calculation of population analysis and aromati
 
 In order to obtain information of the atomic contributions in a given chemical system (for instance atomic populations and electron sharing indices) it is crucial to define an atom in a molecule (AIM). The ESI-3D code developed by Dr. Eduard Matito mainly used QTAIM as the AIM for the calculations. However, in this program we propose the usage of Hilbert-space schemes (Mulliken, Löwdin, Meta-Löwdin, NAO and IAO) available in the PySCF framework as the partition of the system. QTAIM relies on numerical integrations, so the error accumulation in large systems becomes unviable. This newer approach, however,  does not require numerical integration, but rather relies on the separation of the molecule into each of the atomic basis functions, leading to an exact partition of the system. The most fundamental magnitude is the **Atomic Overlap Matrix (AOM, \boldsymbol{S}^{\text{A}}$) in the Molecular Orbitals (MO, $\boldsymbol{\phi}$) basis**, with elements
 
-$ S_{ij}^\text{A} = \int_{\Omega_\text{A}}\phi_i^*(\textbf{r})\phi_j(\textbf{r})\text{d}\textbf{r}.$
+$S_{ij}^\text{A} = \int_{\Omega_\text{A}}\phi_i^*(\textbf{r})\phi_j(\textbf{r})\text{d}\textbf{r}.$
 
 The average number of electrons in a given atom can be expressed in terms of the atomic overlap matrix as
 
-N_{\text{A}} = \sum_{\nu\in\text{A}}^\text{M}\sum_\mu^\text{M} P_{\nu\mu}S_{\mu\nu}^\text{AO} = \sum^\text{M}_{\nu\in\text{A}}(PS^\text{AO})_{\nu\nu},
+$N_{\text{A}} = \sum_{\nu\in\text{A}}^\text{M}\sum_\mu^\text{M} P_{\nu\mu}S_{\mu\nu}^\text{AO} = \sum^\text{M}_{\nu\in\text{A}}(PS^\text{AO})_{\nu\nu},$
 
 where we can introduce the elements of the P-matrix, $P_{\nu\mu} = 2\sum_i^{nocc}c_{\nu i}c^+_{i\mu}$, and the overlap matrix in the Atomic Orbitals (AO) basis, $S_{\mu\nu}^\text{AO} = \int \chi_\mu^*(\textbf{r}){\chi_\nu}(\textbf{r}) d\textbf{r}$. In Mulliken's approach, one can only take into account those atomic basis functions belonging to the specific atom.
 
