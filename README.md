@@ -15,7 +15,7 @@ where we can introduce the elements of the P-matrix, $P_{\nu\mu}=2\sum_i^{nocc}c
 
 Moreover, the Delocalization Index (DI, $\delta$), which measures the average number of electrons between two atoms A and B, as
 
-$$\delta(\text{A,B})=\sum^\text{M}_{\mu\in\text{A}}\sum^\text{M}_{\nu\in\text{B}}(PS^\text{AO})_{\nu\mu}(PS^\text{AO})_{\mu\nu}.$$
+$$\delta(\text{A,B}) = \sum^\text{M}_{\mu\in\text{A}}\sum^\text{M}_{\nu\in\text{B}}(PS^\text{AO})_{\nu\mu}(PS^\text{AO})_{\mu\nu}.$$
 
 In order to mimick the expression of the AOM as that of QTAIM, one can introduce a new auxiliary matrix, $\boldsymbol{\eta}^{\text{A}}$, which is a bock-truncated unit matrix with all elements being zero except {$\eta_{\mu\mu}^\text{A}=1$. Hence, the general expression for Mulliken's approach is the following:
 
