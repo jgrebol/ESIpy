@@ -5,6 +5,51 @@ from functools import reduce, lru_cache
 
 def aromaticity(mol, mf, Smo, rings, calc=None, mci=False, av1245=False, num_threads=None):
    
+   '''Population analysis, localization and delocalization indices and aromaticity indicators.
+
+   Args:
+      mol: an instance of SCF class
+         Mole class and helper functions to handle parameters and attributes for GTO integrals.
+
+      mf: an instance of SCF class      
+         mf object holds all parameters to control SCF.  One can modify its
+               member functions to change the behavior of SCF.  The member
+               functions which are called in kernel are
+
+               | mf.get_init_guess
+               | mf.get_hcore
+               | mf.get_ovlp
+               | mf.get_veff
+               | mf.get_fock
+               | mf.get_grad
+               | mf.eig
+               | mf.get_occ
+               | mf.make_rdm1
+               | mf.energy_tot
+               | mf.dump_chk
+
+      Smo: list of matrices
+         Atomic Overlap Matrices (AOMs) in the MO basis generated from the make_aoms() function.
+
+      rings: list
+         Contains a list of the indices of the atoms in the ring connectivity for the aromaticity calculations.
+
+      calc: string
+         Type of desired atom in molecule. Options are 'mulliken', lowdin', 'meta_lowdin', 'nao' and 'iao'.
+
+
+   Kwargs:
+      mci: boolean
+         Whether to compute the MCI index.
+
+      av1245: boolean
+         Whether to compute the AV1245 and AVmin indices.
+
+      num_threads: integer
+         To set the number of threads for the calculation. If not specified, ESIpy will take 1.
+      
+   '''
+   
    symbols = [mol.atom_symbol(i) for i in range(mol.natm)]
    atom_numbers = [i + 1 for i in range(mol.natm)]
 
