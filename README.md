@@ -61,7 +61,7 @@ where if $i>n$ $\text{A}&#95;i$ should be replaced by $\text{A}_{i-n}$. In addit
 ## Features
 - ``make_aoms(mol, mf, calc)``: From PySCF's `mol` and `mf` objects and `calc` as a string containing the desired partition (`mulliken`, `lowdin`, `meta_lowdin`, `nao`, `iao`), generate a list of matrices containing the Atomic Overlap Matrices (AOMs).
 - `aromaticity(mol, mf, Smo, ring, calc, mci, av1245, num_threads)`: Compute population analyses, delocalization analyses and aromaticity indicators from the AOMs (variable Smo). The variable `ring` is either a list or a list of lists containing the indices of the atoms for the aromaticity calculations. `mci` and `av1245` are boolean variables to compute the MCI and AV1425 indices, respectively. Multi-core processing for the MCI calculation is supported, albeit the speed-up is non-linear.
-- `aromaticity_from_aoms(Smo, ring, calc, wf, mci, av1245, num_threads)`: Compute the aromaticity indicators from the AOMs previously loaded in disk (see `scripts/05-save_aoms.py` and `scripts/06-load_aoms.py`).
+- `aromaticity_from_aoms(Smo, ring, calc, wf, mci, av1245, num_threads)`: Compute the aromaticity indicators from the AOMs previously saved in disk (see `scripts/05-save_aoms.py` and `scripts/06-load_aoms.py`).
 - Sole functions to compute each of the aromaticity indicators (Iring, MCI, AV1245 and PDI, see `scripts/08-separate_indicators.py`).
 
 ## Utilities
