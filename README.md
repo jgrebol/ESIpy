@@ -11,7 +11,7 @@ The average number of electrons in a given atom can be expressed in terms of the
 
 $$N_{\text{A}} = \sum_{\nu\in\text{A}}^\text{M} \sum_\mu^\text{M} P_{\nu\mu}S_{\mu\nu}^\text{AO} = \sum_{\nu\in\text{A}}^\text{M} (PS^\text{AO})_{\nu\nu}$$
 
-where we can introduce the elements of the P-matrix, $P_{\nu\mu} = $ $2\sum_{i}^{nocc} c_{\nu i} c_{i\mu}^+$, and the overlap matrix in the Atomic Orbitals (AO) basis, $S_{\mu\nu}^\text{AO}=\int\chi_\mu^{*}(\textbf{r}){\chi_\nu}(\textbf{r})d\textbf{r}$. In Mulliken's approach, one can only take into account those atomic basis functions belonging to the specific atom.
+where we can introduce the elements of the P-matrix, $P_{\nu\mu} = 2\sum_{i}^{nocc} c_{\nu i} c_{i\mu}^+$, and the overlap matrix in the Atomic Orbitals (AO) basis, $S_{\mu\nu}^\text{AO}=\int\chi_\mu^{*}(\textbf{r}){\chi_\nu}(\textbf{r})d\textbf{r}$. In Mulliken's approach, one can only take into account those atomic basis functions belonging to the specific atom.
 
 Moreover, the Delocalization Index (DI, $\delta$), which measures the average number of electrons between two atoms A and B, as
 
@@ -31,11 +31,11 @@ The ESI present in this program all rely on the atomic overlap matrices. The fol
 
 Fulton reported that the delocalization indices in a given aromatic 6-membered ring in _para_ position was larger than that in _meta_ position. From that idea, Poater and coworkers proposed to average the DIs in para position in a 6-membered ring, so the **para-delocalization index (PDI)**:
 
-$$\text{PDI}(\mathscr{A}) = \frac{\delta_{\text{A}_1\text{A}_4}+\delta_{\text{A}_2\text{A}_5}+\delta_{\text{A}_3\text{A}_6}}{3},$$
+$$\text{PDI}(\mathscr{A}) = \frac{\Delta_{\text{A}_1\text{A}_4}+\Delta_{\text{A}_2\text{A}_5}+\Delta_{\text{A}_3\text{A}_6}}{3},$$
 
 A larger PDI value indicates more aromatic character. The index can only be calculated for rings of $n=6$, so it will not be computed for rings of different sizes.
 
-## I~ring~
+## I<sub>ring<\sub>
 Giambiagi and coworkers proposed to express an index in terms of the generalized bond order in all the ring. That is, to account for the delocalization along the ring, following the specified connectivity:
 
 $$\text{I\textsubscript{ring}}(\mathscr{A}) = 2^{n}\sum_{i_1,i_2...i_n} S_{i_1i_2}^\text{A$_1$}S_{i_2i_3}^\text{A$_2$} \cdot \cdot \cdot S_{i_ni_1}^\text{A$_n$}.$$
