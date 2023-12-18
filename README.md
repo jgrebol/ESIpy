@@ -25,7 +25,7 @@ The resulting matrix is non-symmetric due to the underlying AO basis being non-o
 
 $$\boldsymbol{S}^\text{A,X}=\boldsymbol{c}^{+}({\boldsymbol{U}}^{-1})^{+}\boldsymbol{\eta}^\text{A}\boldsymbol{U}^{-1}\boldsymbol{c}.$$
 
-The ESI present in this program all rely on the atomic overlap matrices. The following aromaticity indicators will be expressed in terms of the ring connectivities $\mathscr{A}=\{\text{A}_1, \text{A}_2, \cdot\cdot\cdot, \text{A}_n\}$, which represent the indices of the atoms as expressed in the \texttt{mol} object.
+The ESI present in this program all rely on the atomic overlap matrices. The following aromaticity indicators will be expressed in terms of the ring connectivities $\mathscr{A}=\{\text{A}_1, \text{A}_2, \cdot\cdot\cdot, \text{A}_n\}$, which represent the indices of the atoms as expressed in the `mol` object.
 
 ## Para-delocalization index (PDI)
 
@@ -38,7 +38,7 @@ A larger PDI value indicates more aromatic character. The index can only be calc
 ## I<sub>ring</sub>
 Giambiagi and coworkers proposed to express an index in terms of the generalized bond order in all the ring. That is, to account for the delocalization along the ring, following the specified connectivity:
 
-$$\text{I\textsubscript{ring}}(\mathscr{A}) = 2^{n}\sum&#95;{i&#95;1,i&#95;2...i&#95;n} S&#95;{i_1i_2}^\text{A&#95;1$}S&#95;{i&#95;2i&#95;3}^\text{A$&#95;2$} \cdot \cdot \cdot S&#95;{i&#95;ni&#95;1}^\text{A$&#95;n$}.$$
+$$\text{I\textsubscript{ring}}(\mathscr{A}) = 2^{n}\sum&#95;{i&#95;1,i&#95;2...i&#95;n} S&#95;{i&#95;1i&#95;2}^\text{A&#95;1}S&#95;{i&#95;2i&#95;3}^\text{A$&#95;2$} \cdot \cdot \cdot S&#95;{i&#95;ni&#95;1}^\text{A$&#95;n$}.$$
 
 This index relies on the multicenter character of a molecule. A larger I<sub>ring</sub> value indicates larger aromaticity along the ring.
 
