@@ -83,7 +83,7 @@ mkdir ~/ESIpy
 cd ~/ESIpy
 git clone https://github.com/jgrebol/ESIpy.git
 ```
-Add to your ```.bashrc``` file:
+Make sure to have previously installed `git` with `sudo apt install git`. Add to your ```.bashrc``` file:
 ```
 export PYTHONPATH=~/ESIpy/ESIpy:$PYTHONPATH (or the directory where it is located)
 ```
