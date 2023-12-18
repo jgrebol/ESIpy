@@ -31,14 +31,14 @@ The ESI present in this program all rely on the atomic overlap matrices. The fol
 
 Fulton reported that the delocalization indices in a given aromatic 6-membered ring in _para_ position was larger than that in _meta_ position. From that idea, Poater and coworkers proposed to average the DIs in para position in a 6-membered ring, so the **para-delocalization index (PDI)**:
 
-$$\text{PDI}(\mathscr{A}) = \frac{\Delta_{\text{A}_1\text{A}_4}+\Delta_{\text{A}_2\text{A}_5}+\Delta_{\text{A}_3\text{A}_6}}{3},$$
+$$\text{PDI}(\mathscr{A}) = \frac{\delta&#95;{\text{A}&#95;1\text{A}&#95;4}+\delta&#95;{\text{A}&#95;2\text{A}&#95;5}+\delta&#95;{\text{A}&#95;3\text{A}&#95;6}}{3},$$
 
 A larger PDI value indicates more aromatic character. The index can only be calculated for rings of $n=6$, so it will not be computed for rings of different sizes.
 
 ## I<sub>ring</sub>
 Giambiagi and coworkers proposed to express an index in terms of the generalized bond order in all the ring. That is, to account for the delocalization along the ring, following the specified connectivity:
 
-$$\text{I\textsubscript{ring}}(\mathscr{A}) = 2^{n}\sum_{i_1,i_2...i_n} S_{i_1i_2}^\text{A$_1$}S_{i_2i_3}^\text{A$_2$} \cdot \cdot \cdot S_{i_ni_1}^\text{A$_n$}.$$
+$$\text{I\textsubscript{ring}}(\mathscr{A}) = 2^{n}\sum&#95;{i&#95;1,i&#95;2...i&#95;n} S&#95;{i_1i_2}^\text{A&#95;1$}S&#95;{i&#95;2i&#95;3}^\text{A$&#95;2$} \cdot \cdot \cdot S&#95;{i&#95;ni&#95;1}^\text{A$&#95;n$}.$$
 
 This index relies on the multicenter character of a molecule. A larger I<sub>ring</sub> value indicates larger aromaticity along the ring.
 
