@@ -38,7 +38,7 @@ A larger PDI value indicates more aromatic character. The index can only be calc
 ## I<sub>ring</sub>
 Giambiagi and coworkers proposed to express an index in terms of the generalized bond order in all the ring. That is, to account for the delocalization along the ring, following the specified connectivity:
 
-$$\text{I}_{\text{ring}}(\mathscr{A}) = 2^{n} \sum_{i_1,i_2\ldots i_n} S_{i_1i_2}^\text{A\textsubscript{1}}S_{i_2i_3}^\text{A\textsubscript{2}} \cdot \cdot \cdot S_{i_ni_1}^\text{A\textsubscript{n}}$$.
+$$\text{I}_{\text{ring}}(\mathscr{A}) = 2^{n} \sum_{i_1,i_2\ldots i_n} S_{i_1i_2}^{\text{A}_{1}}S_{i_2i_3}^{\text{A}_{2}} \cdot \cdot \cdot S_{i_ni_1}^{\text{A}_{n}}$$
 
 This index relies on the multicenter character of a molecule. A larger I<sub>ring</sub> value indicates larger aromaticity along the ring.
 
