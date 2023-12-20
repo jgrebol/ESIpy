@@ -11,7 +11,7 @@ The average number of electrons in a given atom can be expressed in terms of the
 
 $$N_{\text{A}} = \sum_{\nu\in\text{A}}^\text{M} \sum_\mu^\text{M} P_{\nu\mu}S_{\mu\nu}^\text{AO} = \sum_{\nu\in\text{A}}^\text{M} (PS^\text{AO})_{\nu\nu}$$
 
-where we can introduce the elements of the P-matrix, $P_{\nu\mu} = 2\sum_{i}^{nocc} c_{\nu i} c_{i\mu}^+$, and the overlap matrix in the Atomic Orbitals (AO) basis, $S_{\mu\nu}^\text{AO}=\int\chi_\mu^{*}(\textbf{r}){\chi_\nu}(\textbf{r})d\textbf{r}$. In Mulliken's approach, one can only take into account those atomic basis functions belonging to the specific atom.
+where we can introduce the elements of the P-matrix, $P_{\nu\mu} = 2 \sum &#95;{i} ^{nocc} c_{\nu i} c_{i\mu}^+$, and the overlap matrix in the Atomic Orbitals (AO) basis, $S_{\mu\nu}^\text{AO}=\int\chi_\mu^{*}(\textbf{r}){\chi_\nu}(\textbf{r})d\textbf{r}$. In Mulliken's approach, one can only take into account those atomic basis functions belonging to the specific atom.
 
 Moreover, the Delocalization Index (DI, $\delta$), which measures the average number of electrons between two atoms A and B, as
 
