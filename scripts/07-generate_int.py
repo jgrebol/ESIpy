@@ -1,4 +1,4 @@
-import esi_v0 
+import esi
 from pyscf import gto, scf
 
 molname = 'test'
@@ -33,7 +33,7 @@ mf.kernel()
 ring = [7,3,1,2,6,10]
 calc = 'meta_lowdin'
 
-Smo = esi_v0.make_aoms(mol,mf,calc=calc)
-esi_v0.write_int(mol, mf, molname, Smo, ring, calc=calc)
+Smo = esi.make_aoms(mol,mf,calc=calc)
+esi.write_int(mol, mf, molname, Smo, ring, calc=calc)
 
 
