@@ -1,5 +1,5 @@
 # ESIpy
-The ESIpy program is aimed at the calculation of population analysis and aromaticity indicators from different Hilbert space partitions using the PySCF module. The program supports both restricted and unrestricted calculations for single-determinant wave functions. The atomic partitions supported from the program are Mulliken, Löwdin, meta-Löwdin, Natural Atomic Orbitals (NAO) and Intrinsic Atomic Orbitals (IAO). The ESIpy respository contains the esi.py main code as well as several example scripts. 
+The ESIpy program is aimed at the calculation of population analysis and aromaticity indicators from different Hilbert-space partitions using the PySCF module. The program supports both restricted and unrestricted calculations for single-determinant wave functions. The atomic partitions supported from the program are Mulliken, Löwdin, meta-Löwdin, Natural Atomic Orbitals (NAO) and Intrinsic Atomic Orbitals (IAO). The ESIpy respository contains the esi.py main code as well as several example scripts. 
 
 ## Theoretical background
 
@@ -29,7 +29,7 @@ $$\boldsymbol{S}^\text{A,X}=\boldsymbol{c}^{+}({\boldsymbol{U}}^{-1})^{+}\boldsy
 
 ### Electron-Sharing Indices 
 
-The ESI present in this program all rely on the atomic overlap matrices. The following aromaticity indicators will be expressed in terms of the ring connectivities $\mathscr{A}=\{\text{A}_1, \text{A}_2, \cdot\cdot\cdot, \text{A}_n\}$, which represent the indices of the atoms as expressed in the `mol` object.
+The ESI present in this program rely on the atomic overlap matrices. The following aromaticity indicators will be expressed in terms of the ring connectivities $\mathscr{A}=\{\text{A}_1, \text{A}_2, \cdot\cdot\cdot, \text{A}_n\}$, which represent the indices of the atoms as expressed in the `mol` object.
 
 #### Para-delocalization index (PDI)
 
@@ -95,5 +95,5 @@ For a more detailed installation guide, please check [PySCF's installation guide
 
 # Further work
 - Function: Implementation for correlated wave functions.
-- Function: Aproximations for the MCI calculation in large systems.
+- Function: Approximations for the MCI calculation in large systems.
 - Utility: Compute the exact MCI for n=14 from precomputed permutations.
