@@ -2098,20 +2098,32 @@ def write_int(mol, mf, molname, Smo, ring=None, calc=None):
 
             if wf == "unrest":
                 f.write("\n The Atomic Overlap Matrix:\n\nUnrestricted\n\n")
-                f.write(
-                    "\n".join(
-                        [
-                            "  ".join(
-                                [
-                                    "{:.16E}".format(Smos[i][j][k]) if j >= k else ""
-                                    for k in range(len(Smos[i][j]))
-                                ]
-                            )
-                            for j in range(len(Smos[i]))
-                        ]
+                if calc == "mulliken":
+                    f.write(
+                        "  \n".join(
+                            [
+                                "  ".join(["{:.16E}".format(num, 16) for num in row])
+                                for row in Smos[i]
+                            ]
+                        )
+                        + "\n"
                     )
-                    + "\n"
-                )
+                else:
+                    f.write("\n The Atomic Overlap Matrix:\n\nUnrestricted\n\n")
+                    f.write(
+                        "\n".join(
+                            [
+                                "  ".join(
+                                    [
+                                        "{:.16E}".format(Smos[i][j][k]) if j >= k else ""
+                                        for k in range(len(Smos[i][j]))
+                                    ]
+                                )
+                                for j in range(len(Smos[i]))
+                            ]
+                        )
+                        + "\n"
+                    )
 
             else:
                 f.write(
