@@ -98,15 +98,15 @@ To run the code from terminal, generate the Python script or adapt those of the 
 # Variable scope
 
 -```mol```: From PySCF's module. Provides information about the molecule and the basis set employed for the calculation.
- ```mf```: From PySCF's module. Provides information about the type of calculation performed.
- ```calc```: String. Sets the type of partition of the system
- ```molname```: String. Sets the name of the molecule for the generation of the ```.int``` files.
- ```wf```: String. Sets the type of wave function for ```aromaticity_from_aoms()```.
- ```Smo```: List of matrices. Contains each of the AOMs. Generated from the ```make_aoms()``` function.
- ```ring```: List (or list of lists). Contains the indices for the definition of the ring required for the calculation of aromaticity indicators.
- ```mci```: Boolean (True or False): Sets whether the MCI is desired to be computed.
- ```av1245```: Boolean (True or False): Sets whether the AV1245 (and AVmin) are desired to be computed.
- ```num_threads```: Integer. Sets the number of cores desired for the calculation of the MCI.
+-```mf```: From PySCF's module. Provides information about the type of calculation performed.
+-```calc```: String. Sets the type of partition of the system
+-```molname```: String. Sets the name of the molecule for the generation of the ```.int``` files.
+-```wf```: String. Sets the type of wave function for ```aromaticity_from_aoms()```.
+-```Smo```: List of matrices. Contains each of the AOMs. Generated from the ```make_aoms()``` function.
+-```ring```: List (or list of lists). Contains the indices for the definition of the ring required for the calculation of aromaticity indicators.
+-```mci```: Boolean (True or False): Sets whether the MCI is desired to be computed.
+-```av1245```: Boolean (True or False): Sets whether the AV1245 (and AVmin) are desired to be computed.
+-```num_threads```: Integer. Sets the number of cores desired for the calculation of the MCI.
 
 # Further work
 - Function: Implementation for correlated wave functions.
