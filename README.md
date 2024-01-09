@@ -58,7 +58,7 @@ As well as the previous indices, a larger MCI value denotes more aromatic charac
 
 When using QTAIM as the atomic partition, the numerical integration error made the multicenter indices in large rings non-viable. Matito proposed an index that contained the multicenter character as those of I<sub>ring</sub> and MCI, but without the size-extensivity problem. Therefore, he suggested to *average all the 4c-MCI values along the ring that keep the positional relationship of 1,2,4,5*, so designing the new index AV1245[12] as follows:
 
-$$\text{AV1245}(\mathcal{A}) = \frac{1000}{3} \sum_{i=1}^n\text{MCI}(\{\text{A}&#95;i, \text{A}&#95;{i+1}, \text{A}&#95;{i+3}, \text{A}&#95;{i+4}\})$$
+$$\text{AV1245}(\mathscr{A}) = \frac{1000}{3} \sum_{i=1}^n\text{MCI}(\{\text{A}&#95;i, \text{A}&#95;{i+1}, \text{A}&#95;{i+3}, \text{A}&#95;{i+4}\})$$
 
 where if $i>n$ $\text{A}&#95;i$ should be replaced by $\text{A}_{i-n}$. In addition, Matito defined the AV~min~ index as the minimum (absolute) value of all the 4-MR MCI indices that enter the AV1245 expression. A higher AV1245 value indicates more aromaticity in the system, and the index can not be computed for rings smaller than 6 centers.
 
