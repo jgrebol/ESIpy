@@ -60,7 +60,7 @@ When using QTAIM as the atomic partition, the numerical integration error made t
 
 $$\text{AV1245}(\mathscr{A}) = \frac{1000}{3} \sum_{i=1}^n\text{MCI}(\{\text{A}&#95;i, \text{A}&#95;{i+1}, \text{A}&#95;{i+3}, \text{A}&#95;{i+4}\})$$
 
-where if $i>n$ $\text{A}&#95;i$ should be replaced by $\text{A}_{i-n}$. In addition, Matito defined the AV~min~ index as the minimum (absolute) value of all the 4-MR MCI indices that enter the AV1245 expression. A higher AV1245 value indicates more aromaticity in the system, and the index can not be computed for rings smaller than 6 centers.
+where if $i>n$ $\text{A}&#95;i$ should be replaced by $\text{A}_{i-n}$. In addition, Matito defined the AVmin index as the minimum (absolute) value of all the 4-MR MCI indices that enter the AV1245 expression. A higher AV1245 value indicates more aromaticity in the system, and the index can not be computed for rings smaller than 6 centers.
 
 ## Features
 - ``make_aoms(mol, mf, calc)``: From PySCF's `mol` and `mf` objects and `calc` as a string containing the desired partition (`mulliken`, `lowdin`, `meta_lowdin`, `nao`, `iao`), generate a list of matrices containing the Atomic Overlap Matrices (AOMs).
