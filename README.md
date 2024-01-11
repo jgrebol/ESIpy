@@ -104,9 +104,9 @@ To run the code from terminal, generate the Python script or adapt those of the 
 - ```wf```: String. Sets the type of wave function for ```aromaticity_from_aoms()```.
 - ```Smo```: List of matrices. Contains each of the AOMs. Generated from the ```make_aoms()``` function.
 - ```ring```: List (or list of lists). Contains the indices for the definition of the ring required for the calculation of aromaticity indicators.
-- ```mci```: Boolean (True or False): Sets whether the MCI is desired to be computed.
-- ```av1245```: Boolean (True or False): Sets whether the AV1245 (and AVmin) are desired to be computed.
-- ```num_threads```: Integer. Sets the number of cores desired for the calculation of the MCI.
+- ```mci```: Boolean: Sets whether the MCI is desired to be computed. By default, False.
+- ```av1245```: Boolean: Sets whether the AV1245 (and AVmin) are desired to be computed. By default, False.
+- ```num_threads```: Integer. Sets the number of threads desired for the calculation of the MCI. By default, 1.
 
 # Further work
 - Function: Implementation for correlated wave functions.
