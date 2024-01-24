@@ -170,7 +170,7 @@ def aromaticity_from_aoms(
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     print("  Application to Aromaticity Calculations\n  Joan Grebol")
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
-    print(" Number of Atoms:          {}".format(np.shape(Smo)[1]))
+    print(" Number of Atoms:          {}".format(np.shape(Smo)[0]))
 
     # UNRESTRICTED
     if wf == "unrest":
