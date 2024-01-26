@@ -111,6 +111,7 @@ To run the code from terminal, generate the Python script or adapt those of the 
 # Further work
 - Function: Implementation for correlated wave functions.
 - Function: Approximations for the MCI calculation in large systems.
+- Function: Read the AOMs from QTAIM and store them as ESIpy's Smo.
 - Utility: Compute the exact MCI for n=14 from precomputed permutations.
 
 # References
