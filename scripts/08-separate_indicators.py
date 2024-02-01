@@ -49,6 +49,9 @@ print('The AV1245 is', 2 * av1245)
 pdi = esi.compute_pdi(ring, Smo)[0]
 print('The PDI is', 2 * pdi)
 
+#To compute only the delocalization indices and atomic populations for restricted calculations
+esi.deloc_rest(mol, Smo)
+
 
 molname = 'benzene'
 
@@ -102,5 +105,6 @@ pdi_alpha = esi.compute_pdi(ring, Smo[0])[0]
 pdi_beta = esi.compute_pdi(ring, Smo[1])[0]
 print('The PDI is', pdi_alpha + pdi_beta)
 
-
+#To compute only the delocalization indices and atomic populations for unrestricted calculations
+esi.deloc_unrest(mol, Smo)
 
