@@ -31,7 +31,7 @@ mf.xc = 'B3LYP'
 mf.kernel()
 
 ring = [7,3,1,2,6,10]
-calc = 'meta_lowdin'
+calc = 'iao'
 
 Smo = esi.make_aoms(mol,mf,calc=calc)
 esi.aromaticity(mol, mf, Smo, ring, calc=calc, mci=True, av1245=True, num_threads=1)
