@@ -65,7 +65,7 @@ def aromaticity(
 
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     print(" ** Localization & Delocalization Indices **  ")
-    print(" ** For Hilbert Space Atomic Partitioning **  ")
+    print(" ** For Hilbert-Space Atomic Partitioning **  ")
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     print("  Application to Aromaticity Calculations\n  Joan Grebol")
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
