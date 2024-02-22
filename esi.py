@@ -1384,10 +1384,9 @@ def sequential_mci(arr, Smo):
         iring = 0
 
         if n == 1:
-            p = a + [b]
-            product = np.linalg.multi_dot([Smo[i - 1] for i in p])
-            iring = 2 ** (len(arr) - 2) * np.trace(product)
-            mci_value += iring
+            if a[0] < a[-1]:
+                a = a + [b]
+                mci_value += compute_iring(a, Smo)
 
         else:
             for i in range(n - 1):
