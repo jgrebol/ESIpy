@@ -1381,7 +1381,6 @@ def sequential_mci(arr, Smo):
 
     def generate_permutations(n, a, b, Smo):
         nonlocal mci_value
-        iring = 0
 
         if n == 1:
             if a[0] < a[-1]:
