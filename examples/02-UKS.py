@@ -36,7 +36,7 @@ mf = dft.UKS(mol)
 mf.xc = 'B3LYP'
 mf.kernel()
 
-ring = [[1,2,3,4,10,9],[,5,6,7,8,9,10]]
+ring = [[1,2,3,4,10,9],[5,6,7,8,9,10]]
 calc = 'meta_lowdin'
 
 Smo = esi.make_aoms(mol,mf,calc=calc)
