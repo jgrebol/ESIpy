@@ -761,7 +761,7 @@ def arom_rest(mol, Smo, rings, mci=True, av1245=True, num_threads=1):
                             mol.atom_symbol(ring[(j + 3) % len(ring)] - 1),
                             str(ring[(j + 4) % len(ring)]).rjust(2),
                             mol.atom_symbol(ring[(j + 4) % len(ring)] - 1),
-                            avs[2][(ring[j] - 1) % len(ring)],
+                            2 * avs[2][(ring[j] - 1) % len(ring)],
                         )
                     )
                 print(
