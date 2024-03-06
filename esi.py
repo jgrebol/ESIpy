@@ -1439,16 +1439,32 @@ def multiprocessing_mci(arr, Smo, num_threads):
             permutations(lst), factorial(len(lst) - 1) - factorial(len(lst) - 2)
         )
 
+    def chunks(iterable, size):
+        from itertools import chain, islice
+
+        iterator = iter(iterable)
+        for first in iterator:
+            yield list(chain([first], islice(iterator, size - 1)))
+
     iterable = permutations(arr)
 
     pool = Pool(processes=num_threads)
-    dumb = partial(compute_iring, Smo=Smo)
     chunk_size = 50000
 
     iterable2 = (x for x in iterable if x[0] == arr[0] and x[1] < x[-1])
-    results = pool.imap(dumb, iterable2, chunk_size)
+    chunked_iterable = chunks(iterable2, chunk_size)
+    dumb = partial(compute_mci, Smo=Smo)
+    results = pool.imap(dumb, chunked_iterable)
     trace = sum(results)
     return trace
+
+
+def compute_mci(arr, Smo):
+    mci_chunk = 0
+    for ring in arr:
+        mci_chunk += compute_iring(ring, Smo)
+    return mci_chunk
+
 
 
 
