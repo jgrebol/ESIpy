@@ -1427,19 +1427,29 @@ def multiprocessing_mci(arr, Smo, num_threads):
 
     """
 
-    import multiprocessing as mp
+    from multiprocessing import Pool
+    from math import factorial
     from functools import partial
+    from itertools import permutations, islice
 
-    permutations = unique_permutations(arr)
+    def permutations_without_rotations(lst):
+        from itertools import permutations, islice
 
-    pool = mp.Pool(processes=num_threads)
+        return islice(
+            permutations(lst), factorial(len(lst) - 1) - factorial(len(lst) - 2)
+        )
 
+    iterable = permutations(arr)
+
+    pool = Pool(processes=num_threads)
     dumb = partial(compute_iring, Smo=Smo)
-    results = pool.map(dumb, permutations)
+    chunk_size = 50000
 
+    iterable2 = (x for x in iterable if x[0] == arr[0] and x[1] < x[-1])
+    results = pool.imap(dumb, iterable2, chunk_size)
     trace = sum(results)
-
     return trace
+
 
 
 ########### AV1245 ###########
