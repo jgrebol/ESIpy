@@ -34,7 +34,7 @@ calc = 'nao'
 
 Smo = esi.make_aoms(mol,mf,calc=calc)
 
-# For unrestricted calculations - add the 2* factor for the doubly occupied MOs
+# For restricted calculations - add the 2* factor for the doubly occupied MOs
 print('Doing for restricted calculations')
 
 iring = esi.compute_iring(ring, Smo)
