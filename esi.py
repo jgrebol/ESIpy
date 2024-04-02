@@ -33,7 +33,7 @@ def aromaticity(
           Whether to compute the AV1245 (and AVmin) indies.
 
        num_threads: integer
-          Number of threds required for the calculation.
+          Number of threads required for the calculation.
 
     """
 
@@ -57,7 +57,7 @@ def aromaticity(
         wf = "rest"
 
     else:
-        raise NameError("Only RHF, RKS, UHF and UKS are implemented in the code")
+        raise NameError("Only RHF, RKS, UHF and UKS are implemented in the code.")
 
     ########### PRINTING THE OUTPUT ###########
 
@@ -78,7 +78,7 @@ def aromaticity(
                 int(mf.mo_occ[0].sum()), int(mf.mo_occ[1].sum())
             )
         )
-        print(" Wavefunction type:        uhf")
+        print(" Wavefunction type:        unrest")
 
     # RESTRICTED
     elif wf == "rest":
@@ -87,7 +87,7 @@ def aromaticity(
                 int(mf.mo_occ.sum()), int(mf.mo_occ.sum())
             )
         )
-        print(" Wavefunction type:        hf")
+        print(" Wavefunction type:        rest")
 
     print(" Atomic partition:         {}".format(calc.upper()))
     print(" ------------------------------------------- ")
@@ -130,7 +130,7 @@ def aromaticity_from_aoms(
     Smo, rings, calc=None, wf=None, mci=False, av1245=False, num_threads=None
 ):
     """Population analysis, localization and delocalization indices and aromaticity indicators
-       from previously AOMs stored in disk.
+       from AOMs previously stored in disk.
 
     Arguments:
 
@@ -153,12 +153,12 @@ def aromaticity_from_aoms(
           Whether to compute the AV1245 (and AVmin) indies.
 
        num_threads: integer
-          Number of threds required for the calculation.
+          Number of threads required for the calculation.
 
     """
 
     if wf is None:
-        raise NameError("Please specify the type of wave function: 'rest' or 'unrest'")
+        raise NameError("Please specify the type of wave function: 'rest' or 'unrest'.")
 
     ########### PRINTING THE OUTPUT ###########
 
@@ -166,23 +166,24 @@ def aromaticity_from_aoms(
 
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     print(" ** Localization & Delocalization Indices **  ")
-    print(" ** For Hilbert Space Atomic Partitioning **  ")
+    print(" ** For Hilbert-Space Atomic Partitioning **  ")
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
-    print("  Application to Aromaticity Calculations\n  Joan Grebol")
+    print("  Application to Aromaticity Calculations\n  Joan Grebol-Tomas")
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
-    print(" Number of Atoms:          {}".format(np.shape(Smo[0])[0]))
 
     # UNRESTRICTED
     if wf == "unrest":
+        print(" Number of Atoms:          {}".format(len(Smo[0])))
         print(" Wavefunction type:        uhf")
 
     # RESTRICTED
     if wf == "rest":
+        print(" Number of Atoms:          {}".format(len(Smo)))
         print(" Wavefunction type:        hf")
 
     if wf != "unrest" and wf != "rest":
         raise NameError(
-            "Please insert a valid type of wave function: 'rest' or 'unrest'"
+            "Please insert a valid type of wave function: 'rest' or 'unrest'."
         )
 
     if calc is not None:
@@ -1326,7 +1327,7 @@ def compute_iring(arr, Smo):
 
 def unique_permutations(nums):
     """Generate all the n!/2 non-cyclic permutations from a given ring-length
-       by generating the (n-1)!/2 cyclic permutations
+       by generating the (n-1)!/2 cyclic permutations using Heap's algorithm.
 
     Arguments:
        nums: integer
@@ -1408,8 +1409,7 @@ def sequential_mci(arr, Smo):
 
 def multiprocessing_mci(arr, Smo, num_threads):
     """Computes the MCI split in different threads by generating all the permutations
-    for a later distribution along the specified number of threads. Note the memory requirements
-    for large number of permutations.
+    for a later distribution along the specified number of threads.
 
     Arguments:
        arr: string
