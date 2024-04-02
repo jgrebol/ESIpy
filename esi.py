@@ -1,7 +1,9 @@
 import numpy as np
 from functools import reduce, lru_cache
 
+##################################
 ########### CORE ESIpy ###########
+##################################
 
 
 def aromaticity(
@@ -67,7 +69,9 @@ def aromaticity(
     print(" ** Localization & Delocalization Indices **  ")
     print(" ** For Hilbert-Space Atomic Partitioning **  ")
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
-    print("  Application to Aromaticity Calculations\n  Joan Grebol")
+    print(
+        "   Application to Aromaticity Calculations\n  Joan Grebol, Eduard Matito, Pedro Salvador"
+    )
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     print(" Number of Atoms:          {}".format(mol.natm))
 
@@ -168,7 +172,9 @@ def aromaticity_from_aoms(
     print(" ** Localization & Delocalization Indices **  ")
     print(" ** For Hilbert-Space Atomic Partitioning **  ")
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
-    print("  Application to Aromaticity Calculations\n  Joan Grebol-Tomas")
+    print(
+        "   Application to Aromaticity Calculations\n  Joan Grebol, Eduard Matito, Pedro Salvador"
+    )
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
 
     # UNRESTRICTED
@@ -303,23 +309,22 @@ def deloc_unrest(mol, Smo):
     print(" ------------------------------------------- ")
 
     for i in range(mol.natm):
-        for j in range(mol.natm):
-            if i != j:
-                print(
-                    " | {} {}-{} {}  {:>9.4f} {:>9.4f} {:>9.4f}".format(
-                        mol.atom_symbol(i),
-                        str(i + 1).rjust(2),
-                        mol.atom_symbol(j),
-                        str(j + 1).rjust(2),
-                        2
-                        * (
-                            np.trace(np.dot(Smo[0][i], Smo[0][j]))
-                            + np.trace(np.dot(Smo[1][i], Smo[1][j]))
-                        ),
-                        2 * (np.trace(np.dot(Smo[0][i], Smo[0][j]))),
-                        2 * (np.trace(np.dot(Smo[1][i], Smo[1][j]))),
-                    )
+        for j in range(i + 1, mol.natm):
+            print(
+                " | {} {}-{} {}  {:>9.4f} {:>9.4f} {:>9.4f}".format(
+                    mol.atom_symbol(i),
+                    str(i + 1).rjust(2),
+                    mol.atom_symbol(j),
+                    str(j + 1).rjust(2),
+                    2
+                    * (
+                        np.trace(np.dot(Smo[0][i], Smo[0][j]))
+                        + np.trace(np.dot(Smo[1][i], Smo[1][j]))
+                    ),
+                    2 * (np.trace(np.dot(Smo[0][i], Smo[0][j]))),
+                    2 * (np.trace(np.dot(Smo[1][i], Smo[1][j]))),
                 )
+            )
     print(" ------------------------------------------- ")
     print(
         " |    TOT:    {:>9.4f} {:>9.4f} {:>9.4f} ".format(
@@ -394,17 +399,16 @@ def deloc_rest(mol, Smo):
     print(" |    Pair         DI ")
     print(" ------------------------ ")
     for i in range(mol.natm):
-        for j in range(mol.natm):
-            if i != j:
-                print(
-                    " | {} {}-{} {}   {:8.4f}".format(
-                        mol.atom_symbol(i),
-                        str(i + 1).rjust(2),
-                        mol.atom_symbol(j),
-                        str(j + 1).rjust(2),
-                        4 * np.trace(np.dot(Smo[i], Smo[j])),
-                    )
+        for j in range(i + 1, mol.natm):
+            print(
+                " | {} {}-{} {}   {:8.4f}".format(
+                    mol.atom_symbol(i),
+                    str(i + 1).rjust(2),
+                    mol.atom_symbol(j),
+                    str(j + 1).rjust(2),
+                    4 * np.trace(np.dot(Smo[i], Smo[j])),
                 )
+            )
     print(" ------------------------ ")
     print(" |   TOT:      {:8.4f} ".format(np.sum(dis) + np.sum(lis)))
     print(" |   LOC:      {:8.4f} ".format(np.sum(lis)))
@@ -524,7 +528,7 @@ def arom_unrest(mol, Smo, rings, mci=False, av1245=False, num_threads=1):
                     print(
                         " |  {} {} - {} {} - {} {} - {} {}  |  {:>9.4f}".format(
                             str(ring[j]).rjust(2),
-                            mol.atom_symbol((ring[j] - 1) % len(ring)),
+                            mol.atom_symbol((ring[j % len(ring)] - 1)),
                             str(ring[(j + 1) % len(ring)]).rjust(2),
                             mol.atom_symbol(ring[(j + 1) % len(ring)] - 1),
                             str(ring[(j + 3) % len(ring)]).rjust(2),
@@ -552,7 +556,7 @@ def arom_unrest(mol, Smo, rings, mci=False, av1245=False, num_threads=1):
                     print(
                         " |  {} {} - {} {} - {} {} - {} {}  |  {:>9.4f}".format(
                             str(ring[j]).rjust(2),
-                            mol.atom_symbol((ring[j] - 1) % len(ring)),
+                            mol.atom_symbol((ring[j % len(ring)] - 1)),
                             str(ring[(j + 1) % len(ring)]).rjust(2),
                             mol.atom_symbol(ring[(j + 1) % len(ring)] - 1),
                             str(ring[(j + 3) % len(ring)]).rjust(2),
@@ -1200,7 +1204,7 @@ def arom_rest_from_aoms(Smo, rings, mci=True, av1245=True, num_threads=1):
                             str(av_order[j][1]).rjust(2),
                             str(av_order[j][2]).rjust(2),
                             str(av_order[j][3]).rjust(2),
-                            avs[2][(ring[j] - 1) % len(ring)],
+                            2 * avs[2][(ring[j] - 1) % len(ring)],
                         )
                     )
                 print(
@@ -1287,7 +1291,9 @@ def arom_rest_from_aoms(Smo, rings, mci=True, av1245=True, num_threads=1):
         )
 
 
+##################################################################
 ########### COMPUTATION OF THE AROMATICITY DESCRIPTORS ###########
+##################################################################
 
 ########## Iring ###########
 
@@ -1295,7 +1301,7 @@ def arom_rest_from_aoms(Smo, rings, mci=True, av1245=True, num_threads=1):
 
 
 def compute_iring(arr, Smo):
-    """Caluculation of the Iring aromaticity index
+    """Calculation of the Iring aromaticity index
 
     Arguments:
        arr: string
@@ -1322,60 +1328,24 @@ def compute_iring(arr, Smo):
 
 ########### MCI ###########
 
-# Generating all the (n-1)!/2 non-cyclic permutations
-
-
-def unique_permutations(nums):
-    """Generate all the n!/2 non-cyclic permutations from a given ring-length
-       by generating the (n-1)!/2 cyclic permutations using Heap's algorithm.
-
-    Arguments:
-       nums: integer
-          Size of the ring.
-
-    Returns:
-       iring: list
-          Contains a list of lists, storing every generated permutation.
-
-    """
-
-    from itertools import permutations
-
-    perm_set = set()
-
-    # To test whether the ring connectivity is already stored in a reverse order,
-    # to avoid computing the same permutation twice.
-    for perm in permutations(nums[:-1]):
-        if perm not in perm_set and perm[::-1] not in perm_set:
-            perm_set.add(perm)
-
-    perm_final = set()
-
-    # To append the nth term and make the permutation set non-cyclic.
-    for perm in perm_set:
-        perm_final.add(perm + (nums[-1],))
-
-    return list(perm_final)
-
-
 # MCI algorithm that does not store all the permutations (MCI2) (Restricted and Unrestricted)
 
 
 def sequential_mci(arr, Smo):
-    """Computes the MCI sequentially by recursively generating all the permutations and computing
-    the Iring for each without storing them. Does not have memory requirements and is the default
-    for ESIpy if no number of threads are specified.
+    """Computes the MCI sequentially by recursively generating all the permutations using Heaps'
+    algorithm and computing the Iring for each without storing them. Does not have memory
+    requirements and is the default for ESIpy if no number of threads are specified.
 
     Arguments:
        arr: string
-          A string containing the indices of the atoms in ring connectivity
+          A string containing the indices of the atoms in ring onnectivity.
 
        Smo: list of matrices
           Atomic Overlap Matrices (AOMs) in the MO basis generated from the make_aoms() function.
 
     Returns:
        mci_value: float
-          MCI value for the given ring
+          MCI value for the given ring.
     """
 
     mci_value = 0
@@ -1413,7 +1383,7 @@ def multiprocessing_mci(arr, Smo, num_threads):
 
     Arguments:
        arr: string
-          A string containing the indices of the atoms in ring connectivity
+          A string containing the indices of the atoms in ring connectivity.
 
        Smo: list of matrices
           Atomic Overlap Matrices (AOMs) in the MO basis generated from the make_aoms() function.
@@ -1423,8 +1393,7 @@ def multiprocessing_mci(arr, Smo, num_threads):
 
     Returns:
        mci_value: float
-          MCI value for the given ring
-
+          MCI value for the given ring.
     """
 
     from multiprocessing import Pool
@@ -1446,6 +1415,12 @@ def multiprocessing_mci(arr, Smo, num_threads):
         for first in iterator:
             yield list(chain([first], islice(iterator, size - 1)))
 
+    def compute_mci(arr, Smo):
+        mci_chunk = 0
+        for ring in arr:
+            mci_chunk += compute_iring(ring, Smo)
+        return mci_chunk
+
     iterable = permutations(arr)
 
     pool = Pool(processes=num_threads)
@@ -1457,15 +1432,6 @@ def multiprocessing_mci(arr, Smo, num_threads):
     results = pool.imap(dumb, chunked_iterable)
     trace = sum(results)
     return trace
-
-
-def compute_mci(arr, Smo):
-    mci_chunk = 0
-    for ring in arr:
-        mci_chunk += compute_iring(ring, Smo)
-    return mci_chunk
-
-
 
 
 ########### AV1245 ###########
@@ -1480,14 +1446,14 @@ def compute_av1245(arr, Smo):
 
     Arguments:
        arr: string
-          A string containing the indices of the atoms in ring connectivity
+          A string containing the indices of the atoms in ring connectivity.
 
        Smo: list of matrices
           Atomic Overlap Matrices (AOMs) in the MO basis generated from the make_aoms() function.
 
     Returns:
        list
-          The list contains the AV1245 index, the AVmin index and each of the AV1245 in a list for the output, respectively
+          The list contains the AV1245 index, the AVmin index and each of the AV1245 in a list for the output, respectively.
     """
 
     def av1245_pairs(arr):
@@ -1528,7 +1494,7 @@ def compute_pdi(arr, Smo):
 
     Arguments:
        arr: string
-          A string containing the indices of the atoms in ring connectivity
+          A string containing the indices of the atoms in ring connectivity.
 
        Smo: list of matrices
           Atomic Overlap Matrices (AOMs) in the MO basis generated from the make_aoms() function.
@@ -1550,7 +1516,9 @@ def compute_pdi(arr, Smo):
         return None
 
 
+###############################################
 ########### ATOMIC OVERLAP MATRICES ###########
+###############################################
 
 # Generating the Atomic Overlap Matrices
 
@@ -1599,7 +1567,10 @@ def make_aoms(mol, mf, calc=None):
         Smo_beta = []
 
         if calc == "lowdin" or calc == "meta_lowdin":
-            U_inv = lo.orth_ao(mf, calc, pre_orth_ao=None)
+            if calc == "lowdin":
+                U_inv = lo.orth_ao(mf, calc, pre_orth_ao=None)
+            elif calc == "meta_lowdin":
+                U_inv = lo.orth_ao(mf, calc, pre_orth_ao="ANO")
             U = np.linalg.inv(U_inv)
 
             eta = [np.zeros((mol.nao, mol.nao)) for i in range(mol.natm)]
@@ -1645,9 +1616,7 @@ def make_aoms(mol, mf, calc=None):
             U_beta_inv = np.dot(
                 U_beta_iao_nonortho,
                 lo.orth.lowdin(
-                    np.linalg.multi_dot(
-                        (U_beta_iao_nonortho.T, S, U_ibeta_iao_nonortho)
-                    )
+                    np.linalg.multi_dot((U_beta_iao_nonortho.T, S, U_beta_iao_nonortho))
                 ),
             )
             U_alpha = np.dot(S, U_alpha_inv)
@@ -1707,7 +1676,10 @@ def make_aoms(mol, mf, calc=None):
         Smo = []
 
         if calc == "lowdin" or calc == "meta_lowdin":
-            U_inv = lo.orth_ao(mf, calc, pre_orth_ao=None)
+            if calc == "lowdin":
+                U_inv = lo.orth_ao(mf, calc, pre_orth_ao=None)
+            elif calc == "meta_lowdin":
+                U_inv = lo.orth_ao(mf, calc, pre_orth_ao="ANO")
             U = np.linalg.inv(U_inv)
 
             eta = [np.zeros((mol.nao, mol.nao)) for i in range(mol.natm)]
@@ -2016,6 +1988,8 @@ def write_int(mol, mf, molname, Smo, ring=None, calc=None):
 
     import os
 
+    print(mf.__class__.__name__)
+
     if (
         mf.__class__.__name__ == "UHF"
         or mf.__class__.__name__ == "UKS"
@@ -2133,13 +2107,14 @@ def write_int(mol, mf, molname, Smo, ring=None, calc=None):
                         + "\n"
                     )
                 else:
-                    f.write("\n The Atomic Overlap Matrix:\n\nUnrestricted\n\n")
                     f.write(
                         "\n".join(
                             [
                                 "  ".join(
                                     [
-                                        "{:.16E}".format(Smos[i][j][k]) if j >= k else ""
+                                        "{:.16E}".format(Smos[i][j][k])
+                                        if j >= k
+                                        else ""
                                         for k in range(len(Smos[i][j]))
                                     ]
                                 )
