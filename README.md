@@ -1,11 +1,11 @@
 # ESIpy
-The ESIpy program is aimed at the calculation of population analysis and aromaticity indicators from different Hilbert-space partitions using the PySCF module. The program supports both restricted and unrestricted calculations for single-determinant wave functions. The atomic partitions supported from the program are Mulliken, Löwdin, meta-Löwdin, Natural Atomic Orbitals (NAO) and Intrinsic Atomic Orbitals (IAO). The ESIpy respository contains the esi.py main code as well as several example scripts. 
+The ESIpy program is aimed at the calculation of population analysis and aromaticity indicators from different Hilbert-space partitions using the PySCF module. The program supports both restricted and unrestricted calculations for single-determinant wave functions. The atomic partitions supported by the program are Mulliken, Löwdin, meta-Löwdin, Natural Atomic Orbitals (NAO), and Intrinsic Atomic Orbitals (IAO). The ESIpy repository contains the esi.py main code as well as several example scripts. 
 
 ## Theoretical background
 
 ### Hilbert-space partitioning
 
-In order to obtain information of the atomic contributions in a given chemical system (for instance atomic populations and electron sharing indices) it is crucial to define an atom in a molecule (AIM), which can either be real-space partition (allocating each point of the 3D space fully or partially to a specific atom) or Hilbert-space partition (separating the atomic basis functions belonging to a certain atom). The ESI-3D code developed by Dr. Eduard Matito mainly used Bader's QTAIM[1] (real-space scheme) as the AIM for the calculations. However, in this program we propose the use of Hilbert-space schemes (Mulliken[2], Löwdin[3], Meta-Löwdin[4], NAO[5] and IAO[6]) available in the PySCF[7] framework as the partition of the system. QTAIM relies on numerical integrations, so the error accumulation makes some of these aromaticity descriptors become unviable in large systems. This newer approach, however, does not require numerical integration, but rather relies on the separation of the molecule into each of the atomic basis functions, leading to an exact partition of the system. The most fundamental magnitude is the **Atomic Overlap Matrix (AOM, $\boldsymbol{S}^{\text{A}}$) in the Molecular Orbitals (MO, $\boldsymbol{\phi}$) basis**, with elements
+In order to obtain information of the atomic contributions in a given chemical system (for instance atomic populations and electron sharing indices) it is crucial to define an atom in a molecule (AIM), which can either be real-space partition (allocating each point of the 3D space fully or partially to a specific atom) or Hilbert-space partition (separating the atomic basis functions belonging to a certain atom). The ESI-3D code developed by Dr. Eduard Matito mainly used Bader's QTAIM[1] (real-space scheme) as the AIM for the calculations. However, in this program we propose the use of Hilbert-space schemes (Mulliken[2], Löwdin[3], Meta-Löwdin[4], NAO[5], and IAO[6]) available in the PySCF[7] framework as the partition of the system. QTAIM relies on numerical integrations, so the error accumulation makes some of these aromaticity descriptors become unviable in large systems. This newer approach, however, does not require numerical integration, but rather relies on the separation of the molecule into each of the atomic basis functions, leading to an exact partition of the system. The most fundamental magnitude is the **Atomic Overlap Matrix (AOM, $\boldsymbol{S}^{\text{A}}$) in the Molecular Orbitals (MO, $\boldsymbol{\phi}$) basis**, with elements
 
 $$S_{ij}^\text{A}=\int_{\Omega_\text{A}}\phi_i^*(\textbf{r})\phi_j(\textbf{r})\text{d}\textbf{r}.$$
 
@@ -13,9 +13,9 @@ The average number of electrons in a given atom can be expressed in terms of the
 
 $$N_{\text{A}} = \sum_{\nu\in\text{A}}^\text{M} \sum_\mu^\text{M} P_{\nu\mu}S_{\mu\nu}^\text{AO} = \sum_{\nu\in\text{A}}^\text{M} (PS^\text{AO})_{\nu\nu}$$
 
-where we can introduce the elements of the P-matrix, $P_{\nu\mu} = 2 \sum$ $&#95;{i} ^{nocc} c_{\nu i} c_{i\mu}^+$, and the overlap matrix in the Atomic Orbitals (AO) basis, $S_{\mu\nu}^\text{AO}=\int\chi_\mu^{*}(\textbf{r}){\chi_\nu}(\textbf{r})d\textbf{r}$. In Mulliken's approach, one can obtain information from a specific atom by only take into account its atomic basis functions.
+where we can introduce the elements of the P-matrix, $P_{\nu\mu} = 2 \sum$ $&#95;{i} ^{nocc} c_{\nu i} c_{i\mu}^+$, and the overlap matrix in the Atomic Orbitals (AO) basis, $S_{\mu\nu}^\text{AO}=\int\chi_\mu^{*}(\textbf{r}){\chi_\nu}(\textbf{r})d\textbf{r}$. In Mulliken's approach, one can obtain information from a specific atom by only taking into account its atomic basis functions.
 
-Moreover, the Delocalization Index (DI, $\delta$), also referred as Bond Order (BO)[8], which measures the average number of electrons between two atoms A and B, as
+Moreover, the Delocalization Index (DI, $\delta$), also referred to as Bond Order (BO)[8], measures the average number of electrons between two atoms A and B, as
 
 $$\delta(\text{A,B})=\sum^\text{M}&#95;{\mu\in\text{A}}\sum^\text{M}&#95;{\nu\in\text{B}}(PS^\text{AO})&#95;{\nu\mu}(PS^\text{AO})&#95;{\mu\nu}.$$
 
@@ -23,7 +23,7 @@ In order to mimic the expression of the AOM as that of QTAIM, one can introduce 
 
 $$\boldsymbol{S}^\text{A,Mull}=\boldsymbol{c}^{+}\boldsymbol{S}^{AO}\boldsymbol{\eta}^\text{A}\boldsymbol{c}.$$
 
-The resulting matrix is non-symmetric due to the underlying AO basis being non-orthogonal. To overcome these issues, chemists have explored alternative Hilbert-space methods that rely on orthogonalized AO bases, mainly obtained through a unitary transformation of the original AO basis used in calculations. Löwdin first proposed the symmetric orthogonalization procedure by using $U_{\mu\nu}=S_{\mu\nu}^{\frac{1}{2}}$. Following his steps, several different approaches have been reported in order to find more robust schemes of basis set orthogonalization, being the ones applied in this article the meta-Löwdin, Natural Atomic Orbitals (NAO). Alternatively, Knizia proposed an ingenious scheme to express in an exact number the occupied MOs of a calculation in an orthogonal basis of reduced rank, the so-called Intrinsic Atomic Orbitals (IAO) approach. In all cases, the mapping from real-space to Hilbert-space can be performed as following:
+The resulting matrix is non-symmetric due to the underlying AO basis being non-orthogonal. To overcome these issues, chemists have explored alternative Hilbert-space methods that rely on orthogonalized AO bases, mainly obtained through a unitary transformation of the original AO basis used in calculations. Löwdin first proposed the symmetric orthogonalization procedure by using $U_{\mu\nu}=S_{\mu\nu}^{\frac{1}{2}}$. Following his steps, several different approaches have been reported to find more robust schemes of basis set orthogonalization, being the ones applied in this article the meta-Löwdin, Natural Atomic Orbitals (NAO). Alternatively, Knizia proposed an ingenious scheme to express in an exact number the occupied MOs of a calculation in an orthogonal basis of reduced rank, the so-called Intrinsic Atomic Orbitals (IAO) approach. In all cases, the mapping from real-space to Hilbert-space can be performed as follows:
 
 $$\boldsymbol{S}^\text{A,X}=\boldsymbol{c}^{+}({\boldsymbol{U}}^{-1})^{+}\boldsymbol{\eta}^\text{A}\boldsymbol{U}^{-1}\boldsymbol{c}.$$
 
@@ -33,14 +33,14 @@ The ESI present in this program rely on the atomic overlap matrices. The followi
 
 #### Para-delocalization index (PDI)
 
-Fulton reported that the delocalization indices in a given aromatic 6-membered ring in _para_ position was larger than that in _meta_ position. From that idea, Poater and coworkers proposed to average the DIs in para position in a 6-membered ring, so the **para-delocalization index (PDI)**[9]:
+Fulton reported that the delocalization indices in a given aromatic 6-membered ring in the _para_ position were larger than that in the _meta_ position. From that idea, Poater and coworkers proposed to average the DIs in the para position in a 6-membered ring, so the **para-delocalization index (PDI)**[9]:
 
 $$\text{PDI}(\mathscr{A}) = \frac{\delta&#95;{\text{A}&#95;1\text{A}&#95;4}+\delta&#95;{\text{A}&#95;2\text{A}&#95;5}+\delta&#95;{\text{A}&#95;3\text{A}&#95;6}}{3},$$
 
-A larger PDI value indicates more aromatic character. The index can only be calculated for rings of $n=6$, so it will not be computed for rings of different sizes.
+A larger PDI value indicates a more aromatic character. The index can only be calculated for rings of $n$=6, so it will not be computed for rings of different sizes.
 
 #### I<sub>ring</sub>
-Giambiagi and coworkers proposed to express an index in terms of the generalized bond order in all the ring, the **I<sub>ring</sub>**[10]. That is, to account for the delocalization along the ring, following the specified connectivity:
+Giambiagi and coworkers proposed to express an index in terms of the generalized bond order along the ring, the **I<sub>ring</sub>**[10]. That is, to account for the delocalization along the ring, following the specified connectivity:
 
 $$\text{I}&#95;{\text{ring}}(\mathscr{A})= 2^{n} \sum_{i_1,i_2\ldots i_n} S_{i_1i_2}^{\text{A}&#95;{1}} S_{i_2i_3}^{\text{A}&#95;{2}} \cdot \cdot \cdot S_{i_ni_1}^{\text{A}&#95;{n}}$$
 
@@ -48,11 +48,11 @@ This index relies on the multicenter character of a molecule. A larger I<sub>rin
 
 #### Multicenter index (MCI)
 
-As an aim to improve the I<sub>ring</sub>, Bultinck and coworkers proposed the **Multicenter Index (MCI)**[11] by not only take into account the Kekulé structure of the system, but rather all the $n!$ possible ring connectivities generated by permuting the position of all atoms in the ring, denoted as $\mathscr{P}(\mathscr{A})$:
+As an aim to improve the I<sub>ring</sub>, Bultinck and coworkers proposed the **Multicenter Index (MCI)**[11] by not only taking into account the Kekulé structure of the system but rather all the $n!$ possible ring connectivities generated by permuting the position of all atoms in the ring, denoted as $\mathscr{P}(\mathscr{A})$:
 
 $$\text{MCI}(\mathscr{A}) = \frac{1}{2n} \sum_{\mathscr{P}(\mathscr{A})} \text{I}_{\text{ring}}(\mathscr{A})$$
 
-As well as the previous indices, a larger MCI value denotes more aromatic character. Due to the exponential growth of the calculation, we do not suggest computing the MCI for rings larger than $n=12$.
+As well as the previous indices, a larger MCI value denotes a more aromatic character. Due to the exponential growth of the calculation, we do not suggest computing the MCI for rings larger than $n$=12.
 
 #### AV1245 (and AVmin)
 
@@ -64,12 +64,12 @@ where if $i>n$ $\text{A}&#95;i$ should be replaced by $\text{A}_{i-n}$. In addit
 
 ## Features
 - ``make_aoms(mol, mf, calc)``: From PySCF's `mol` and `mf` objects and `calc` as a string containing the desired partition (`mulliken`, `lowdin`, `meta_lowdin`, `nao`, `iao`), generate a list of matrices containing the Atomic Overlap Matrices (AOMs).
-- `aromaticity(mol, mf, Smo, ring, calc, mci, av1245, num_threads)`: Compute population analyses, delocalization analyses and aromaticity indicators from the AOMs (variable Smo). The variable `ring` is either a list or a list of lists containing the indices of the atoms for the aromaticity calculations. `mci` and `av1245` are boolean variables to compute the MCI and AV1425 indices, respectively. Multi-core processing for the MCI calculation is supported, albeit the speed-up is non-linear.
-- `aromaticity_from_aoms(Smo, ring, calc, wf, mci, av1245, num_threads)`: Compute the aromaticity indicators from the AOMs previously saved in disk (see `scripts/05-save_aoms.py` and `scripts/06-load_aoms.py`).
-- Sole functions to compute each of the aromaticity indicators (Iring, MCI, AV1245 and PDI, see `scripts/08-separate_indicators.py`).
+- `aromaticity(mol, mf, Smo, ring, calc, mci, av1245, num_threads)`: Compute population analyses, delocalization analyses, and aromaticity indicators from the AOMs (variable Smo). The variable `ring` is either a list or a list of lists containing the indices of the atoms for the aromaticity calculations. `mci` and `av1245` are boolean variables to compute the MCI and AV1425 indices, respectively. Multi-core processing for the MCI calculation is supported, albeit the speed-up is non-linear.
+- `aromaticity_from_aoms(Smo, ring, calc, wf, mci, av1245, num_threads)`: Compute the aromaticity indicators from the AOMs previously saved in disk (see `examples/05-save_aoms.py` and `examples/06-load_aoms.py`).
+- Sole functions to compute each of the aromaticity indicators (I<sub>ring</sub>, MCI, AV1245, and PDI, see `examples/08-separate_indicators.py`).
 
 ## Utilities
-- `write_int(mol, mf, molname, Smo, ring, calc)`: Writes the AOMs as an input for Dr. Eduard Matito's ESI-3D code (see `scripts/07-generate_int.py`). The atomic files are stored in a self-created directory, as well as a general input for the program (`'molname'.bad`). The ring variable is not mandatory but recommended.
+- `write_int(mol, mf, molname, Smo, ring, calc)`: Writes the AOMs as input for Dr. Eduard Matito's ESI-3D code (see `examples/07-generate_int.py`). The atomic files are stored in a self-created directory, as well as a general input for the program (`'molname'.bad`). The ring variable is not mandatory but recommended.
 
 ## Installation
 To install PySCF it is recommended to create a conda environment as follows:
@@ -83,8 +83,6 @@ conda install -c pyscf_env pyscf
 ```
 To install ESIpy in your local working stations:
 ```
-mkdir ~/ESIpy
-cd ~/ESIpy
 git clone https://github.com/jgrebol/ESIpy.git
 ```
 Make sure to have previously installed `git` with `sudo apt install git`. Add to your ```.bashrc``` file:
@@ -93,7 +91,7 @@ export PYTHONPATH=~/ESIpy/ESIpy:$PYTHONPATH (or the directory where it is locate
 ```
 For a more detailed installation guide, please check [PySCF's installation guide](https://pyscf.org/install.html).
 
-To run the code from terminal, generate the Python script or adapt those of the ```examples``` repository and run it as ```python code.py``` or ```python3 code.py```. To save the output as a file, use ```python code.py > code.out```.
+To run the code from the terminal, generate the Python script or adapt those of the ```examples``` repository and run it as ```python code.py``` or ```python3 code.py```. To save the output as a file, use ```python code.py > code.out```.
 
 # Variable scope
 
@@ -115,7 +113,7 @@ To run the code from terminal, generate the Python script or adapt those of the 
 - Utility: Compute the exact MCI for n=14 from precomputed permutations.
 
 # References
-- [1] R. F. W. Bader, Atoms in molecules: a quantum theory, Clarendon Press ; Oxford University Press, Oxford [England] : New York, 1994.
+- [1] R. F. W. Bader, Atoms in molecules: a quantum theory, Clarendon Press; Oxford University Press, Oxford [England]: New York, 1994.
 - [2] R. S. Mulliken, The Journal of Chemical Physics, 1955, 23, 1833–1840.
 - [3] P.-O. Löwdin, The Journal of Chemical Physics, 1950, 18, 365–375.
 - [4] A. E. Reed, R. B. Weinstock and F. Weinhold, The Journal of Chemical Physics, 1985, 83, 735–746.
