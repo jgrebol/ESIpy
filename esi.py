@@ -2070,7 +2070,7 @@ def write_int(mol, mf, molname, Smo, ring=None, calc=None):
             if wf == "unrest" or wf == "rest":
                 f.write(
                     " Molecular SCF ENERGY (AU)  =       {:.11f}\n\n".format(
-                        mf.energy_tot()
+                        mf.e_tot
                     )
                 )
             else:
