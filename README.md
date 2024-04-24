@@ -52,7 +52,7 @@ As an aim to improve the I<sub>ring</sub>, Bultinck and coworkers proposed the *
 
 $$\text{MCI}(\mathscr{A}) = \frac{1}{2n} \sum_{\mathscr{P}(\mathscr{A})} \text{I}_{\text{ring}}(\mathscr{A})$$
 
-As well as the previous indices, a larger MCI value denotes a more aromatic character. Due to the exponential growth of the calculation, we do not suggest computing the MCI for rings larger than $n$=12.
+As well as the previous indices, a larger MCI value denotes a more aromatic character. Due to the exponential growth of the calculation, we do not suggest computing the MCI for rings larger than $n$=12 for single-core processes and $n$=14 for multi-core processes.
 
 #### AV1245 (and AVmin)
 
