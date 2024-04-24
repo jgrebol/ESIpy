@@ -5,7 +5,7 @@ The ESIpy program is aimed at the calculation of population analysis and aromati
 
 ### Hilbert-space partitioning
 
-In order to obtain information of the atomic contributions in a given chemical system (for instance atomic populations and electron sharing indices) it is crucial to define an atom in a molecule (AIM), which can either be real-space partition (allocating each point of the 3D space fully or partially to a specific atom) or Hilbert-space partition (separating the atomic basis functions belonging to a certain atom). The ESI-3D code developed by Dr. Eduard Matito mainly used Bader's QTAIM[1] (real-space scheme) as the AIM for the calculations. However, in this program we propose the use of Hilbert-space schemes (Mulliken[2], Löwdin[3], Meta-Löwdin[4], NAO[5], and IAO[6]) available in the PySCF[7] framework as the partition of the system. QTAIM relies on numerical integrations, so the error accumulation makes some of these aromaticity descriptors become unviable in large systems. This newer approach, however, does not require numerical integration, but rather relies on the separation of the molecule into each of the atomic basis functions, leading to an exact partition of the system. The most fundamental magnitude is the **Atomic Overlap Matrix (AOM, $\boldsymbol{S}^{\text{A}}$) in the Molecular Orbitals (MO, $\boldsymbol{\phi}$) basis**, with elements
+In order to obtain information of the atomic contributions in a given chemical system (for instance atomic populations and electron sharing indices) it is crucial to define an atom in a molecule (AIM), which can either be real-space partition (allocating each point of the 3D space fully or partially to a specific atom) or Hilbert-space partition (separating the atomic basis functions belonging to a certain atom). The ESI-3D code[1] developed by Dr. Eduard Matito mainly used Bader's QTAIM[2] (real-space scheme) as the AIM for the calculations. However, in this program we propose the use of Hilbert-space schemes (Mulliken[3], Löwdin[4], Meta-Löwdin[5], NAO[6], and IAO[7]) available in the PySCF[8] framework as the partition of the system. QTAIM relies on numerical integrations, so the error accumulation makes some of these aromaticity descriptors become unviable in large systems. This newer approach, however, does not require numerical integration, but rather relies on the separation of the molecule into each of the atomic basis functions, leading to an exact partition of the system. The most fundamental magnitude is the **Atomic Overlap Matrix (AOM, $\boldsymbol{S}^{\text{A}}$) in the Molecular Orbitals (MO, $\boldsymbol{\phi}$) basis**, with elements
 
 $$S_{ij}^\text{A}=\int_{\Omega_\text{A}}\phi_i^*(\textbf{r})\phi_j(\textbf{r})\text{d}\textbf{r}.$$
 
@@ -15,7 +15,7 @@ $$N_{\text{A}} = \sum_{\nu\in\text{A}}^\text{M} \sum_\mu^\text{M} P_{\nu\mu}S_{\
 
 where we can introduce the elements of the P-matrix, $P_{\nu\mu} = 2 \sum$ $&#95;{i} ^{nocc} c_{\nu i} c_{i\mu}^+$, and the overlap matrix in the Atomic Orbitals (AO, $\chi$) basis, $S_{\mu\nu}^\text{AO}=\int\chi_\mu^{*}(\textbf{r}){\chi_\nu}(\textbf{r})d\textbf{r}$. In Mulliken's approach, one can obtain information from a specific atom by only taking into account its atomic basis functions.
 
-Moreover, the Delocalization Index (DI, $\delta$), also referred to as Bond Order (BO)[8], measures the average number of electrons between two atoms A and B, as
+Moreover, the Delocalization Index (DI, $\delta$), also referred to as Bond Order (BO)[9], measures the average number of electrons between two atoms A and B, as
 
 $$\delta(\text{A,B})=\sum^\text{M}&#95;{\mu\in\text{A}}\sum^\text{M}&#95;{\nu\in\text{B}}(PS^\text{AO})&#95;{\nu\mu}(PS^\text{AO})&#95;{\mu\nu}.$$
 
@@ -33,14 +33,14 @@ The ESI present in this program rely on the atomic overlap matrices. The followi
 
 #### Para-delocalization index (PDI)
 
-Fulton reported that the delocalization indices in a given aromatic 6-membered ring in the _para_ position were larger than that in the _meta_ position. From that idea, Poater and coworkers proposed to average the DIs in the para position in a 6-membered ring, so the **para-delocalization index (PDI)**[9]:
+Fulton reported that the delocalization indices in a given aromatic 6-membered ring in the _para_ position were larger than that in the _meta_ position. From that idea, Poater and coworkers proposed to average the DIs in the para position in a 6-membered ring, so the **para-delocalization index (PDI)**[10]:
 
 $$\text{PDI}(\mathscr{A}) = \frac{\delta&#95;{\text{A}&#95;1\text{A}&#95;4}+\delta&#95;{\text{A}&#95;2\text{A}&#95;5}+\delta&#95;{\text{A}&#95;3\text{A}&#95;6}}{3},$$
 
 A larger PDI value indicates a more aromatic character. The index can only be calculated for rings of $n$=6, so it will not be computed for rings of different sizes.
 
 #### I<sub>ring</sub>
-Giambiagi and coworkers proposed to express an index in terms of the generalized bond order along the ring, the **I<sub>ring</sub>**[10]. That is, to account for the delocalization along the ring, following the specified connectivity:
+Giambiagi and coworkers proposed to express an index in terms of the generalized bond order along the ring, the **I<sub>ring</sub>**[11]. That is, to account for the delocalization along the ring, following the specified connectivity:
 
 $$\text{I}&#95;{\text{ring}}(\mathscr{A})= 2^{n} \sum_{i_1,i_2\ldots i_n} S_{i_1i_2}^{\text{A}&#95;{1}} S_{i_2i_3}^{\text{A}&#95;{2}} \cdot \cdot \cdot S_{i_ni_1}^{\text{A}&#95;{n}}$$
 
@@ -48,7 +48,7 @@ This index relies on the multicenter character of a molecule. A larger I<sub>rin
 
 #### Multicenter index (MCI)
 
-As an aim to improve the I<sub>ring</sub>, Bultinck and coworkers proposed the **Multicenter Index (MCI)**[11] by not only taking into account the Kekulé structure of the system but rather all the $n!$ possible ring connectivities generated by permuting the position of all atoms in the ring, denoted as $\mathscr{P}(\mathscr{A})$:
+As an aim to improve the I<sub>ring</sub>, Bultinck and coworkers proposed the **Multicenter Index (MCI)**[12] by not only taking into account the Kekulé structure of the system but rather all the $n!$ possible ring connectivities generated by permuting the position of all atoms in the ring, denoted as $\mathscr{P}(\mathscr{A})$:
 
 $$\text{MCI}(\mathscr{A}) = \frac{1}{2n} \sum_{\mathscr{P}(\mathscr{A})} \text{I}_{\text{ring}}(\mathscr{A})$$
 
@@ -56,7 +56,7 @@ As well as the previous indices, a larger MCI value denotes a more aromatic char
 
 #### AV1245 (and AVmin)
 
-When using QTAIM as the atomic partition, the numerical integration error made the multicenter indices in large rings non-viable. Matito proposed an index that contained the multicenter character as those of I<sub>ring</sub> and MCI, but without the size-extensivity problem. Therefore, he suggested to *average all the 4c-MCI values along the ring that keep the positional relationship of 1,2,4,5*, so designing the new index AV1245[12] as follows:
+When using QTAIM as the atomic partition, the numerical integration error made the multicenter indices in large rings non-viable. Matito proposed an index that contained the multicenter character as those of I<sub>ring</sub> and MCI, but without the size-extensivity problem. Therefore, he suggested to *average all the 4c-MCI values along the ring that keep the positional relationship of 1,2,4,5*, so designing the new index AV1245[13] as follows:
 
 $$\text{AV1245}(\mathscr{A}) = \frac{1000}{3} \sum_{i=1}^n\text{MCI}(\{\text{A}&#95;i, \text{A}&#95;{i+1}, \text{A}&#95;{i+3}, \text{A}&#95;{i+4}\})$$
 
@@ -109,20 +109,21 @@ To run the code from the terminal, generate the Python script or adapt those of 
 # Further work
 - Function: Implementation for correlated wave functions.
 - Function: Approximations for the MCI calculation in large systems.
-- Function: Read the AOMs from QTAIM and store them as ESIpy's Smo.
+- Function: Read the AOMs (or the data required for their calculation) from other source programs and store them as ESIpy's ```Smo```.
 - Utility: Compute the exact MCI for n=14 from precomputed permutations.
 
 # References
-- [1] R. F. W. Bader, Atoms in molecules: a quantum theory, Clarendon Press; Oxford University Press, Oxford [England]: New York, 1994.
-- [2] R. S. Mulliken, The Journal of Chemical Physics, 1955, 23, 1833–1840.
-- [3] P.-O. Löwdin, The Journal of Chemical Physics, 1950, 18, 365–375.
-- [4] A. E. Reed, R. B. Weinstock and F. Weinhold, The Journal of Chemical Physics, 1985, 83, 735–746.
-- [5] Q. Sun and G. K.-L. Chan, Journal of Chemical Theory and Computation, 2014, 10, 3784–3790.
-- [6] G. Knizia, Journal of Chemical Theory and Computation, 2013, 9, 4834–4843.
-- [7] Q. Sun et al. "Recent developments in the PySCF program package." J. Chem. Phys., 153, 024109 (2020).
-- [8] I. Mayer, Chemical Physics Letters, 1983, 97, 270–274.
-- [9] J. Poater et al., Chemistry–A European Journal, 2003, 9, 400–406.
-- [10] M. Giambiagi, M. S. De Giambiagi and K. C. Mundim, Structural Chemistry, 1990, 1, 423–427.
-- [11] P. Bultinck, R. Ponec and S. Van Damme, Journal of Physical Organic Chemistry, 2005, 18, 706–718.
-- [12] E. Matito, Physical Chemistry Chemical Physics, 2016, 18, 11839–11846.
+- [1] E. Matito, in ‘ESI-3D Electron Sharing Indexes Program for 3D Molecular Space Partitioning’, Girona IQC, 2006
+- [2] R. F. W. Bader, Atoms in molecules: a quantum theory, Clarendon Press; Oxford University Press, Oxford [England]: New York, 1994.
+- [3] R. S. Mulliken, The Journal of Chemical Physics, 1955, 23, 1833–1840.
+- [4] P.-O. Löwdin, The Journal of Chemical Physics, 1950, 18, 365–375.
+- [5] A. E. Reed, R. B. Weinstock and F. Weinhold, The Journal of Chemical Physics, 1985, 83, 735–746.
+- [6] Q. Sun and G. K.-L. Chan, Journal of Chemical Theory and Computation, 2014, 10, 3784–3790.
+- [7] G. Knizia, Journal of Chemical Theory and Computation, 2013, 9, 4834–4843.
+- [8] Q. Sun et al. "Recent developments in the PySCF program package." J. Chem. Phys., 153, 024109 (2020).
+- [9] I. Mayer, Chemical Physics Letters, 1983, 97, 270–274.
+- [10] J. Poater et al., Chemistry–A European Journal, 2003, 9, 400–406.
+- [11] M. Giambiagi, M. S. De Giambiagi and K. C. Mundim, Structural Chemistry, 1990, 1, 423–427.
+- [12] P. Bultinck, R. Ponec and S. Van Damme, Journal of Physical Organic Chemistry, 2005, 18, 706–718.
+- [13] E. Matito, Physical Chemistry Chemical Physics, 2016, 18, 11839–11846.
   
