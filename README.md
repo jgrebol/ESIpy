@@ -27,7 +27,7 @@ The resulting matrix is non-symmetric due to the underlying AO basis being non-o
 
 $$\boldsymbol{S}^\text{A,X}=\boldsymbol{c}^{+}({\boldsymbol{U}}^{-1})^{+}\boldsymbol{\eta}^\text{A}\boldsymbol{U}^{-1}\boldsymbol{c}.$$
 
-## Electron-Sharing Indices 
+### Electron-Sharing Indices 
 
 The ESI present in this program rely on the atomic overlap matrices. The following aromaticity indicators will be expressed in terms of the ring connectivities $\mathscr{A}=\{\text{A}_1, \text{A}_2, \cdot\cdot\cdot, \text{A}_n\}$, which represent the indices of the atoms as expressed in the `mol` object.
 
