@@ -91,7 +91,7 @@ export PYTHONPATH=~/ESIpy/ESIpy:$PYTHONPATH (or the directory where it is locate
 ```
 For a more detailed installation guide, please check [PySCF's installation guide](https://pyscf.org/install.html).
 
-To run the code from the terminal, generate the Python script or adapt those of the ```examples``` repository and run it as ```python code.py``` or ```python3 code.py```. To save the output as a file, use ```python code.py > code.out```.
+To run the code from the terminal, generate the Python script or adapt those of the ```examples``` repository and run it as ```python code.py``` or ```python3 code.py```. To save the output as a file, use ```python code.py > code.esi```.
 
 # Variable scope
 
