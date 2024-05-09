@@ -1396,7 +1396,7 @@ def multiprocessing_mci(arr, Smo, num_threads):
           MCI value for the given ring.
     """
 
-    from multiprocessing import Pool
+    from multiprocessing.pool import ThreadPool as Pool
     from math import factorial
     from functools import partial
     from itertools import permutations, islice
