@@ -1987,8 +1987,6 @@ def write_int(mol, mf, molname, Smo, ring=None, calc=None):
 
     import os
 
-    print(mf.__class__.__name__)
-
     if (
         mf.__class__.__name__ == "UHF"
         or mf.__class__.__name__ == "UKS"
