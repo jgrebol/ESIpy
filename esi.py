@@ -1476,10 +1476,9 @@ def compute_av1245(arr, Smo):
         product = sequential_mci(list(cp), Smo)
         products.append(1000 * product / 3)
 
-    min_product = min(products, key=abs)
+    avmin_value = min(products, key=abs)
     av1245_value = np.mean(products)
-    avmin_value = min_product
-
+    
     return [av1245_value, avmin_value, products]
 
 
