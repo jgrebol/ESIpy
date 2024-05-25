@@ -78,7 +78,7 @@ $$ \text{BOA}(\mathscr{A}) = \frac{1}{n_1} \sum_{i=1}^{n_1} \delta (A_{2i-1},A_{
 
 where $n_1 = \lfloor (n+1)/2 \rfloor$ and $n_2 = \lfloor n/2 \rfloor$, being $\lfloor x \rfloor$ the floor function of x returning the largest integer less or equal than x. As well as for the BLA index, for odd-centered closed circuits this index may fail, so instead the $\text{BLA}&#95;c$ index should be used as the comparison of $\delta(A_i, A_{i+1}) - \delta(A_{i+1}, A_{i+2})$:
 
-$$ \text{BOA$_c$}(\mathscr{A}) = \frac{1}{N} \sum_{i=1}^{N} \vert \delta(A_{i},A_{i+1}) - \delta(A_{i+1},A_{i+2}) \vert $$
+$$ \text{BOA}_c(\mathscr{A}) = \frac{1}{N} \sum_{i=1}^{N} \vert \delta(A_{i},A_{i+1}) - \delta(A_{i+1},A_{i+2}) \vert $$
 
 ### Geometrical Aromaticity Indicators
 
