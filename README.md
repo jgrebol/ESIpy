@@ -62,25 +62,25 @@ $$\text{AV1245}(\mathscr{A}) = \frac{1000}{3} \sum_{i=1}^n\text{MCI}(\{\text{A}&
 
 where if $i>n$ $\text{A}&#95;i$ should be replaced by $\text{A}_{i-n}$. In addition, Matito defined the AVmin index as the minimum (absolute) value of all the 4-MR MCI indices that enter the AV1245 expression. A higher AV1245 value indicates more aromaticity in the system, and the index can not be computed for rings smaller than 6 centers.
 
-### Fluctuation Index (FLU)
+#### Fluctuation Index (FLU)
 
-The Fluctuation Index (FLU) measures the resemblance of a series of tabulated $$\delta$$ to some typical aromatic molecules:
+The Fluctuation Index (FLU) measures the resemblance of a series of tabulated $\delta$ to some typical aromatic molecules:
 
 $$ \text{FLU}(\mathscr{A} = \frac{1}{n} \sum_{i=1}^{n} [(\frac{V(A_i)}{V(A{i-1})})^\alpha (\frac{\delta_{ref}(A_i, A_{i-1}) - \delta_{ref}(A_i, A_{i-1})}{\delta_{ref}(A_i, A_{i-1})}]^2 $$
 
-Where one can separate it into two parts: the polarizability of the bond and the comparison to some tabulated $$\delta$$ (for instance, the "CC", "CN", "BN", "NN" and "CS" bonds). The index is close to zero for aromatic molecules and greater than zero in non-aromatic or antiaromatic molecules, and should not be used to study reactivity as they measure the similarity with respect to some molecule.
+Where one can separate it into two parts: the polarizability of the bond and the comparison to some tabulated $\delta$ (for instance, the "CC", "CN", "BN", "NN" and "CS" bonds). The index is close to zero for aromatic molecules and greater than zero in non-aromatic or antiaromatic molecules, and should not be used to study reactivity as they measure the similarity with respect to some molecule.
 
-### Bond-Order Alternation (BOA)
+#### Bond-Order Alternation (BOA)
 
 The Bond-Order Alternation (BOA) reflects the alternation of the delocalization indices along a conjugated circuit and is built upon the BLA premise (see below in the Geometrical Aromaticity Indicators section):
 
 $$ \text{BOA}(\mathscr{A}) = \frac{1}{n_1} \sum_{i=1}^{n_1} \delta (A_{2i-1},A_{2i}) - \frac{1}{n_2} \sum_{i=1}^{n_2} \delta (A_{2i},A_{2i+1}) $$
 
-where $$ n_1 = \lfloor (n+1)/2 \rfloor $$ and $$ n_2 = \lfloor n/2 \rfloor$$, being \lfloor x \rfloor the floor function of x returning the largest integer less or equal than x. 
+where $ n_1 = \lfloor (n+1)/2 \rfloor $ and $ n_2 = \lfloor n/2 \rfloor$, being $\lfloor x \rfloor$ the floor function of x returning the largest integer less or equal than x. 
 
-## Geometrical Aromaticity Indicators
+### Geometrical Aromaticity Indicators
 
-### HOMA and HOMER
+#### HOMA and HOMER
 
 The Harmonic Oscillator Model of Aromaticity (HOMA) was defined by Kruszewski and Krygowski and relies only on geometrical data. 
 
@@ -88,13 +88,13 @@ $$\text{HOMA}(\mathscr{A}) = 1 - \frac{\alpha}{n} \cdot \sum_i^n (R_{opt} - R_{A
 
 The formula depends on a series of tabulated $$R_{opt}$$, as well as the normalization factor $$\alpha$$ for each bond to make the index 1 for benzene, which make this index a good option for most organic molecules but fails for newer systems. The HOMA index is separated into the EN and GEO subparts, which measure the deviation of the interatomic distance into some tabulated numbers and the variance of this interatomic distance, respectively, and are close to zero for aromatic molecules. At this moment, only the references from "CC", "CN", "NN" and "CO" are tabulated, but more references can be introduced to the code. The HOMER aromaticity index is a reparametrization of the HOMA which works for triplet excited states. 
 
-### Bond-Length Alternation (BLA)
+#### Bond-Length Alternation (BLA)
 
 The BLA index measures the average of the bond lengths of consecutive bonds in the ring
 
 $$ \text{BLA}(\mathscr{A}) = \frac{1}{n_1} \sum_{i=1}^{n_1} r_{A_{2i-1},A_{2i}} - \frac{1}{n_2} \sum_{i=1}^{n_2} r_{A_{2i},A_{2i+1}} $$
 
-where $$ n_1 = \lfloor (n+1)/2 \rfloor $$ and $$ n_2 = \lfloor n/2 \rfloor$$, being \lfloor x \rfloor the floor function of x returning the largest integer less or equal than x. This index was designed for open chains, and thus does not provide reliable results for closed circuits with and odd number of centers, so in those cases this index should be dismissed. Instead, one can use its closed-circuits counterpart, $$\text{BLA}_c$$:
+where $n_1 = \lfloor (n+1)/2 \rfloor $$ and $$ n_2 = \lfloor n/2 \rfloor$, being $\lfloor x \rfloor$ the floor function of x returning the largest integer less or equal than x. This index was designed for open chains, and thus does not provide reliable results for closed circuits with and odd number of centers, so in those cases this index should be dismissed. Instead, one can use its closed-circuits counterpart, $\text{BLA}_c$:
 
 $$ \text{BLA$_c$}(\mathscr{A}) = \frac{1}{N} \sum_{i=1}^{N} \vert r_{A_{i},A_{i+1}} - r_{A_{i+1},A_{i+2}} \vert $$
 
