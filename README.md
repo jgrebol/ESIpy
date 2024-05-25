@@ -98,7 +98,7 @@ $$ \text{BLA}(\mathscr{A}) = \frac{1}{n_1} \sum_{i=1}^{n_1} r_{A_{2i-1},A_{2i}} 
 
 where $n_1 = \lfloor (n+1)/2 \rfloor$ and $n_2 = \lfloor n/2 \rfloor$, being $\lfloor x \rfloor$ the floor function of x returning the largest integer less or equal than x. This index was designed for open chains, and thus does not provide reliable results for closed circuits with and odd number of centers, so in those cases this index should be dismissed. Instead, one can use its closed-circuits counterpart, $\text{BLA}&#95;c$:
 
-$$ \text{BLA$_c$}(\mathscr{A}) = \frac{1}{N} \sum_{i=1}^{N} \vert r_{A_{i},A_{i+1}} - r_{A_{i+1},A_{i+2}} \vert $$
+$$ \text{BLA}&#95;c(\mathscr{A}) = \frac{1}{N} \sum_{i=1}^{N} \vert r_{A_{i},A_{i+1}} - r_{A_{i+1},A_{i+2}} \vert $$
 
 This new definition can indeed be used for closed rings, but produces numbers that even if qualitatively agree with BLA, they do not match completely.
 
