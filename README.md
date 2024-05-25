@@ -120,16 +120,16 @@ and install PySCF as:
 conda activate pyscf_env
 conda install -c pyscf_env pyscf
 ```
+For a more detailed installation guide, please check [PySCF's installation guide](https://pyscf.org/install.html).
+
 To install ESIpy in your local working stations:
 ```
 git clone https://github.com/jgrebol/ESIpy.git
 ```
-Make sure to have previously installed `git` with `sudo apt install git`. Add to your ```.bashrc``` file:
+Make sure to have previously installed `git` with `sudo apt install git`. Add to your ```.bashrc``` file or to the file sent to queue:
 ```
 export PYTHONPATH=~/ESIpy/ESIpy:$PYTHONPATH (or the directory where it is located)
 ```
-For a more detailed installation guide, please check [PySCF's installation guide](https://pyscf.org/install.html).
-
 To run the code from the terminal, generate the Python script or adapt those of the ```examples``` repository and run it as ```python code.py``` or ```python3 code.py```. To save the output as a file, use ```python code.py > code.esi```.
 
 # Variable scope
