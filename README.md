@@ -66,7 +66,7 @@ where if $i>n$ $\text{A}&#95;i$ should be replaced by $\text{A}_{i-n}$. In addit
 
 The Fluctuation Index (FLU) measures the resemblance of a series of tabulated $\delta$ to some typical aromatic molecules:
 
-$$ \text{FLU}(\mathscr{A}) = \frac{1}{n} \sum_{i=1}^{n} \left[(\frac{V(A_i)}{V(A{i-1})})^\alpha \left(\frac{\delta_{ref}(A_i, A_{i-1}) - \delta_{ref}(A_i, A_{i-1})}{\delta_{ref}(A_i, A_{i-1}\right)}\right]^2 $$
+$$ \text{FLU}(\mathscr{A}) = \frac{1}{n} \sum_{i=1}^{n} \left[(\frac{V(A_i)}{V(A{i-1})})^\alpha \left(\frac{\delta_{ref}(A_i, A_{i-1}) - \delta_{ref}(A_i, A_{i-1}\right)}{\delta_{ref}(A_i, A_{i-1})}\right]^2 $$
 
 Where one can separate it into two parts: the polarizability of the bond and the comparison to some tabulated $\delta$ (for instance, the "CC", "CN", "BN", "NN" and "CS" bonds). The index is close to zero for aromatic molecules and greater than zero in non-aromatic or antiaromatic molecules, and should not be used to study reactivity as they measure the similarity with respect to some molecule.
 
