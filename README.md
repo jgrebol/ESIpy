@@ -76,7 +76,7 @@ The Bond-Order Alternation (BOA) reflects the alternation of the delocalization 
 
 $$\text{BOA}(\mathscr{A}) = \frac{1}{n_1} \sum_{i=1}^{n_1} \delta(A_{2i-1},A_{2i}) - \frac{1}{n_2} \sum_{i=1}^{n_2} \delta(A_{2i},A_{2i+1})$$
 
-where $n_1 = \lfloor (n+1)/2 \rfloor$ and $n_2 = \lfloor n/2 \rfloor$, being $\lfloor x \rfloor$ the floor function of x returning the largest integer less or equal than x. As well as for the BLA index, for odd-centered closed circuits this index may fail, so instead the $\text{BLA}&#95;c$ index should be used as the comparison of $\delta(A_i, A_{i+1}) - \delta(A_{i+1}, A_{i+2})$:
+where $n_1 = \lfloor (n+1)/2 \rfloor$ and $n_2 = \lfloor n/2 \rfloor$, being $\lfloor x \rfloor$ the floor function of $x$ returning the largest integer less or equal than $x$. As well as for the BLA index, for odd-centered closed circuits this index may fail, so instead the $\text{BLA}&#95;c$ index should be used as the comparison of $\delta(A_i, A_{i+1}) - \delta(A_{i+1}, A_{i+2})$:
 
 $$\text{BOA}&#95;c(\mathscr{A}) = \frac{1}{N} \sum_{i=1}^{N} \left| \delta(A_{i},A_{i+1}) - \delta(A_{i+1},A_{i+2}) \right|$$
 
@@ -86,7 +86,7 @@ $$\text{BOA}&#95;c(\mathscr{A}) = \frac{1}{N} \sum_{i=1}^{N} \left| \delta(A_{i}
 
 The Harmonic Oscillator Model of Aromaticity (HOMA) was defined by Kruszewski and Krygowski and relies only on geometrical data. 
 
-$$\text{HOMA}(\mathscr{A}) = 1 - \frac{\alpha}{n} \cdot \sum_i^n (R_{opt} - R_{A_i,A_{i+1}})^2 = 1 - \frac{\alpha}{n} \cdot ((R_opt - \bar{R})^2 + \sum_i^n (R_{A_i,A_{i+1}} - \bar{R})^2) = 1 - (EN + GEO)$$
+$$\text{HOMA}(\mathscr{A}) = 1 - \frac{\alpha}{n} \cdot \sum_i^n (R_{opt} - R_{A_i,A_{i+1}})^2 = 1 - \frac{\alpha}{n} \cdot ((R_{opt} - \bar{R})^2 + \sum_i^n (R_{A_i,A_{i+1}} - \bar{R})^2) = 1 - (EN + GEO)$$
 
 The formula depends on a series of tabulated $R_{opt}$, as well as the normalization factor $\alpha$ for each bond to make the index 1 for benzene, which make this index a good option for most organic molecules but fails for newer systems. The HOMA index is separated into the EN and GEO subparts, which measure the deviation of the interatomic distance into some tabulated numbers and the variance of this interatomic distance, respectively, and are close to zero for aromatic molecules. At this moment, only the references from "CC", "CN", "NN" and "CO" are tabulated, but more references can be introduced to the code. The HOMER aromaticity index is a reparametrization of the HOMA which works for triplet excited states. 
 
@@ -96,16 +96,15 @@ The BLA index measures the average of the bond lengths of consecutive bonds in t
 
 $$ \text{BLA}(\mathscr{A}) = \frac{1}{n_1} \sum_{i=1}^{n_1} r_{A_{2i-1},A_{2i}} - \frac{1}{n_2} \sum_{i=1}^{n_2} r_{A_{2i},A_{2i+1}} $$
 
-where $n_1 = \lfloor (n+1)/2 \rfloor$ and $n_2 = \lfloor n/2 \rfloor$, being $\lfloor x \rfloor$ the floor function of x returning the largest integer less or equal than x. This index was designed for open chains, and thus does not provide reliable results for closed circuits with and odd number of centers, so in those cases this index should be dismissed. Instead, one can use its closed-circuits counterpart, $\text{BLA}&#95;c$:
+where $n_1 = \lfloor (n+1)/2 \rfloor$ and $n_2 = \lfloor n/2 \rfloor$, being $\lfloor x \rfloor$ the floor function of $x$ returning the largest integer less or equal than $x$. This index was designed for open chains, and thus does not provide reliable results for closed circuits with and odd number of centers, so in those cases this index should be dismissed. Instead, one can use its closed-circuits counterpart, $\text{BLA}&#95;c$:
 
 $$ \text{BLA}&#95;c(\mathscr{A}) = \frac{1}{N} \sum_{i=1}^{N} \vert r_{A_{i},A_{i+1}} - r_{A_{i+1},A_{i+2}} \vert $$
 
 This new definition can indeed be used for closed rings, but produces numbers that even if qualitatively agree with BLA, they do not match completely.
 
 ## Features
-- ``make_aoms(mol, mf, calc)``: From PySCF's `mol` and `mf` objects and `calc` as a string containing the desired partition (`mulliken`, `lowdin`, `meta_lowdin`, `nao`, `iao`), generate a list of matrices containing the Atomic Overlap Matrices (AOMs).
-- `aromaticity(mol, mf, Smo, ring, calc, mci, av1245, num_threads)`: Compute population analyses, delocalization analyses, and aromaticity indicators from the AOMs (variable Smo). The variable `ring` is either a list or a list of lists containing the indices of the atoms for the aromaticity calculations. `mci` and `av1245` are boolean variables to compute the MCI and AV1425 indices, respectively. Multi-core processing for the MCI calculation is supported, albeit the speed-up is non-linear.
-- `aromaticity_from_aoms(Smo, ring, calc, wf, mci, av1245, num_threads)`: Compute the aromaticity indicators from the AOMs previously saved in disk (see `examples/05-save_aoms.py` and `examples/06-load_aoms.py`).
+- ``make_aoms(mol, mf, calc, save)``: From PySCF's `mol` and `mf` objects and `calc` as a string containing the desired partition (`mulliken`, `lowdin`, `meta_lowdin`, `nao`, `iao`), generate a list of matrices containing the Atomic Overlap Matrices (AOMs). The variable `save` is a string containing the name of the file where to save the AOMs.
+- `aromaticity(Smo, ring, mol, mf, calc, mci, av1245, flurefs, homarefs, connectivity, geom, num_threads)`: Compute population analyses, delocalization analyses, and aromaticity indicators from the AOMs (variable Smo). Only the AOMs, `Smo` and the ring connectivities, `ring`, are required for the calculation. Any other information will complement the calculation. The varible `Smo` can either be the variable that directly comes from the `make_aoms()` function or a string containing the name of the previously saved AOMs. The variable `ring` is either a list or a list of lists containing the indices of the atoms for the aromaticity calculations. `mci` and `av1245` are boolean variables to compute the MCI and AV1425 indices, respectively. Multi-core processing for the MCI calculation is supported by setting `num_threads` at a number of cores different than 1, albeit the speed-up is non-linear. The `flurefs`, `homarefs`, `connectivity` and `geom` variables are optional in case of computing the FLU, HOMA, HOMER and/or BLA indicators without providing the `mol` object; see `examples/`.
 - Sole functions to compute each of the aromaticity indicators (I<sub>ring</sub>, MCI, AV1245, and PDI, see `examples/08-separate_indicators.py`).
 
 ## Utilities
@@ -137,20 +136,23 @@ To run the code from the terminal, generate the Python script or adapt those of 
 
 - ```mol```: From PySCF's module. Provides information about the molecule and the basis set employed for the calculation.
 - ```mf```: From PySCF's module. Provides information about the type of calculation performed.
-- ```calc```: String. Sets the type of partition of the system
+- ```calc```: String. Sets the type of partition of the system.
+- ```save```: String. Sets the name of the file where to save the AOMs in the ```make_aoms()``` function.
 - ```molname```: String. Sets the name of the molecule for the generation of the ```.int``` files.
-- ```wf```: String. Sets the type of wave function for ```aromaticity_from_aoms()```.
-- ```Smo```: List of matrices. Contains each of the AOMs. Generated from the ```make_aoms()``` function.
+- ```Smo```: List of matrices. Contains each of the AOMs. Generated from the ```make_aoms()``` function. Can also be a string containing the name of the saved AOMs.
 - ```ring```: List (or list of lists). Contains the indices for the definition of the ring required for the calculation of aromaticity indicators.
 - ```mci```: Boolean: Sets whether the MCI is desired to be computed. By default, False.
 - ```av1245```: Boolean: Sets whether the AV1245 (and AVmin) are desired to be computed. By default, False.
+- ```flurefs```: Dictionary. Contains the structure { "Bond tpye (e.g., "CC")" : DI (e.g., 1.400) }. By default, None.
+- ```homarefs```: Dictionary. Contains the structure { "Bond tpye (e.g., "CC")" : { "r_opt" : 1.400, "alpha" : 200.00 } }. By default, None.
+- ```connectivity```: List. The atomic symbols of the centers in ring connectivity: \["C", "C", "O", "C"\]. By default, None.
+- ```geom```: List. The coordinates of the molecule as provided by the mol.atom_coords() PySCF function. By default, None.
 - ```num_threads```: Integer. Sets the number of threads desired for the calculation of the MCI. By default, 1.
 
 # Further work
 - Function: Implementation for correlated wave functions.
 - Function: Approximations for the MCI calculation in large systems.
 - Function: Read the AOMs (or the data required for their calculation) from other source programs and store them as ESIpy's ```Smo```.
-- Utility: Compute the exact MCI for n=14 from precomputed permutations.
 
 # References
 - [1] E. Matito, in ‘ESI-3D Electron Sharing Indexes Program for 3D Molecular Space Partitioning’, Girona IQC, 2006
