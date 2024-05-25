@@ -76,7 +76,7 @@ The Bond-Order Alternation (BOA) reflects the alternation of the delocalization 
 
 $$ \text{BOA}(\mathscr{A}) = \frac{1}{n_1} \sum_{i=1}^{n_1} \delta (A_{2i-1},A_{2i}) - \frac{1}{n_2} \sum_{i=1}^{n_2} \delta (A_{2i},A_{2i+1}) $$
 
-where $n_1 = \lfloor (n+1)/2 \rfloor$ and $n_2 = \lfloor n/2 \rfloor$, being $\lfloor x \rfloor$ the floor function of x returning the largest integer less or equal than x. As well as for the BLA index, for odd-centered closed circuits this index may fail, so instead the $\text{BLA}_c$ index should be used as the comparison of $\delta(A_i, A_{i+1}) - \delta(A_{i+1}, A_{i+2})$:
+where $n_1 = \lfloor (n+1)/2 \rfloor$ and $n_2 = \lfloor n/2 \rfloor$, being $\lfloor x \rfloor$ the floor function of x returning the largest integer less or equal than x. As well as for the BLA index, for odd-centered closed circuits this index may fail, so instead the $\text{BLA}&#95;c$ index should be used as the comparison of $\delta(A_i, A_{i+1}) - \delta(A_{i+1}, A_{i+2})$:
 
 $$ \text{BOA$_c$}(\mathscr{A}) = \frac{1}{N} \sum_{i=1}^{N} \vert \delta(A_{i},A_{i+1}) - \delta(A_{i+1},A_{i+2}) \vert $$
 
@@ -96,7 +96,7 @@ The BLA index measures the average of the bond lengths of consecutive bonds in t
 
 $$ \text{BLA}(\mathscr{A}) = \frac{1}{n_1} \sum_{i=1}^{n_1} r_{A_{2i-1},A_{2i}} - \frac{1}{n_2} \sum_{i=1}^{n_2} r_{A_{2i},A_{2i+1}} $$
 
-where $n_1 = \lfloor (n+1)/2 \rfloor$ and $n_2 = \lfloor n/2 \rfloor$, being $\lfloor x \rfloor$ the floor function of x returning the largest integer less or equal than x. This index was designed for open chains, and thus does not provide reliable results for closed circuits with and odd number of centers, so in those cases this index should be dismissed. Instead, one can use its closed-circuits counterpart, $\text{BLA}_c$:
+where $n_1 = \lfloor (n+1)/2 \rfloor$ and $n_2 = \lfloor n/2 \rfloor$, being $\lfloor x \rfloor$ the floor function of x returning the largest integer less or equal than x. This index was designed for open chains, and thus does not provide reliable results for closed circuits with and odd number of centers, so in those cases this index should be dismissed. Instead, one can use its closed-circuits counterpart, $\text{BLA}&#95;c$:
 
 $$ \text{BLA$_c$}(\mathscr{A}) = \frac{1}{N} \sum_{i=1}^{N} \vert r_{A_{i},A_{i+1}} - r_{A_{i+1},A_{i+2}} \vert $$
 
