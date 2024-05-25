@@ -145,7 +145,7 @@ To run the code from the terminal, generate the Python script or adapt those of 
 - ```av1245```: Boolean: Sets whether the AV1245 (and AVmin) are desired to be computed. By default, False.
 - ```flurefs```: Dictionary. Contains the structure { "Bond tpye (e.g., "CC")" : DI (e.g., 1.400) }. By default, None.
 - ```homarefs```: Dictionary. Contains the structure { "Bond tpye (e.g., "CC")" : { "r_opt" : 1.400, "alpha" : 200.00 } }. By default, None.
-- ```connectivity```: List. The atomic symbols of the centers in ring connectivity: \["C", "C", "O", "C"\]. By default, None.
+- ```connectivity```: List. The atomic symbols of the centers in ring connectivity: \["C", "C", "O", "C"\] for a "C-C-O-C" ring. By default, None.
 - ```geom```: List. The coordinates of the molecule as provided by the mol.atom_coords() PySCF function. By default, None.
 - ```num_threads```: Integer. Sets the number of threads desired for the calculation of the MCI. By default, 1.
 
