@@ -911,12 +911,12 @@ def arom_rest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=None,
             else:
                 start_mci = time.time()
                 if partition == "mulliken":
-                    mci_total = 2 * multiprocessnig_mci_mulliken(ring, Smo, num_threads)
+                    mci_total = 2 * multiprocessing_mci_mulliken(ring, Smo, num_threads)
                 elif partition is None:
                     print(" | Partition not specified. Will assume non-symmetric AOMs")
-                    mci_total = 2 * multiprocessnig_mci(ring, Smo, num_threads)
+                    mci_total = 2 * multiprocessing_mci(ring, Smo, num_threads)
                 else:
-                    mci_total = 2 * multiprocessnig_mci(ring, Smo, num_threads)
+                    mci_total = 2 * multiprocessing_mci(ring, Smo, num_threads)
                 end_mci = time.time()
                 time_mci = end_mci - start_mci
 
