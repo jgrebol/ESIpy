@@ -14,7 +14,7 @@ The following tests have been performed by generating and computing the MCI for 
 
 Table 1. Time (in seconds) for the MCI calculation of an n-membered ring in single-core processing, computed as an average of three timings.
 
-|  | TIME AT 1 CORE (s)   |
+|  | TIME AT 1 CORE (s) |  |
 |---|---|---|
 | n | S ALG. | M ALG. |
 | 6 | 0.002 | 0.022 |
@@ -27,7 +27,7 @@ Table 1. Time (in seconds) for the MCI calculation of an n-membered ring in sing
 
 Table 2. Time (in seconds) for the MCI calculation of different n-membered rings and different number of cores, computed as an average of three timings.
 
-|  | Time at ≥ 1 cores (s)   |
+|  | Time at ≥ 1 cores (s) |  |
 |---|---|---|
 | n | ncores | M ALG. |
 |  | 1 | 7.166 |
