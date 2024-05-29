@@ -26,9 +26,9 @@ In this section we will go through the process of performing all the available c
 
 - example07: Previous computational tools could not allow the proper calculation of the MCI in large systems due to its exponential growth. We probe that not only the calculation of a 14-membered ring is possible, but also that 10-membered rings are very fast to compute (less than 10 seconds excluding the single-point calculation). For more detailed information, please see `ESIpy/MCI_TIMINGS`.
 
-- example08: From the ```ESIpy/utils``` repository, one can access the ```write_int``` function that writes the AOMs as an input for the ESI-3D code.
+- example08: From the ```ESIpy/utils``` repository, one can access the ```write_int()``` function that writes the AOMs as an input for the ESI-3D code.
 
-- example09: Equally, the AOMs from the .int files can be loaded into `Smo` objects, as shown in this example. The `read_int` function from the `ESIpy/utils` allows the AOMs to be saved only by giving the path of the .int files.
+- example09: Equally, the AOMs from the .int files can be loaded into `Smo` objects, as shown in this example. The `read_int()` function from the `ESIpy/utils` allows the AOMs to be saved only by giving the path of the .int files.
 
 > With the current version of the program, the `read_int()` function only works for restricted AOMs, but will work on other AOMs in further actualizations.
 
