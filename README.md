@@ -5,7 +5,7 @@ The ESIpy program is aimed at the calculation of population analysis and aromati
 
 All the calculations performed for the creation and implementation of this program have been conducted in the following scientific paper:
 
-<p style="text-align: center;">**Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador, Chem. Eur. J. 2024, e202401282.**</p>
+**Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador, Chem. Eur. J. 2024, e202401282.**
 
 Please if you are publishing the results obtained from ESIpy remember to cite the program.
 
