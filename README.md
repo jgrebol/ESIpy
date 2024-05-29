@@ -177,5 +177,5 @@ For a detailed explanation about how to run the code and how to customize it, pl
 - [12] P. Bultinck, R. Ponec and S. Van Damme, Journal of Physical Organic Chemistry, 2005, 18, 706–718.
 - [13] E. Matito, Physical Chemistry Chemical Physics, 2016, 18, 11839–11846.
 - [14] E. Matito, M.Duran, M.Solà. The Journal of Chemical Physics, 2005, 122, 014109.
-- [15] J Kruszewski and T. M. Krygowski. Tetrahedron Lett., 13(36):3839–3842, 1972.
+- [15] J. Kruszewski and T. M. Krygowski. Tetrahedron Lett., 13(36):3839–3842, 1972.
 - [16] E. M. Arpa and B. Durbeej. Physical Chemistry Chemical Physics. 2023, 25, 16763-16771.
