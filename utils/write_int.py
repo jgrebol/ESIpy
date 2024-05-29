@@ -1,6 +1,6 @@
 import numpy as np
 import os
-from pyscf import lo
+import re
 from esi import rest_or_unrest
 
 ########### WRITING THE INPUT FOR THE ESI-3D CODE FROM THE AOMS ###########
@@ -183,3 +183,48 @@ def write_int(mol, mf, molname, Smo, ring=None, partition=None):
         f.write("$FULLOUT\n")
         if partition == "mulliken":
             f.write("$MULLIKEN\n")
+
+def read_aoms(path='.'):
+    Smo = []
+    count = 0
+    indices = []
+    start_string = 'The Atomic Overlap Matrix:'
+
+    if not os.path.exists(path):
+        raise ValueError(f"The provided path '{path}' does not exist.")
+
+    int_files = [intfile for intfile in os.listdir(path) if intfile.endswith('.int') and os.path.isfile(os.path.join(path, intfile))]
+    files_ordered = sorted(int_files, key=lambda x: int(re.search(r'\d+', x).group()))
+
+    for intfile in files_ordered:
+        intfile_path = os.path.join(path, intfile)
+        with open(intfile_path, 'r') as f:
+            print('Doing for file', intfile)
+            matrix_lines = []
+            matrix_size = 1
+            for num, line in enumerate(f, 1):
+                if start_string in line:
+                    print(f"Found start string in file {intfile}, line {num}")
+                    for _ in range(3):
+                        next(f)
+                    while True:
+                        line = next(f).strip()
+                        if not line:
+                            print("Found empty line, stopping matrix reading.")
+                            break
+                        matrix_lines.extend([float(num) for num in line.split()])
+                        matrix_size += 1
+
+                    matrix_size = int(np.sqrt(2 * len(matrix_lines) + 1/4) - 1/2)
+                    lower_tri_matrix = np.zeros((matrix_size, matrix_size))
+                    lower_tri_matrix[np.tril_indices(matrix_size)] = matrix_lines
+
+                    matrix = lower_tri_matrix + lower_tri_matrix.T - np.diag(lower_tri_matrix.diagonal())
+
+                    Smo.append(matrix)
+
+        numbers = [int(num) for num in re.findall(r'\d+', intfile)]
+        indices.extend(numbers)
+
+    return Smo
+
