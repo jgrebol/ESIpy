@@ -61,7 +61,7 @@ As an aim to improve the I<sub>ring</sub>, Bultinck and coworkers proposed the *
 
 $$\text{MCI}(\mathscr{A}) = \frac{1}{2n} \sum_{\mathscr{P}(\mathscr{A})} \text{I}_{\text{ring}}(\mathscr{A})$$
 
-As well as the previous indices, a larger MCI value denotes a more aromatic character. Due to the exponential growth of the calculation, we do not suggest computing the MCI for rings larger than $n$=12 for single-core processes and $n$=14 for multi-core processes. See [MCI_TIMINGS](MCI_TIMINGS) for details and timings of the algorithms.
+As well as the previous indices, a larger MCI value denotes a more aromatic character. Due to the exponential growth of the calculation, we do not suggest computing the MCI for rings larger than $n$=12 for single-core processes and $n$=14 for multi-core processes. See [MCI_TIMINGS.md](MCI_TIMINGS.md) for details and timings of the algorithms.
 
 #### AV1245 (and AVmin)
 
