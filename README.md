@@ -64,7 +64,7 @@ where if $i>n$ $\text{A}&#95;i$ should be replaced by $\text{A}_{i-n}$. In addit
 
 #### Fluctuation Index (FLU)
 
-The Fluctuation Index (FLU) measures the resemblance of a series of tabulated $\delta$ to some typical aromatic molecules:
+The Fluctuation Index (FLU)[14] measures the resemblance of a series of tabulated $\delta$ to some typical aromatic molecules:
 
 $$ \text{FLU}(\mathscr{A}) = \frac{1}{n} \sum_{i=1}^{n} \left[\left(\frac{V(A_i)}{V(A{i-1})} \right)^\alpha \frac{\delta(A_i, A_{i-1}) - \delta_{ref}(A_i, A_{i-1})}{\delta_{ref}(A_i, A_{i-1})} \right]^2 $$
 
@@ -84,15 +84,15 @@ $$\text{BOA}&#95;c(\mathscr{A}) = \frac{1}{N} \sum_{i=1}^{N} \left| \delta(A_{i}
 
 #### HOMA and HOMER
 
-The Harmonic Oscillator Model of Aromaticity (HOMA) was defined by Kruszewski and Krygowski and relies only on geometrical data. 
+The Harmonic Oscillator Model of Aromaticity (HOMA)[15] was defined by Kruszewski and Krygowski and relies only on geometrical data. 
 
 $$\text{HOMA}(\mathscr{A}) = 1 - \frac{\alpha}{n} \cdot \sum_i^n (R_{opt} - R_{A_i,A_{i+1}})^2 = 1 - \frac{\alpha}{n} \cdot ((R_{opt} - \bar{R})^2 + \sum_i^n (R_{A_i,A_{i+1}} - \bar{R})^2) = 1 - (EN + GEO)$$
 
-The formula depends on a series of tabulated $R_{opt}$, as well as the normalization factor $\alpha$ for each bond to make the index 1 for benzene, which make this index a good option for most organic molecules but fails for newer systems. The HOMA index is separated into the EN and GEO subparts, which measure the deviation of the interatomic distance into some tabulated numbers and the variance of this interatomic distance, respectively, and are close to zero for aromatic molecules. At this moment, only the references from "CC", "CN", "NN" and "CO" are tabulated, but more references can be introduced to the code. The HOMER aromaticity index is a reparametrization of the HOMA which works for triplet excited states. 
+The formula depends on a series of tabulated $R_{opt}$, as well as the normalization factor $\alpha$ for each bond to make the index 1 for benzene, which make this index a good option for most organic molecules but fails for newer systems. The HOMA index is separated into the EN and GEO subparts, which measure the deviation of the interatomic distance into some tabulated numbers and the variance of this interatomic distance, respectively, and are close to zero for aromatic molecules. At this moment, only the references from "CC", "CN", "NN" and "CO" are tabulated, but more references can be introduced to the code. The HOMER aromaticity index is a reparametrization of the HOMA for the T1 state.[16]
 
 #### Bond-Length Alternation (BLA)
 
-The BLA index measures the average of the bond lengths of consecutive bonds in the ring
+The Bond-Length Alternation (BLA)[18] index measures the average of the bond lengths of consecutive bonds in the ring
 
 $$ \text{BLA}(\mathscr{A}) = \frac{1}{n_1} \sum_{i=1}^{n_1} r_{A_{2i-1},A_{2i}} - \frac{1}{n_2} \sum_{i=1}^{n_2} r_{A_{2i},A_{2i+1}} $$
 
@@ -162,10 +162,12 @@ To run the code from the terminal, generate the Python script or adapt those of 
 - [5] A. E. Reed, R. B. Weinstock and F. Weinhold, The Journal of Chemical Physics, 1985, 83, 735–746.
 - [6] Q. Sun and G. K.-L. Chan, Journal of Chemical Theory and Computation, 2014, 10, 3784–3790.
 - [7] G. Knizia, Journal of Chemical Theory and Computation, 2013, 9, 4834–4843.
-- [8] Q. Sun et al. "Recent developments in the PySCF program package." J. Chem. Phys., 153, 024109 (2020).
+- [8] Q. Sun et al. The Journal of Chemical Physics, 2020, 153, 024109.
 - [9] I. Mayer, Chemical Physics Letters, 1983, 97, 270–274.
 - [10] J. Poater et al., Chemistry–A European Journal, 2003, 9, 400–406.
 - [11] M. Giambiagi, M. S. De Giambiagi and K. C. Mundim, Structural Chemistry, 1990, 1, 423–427.
 - [12] P. Bultinck, R. Ponec and S. Van Damme, Journal of Physical Organic Chemistry, 2005, 18, 706–718.
 - [13] E. Matito, Physical Chemistry Chemical Physics, 2016, 18, 11839–11846.
-  
+- [14] E. Matito, M.Duran, M.Solà. The Journal of Chemical Physics, 2005, 122, 014109.
+- [15] J Kruszewski and T. M. Krygowski. Tetrahedron Lett., 13(36):3839–3842, 1972.
+- [16] E. M. Arpa and B. Durbeej. Physical Chemistry Chemical Physics. 2023, 25, 16763-16771.
