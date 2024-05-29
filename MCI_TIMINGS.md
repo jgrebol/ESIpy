@@ -1,5 +1,7 @@
 # MCI TIMINGS
 
+> This page is under construction, and thus the results should not be taken as a direct reference.
+
 The ESIpy code provides an improved algorithm for the generation of permutations in the MCI calculation. 
 ESI-3D used a Nested Summation Symbol (NSS) to compute all the ring connectivities. 
 In ESIpy, two separate algorithms are used: **S** and **M**. Both algorithms only generate the (n-1)!/2 permutations of a given n-lenghted list for non-symmetric AOMs and (n-1)! for symmetric AOMs (i.e., Mulliken).
