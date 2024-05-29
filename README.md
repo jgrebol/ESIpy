@@ -1,6 +1,14 @@
 # ESIpy
 The ESIpy program is aimed at the calculation of population analysis and aromaticity indicators from different Hilbert-space partitions using the PySCF module. The program supports both restricted and unrestricted calculations for single-determinant wave functions. The atomic partitions supported by the program are Mulliken, Löwdin, meta-Löwdin, Natural Atomic Orbitals (NAO), and Intrinsic Atomic Orbitals (IAO). The ESIpy repository contains the esi.py main code as well as several example scripts. 
 
+## Citation
+
+All the calculations performed for the creation and implementation of this program have been conducted in the following scientific paper:
+
+**Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador, Chem. Eur. J. 2024, e202401282.**
+
+Please if you are publishing the results obtained from ESIpy remember to cite the program.
+
 ## Theoretical background
 
 ### Hilbert-space partitioning
