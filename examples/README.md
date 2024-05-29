@@ -14,6 +14,8 @@ In this section we will go through the process of performing all the available c
 
 - example05: To provide FLU references to the code, one needs to provide a dictionary, ```flurefs```, with the bond symbols the DI value corresponding to it. If the pattern already exists, it will be updated, and if it does not it will be added to the existing ones. Without the ```mol``` nor the ```.molinfo``` variables, one needs to provide the list connectivity, which is a list containing the symbols in ring connectivtiy, but only one can be given at a time.
 
+> The `partition` variable is mandatory to properly obtain the references for the calculations. The FLU index will not be computed if no partition is specified.
+
 - example06: As for the HOMA (and HOMER), the user needs to provide the dictionary ```homarefs```, which contains the bond pattern and an inner dictionary containing the ```r_opt``` and ```alpha``` parameters (see the example for a better understanding of the structure of the variable. The example provides the calculation of the HOMER values for benzene singlet, which indeed produce non-aromatic values as expected. Without the molecule information, the user needs to provide the connectivtiy of the atoms and the molecular geometry as stated in the ```mol.atom_coords()``` object.
 
 > The program will check the topology of the AOMs to separate into singlet and triplet calculations. Thus, it will only compute HOMA for singlets and HOMER for triplets.
