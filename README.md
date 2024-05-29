@@ -132,7 +132,7 @@ export PYTHONPATH=~/ESIpy/ESIpy:$PYTHONPATH (or the directory where it is locate
 ```
 To run the code from the terminal, generate the Python script or adapt those of the ```examples``` repository and run it as ```python code.py``` or ```python3 code.py```. To save the output as a file, use ```python code.py > code.esi```.
 
-# Variable scope
+## Variable scope
 
 - ```mol```: From PySCF's module. Provides information about the molecule and the basis set employed for the calculation.
 - ```mf```: From PySCF's module. Provides information about the type of calculation performed.
@@ -149,12 +149,12 @@ To run the code from the terminal, generate the Python script or adapt those of 
 - ```geom```: List. The coordinates of the molecule as provided by the mol.atom_coords() PySCF function. By default, None.
 - ```num_threads```: Integer. Sets the number of threads desired for the calculation of the MCI. By default, 1.
 
-# Further work
+## Further work
 - Function: Implementation for correlated wave functions.
 - Function: Approximations for the MCI calculation in large systems.
 - Function: Read the AOMs (or the data required for their calculation) from other source programs and store them as ESIpy's ```Smo```.
 
-# References
+## References
 - [1] E. Matito, in ‘ESI-3D Electron Sharing Indexes Program for 3D Molecular Space Partitioning’, Girona IQC, 2006
 - [2] R. F. W. Bader, Atoms in molecules: a quantum theory, Clarendon Press; Oxford University Press, Oxford [England]: New York, 1994.
 - [3] R. S. Mulliken, The Journal of Chemical Physics, 1955, 23, 1833–1840.
