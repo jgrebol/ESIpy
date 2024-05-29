@@ -24,7 +24,7 @@ In this section we will go through the process of performing all the available c
 
 - example06: Here we showcase how to compute the indices individually from the ESIpy functions, although we recommend using the whole ```aromaticity()``` function as the computational time is minimal (except for the MCI in large systems).
 
-- example07: Previous computational tools could not allow the proper calculation of the MCI in large systems due to its exponential growth. We probe that not only the calculation of a 14-membered ring is possible, but also that 10-membered rings are very fast to compute (less than 10 seconds excluding the single-point calculation).
+- example07: Previous computational tools could not allow the proper calculation of the MCI in large systems due to its exponential growth. We probe that not only the calculation of a 14-membered ring is possible, but also that 10-membered rings are very fast to compute (less than 10 seconds excluding the single-point calculation). For more detailed information, please see `ESIpy/MCI_TIMINGS`.
 
 - example08: From the ```ESIpy/utils``` repository, one can access the ```write_int``` function that writes the AOMs as an input for the ESI-3D code.
 
