@@ -1,11 +1,9 @@
 import numpy as np
-
-# Setting the environment variables at 1 thread
-
 from os import environ
-environ["NUMEXPR_NUM_THREADS"] = "1"
-environ["OMP_NUM_THREADS"] = "1"
-environ["MKL_NUM_THREADS"] = "1"
+
+environ["NUMEXPR_NUM_THREADS"] = "1" 
+environ["OMP_NUM_THREADS"] = "1" 
+environ["MKL_NUM_THREADS"] = "1" 
 
 ##################################
 ########### CORE ESIpy ###########
@@ -634,8 +632,8 @@ def arom_unrest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=Non
                 print(" | AV1245 could not be calculated as the number of centers is smaller than 6 ")
 
             else:
-                avs_alpha = np.array(compute_av1245(ring, Smo[0]), dtype=object)
-                avs_beta = np.array(compute_av1245(ring, Smo[1]), dtype=object)
+                avs_alpha = np.array(compute_av1245(ring, Smo[0],partition), dtype=object)
+                avs_beta = np.array(compute_av1245(ring, Smo[1],partition), dtype=object)
 
                 print(" |")
                 print(" | *** AV1245_ALPHA ***")
@@ -691,16 +689,10 @@ def arom_unrest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=Non
             # SINGLE-CORE
             if num_threads == 1:
                 start_mci = time.time()
-                if partition == "mulliken":
-                    mci_alpha = sequential_mci_mulliken(ring, Smo[0])
-                    mci_beta = sequential_mci_mulliken(ring, Smo[1])
-                elif partition is None:
-                    print(" | Partition not specified. Will assume non-symmetric AOMs")
-                    mci_alpha = sequential_mci(ring, Smo[0])
-                    mci_beta = sequential_mci(ring, Smo[1])
-                else:
-                    mci_alpha = sequential_mci(ring, Smo[0])
-                    mci_beta = sequential_mci(ring, Smo[1])
+                if partition is None:
+                    print(" | Partition not specified. Will assume symmetric AOMs")
+                mci_alpha = sequential_mci(ring, Smo[0],partition)
+                mci_beta = sequential_mci(ring, Smo[1],partition)
                 mci_total = mci_alpha + mci_beta
                 end_mci = time.time()
                 time_mci = end_mci - start_mci
@@ -712,16 +704,10 @@ def arom_unrest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=Non
             # MULTI-CORE
             else:
                 start_mci = time.time()
-                if partition == "mulliken":
-                    mci_alpha = multiprocessing_mci_mulliken(ring, Smo[0], num_threads)
-                    mci_beta = multiprocessing_mci_mulliken(ring, Smo[1], num_threads)
-                elif partition is None:
-                    print(" | Partition not specified. Will assume non-symmetric AOMs")
-                    mci_alpha = multiprocessing_mci(ring, Smo[0], num_threads)
-                    mci_beta = multiprocessing_mci(ring, Smo[1], num_threads)
-                else:
-                    mci_alpha = multiprocessing_mci(ring, Smo[0], num_threads)
-                    mci_beta = multiprocessing_mci(ring, Smo[1], num_threads)
+                if partition is None:
+                    print(" | Partition not specified. Will assume symmetric AOMs")
+                mci_alpha = multiprocessing_mci(ring, Smo[0], num_threads,partition)
+                mci_beta = multiprocessing_mci(ring, Smo[1], num_threads,partition)
                 mci_total = mci_alpha + mci_beta
                 end_mci = time.time()
                 time_mci = end_mci - start_mci
@@ -866,7 +852,7 @@ def arom_rest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=None,
                 print(" | AV1245 could not be calculated as the number of centers is smaller than 6 ")
 
             else:
-                avs = 2 * np.array(compute_av1245(ring, Smo), dtype=object)
+                avs = 2 * np.array(compute_av1245(ring, Smo,partition), dtype=object)
                 av1245_pairs = [(ring[i % len(ring)],ring[(i + 1) % len(ring)],ring[(i + 3) % len(ring)],ring[(i + 4) % len(ring)])
                     for i in range(len(ring)) ]
 
@@ -901,13 +887,9 @@ def arom_rest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=None,
             # SINGLE-CORE
             if num_threads == 1:
                 start_mci = time.time()
-                if partition == "mulliken":
-                    mci_total = 2 * sequential_mci_mulliken(ring, Smo)
-                elif partition is None:
-                    print(" | Partition not specified. Will assume non-symmetric AOMs")
-                    mci_total = 2 * sequential_mci(ring, Smo)
-                else:
-                    mci_total = 2 * sequential_mci(ring, Smo)
+                if partition is None:
+                    print(" | Partition not specified. Will assume symmetric AOMs")
+                mci_total = 2 * sequential_mci(ring, Smo,partition)
                 end_mci = time.time()
                 time_mci = end_mci - start_mci
 
@@ -917,13 +899,9 @@ def arom_rest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=None,
             # MULTI-CORE
             else:
                 start_mci = time.time()
-                if partition == "mulliken":
-                    mci_total = 2 * multiprocessing_mci_mulliken(ring, Smo, num_threads)
-                elif partition is None:
-                    print(" | Partition not specified. Will assume non-symmetric AOMs")
-                    mci_total = 2 * multiprocessing_mci(ring, Smo, num_threads)
-                else:
-                    mci_total = 2 * multiprocessing_mci(ring, Smo, num_threads)
+                if partition is None:
+                    print(" | Partition not specified. Will assume symmetric AOMs")
+                mci_total = 2 * multiprocessing_mci(ring, Smo, num_threads,partition)
                 end_mci = time.time()
                 time_mci = end_mci - start_mci
 
@@ -1133,8 +1111,8 @@ def arom_unrest_from_aoms(Smo, rings, partition, mol, mci=False, av1245=False, f
                 print(" | AV1245 could not be calculated as the number of centers is smaller than 6 ")
 
             else:
-                avs_alpha = np.array(compute_av1245(ring, Smo[0]), dtype=object)
-                avs_beta = np.array(compute_av1245(ring, Smo[1]), dtype=object)
+                avs_alpha = np.array(compute_av1245(ring, Smo[0],partition), dtype=object)
+                avs_beta = np.array(compute_av1245(ring, Smo[1],partition), dtype=object)
 
                 print(" |")
                 print(" | *** AV1245_ALPHA ***")
@@ -1186,16 +1164,10 @@ def arom_unrest_from_aoms(Smo, rings, partition, mol, mci=False, av1245=False, f
             # SINGLE-CORE
             if num_threads == 1:
                 start_mci = time.time()
-                if partition == "mulliken":
-                    mci_alpha = sequential_mci_mulliken(ring, Smo[0])
-                    mci_beta = sequential_mci_mulliken(ring, Smo[1])
-                elif partition is None:
-                    print(" | Partition not specified. Will assume non-symmetric AOMs")
-                    mci_alpha = sequential_mci(ring, Smo[0])
-                    mci_beta = sequential_mci(ring, Smo[1])
-                else:
-                    mci_alpha = sequential_mci(ring, Smo[0])
-                    mci_beta = sequential_mci(ring, Smo[1])
+                if partition is None:
+                    print(" | Partition not specified. Will assume symmetric AOMs")
+                mci_alpha = sequential_mci(ring, Smo[0],partition)
+                mci_beta = sequential_mci(ring, Smo[1],partition)
                 end_mci = time.time()
                 mci_total = mci_alpha + mci_beta
                 time_mci = end_mci - start_mci
@@ -1207,16 +1179,10 @@ def arom_unrest_from_aoms(Smo, rings, partition, mol, mci=False, av1245=False, f
             # MULTI-CORE
             else:
                 start_mci = time.time()
-                if partition == "mulliken":
-                    mci_alpha = multiprocessing_mci_mulliken(ring, Smo[0], num_threads)
-                    mci_beta = multiprocessing_mci_mulliken(ring, Smo[1], num_threads)
-                elif partition is None:
-                    print(" | Partition not specified. Will assume non-symmetric AOMs")
-                    mci_alpha = multiprocessing_mci(ring, Smo[0], num_threads)
-                    mci_beta = multiprocessing_mci(ring, Smo[1], num_threads)
-                else:
-                    mci_alpha = multiprocessing_mci(ring, Smo[0], num_threads)
-                    mci_beta = multiprocessing_mci(ring, Smo[1], num_threads)
+                if partition is None:
+                    print(" | Partition not specified. Will assume symmetric AOMs")
+                mci_alpha = multiprocessing_mci(ring, Smo[0], num_threads,partition)
+                mci_beta = multiprocessing_mci(ring, Smo[1], num_threads,partition)
                 mci_total = mci_alpha + mci_beta
                 end_mci = time.time()
                 time_mci = end_mci - start_mci
@@ -1374,7 +1340,7 @@ def arom_rest_from_aoms(Smo, rings, partition, mol, mci=True, av1245=True, flure
                 print(" | AV1245 could not be calculated as the number of centers is smaller than 6 ")
 
             else:
-                avs = 2 * np.array(compute_av1245(ring, Smo), dtype=object)
+                avs = 2 * np.array(compute_av1245(ring, Smo,partition), dtype=object)
                 av1245_pairs = [( ring[i % len(ring)], ring[(i + 1) % len(ring)], ring[(i + 3) % len(ring)], ring[(i + 4) % len(ring)])
                     for i in range(len(ring)) ]
 
@@ -1406,13 +1372,9 @@ def arom_rest_from_aoms(Smo, rings, partition, mol, mci=True, av1245=True, flure
             # SINGLE-CORE
             if num_threads == 1:
                 start_mci = time.time()
-                if partition == "mulliken":
-                    mci_total = 2 * sequential_mci_mulliken(ring, Smo)
-                elif partition is None:
-                    print(" | Partition not specified. Will assume non-symmetric AOMs")
-                    mci_total = 2 * sequential_mci(ring, Smo)
-                else:
-                    mci_total = 2 * sequential_mci(ring, Smo)
+                if partition is None:
+                    print(" | Partition not specified. Will assume symmetric AOMs")
+                mci_total = 2 * sequential_mci(ring, Smo,partition)
                 end_mci = time.time()
                 time_mci = end_mci - start_mci
 
@@ -1422,13 +1384,9 @@ def arom_rest_from_aoms(Smo, rings, partition, mol, mci=True, av1245=True, flure
             # MULTI-CORE
             else:
                 start_mci = time.time()
-                if partition == "mulliken":
-                    mci_total = 2 * sequential_mci_mulliken(ring, Smo)
-                elif partition is None:
-                    print(" | Partition not specified. Will assume non-symmetric AOMs")
-                    mci_total = 2 * sequential_mci(ring, Smo)
-                else:
-                    mci_total = 2 * sequential_mci(ring, Smo)
+                if partition is None:
+                    print(" | Partition not specified. Will assume symmetric AOMs")
+                mci_total = 2 * sequential_mci(ring, Smo,partition)
                 end_mci = time.time()
                 time_mci = end_mci - start_mci
 
@@ -1529,10 +1487,8 @@ def compute_iring(arr, Smo):
     """
 
     product = np.identity(Smo[0].shape[0])
-
     for i in arr:
         product = np.dot(product, Smo[i - 1])
-
     iring = 2 ** (len(arr) - 1) * np.trace(product)
 
     return iring
@@ -1540,55 +1496,8 @@ def compute_iring(arr, Smo):
 
 ########### MCI ###########
 
-# MCI algorithm that does not store all the permutations (MCI2) (Restricted and Unrestricted)
 
-
-def sequential_mci_mulliken(arr, Smo):
-    """Computes the MCI sequentially by recursively generating all the permutations using Heaps'
-    algorithm and computing the Iring for each without storing them. Does not have memory
-    requirements and is the default for ESIpy if no number of threads are specified. Due to the
-    topology of the matricial product, for symmetric AOMs (i.e., Mulliken) the factor of two
-    can not be ommited.
-
-    Arguments:
-       arr: string
-          A string containing the indices of the atoms in ring onnectivity.
-
-       Smo: list of matrices or string
-          Atomic Overlap Matrices (AOMs) in the MO basis generated from the make_aoms() function.
-          Can also be a string with the name of the file or the path where the AOMS have been saved.
-
-    Returns:
-       mci_value: float
-          MCI value for the given ring.
-    """
-
-    mci_value = 0
-
-    def generate_permutations(n, a, b, Smo):
-        nonlocal mci_value
-
-        if n == 1:
-            a = a + [b]
-            mci_value += compute_iring(a, Smo)
-
-        else:
-            for i in range(n - 1):
-                generate_permutations(n - 1, a, b, Smo)
-
-                if n % 2 == 0:
-                    a[i], a[n - 1] = a[n - 1], a[i]
-
-                else:
-                    a[0], a[n - 1] = a[n - 1], a[0]
-            generate_permutations(n - 1, a, b, Smo)
-
-    generate_permutations(len(arr) - 1, arr[:-1], arr[-1], Smo)
-
-    return mci_value
-
-
-def sequential_mci(arr, Smo):
+def sequential_mci(arr, Smo,part):
     """Computes the MCI sequentially by recursively generating all the permutations using Heaps'
     algorithm and computing the Iring for each without storing them. Does not have memory
     requirements and is the default for ESIpy if no number of threads are specified.
@@ -1606,75 +1515,21 @@ def sequential_mci(arr, Smo):
           MCI value for the given ring.
     """
 
-    mci_value = 0
+    from math import factorial
+    from itertools import permutations, islice
 
-    def generate_permutations(n, a, b, Smo):
-        nonlocal mci_value
+    if part == 'mulliken':
+      iterable2 = islice(permutations(arr), factorial(len(arr)-1))
+    else: # remove reversed permutations
+      iterable = islice(permutations(arr), factorial(len(arr)-1)-factorial(len(arr)-2))
+      iterable2 = (x for x in iterable if x[0]== arr[0] and x[1] < x[-1])
 
-        if n == 1:
-            if a[0] < a[-1]:
-                a = a + [b]
-                mci_value += compute_iring(a, Smo)
-
-        else:
-            for i in range(n - 1):
-                generate_permutations(n - 1, a, b, Smo)
-
-                if n % 2 == 0:
-                    a[i], a[n - 1] = a[n - 1], a[i]
-
-                else:
-                    a[0], a[n - 1] = a[n - 1], a[0]
-            generate_permutations(n - 1, a, b, Smo)
-
-    generate_permutations(len(arr) - 1, arr[:-1], arr[-1], Smo)
-
+    mci_value = sum(compute_iring(p, Smo) for p in iterable2 )
     return mci_value
 
 
-# MCI algorithm that splits the job into different threads (MCI1) (Restricted and Unrestricted)
+def multiprocessing_mci(arr, Smo, num_threads, partition):
 
-
-def multiprocessing_mci_mulliken(arr, Smo, num_threads):
-    """Computes the MCI split in different threads by generating all the permutations
-    for a later distribution along the specified number of threads. Due to the
-    topology of the matricial product, for symmetric AOMs (i.e., Mulliken) the factor of two
-    can not be ommited.
-
-    Arguments:
-       arr: string
-          A string containing the indices of the atoms in ring connectivity.
-
-       Smo: list of matrices or string
-          Atomic Overlap Matrices (AOMs) in the MO basis generated from the make_aoms() function.
-          Can also be a string with the name of the file or the path where the AOMS have been saved.
-
-       num_threads: integer
-          Number of threads required for the calculation.
-
-    Returns:
-       mci_value: float
-          MCI value for the given ring.
-    """
-
-    from multiprocessing import Pool
-    from math import factorial
-    from functools import partial
-    from itertools import permutations, islice
-
-    iterable = islice(permutations(arr), factorial(len(arr)-1)-factorial(len(arr)-2))
-
-    pool = Pool(processes=num_threads)
-    dumb=partial(compute_iring,Smo=Smo)
-    chunk_size = 50000
-
-    iterable2 = (x for x in iterable if x[0] == arr[0])
-    results = pool.imap(dumb, iterable2, chunk_size)
-    trace = sum(results)
-    return 2 * trace
-
-
-def multiprocessing_mci(arr, Smo, num_threads):
     """Computes the MCI split in different threads by generating all the permutations
     for a later distribution along the specified number of threads.
 
@@ -1689,25 +1544,33 @@ def multiprocessing_mci(arr, Smo, num_threads):
        num_threads: integer
           Number of threads required for the calculation.
 
+       partition: string. Default: None
+          Type of desired atom-in-molecule partition scheme. Options are 'mulliken', lowdin', 'meta_lowdin', 'nao' and 'iao'.
+
     Returns:
        mci_value: float
           MCI value for the given ring.
     """
+
     from multiprocessing import Pool
     from math import factorial
     from functools import partial
     from itertools import permutations, islice
 
-    iterable = islice(permutations(arr), factorial(len(arr)-1)-factorial(len(arr)-2))
-
-    pool = Pool(processes=num_threads)
+    pool=Pool(processes=num_threads)
     dumb=partial(compute_iring,Smo=Smo)
-    chunk_size = 50000
+    chunk_size=50000
 
-    iterable2 = (x for x in iterable if x[0] == arr[0] and x[1] < x[-1])
-    results = pool.imap(dumb, iterable2, chunk_size)
+    if partition == 'mulliken':
+      iterable2 = islice(permutations(arr), factorial(len(arr)-1))
+    else: # remove reversed permutations
+      iterable = islice(permutations(arr), factorial(len(arr)-1)-factorial(len(arr)-2))
+      iterable2 = (x for x in iterable if x[0]== arr[0] and x[1] < x[-1])
+
+    results=pool.imap(dumb, iterable2,chunk_size)
     trace = sum(results)
-    return 2 * trace
+
+    return trace
 
 
 ########### AV1245 ###########
@@ -1715,7 +1578,7 @@ def multiprocessing_mci(arr, Smo, num_threads):
 # Calculation of the AV1245 index (Restricted and Unrestricted)
 
 
-def compute_av1245(arr, Smo):
+def compute_av1245(arr, Smo, partition):
     """Computes the AV1245 index by generating the pair of indices that fulfill the 1-2-4-5 condition
     for a latter calculation of each MCI. Computes the AVmin as the minimum absolute value the index
     can get. It is not computed for rings smaller than n=6.
@@ -1727,6 +1590,9 @@ def compute_av1245(arr, Smo):
        Smo: list of matrices
           Atomic Overlap Matrices (AOMs) in the MO basis generated from the make_aoms() function.
           Can also be a string with the name of the file or the path where the AOMS have been saved.
+
+       partition: string. Default: None
+          Type of desired atom-in-molecule partition scheme. Options are 'mulliken', lowdin', 'meta_lowdin', 'nao' and 'iao'.
 
     Returns:
        tuple
@@ -1743,7 +1609,7 @@ def compute_av1245(arr, Smo):
     products = []
 
     for cp in av1245_pairs(arr):
-        product = sequential_mci(list(cp), Smo)
+        product = sequential_mci(list(cp), Smo, partition)
         products.append(1000 * product / 3)
 
     min_product = min(products, key=abs)
@@ -2304,15 +2170,13 @@ def make_aoms(mol, mf, partition=None, save=None):
 
         return Smo
 
-    else:
-        print(" Only restricted and unrestricted HF and KS-DFT available in this version of the program")
+    else: 
+        print(" Only restricted and unrestricted HF and KS-DFT available with this version of the program")
         return
-
-
 
 def mol_info(mol, mf, save=None, partition=None):
     """Obtains a series of information about the molecule and the calculation
-    to complement the main aromtcity() function without requiring the 'mol'
+    to complement the main aromaticity() function without requiring the 'mol'
     and 'mf' objects.
 
     Arguments:
@@ -2323,7 +2187,7 @@ def mol_info(mol, mf, save=None, partition=None):
            mf object holds all parameters to control SCF.
 
         save: string
-           Sets the name of the file if they want to be stored in disk. Reccomended '.molinfo' extension.
+           Sets the name of the file if they want to be stored in disk. Recomended '.molinfo' extension.
 
         partition: string
            Type of desired atom-in-molecule partition scheme. Options are 'mulliken', lowdin', 'meta_lowdin', 'nao' and 'iao'.
