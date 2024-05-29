@@ -1,3 +1,4 @@
+from utils import ints
 import esi
 from pyscf import gto, dft
 
@@ -5,24 +6,18 @@ molname = 'example08'
 
 mol=gto.Mole()
 mol.atom='''
-6       -2.668401126      1.246700000     -3.249227265
-6       -2.668401126      2.437400000     -3.944227265
-6       -2.668401126      2.437400000     -5.363027265
-6       -2.668401126      1.246700000     -6.058027265
-6       -2.668401126     -1.246700000     -6.058027265
-6       -2.668401126     -2.437400000     -5.363027265
-6       -2.668401126     -2.437400000     -3.944227265
-6       -2.668401126     -1.246700000     -3.249227265
-6       -2.668401126      0.000000000     -3.936027265
-6       -2.668401126      0.000000000     -5.371227265
-1       -2.668401126      1.244200000     -2.155927265
-1       -2.668401126      3.387000000     -3.404127265
-1       -2.668401126      3.387000000     -5.903127265
-1       -2.668401126      1.244200000     -7.151327265
-1       -2.668401126     -1.244200000     -7.151327265
-1       -2.668401126     -3.387000000     -5.903127265
-1       -2.668401126     -3.387000000     -3.404127265
-1       -2.668401126     -1.244200000     -2.155927265
+C                     0.       -1.39633   0.
+C                    -1.20926  -0.69816   0.
+C                     1.20926  -0.69816   0.
+H                    -2.15006  -1.24134   0.
+H                     2.15006  -1.24134   0.
+C                    -1.20926   0.69816   0.
+C                     1.20926   0.69816   0.
+H                    -2.15006   1.24134   0.
+H                     2.15006   1.24134   0.
+C                     0.        1.39633   0.
+H                     0.        2.48268   0.
+H                     0.       -2.48268   0.
 '''
 mol.basis = 'sto-3g'
 mol.spin = 0
@@ -33,13 +28,11 @@ mol.max_memory = 4000
 mol.build()
 
 mf = dft.RKS(mol)
-mf.xc = 'B3LYP'
+mf.xc = 'B3LYPg'
 mf.kernel()
 
-ring = [[1,2,3,4,10,9],[5,6,7,8,9,10],[1,2,3,4,10,5,6,7,8,9]]
-partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
+ring = [7,3,1,2,6,10]
+partition = 'nao'
 
-for part in partition:
-    Smo = esi.make_aoms(mol, mf, partition=part, save=molname + '_' + part + '.aoms')
-    molinfo = esi.mol_info(mol, mf, partition=part, save=molname + '_' + part +  '.molinfo')
-    esi.aromaticity(Smo, rings=ring, mol=mol, mf=mf, partition=part, mci=True, av1245=True, num_threads=2)
+Smo = esi.make_aoms(mol,mf,partition=partition)
+ints.write_int(mol, mf, molname, Smo, ring, partition=partition)
