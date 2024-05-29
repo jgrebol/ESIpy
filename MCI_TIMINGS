@@ -27,7 +27,7 @@ Table 1. Time (in seconds) for the MCI calculation of an n-membered ring in sing
 
 Table 2. Time (in seconds) for the MCI calculation of different n-membered rings and different number of cores, computed as an average of three timings.
 
-|  | Time at ≥ 1 cores (s) |  |
+|  | Time at ≥ 1 cores (s)   |
 |---|---|---|
 | n | ncores | M ALG. |
 |  | 1 | 7.166 |
