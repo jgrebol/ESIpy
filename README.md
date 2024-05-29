@@ -7,7 +7,7 @@ All the calculations performed for the creation and implementation of this progr
 
 **Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador, Chem. Eur. J. 2024, e202401282.**
 
-Please if you are publishing the results obtained from ESIpy remember to cite the program. The code is licensed under the GNU GPLv3. See the [LICENSE](LICENSE) file for details.
+Please if you are publishing the results obtained from ESIpy remember to cite the program. The code is licensed under the GNU GPLv3. See the [LICENSE](LICENSE) file for details. See the [examples/README.md](examples/README.md) file for details on how to use the program.
 
 
 ## Theoretical background
@@ -61,7 +61,7 @@ As an aim to improve the I<sub>ring</sub>, Bultinck and coworkers proposed the *
 
 $$\text{MCI}(\mathscr{A}) = \frac{1}{2n} \sum_{\mathscr{P}(\mathscr{A})} \text{I}_{\text{ring}}(\mathscr{A})$$
 
-As well as the previous indices, a larger MCI value denotes a more aromatic character. Due to the exponential growth of the calculation, we do not suggest computing the MCI for rings larger than $n$=12 for single-core processes and $n$=14 for multi-core processes.
+As well as the previous indices, a larger MCI value denotes a more aromatic character. Due to the exponential growth of the calculation, we do not suggest computing the MCI for rings larger than $n$=12 for single-core processes and $n$=14 for multi-core processes. See [MCI_TIMINGS](MCI_TIMINGS) for details and timings of the algorithms.
 
 #### AV1245 (and AVmin)
 
@@ -113,11 +113,12 @@ This new definition can indeed be used for closed rings, but produces numbers th
 
 ## Features
 - ``make_aoms(mol, mf, partition, save)``: From PySCF's `mol` and `mf` objects and `partition` as a string containing the desired partition (`mulliken`, `lowdin`, `meta_lowdin`, `nao`, `iao`), generate a list of matrices containing the Atomic Overlap Matrices (AOMs). The variable `save` is a string containing the name of the file where to save the AOMs.
-- `aromaticity(Smo, ring, mol, mf, partition, mci, av1245, flurefs, homarefs, connectivity, geom, num_threads)`: Compute population analyses, delocalization analyses, and aromaticity indicators from the AOMs (variable Smo). Only the AOMs, `Smo`, and the ring connectivities, `ring`, are required for the calculation. Any other information will complement the calculation. The varible `Smo` can either be the variable that directly comes from the `make_aoms()` function or a string containing the name of the previously saved AOMs. The variable `ring` is either a list or a list of lists containing the indices of the atoms for the aromaticity calculations. `mci` and `av1245` are boolean variables to compute the MCI and AV1425 indices, respectively. Multi-core processing for the MCI calculation is supported by setting `num_threads` at a number of cores different than 1, albeit the speed-up is non-linear. The `flurefs`, `homarefs`, `connectivity` and `geom` variables are optional in case of computing the FLU, HOMA, HOMER and/or BLA indicators without providing the `mol` object; see `examples/`.
-- Sole functions to compute each of the aromaticity indicators (I<sub>ring</sub>, MCI, AV1245, and PDI, see `examples/08-separate_indicators.py`).
+- `aromaticity(Smo, ring, mol, mf, partition, mci, av1245, flurefs, homarefs, connectivity, geom, num_threads)`: Compute population analyses, delocalization analyses, and aromaticity indicators from the AOMs (variable Smo). Only the AOMs, `Smo`, and the ring connectivities, `ring`, are required for the calculation. Any other information will complement the calculation. The varible `Smo` can either be the variable that directly comes from the `make_aoms()` function or a string containing the name of the previously saved AOMs. The variable `ring` is either a list or a list of lists containing the indices of the atoms for the aromaticity calculations. `mci` and `av1245` are boolean variables to compute the MCI and AV1425 indices, respectively. Multi-core processing for the MCI calculation is supported by setting `num_threads` at a number of cores different than 1, albeit the speed-up is non-linear. The `flurefs`, `homarefs`, `connectivity` and `geom` variables are optional in case of computing the FLU, HOMA, HOMER and/or BLA indicators without providing the `mol` object; see [examples/examples07.py](examples/examples07.py).
+- Sole functions to compute each of the aromaticity indicators (I<sub>ring</sub>, MCI, AV1245, and PDI, see [examples/example06.py](examples/example06.py`).
 
 ## Utilities
-- `write_int(mol, mf, molname, Smo, ring, calc)`: Writes the AOMs as input for Dr. Eduard Matito's ESI-3D code (see `examples/07-generate_int.py`). The atomic files are stored in a self-created directory, as well as a general input for the program (`'molname'.bad`). The ring variable is not mandatory but recommended.
+- `write_int(mol, mf, molname, Smo, ring, partition)`: Writes the AOMs as input for Dr. Eduard Matito's ESI-3D code (see [examples/example08.py](examples/example08.py)). The atomic files are stored in a self-created directory, as well as a general input for the program (`'molname'.bad`). The ring variable is not mandatory but recommended.
+- `read_int(path)`: Reads the AOMs from either the .int files generated by ESIpy or the ones generated from the AIMAll package.
 
 ## Installation
 To install PySCF it is recommended to create a conda environment as follows:
