@@ -30,5 +30,5 @@ In this section we will go through the process of performing all the available c
 
 - example09: Equally, the AOMs from the .int files can be loaded into `Smo` objects, as shown in this example. The `read_int` function from the `ESIpy/utils` allows the AOMs to be saved only by giving the path of the .int files.
 
-> With the current version of the program, the `read_int()` function only works for restricted AOMS, but will work on other AOMs in further actualizations.
+> With the current version of the program, the `read_int()` function only works for restricted AOMs, but will work on other AOMs in further actualizations.
 
