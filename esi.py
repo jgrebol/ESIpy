@@ -1,5 +1,12 @@
 import numpy as np
 
+# Setting the environment variables at 1 thread
+
+from os import environ
+environ["NUMEXPR_NUM_THREADS"] = "1"
+environ["OMP_NUM_THREADS"] = "1"
+environ["MKL_NUM_THREADS"] = "1"
+
 ##################################
 ########### CORE ESIpy ###########
 ##################################
@@ -1650,40 +1657,21 @@ def multiprocessing_mci_mulliken(arr, Smo, num_threads):
           MCI value for the given ring.
     """
 
-    from multiprocessing.pool import ThreadPool as Pool
+    from multiprocessing import Pool
     from math import factorial
     from functools import partial
     from itertools import permutations, islice
 
-    def permutations_without_rotations(lst):
-        from itertools import permutations, islice
-
-        return islice(permutations(lst), factorial(len(lst) - 1) - factorial(len(lst) - 2))
-
-    def chunks(iterable, size):
-        from itertools import chain, islice
-
-        iterator = iter(iterable)
-        for first in iterator:
-            yield list(chain([first], islice(iterator, size - 1)))
-
-    def compute_mci(arr, Smo):
-        mci_chunk = 0
-        for ring in arr:
-            mci_chunk += compute_iring(ring, Smo)
-        return mci_chunk
-
-    iterable = permutations(arr)
+    iterable = islice(permutations(arr), factorial(len(arr)-1)-factorial(len(arr)-2))
 
     pool = Pool(processes=num_threads)
+    dumb=partial(compute_iring,Smo=Smo)
     chunk_size = 50000
 
     iterable2 = (x for x in iterable if x[0] == arr[0])
-    chunked_iterable = chunks(iterable2, chunk_size)
-    dumb = partial(compute_mci, Smo=Smo)
-    results = pool.imap(dumb, chunked_iterable)
+    results = pool.imap(dumb, iterable2, chunk_size)
     trace = sum(results)
-    return trace
+    return 2 * trace
 
 
 def multiprocessing_mci(arr, Smo, num_threads):
@@ -1705,41 +1693,21 @@ def multiprocessing_mci(arr, Smo, num_threads):
        mci_value: float
           MCI value for the given ring.
     """
-
-    from multiprocessing.pool import ThreadPool as Pool
+    from multiprocessing import Pool
     from math import factorial
     from functools import partial
     from itertools import permutations, islice
 
-    def permutations_without_rotations(lst):
-        from itertools import permutations, islice
-
-        return islice(permutations(lst), factorial(len(lst) - 1) - factorial(len(lst) - 2))
-
-    def chunks(iterable, size):
-        from itertools import chain, islice
-
-        iterator = iter(iterable)
-        for first in iterator:
-            yield list(chain([first], islice(iterator, size - 1)))
-
-    def compute_mci(arr, Smo):
-        mci_chunk = 0
-        for ring in arr:
-            mci_chunk += compute_iring(ring, Smo)
-        return mci_chunk
-
-    iterable = permutations(arr)
+    iterable = islice(permutations(arr), factorial(len(arr)-1)-factorial(len(arr)-2))
 
     pool = Pool(processes=num_threads)
+    dumb=partial(compute_iring,Smo=Smo)
     chunk_size = 50000
 
     iterable2 = (x for x in iterable if x[0] == arr[0] and x[1] < x[-1])
-    chunked_iterable = chunks(iterable2, chunk_size)
-    dumb = partial(compute_mci, Smo=Smo)
-    results = pool.imap(dumb, chunked_iterable)
+    results = pool.imap(dumb, iterable2, chunk_size)
     trace = sum(results)
-    return trace
+    return 2 * trace
 
 
 ########### AV1245 ###########
@@ -2335,6 +2303,11 @@ def make_aoms(mol, mf, partition=None, save=None):
                 np.save(f, Smo)
 
         return Smo
+
+    else:
+        print(" Only restricted and unrestricted HF and KS-DFT available in this version of the program")
+        return
+
 
 
 def mol_info(mol, mf, save=None, partition=None):
