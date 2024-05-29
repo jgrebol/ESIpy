@@ -130,7 +130,7 @@ Make sure to have previously installed `git` with `sudo apt install git`. Add to
 ```
 export PYTHONPATH=~/ESIpy/ESIpy:$PYTHONPATH (or the directory where it is located)
 ```
-To run the code from the terminal, generate the Python script or adapt those of the ```examples``` repository and run it as ```python code.py``` or ```python3 code.py```. To save the output as a file, use ```python code.py > code.esi```.
+For a detailed explanation about how to run the code and how to customize it, please see the directory ```examples``` and the ```examples/README.md``` file.
 
 ## Variable scope
 
