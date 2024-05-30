@@ -12,6 +12,7 @@ In this section we will go through the process of performing all the available c
 
 - example02: With the already generated ```.aoms``` and ```.molinfo``` files, we can perform a fast calculation without the single-point calculation and the same information.
 
+> [!NOTE]
 > If the ```.molinfo``` file has not been generated, one can still obtain the information from the ```mol``` object without requiring the single-point calculation: just do not include the `mf` object.
 
 - example03: This is an example of the calculation using the T1 structure for benzene, both optimized and single-point. For an unrestricted calculation, the aromaticity indicators are split into alpha-alpha and beta-beta contributions, as shown in the output.
