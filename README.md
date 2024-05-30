@@ -18,7 +18,7 @@ In order to obtain information of the atomic contributions in a given chemical s
 
 $$S_{ij}^\text{A}=\int_{\Omega_\text{A}}\phi_i^*(\textbf{r})\phi_j(\textbf{r})\text{d}\textbf{r}.$$
 
-The average number of electrons in a given atom can be expressed in terms of the atomic overlap matrix as
+The average number of electrons in a given atom can be expressed in terms of the AO basis as
 
 $$N_{\text{A}} = \sum_{\nu\in\text{A}}^\text{M} \sum_\mu^\text{M} P_{\nu\mu}S_{\mu\nu}^\text{AO} = \sum_{\nu\in\text{A}}^\text{M} (PS^\text{AO})_{\nu\nu}$$
 
