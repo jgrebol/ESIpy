@@ -34,6 +34,9 @@ ring = [7,3,1,2,6,10]
 partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
 
 for part in partition:
+    # Creates a .aoms file for each AIM with the AOMs
     Smo = esi.make_aoms(mol, mf, partition=part, save=molname + '_' + part + '.aoms')
+    # Creates an additional -molinfo file for each AIM (optional but recommended)
     molinfo = esi.mol_info(mol, mf, partition=part, save=molname + '_' + part +  '.molinfo')
+    # Calculates the aromaticity indicators
     esi.aromaticity(Smo, rings=ring, mol=mol, mf=mf, partition=part, mci=True, av1245=True, num_threads=1)
