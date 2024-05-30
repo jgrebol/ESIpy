@@ -36,7 +36,13 @@ The resulting matrix is non-symmetric due to the underlying AO basis being non-o
 
 $$\boldsymbol{S}^\text{A,X}=\boldsymbol{c}^{+}({\boldsymbol{U}}^{-1})^{+}\boldsymbol{\eta}^\text{A}\boldsymbol{U}^{-1}\boldsymbol{c}.$$
 
-Analogously to the previous expressions, the atomic populations and bond order between two atoms can be expressed in terms of the AOMs, as
+Analogously to the previous expressions, the atomic populations and bond order between two atoms can be expressed in terms of the AOMs. Taking the expression of Mulliken's approach, one can rewrite it into the MO basis as
+
+$$N_{\text{A}} = \sum_{\nu\in\text{A}}^\text{M}\sum_\mu^\text{M} P_{\nu\mu}S_{\mu\nu}^\text{AO} =2\sum_i^{nocc}\sum_{\nu\in\text{A}}^\text{M}\sum_\mu^\text{M} {c_{i\mu}^+}S_{\mu\nu}^\text{AO} \; c_{\nu i}$$
+
+and by using the $eta^\text{A}$ matrix, and thus only taking into account the atomic basis functions falling in a given atom's regime, Mulliken's approach can be readily seen as
+
+$$N_{\text{A}} = 2\sum_i^{nocc}\sum_{\mu\nu\lambda}^\text{M}{c_{i\mu}^+}S_{\mu\nu}^\text{AO}\eta^{\text{A}}_{\nu\lambda} \; c_{\lambda i} =2tr(\boldsymbol{c}^+ \boldsymbol{S}\boldsymbol{\eta}^\text{A}\boldsymbol{c}).$$
 
 
 
