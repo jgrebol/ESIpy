@@ -113,7 +113,7 @@ This new definition can indeed be used for closed rings, but produces numbers th
 
 ## Features
 - ``make_aoms(mol, mf, partition, save)``: From PySCF's `mol` and `mf` objects and `partition` as a string containing the desired partition (`mulliken`, `lowdin`, `meta_lowdin`, `nao`, `iao`), generate a list of matrices containing the Atomic Overlap Matrices (AOMs). The variable `save` is a string containing the name of the file where to save the AOMs.
-- `aromaticity(Smo, ring, mol, mf, partition, mci, av1245, flurefs, homarefs, connectivity, geom, num_threads)`: Compute population analyses, delocalization analyses, and aromaticity indicators from the AOMs (variable Smo). Only the AOMs, `Smo`, and the ring connectivities, `ring`, are required for the calculation. Any other information will complement the calculation. The varible `Smo` can either be the variable that directly comes from the `make_aoms()` function or a string containing the name of the previously saved AOMs. The variable `ring` is either a list or a list of lists containing the indices of the atoms for the aromaticity calculations. `mci` and `av1245` are boolean variables to compute the MCI and AV1425 indices, respectively. Multi-core processing for the MCI calculation is supported by setting `num_threads` at a number of cores different than 1, albeit the speed-up is non-linear. The `flurefs`, `homarefs`, `connectivity` and `geom` variables are optional in case of computing the FLU, HOMA, HOMER and/or BLA indicators without providing the `mol` object; see [examples/examples07.py](examples/examples07.py).
+- `aromaticity(Smo, ring, mol, mf, partition, mci, av1245, flurefs, homarefs, connectivity, geom, num_threads)`: Compute population analyses, delocalization analyses, and aromaticity indicators from the AOMs (variable Smo). Only the AOMs, `Smo`, and the ring connectivities, `ring`, are required for the calculation. Any other information will complement the calculation. The varible `Smo` can either be the variable that directly comes from the `make_aoms()` function or a string containing the name of the previously saved AOMs. The variable `ring` is either a list or a list of lists containing the indices of the atoms for the aromaticity calculations. `mci` and `av1245` are boolean variables to compute the MCI and AV1425 indices, respectively. Multi-core processing for the MCI calculation is supported by setting `num_threads` at a number of cores different than 1, albeit the speed-up is non-linear. The `flurefs`, `homarefs`, `connectivity` and `geom` variables are optional in case of computing the FLU, HOMA, HOMER and/or BLA indicators without providing the `mol` object; see [examples/examples04.py](examples/examples04.py) and [examples/examples05.py](examples/examples05.py) for a guide on how to provide custom reference values for the HOMA, HOMER and FLU indicators.
 - Sole functions to compute each of the aromaticity indicators (I<sub>ring</sub>, MCI, AV1245, and PDI, see [examples/example06.py](examples/example06.py`).
 
 ## Utilities
@@ -140,13 +140,13 @@ Make sure to have previously installed `git` with `sudo apt install git`. Add to
 ```
 export PYTHONPATH=~/ESIpy/ESIpy:$PYTHONPATH (or the directory where it is located)
 ```
-For a detailed explanation about how to run the code and how to customize it, please see the directory ```examples``` and the ```examples/README.md``` file.
+For a detailed explanation on how to run the code and how to customize it, please see the directory [examples](examples) and the [examples/README.md](examples/README.md) file.
 
 ## Variable scope
 
 - ```mol```: From PySCF's module. Provides information about the molecule and the basis set employed for the calculation.
 - ```mf```: From PySCF's module. Provides information about the type of calculation performed.
-- ```calc```: String. Sets the type of partition of the system.
+- ```partition```: String. Sets the type of partition of the system.
 - ```save```: String. Sets the name of the file where to save the AOMs in the ```make_aoms()``` function.
 - ```molname```: String. Sets the name of the molecule for the generation of the ```.int``` files.
 - ```Smo```: List of matrices. Contains each of the AOMs. Generated from the ```make_aoms()``` function. Can also be a string containing the name of the saved AOMs.
@@ -154,9 +154,9 @@ For a detailed explanation about how to run the code and how to customize it, pl
 - ```mci```: Boolean: Sets whether the MCI is desired to be computed. By default, False.
 - ```av1245```: Boolean: Sets whether the AV1245 (and AVmin) are desired to be computed. By default, False.
 - ```flurefs```: Dictionary. Contains the structure { "Bond tpye (e.g., "CC")" : DI (e.g., 1.400) }. By default, None.
-- ```homarefs```: Dictionary. Contains the structure { "Bond tpye (e.g., "CC")" : { "r_opt" : 1.400, "alpha" : 200.00 } }. By default, None.
+- ```homarefs```: Dictionary. Contains the structure { "Bond tpye (e.g., "CC")" : { "r_opt" : interatomic distance, in Angstrom (e.g., 1.400), "alpha" : constant (e.g., 200.00) } }. By default, None.
 - ```connectivity```: List. The atomic symbols of the centers in ring connectivity: \["C", "C", "O", "C"\] for a "C-C-O-C" ring. By default, None.
-- ```geom```: List. The coordinates of the molecule as provided by the mol.atom_coords() PySCF function. By default, None.
+- ```geom```: List. The coordinates of the molecule as provided by the `mol.atom_coords()` PySCF function. By default, None.
 - ```num_threads```: Integer. Sets the number of threads desired for the calculation of the MCI. By default, 1.
 
 ## Further work
