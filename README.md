@@ -138,7 +138,7 @@ git clone https://github.com/jgrebol/ESIpy.git
 ```
 Make sure to have previously installed `git` with `sudo apt install git`. Add to your ```.bashrc``` file or to the file sent to queue:
 ```
-export PYTHONPATH=~/ESIpy/ESIpy:$PYTHONPATH (or the directory where it is located)
+export PYTHONPATH=~/ESIpy:$PYTHONPATH (or the directory where it is located)
 ```
 For a detailed explanation on how to run the code and how to customize it, please see the directory [examples](examples) and the [examples/README.md](examples/README.md) file.
 
