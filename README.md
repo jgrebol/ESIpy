@@ -163,6 +163,8 @@ For a detailed explanation on how to run the code and how to customize it, pleas
 - Function: Implementation for correlated wave functions.
 - Function: Approximations for the MCI calculation in large systems.
 - Function: Read the AOMs (or the data required for their calculation) from other source programs and store them as ESIpy's ```Smo```.
+- Function: Calculation of aromaticity indicators from defined fragments.
+- Utility: Split the calculation into orbital contributions.
 
 ## References
 - [1] E. Matito, in ‘ESI-3D Electron Sharing Indexes Program for 3D Molecular Space Partitioning’, Girona IQC, 2006
