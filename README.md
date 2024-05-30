@@ -28,11 +28,6 @@ Moreover, the Delocalization Index (DI, $\delta$), also referred to as Bond Orde
 
 $$\delta(\text{A,B})=\sum^\text{M}&#95;{\mu\in\text{A}}\sum^\text{M}&#95;{\nu\in\text{B}}(PS^\text{AO})&#95;{\nu\mu}(PS^\text{AO})&#95;{\mu\nu}.$$
 
-Analogously to the previous expressions, the atomic populations and bond order between two atoms can be expressed in terms of the AOMs. Taking the expression of Mulliken's approach, one can rewrite it into the MO basis as
-
-$$N_{\text{A}} = \sum_{\nu\in\text{A}}^\text{M}\sum_\mu^\text{M} P_{\nu\mu}S_{\mu\nu}^\text{AO} =2\sum_i^{nocc}\sum_{\nu\in\text{A}}^\text{M}\sum_\mu^\text{M} {c_{i\mu}^+}S_{\mu\nu}^\text{AO} \; c_{\nu i}$$
-
-
 In order to mimic the expression of the AOM as that of QTAIM, one can introduce a new auxiliary matrix, $\boldsymbol{\eta}^{\text{A}}$, which is a bock-truncated unit matrix with all elements being zero except $\eta&#95;{\mu\mu}^\text{A}=1$. Hence, the general expression for Mulliken's approach is the following:
 
 $$\boldsymbol{S}^\text{A,Mull}=\boldsymbol{c}^{+}\boldsymbol{S}^{AO}\boldsymbol{\eta}^\text{A}\boldsymbol{c}.$$
@@ -40,7 +35,6 @@ $$\boldsymbol{S}^\text{A,Mull}=\boldsymbol{c}^{+}\boldsymbol{S}^{AO}\boldsymbol{
 The resulting matrix is non-symmetric due to the underlying AO basis being non-orthogonal. To overcome these issues, chemists have explored alternative Hilbert-space methods that rely on orthogonalized AO bases, mainly obtained through a unitary transformation of the original AO basis used in calculations. Löwdin first proposed the symmetric orthogonalization procedure by using $U_{\mu\nu}=S_{\mu\nu}^{\frac{1}{2}}$. Following his steps, several different approaches have been reported to find more robust schemes of basis set orthogonalization, being the ones applied in this article the meta-Löwdin, Natural Atomic Orbitals (NAO). Alternatively, Knizia proposed an ingenious scheme to express in an exact number the occupied MOs of a calculation in an orthogonal basis of reduced rank, the so-called Intrinsic Atomic Orbitals (IAO) approach. In all cases, the mapping from real-space to Hilbert-space can be performed as follows:
 
 $$\boldsymbol{S}^\text{A,X}=\boldsymbol{c}^{+}({\boldsymbol{U}}^{-1})^{+}\boldsymbol{\eta}^\text{A}\boldsymbol{U}^{-1}\boldsymbol{c}.$$
-
 
 ### Electron-Sharing Indices 
 
