@@ -79,19 +79,19 @@ def aromaticity(Smo, rings, mol=None, mf=None, partition=None, mci=False, av1245
             print(" | 'mol' object not found")
             symbols = None
             fromaoms = True
-            geoms = None
+            geom = None
         else:
             print(" | Obtaining molecular information from .molinfo file")
             symbols = molinfo[0]
             atom_numbers = molinfo[1]
             basisset = molinfo[2]
-            geoms = molinfo[3]
+            geom = molinfo[3]
     else:
         symbols = [mol.atom_symbol(i) for i in range(mol.natm)]
         connectivity = symbols
         atom_numbers = [i + 1 for i in range(mol.natm)]
         basisset = mol.basis.upper()
-        geoms = mol.atom_coords()
+        geom = mol.atom_coords()
 
     if mf is None:
         if molinfo is None:
