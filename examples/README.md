@@ -8,7 +8,7 @@ In this section we will go through the process of performing all the available c
 > We strongly recommend using ```meta_lowdin```, ```nao``` and ```iao``` as the atomic partitions as they have shown to be highly basis-set independent and reliable. We introduce the five atomic partitions available at ESIpy in a for-loop scheme, although one partition can be introduced for each calculation. The computation time is the same regardless of the partition employed. As some results may depend on the system and the calculation, we encourage comparing these three partitions to each other to find incongruences.
 
 > [!WARNING]
-> In PySCF versions downloaded later than 23rd July 2023, there is a bug in the symmetry-average of NAO schemes (issue #1755, bug fixed in #1803).
+> In PySCF versions downloaded later than 23rd July 2023, there is a bug in the symmetry-average of NAO schemes (issue [#1755](https://github.com/pyscf/pyscf/issues/1755), bug fixed in [#1803](https://github.com/pyscf/pyscf/pull/1803)).
 
 > [!NOTE]
 > In order to avoid problems when calling the functions, please call the variables by using `function(variable=val)`. That is, by manually matching the input vatiable with that of ESIpy. By using Python's in-built `help()` function, a short description will be displayed containing the arguments and the correct use of the function (i.e., `help(esi.aromaticity)`).
