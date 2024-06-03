@@ -7,18 +7,21 @@ In this section we will go through the process of performing all the available c
 > [!TIP]
 > We strongly recommend using ```meta_lowdin```, ```nao``` and ```iao``` as the atomic partitions as they have shown to be highly basis-set independent and reliable. We introduce the five atomic partitions available at ESIpy in a for-loop scheme, although one partition can be introduced for each calculation. The computation time is the same regardless of the partition employed. As some results may depend on the system and the calculation, we encourage comparing these three partitions to each other to find incongruences.
 
+> [!WARNING]
+> In PySCF versions downloaded later than 23rd July 2023, there is a bug in the symmetry-average of NAO schemes (issue #1755, bug fixed in #1803).
+
 > [!NOTE]
-> In order to avoid problems when calling the functions, please call the variables by using `function(variable=val)`. That is, by manually matching the input vatiable with that of ESIpy. By using Python's in-built help() function, a short description will be displayed containing the arguments and the correct use of the function (i.e., `help(esi.aromaticity)`).
+> In order to avoid problems when calling the functions, please call the variables by using `function(variable=val)`. That is, by manually matching the input vatiable with that of ESIpy. By using Python's in-built `help()` function, a short description will be displayed containing the arguments and the correct use of the function (i.e., `help(esi.aromaticity)`).
 
 > [!WARNING]
 > In PySCF, the `mol.spin` object represents the number of unpaired electrons. It is not the spin of the molecule. For instance, `mol.spin = 0` is a singlet state.
 
-- example02: With the already generated ```.aoms``` and ```.molinfo``` files, we can perform a fast calculation without the single-point calculation and the same information.
+- example02: With the already generated ```.aoms``` and ```.molinfo``` files, we can perform a fast aromaticity calculation without the single-point calculation, which will provide the same information as that coming directly from the single-point calculation.
 
 > [!NOTE]
 > If the ```.molinfo``` file has not been generated, one can still obtain the information from the ```mol``` object without requiring the single-point calculation: just do not include the `mf` object.
 
-- example03: This is an example of the calculation using the T1 structure for benzene, both optimized and single-point. For an unrestricted calculation, the aromaticity indicators are split into alpha-alpha and beta-beta contributions, as shown in the output.
+- example03: This is an example of the calculation using the T1 structure for benzene, both optimized and single-point. For an unrestricted calculation, the aromaticity indicators are split into alpha-alpha and beta-beta contributions, as shown in the output. 
 
 - example04: To provide FLU references to the code, one needs to provide a dictionary, ```flurefs```, with the bond symbols the DI value corresponding to it. If the pattern already exists, it will be updated, and if it does not it will be added to the existing ones. Without the ```mol``` nor the ```.molinfo``` variables, one needs to provide the list connectivity, which is a list containing the symbols in ring connectivity, but only one can be given at a time.
 
