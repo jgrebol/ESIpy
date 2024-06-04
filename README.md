@@ -7,7 +7,7 @@ All the calculations performed for the creation and implementation of this progr
 
 **Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador, Chem. Eur. J. 2024, e202401282.**
 
-Please if you are publishing the results obtained from ESIpy remember to cite the program. The code is licensed under the GNU GPLv3. See the [LICENSE](LICENSE) file for details. See the [examples/README.md](examples/README.md) file for details on how to use the program.
+Also, find it on-line [here](https://chemistry-europe.onlinelibrary.wiley.com/doi/10.1002/chem.202401282?af=R). Please if you are publishing the results obtained from ESIpy remember to cite the program. The code is licensed under the GNU GPLv3. See the [LICENSE](LICENSE) file for details. See the [examples/README.md](examples/README.md) file for details on how to use the program.
 
 
 ## Theoretical background
