@@ -16,7 +16,7 @@ In this section we will go through the process of performing all the available c
 > [!WARNING]
 > In PySCF, the `mol.spin` object represents the number of unpaired electrons. It is not the spin of the molecule. For instance, `mol.spin = 0` is a singlet state.
 
-- example02: With the already generated ```.aoms``` and ```.molinfo``` files, we can perform a fast aromaticity calculation without the single-point calculation, which will provide the same information as that coming directly from the single-point calculation.
+- example02: With the already generated ```.aoms``` and ```.molinfo``` files, we can perform a fast aromaticity calculation without any re-calculation, which will provide the same information as that coming directly from the single-point.
 
 > [!NOTE]
 > If the ```.molinfo``` file has not been generated, one can still obtain the information from the ```mol``` object without requiring the single-point calculation: just do not include the `mf` object.
