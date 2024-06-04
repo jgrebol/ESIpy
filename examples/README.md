@@ -28,7 +28,7 @@ In this section we will go through the process of performing all the available c
 > [!WARNING]
 > The `partition` variable is mandatory to properly obtain the references for the calculations. The FLU index will not be computed if no partition is specified.
 
-- example05: As for the HOMA (and HOMER), the user needs to provide the dictionary ```homarefs```, which contains the bond pattern and an inner dictionary containing the ```r_opt``` and ```alpha``` parameters (see the example for a better understanding of the structure of the variable. The example provides the calculation of the HOMER values for benzene singlet, which indeed produce non-aromatic values as expected. Without the molecule information, the user needs to provide the connectivtiy of the atoms and the molecular geometry as stated in the ```mol.atom_coords()``` object.
+- example05: As for the HOMA (and HOMER), the user needs to provide the dictionary ```homarefs```, which contains the bond pattern and an inner dictionary containing the ```r_opt``` (in Angstroms) and ```alpha``` parameters (see the example for a better understanding of the structure of the variable). The example provides the calculation of the HOMER values for benzene singlet, which indeed produce non-aromatic values as expected. Without the molecule information, the user needs to provide the connectivtiy of the atoms and the molecular geometry as stated in the ```mol.atom_coords()``` object.
 
 > [!NOTE]
 > The program will check the topology of the AOMs to separate into singlet and triplet calculations. Thus, it will only compute HOMA for singlets and HOMER for triplets.
