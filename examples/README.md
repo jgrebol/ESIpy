@@ -1,6 +1,10 @@
 # Examples
 
-In this section we will go through the process of performing all the available calculations using ESIpy's functions based on the provided examples. The program is intended to be installed locally in computer clusters. To run the code from the terminal, generate the Python script or adapt those of this repository and run it as ```python code.py``` or ```python3 code.py```. To save the output as a file, use ```python code.py > code.esi```. Even though the ```.esi``` extension is not mandatory, we recommend using it. The test files have been generated from benzene and naphthalene at singlet (and triplet) level of theory, and are just set to showcase the capabilities of the code. We will go through the list of examples explaining and highlighting some key notes:
+In this section we will go through the process of performing all the available calculations using ESIpy's functions based on the provided examples. The program is intended to be installed locally in computer clusters. To run the code from the terminal, generate the Python script or adapt those of this repository and run it as ```python code.py``` or ```python3 code.py```. To save the output as a file, use ```python code.py > code.esi```. Even though the ```.esi``` extension is not mandatory, we recommend using it. The test files have been generated from benzene and naphthalene at singlet (and triplet) level of theory, and are just set to showcase the capabilities of the code.
+
+## Core ESIpy
+
+We will go through the list of examples explaining and highlighting some key notes:
 
 - example01: This should be the first calculation performed from ESIpy, in which one generates the Atomic Overlap Matrices in the MO basis ($\boldsymbol{S}^{\text{A}}$) from the ```esi.make_aoms()``` function, and the molecular information from the ```esi.mol_info()``` function. This ensures that the single-point calculation is not required anymore every time one wants to perform the aromaticity calculation, and allows for more flexibility with the code. We strongly suggest using the ```.aoms``` and ```.molinfo``` extensions for these files. Even though the main ```esi.aromaticity()``` function only requires the AOMs and the ring indices for a minimal output, we suggest using the ```.molinfo``` for completion. 
 
@@ -36,6 +40,10 @@ In this section we will go through the process of performing all the available c
 - example06: Here we showcase how to compute the indices individually from the ESIpy functions, although we recommend using the whole ```esi.aromaticity()``` function as the computational time is minimal (except for the MCI in large systems).
 
 - example07: Previous computational tools could not allow the proper calculation of the MCI in large systems due to its exponential growth. We probe that not only the calculation of a 14-membered ring is possible, but also that 10-membered rings are very fast to compute (less than 10 seconds excluding the single-point calculation). For more detailed information, please see [ESIpy/MCI_TIMINGS](ESIpy/MCI_TIMINGS).
+
+## Utilities
+
+### Treating .int files
 
 - example08: From the [ESIpy/utils](ESIpy/utils) repository, one can access the ```esi.write_int()``` function that writes the AOMs as an input for the ESI-3D code.
 
