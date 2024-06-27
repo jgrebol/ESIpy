@@ -24,7 +24,7 @@ $$N_{\text{A}} = \sum_{\nu\in\text{A}}^\text{M} \sum_\mu^\text{M} P_{\nu\mu}S_{\
 
 where we can introduce the elements of the P-matrix, $P_{\nu\mu} = 2 \sum$ $&#95;{i} ^{nocc} c_{\nu i} c_{i\mu}^+$, and the overlap matrix in the Atomic Orbitals (AO, $\chi$) basis, $S_{\mu\nu}^\text{AO}=\int\chi_\mu^{*}(\textbf{r}){\chi_\nu}(\textbf{r})d\textbf{r}$. In Mulliken's approach, one can obtain information from a specific atom by only taking into account its atomic basis functions.
 
-Moreover, the Delocalization Index (DI, $\delta$), also referred to as Bond Order (BO)[9], measures the average number of electrons between two atoms A and B, as
+Moreover, the Delocalization Index (DI, $\delta$), also referred to as Bond Order (BO)[9], measures the average number of electrons shared between two atoms A and B, as
 
 $$\delta(\text{A,B})=\sum^\text{M}&#95;{\mu\in\text{A}}\sum^\text{M}&#95;{\nu\in\text{B}}(PS^\text{AO})&#95;{\nu\mu}(PS^\text{AO})&#95;{\mu\nu}.$$
 
@@ -32,9 +32,9 @@ In order to mimic the expression of the AOM as that of QTAIM, one can introduce 
 
 $$\boldsymbol{S}^\text{A,Mull}=\boldsymbol{c}^{+}\boldsymbol{S}^{AO}\boldsymbol{\eta}^\text{A}\boldsymbol{c}.$$
 
-The resulting matrix is non-symmetric due to the underlying AO basis being non-orthogonal. To overcome these issues, chemists have explored alternative Hilbert-space methods that rely on orthogonalized AO bases, mainly obtained through a unitary transformation of the original AO basis used in calculations. Löwdin first proposed the symmetric orthogonalization procedure by using $U_{\mu\nu}=S_{\mu\nu}^{1/2}$. Following his steps, several different approaches have been reported to find more robust schemes of basis set orthogonalization, being the ones applied in this article the meta-Löwdin, Natural Atomic Orbitals (NAO). Alternatively, Knizia proposed an ingenious scheme to express in an exact number the occupied MOs of a calculation in an orthogonal basis of reduced rank, the so-called Intrinsic Atomic Orbitals (IAO) approach. In all cases, the mapping from real-space to Hilbert-space can be performed as follows:
+The resulting matrix is non-symmetric due to the underlying AO basis being non-orthogonal. To overcome these issues, chemists have explored alternative Hilbert-space methods that rely on orthogonalized AO bases, mainly obtained through a unitary transformation of the original AO basis used in calculations. Löwdin first proposed the symmetric orthogonalization procedure by using $T_{\mu\nu}=S_{\mu\nu}^{1/2}$. Following his steps, several different approaches have been reported to find more robust schemes of basis set orthogonalization, being the ones applied in this article the meta-Löwdin, Natural Atomic Orbitals (NAO). Alternatively, Knizia proposed an ingenious scheme to express in an exact number the occupied MOs of a calculation in an orthogonal basis of reduced rank, the so-called Intrinsic Atomic Orbitals (IAO) approach. In all cases, the mapping from real-space to Hilbert-space can be performed as follows:
 
-$$\boldsymbol{S}^\text{A,X}=\boldsymbol{c}^{+}({\boldsymbol{U}}^{-1})^{+}\boldsymbol{\eta}^\text{A}\boldsymbol{U}^{-1}\boldsymbol{c}.$$
+$$\boldsymbol{S}^\text{A,X}=\boldsymbol{c}^{+}({\boldsymbol{T}}^{-1})^{+}\boldsymbol{\eta}^\text{A}\boldsymbol{T}^{-1}\boldsymbol{c}.$$
 
 ### Electron-Sharing Indices 
 
