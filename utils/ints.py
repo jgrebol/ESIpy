@@ -184,7 +184,7 @@ def write_int(mol, mf, molname, Smo, ring=None, partition=None):
         if partition == "mulliken":
             f.write("$MULLIKEN\n")
 
-def read_int(path='.'):
+def read_aoms(path='.'):
     Smo = []
     count = 0
     indices = []
