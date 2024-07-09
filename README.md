@@ -144,17 +144,17 @@ For a detailed explanation on how to run the code and how to customize it, pleas
 
 ## Variable scope
 
-- ```mol```: From PySCF's module. Provides information about the molecule and the basis set employed for the calculation.
-- ```mf```: From PySCF's module. Provides information about the type of calculation performed.
-- ```partition```: String. Sets the type of partition of the system.
+- ```Smo```: List of matrices or string. Contains each of the AOMs. Generated from the ```make_aoms()``` function. Can also be a string containing the name of the saved AOMs. 
+- ```ring```: List (or list of lists). Contains the indices for the definition of the ring required for the calculation of aromaticity indicators.
+- ```mol```: From PySCF's module. Provides information about the molecule and the basis set employed for the calculation. 
+- ```mf```: From PySCF's module. Provides information about the type of calculation performed. 
+- ```partition```: String. Sets the type of partition of the system. 
 - ```save```: String. Sets the name of the file where to save the AOMs in the ```make_aoms()``` function.
 - ```molname```: String. Sets the name of the molecule for the generation of the ```.int``` files.
-- ```Smo```: List of matrices. Contains each of the AOMs. Generated from the ```make_aoms()``` function. Can also be a string containing the name of the saved AOMs.
-- ```ring```: List (or list of lists). Contains the indices for the definition of the ring required for the calculation of aromaticity indicators.
 - ```mci```: Boolean: Sets whether the MCI is desired to be computed. By default, False.
 - ```av1245```: Boolean: Sets whether the AV1245 (and AVmin) are desired to be computed. By default, False.
 - ```flurefs```: Dictionary. Contains the structure { "Bond tpye (e.g., "CC")" : DI (e.g., 1.400) }. By default, None.
-- ```homarefs```: Dictionary. Contains the structure { "Bond tpye (e.g., "CC")" : { "r_opt" : interatomic distance, in Angstrom (e.g., 1.400), "alpha" : constant (e.g., 200.00) } }. By default, None.
+- ```homarefs```: Dictionary. Contains the structure "\{Bond type \{"r\_opt": distance\}, \{"alpha": alpha\} (e.g., \{"CC" : \{"r\_opt" : 1.400, "alpha" : 200.00\} \}.}. By default, None.
 - ```connectivity```: List. The atomic symbols of the centers in ring connectivity: \["C", "C", "O", "C"\] for a "C-C-O-C" ring. By default, None.
 - ```geom```: List. The coordinates of the molecule as provided by the `mol.atom_coords()` PySCF function. By default, None.
 - ```num_threads```: Integer. Sets the number of threads desired for the calculation of the MCI. By default, 1.
