@@ -79,13 +79,13 @@ $$ \text{FLU}(\mathscr{A}) = \frac{1}{n} \sum_{i=1}^{n} \left[\left(\frac{V(A_i)
 
 Where one can separate it into two parts: the polarizability of the bond and the comparison to some tabulated $\delta$ (for instance, the "CC", "CN", "BN", "NN" and "CS" bonds). The index is close to zero for aromatic molecules and greater than zero in non-aromatic or antiaromatic molecules, and should not be used to study reactivity as they measure the similarity with respect to some molecule.
 
-#### Bond-Order Alternation (BOA)
+#### Bond Order Alternation (BOA)
 
-The Bond-Order Alternation (BOA) reflects the alternation of the delocalization indices along a conjugated circuit and is built upon the BLA premise (see below in the Geometrical Aromaticity Indicators section):
+The Bond Order Alternation (BOA) reflects the alternation of the delocalization indices along a conjugated circuit and is built upon the BLA premise (see below in the Geometrical Aromaticity Indicators section):
 
 $$\text{BOA}(\mathscr{A}) = \frac{1}{n_1} \sum_{i=1}^{n_1} \delta(A_{2i-1},A_{2i}) - \frac{1}{n_2} \sum_{i=1}^{n_2} \delta(A_{2i},A_{2i+1})$$
 
-where $n_1 = \lfloor (n+1)/2 \rfloor$ and $n_2 = \lfloor n/2 \rfloor$, being $\lfloor x \rfloor$ the floor function of $x$ returning the largest integer less or equal than $x$. As well as for the BLA index, for odd-centered closed circuits this index may fail, so instead the $\text{BLA}&#95;c$ index should be used as the comparison of $\delta(A_i, A_{i+1}) - \delta(A_{i+1}, A_{i+2})$:
+where $n_1 = \lfloor (n+1)/2 \rfloor$ and $n_2 = \lfloor n/2 \rfloor$, being $\lfloor x \rfloor$ the floor function of $x$ returning the largest integer less or equal than $x$. As well as for the BLA index, for odd-centered closed circuits this index may fail, so instead the $\text{BOA}&#95;c$ index should be used as the comparison of $\delta(A_i, A_{i+1}) - \delta(A_{i+1}, A_{i+2})$:
 
 $$\text{BOA}&#95;c(\mathscr{A}) = \frac{1}{N} \sum_{i=1}^{N} \left| \delta(A_{i},A_{i+1}) - \delta(A_{i+1},A_{i+2}) \right|$$
 
