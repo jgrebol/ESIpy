@@ -186,7 +186,7 @@ def write_int(mol, mf, molname, Smo, ring=None, partition=None):
 
 def read_aoms(path=None):
     if path is None:
-        path = os.getcwd()  # default to current working directory
+        path = os.getcwd()  
     
     Smo = []
     count = 0
