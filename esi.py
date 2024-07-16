@@ -1458,6 +1458,17 @@ def load_aoms(Smo):
         Smo = np.load(f, allow_pickle=True)
     return Smo
 
+def save_aoms(Smo, name):
+    """Saves the AOMs in a Smo file.
+
+    Arguments:
+       Smo: List of matrices
+          Contains the AOMs.
+       name: String
+          Contains the name of the file to save the AOMs.
+    """
+with open(name, "wb") as f:
+    np.save(f, Smo)
 
 ##################################################################
 ########### COMPUTATION OF THE AROMATICITY DESCRIPTORS ###########
