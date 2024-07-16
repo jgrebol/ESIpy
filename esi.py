@@ -1467,8 +1467,8 @@ def save_aoms(Smo, name):
        name: String
           Contains the name of the file to save the AOMs.
     """
-with open(name, "wb") as f:
-    np.save(f, Smo)
+    with open(name, "wb") as f:
+        np.save(f, Smo)
 
 ##################################################################
 ########### COMPUTATION OF THE AROMATICITY DESCRIPTORS ###########
