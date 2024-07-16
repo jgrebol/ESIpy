@@ -47,7 +47,4 @@ We will go through the list of examples explaining and highlighting some key not
 
 - example08: From the [ESIpy/utils](ESIpy/utils) repository, one can access the ```esi.write_int()``` function that writes the AOMs as an input for the ESI-3D code.
 
-- example09: Equally, the AOMs from the .int files can be loaded into `Smo` objects, as shown in this example. The `esi.read_int()` function from the [ESIpy/utils](ESIpy/utils) allows the AOMs to be saved only by giving the path of the .int files.
-
-> With the current version of the program, the `read_int()` function only works for restricted AOMs, but will work on other AOMs in further actualizations.
-
+- example09: Equally, the AOMs from the .int files can be loaded into `Smo` objects, as shown in this example. The `esi.read_aoms()` function from the [ESIpy/utils](ESIpy/utils) allows the AOMs to be saved only by giving the path of the .int files, as well as the source program. This function supports reading the AOMs from ESIpy and AIMAll from both restricted and unrestricted calculations.
