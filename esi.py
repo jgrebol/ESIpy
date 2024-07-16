@@ -1464,6 +1464,7 @@ def save_aoms(Smo, name):
     Arguments:
        Smo: List of matrices
           Contains the AOMs.
+       
        name: String
           Contains the name of the file to save the AOMs.
     """
