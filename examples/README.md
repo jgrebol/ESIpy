@@ -30,7 +30,7 @@ We will go through the list of examples explaining and highlighting some key not
 - example04: To provide FLU references to the code, one needs to provide a dictionary, ```flurefs```, with the bond symbols the DI value corresponding to it. If the pattern already exists, it will be updated, and if it does not it will be added to the existing ones. Without the ```mol``` nor the ```.molinfo``` variables, one needs to provide the list connectivity, which is a list containing the symbols in ring connectivity, but only one can be given at a time.
 
 > [!WARNING]
-> The `partition` variable is mandatory for reference-based indices. The FLU, HOMA and HOMER will not be computed if no partition is specified.
+> The `partition` variable is mandatory for reference-based indices. The FLU, HOMA and HOMER will not be computed if no partition is specified unless the connectivity has been explicitly specified.
 
 - example05: As for the HOMA (and HOMER), the user needs to provide the dictionary ```homarefs```, which contains the bond pattern and an inner dictionary containing the ```r_opt``` (in Angstroms) and ```alpha``` parameters (see the example for a better understanding of the structure of the variable). The example provides the calculation of the HOMER values for benzene singlet, which indeed produce non-aromatic values as expected. Without the molecule information, the user needs to provide the connectivtiy of the atoms and the molecular geometry as stated in the ```mol.atom_coords()``` object.
 
