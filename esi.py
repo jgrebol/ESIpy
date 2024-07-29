@@ -10,7 +10,7 @@ environ["MKL_NUM_THREADS"] = "1"
 ##################################
 
 
-def aromaticity(Smo, rings, mol=None, mf=None, partition=None, mci=False, av1245=False, flurefs=None, homarefs=None, connectivity=None, geom=None, molinfo=None, num_threads=None):
+def aromaticity(Smo, rings, mol=None, mf=None, partition=None, mci=False, av1245=False, flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, molinfo=None, num_threads=None):
     """Population analysis, localization and delocalization indices and aromaticity indicators.
 
     Arguments:
@@ -41,7 +41,10 @@ def aromaticity(Smo, rings, mol=None, mf=None, partition=None, mci=False, av1245
           User-provided references for the Delocalization Indices for the FLU index.
 
        homarefs: dictionary. Default: None
-          User-provided references for the distance and polarizability for the HOMA or HOMER indices.
+          User-provided references for the HOMA index.
+
+       homerrefs: dictionary. Default: None
+          User-provided references for the optimal distance and polarizability for the HOMA or HOMER indices.
 
        connectivity: list. Default: None
           The atomic symbols of the atoms in the ring in 'mol' order.
@@ -125,7 +128,7 @@ def aromaticity(Smo, rings, mol=None, mf=None, partition=None, mci=False, av1245
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     if fromaoms is True:
         aromaticity_from_aoms(Smo=Smo, rings=rings, partition=partition, mol=mol, mci=mci, av1245=av1245,
-            flurefs=flurefs, homarefs=homarefs, connectivity=connectivity, geom=geom, num_threads=num_threads)
+            flurefs=flurefs, homarefs=homarefs, homerrefs=homerrefs, connectivity=connectivity, geom=geom, num_threads=num_threads)
         return
 
     wf = rest_or_unrest(Smo)
@@ -183,17 +186,17 @@ def aromaticity(Smo, rings, mol=None, mf=None, partition=None, mci=False, av1245
     if wf == "unrest":
         deloc_unrest(mol, Smo, molinfo=molinfo)
         arom_unrest(Smo, rings, partition, mol, mci=mci, av1245=av1245, flurefs=flurefs,
-            homarefs=homarefs, connectivity=connectivity, geom=geom, num_threads=num_threads,)
+            homarefs=homarefs, homerrefs=homerrefs, connectivity=connectivity, geom=geom, num_threads=num_threads,)
 
     # RESTRICTED
     elif wf == "rest":
         deloc_rest(mol, Smo, molinfo=molinfo)
         arom_rest( Smo, rings, partition, mol, mci=mci, av1245=av1245, flurefs=flurefs,
-            homarefs=homarefs, connectivity=connectivity, geom=geom, num_threads=num_threads,)
+            homarefs=homarefs, homerrefs=homerrefs, connectivity=connectivity, geom=geom, num_threads=num_threads,)
 
 
 # AROMATICITY FROM LOADED AOMS
-def aromaticity_from_aoms(Smo, rings, mol=None, partition=None, mci=False, av1245=False, flurefs=None, homarefs=None, connectivity=None, geom=None, num_threads=None):
+def aromaticity_from_aoms(Smo, rings, mol=None, partition=None, mci=False, av1245=False, flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, num_threads=None):
     """Population analysis, localization and delocalization indices and aromaticity 
     indicators from previously saved AOMs from the make_aoms() function.
 
@@ -223,6 +226,9 @@ def aromaticity_from_aoms(Smo, rings, mol=None, partition=None, mci=False, av124
 
        homarefs: dictionary. Default: None
           User-provided references for the distance and polarizability for the HOMA or HOMER indices.
+
+       homerrefs: dictionary. Default: None
+          User-provided references for the optimal distance and polarizability for the HOMA or HOMER indices.
 
        connectivity: list. Default: None
           The atomic symbols of the atoms in the ring in 'mol' order.
@@ -287,12 +293,12 @@ def aromaticity_from_aoms(Smo, rings, mol=None, partition=None, mci=False, av124
     # UNRESTRICTED
     if wf == "unrest":
         arom_unrest_from_aoms(Smo, rings, partition, mol, mci=mci, av1245=av1245,
-            flurefs=flurefs, homarefs=homarefs, connectivity=connectivity, geom=geom, num_threads=num_threads)
+            flurefs=flurefs, homarefs=homarefs, homerrefs=homerrefs, connectivity=connectivity, geom=geom, num_threads=num_threads)
 
     # RESTRICTED
     elif wf == "rest":
         arom_rest_from_aoms(Smo, rings, partition, mol, mci=mci, av1245=av1245,
-            flurefs=flurefs, homarefs=homarefs, connectivity=connectivity, geom=geom, num_threads=num_threads)
+            flurefs=flurefs, homarefs=homarefs, homerrefs=homerrefs, connectivity=connectivity, geom=geom, num_threads=num_threads)
 
 
 ########### POPULATION STUDIES ###########
@@ -447,7 +453,7 @@ def deloc_rest(mol, Smo, molinfo=None):
 # AROMATICITY UNRESTRICTED
 
 
-def arom_unrest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=None, homarefs=None, connectivity=None, geom=None, num_threads=None,):
+def arom_unrest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, num_threads=None,):
     """Population analysis, localization and delocalization indices and aromaticity indicators
     for unrestricted AOMs.
 
@@ -477,6 +483,9 @@ def arom_unrest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=Non
 
        homarefs: dictionary. Default: None
           User-provided references for the distance and polarizability for the HOMA or HOMER indices.
+
+       homerrefs: dictionary. Default: None
+          User-provided references for the optimal distance and polarizability for the HOMA or HOMER indices.
 
        connectivity: list. Default: None
           The atomic symbols of the atoms in the ring in 'mol' order.
@@ -514,49 +523,36 @@ def arom_unrest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=Non
 
         # Starting the calculation of the aromaticity indicators
         connectivity = [symbols[int(i) - 1] for i in ring]
+        if homarefs is not None:
+            print(" | Using HOMA references provided by the user")
+        else:
+            print(" | Using default HOMA references")
 
-        if nalpha_equal_nbeta(Smo) == "singlet":
-            print(" | Same number of alpha and beta electrons. Computing HOMA")
-            if homarefs is not None:
-                print(" | Using HOMA references provided by the user")
-            else:
-                print(" | Using default HOMA references")
-
-            homas = compute_homa(ring, mol, geom=geom, homarefs=homarefs, connectivity=connectivity)
-            if homas is None:
-                print(" | Connectivity could not match parameters")
-            else:
-                print(" | EN           {} =  {:>.6f}".format(ring_index + 1, homas[1]))
-                print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, homas[2]))
-                print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, homas[0]))
-                print(" ----------------------------------------------------------------------")
-                blas = compute_bla(ring, mol, geom=geom)
-
-                print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, blas[0]))
-                print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, blas[1]))
-                print(" ----------------------------------------------------------------------")
-
-        elif nalpha_equal_nbeta(Smo) == "triplet":
-            print(" | Different number of alpha and beta electrons. Computing HOMER")
-            if homarefs is not None:
-                print(" | Using HOMER references provided by the user")
-            else:
-                print(" | Using default HOMER references")
-
-            homers = compute_homer(ring, mol, geom=geom, homarefs=homarefs, connectivity=connectivity)
-
-            print(" | EN           {} =  {:>.6f}".format(ring_index + 1, homers[1]))
-            print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, homers[2]))
-            print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, homers[0]))
+        homas = compute_homa(ring, mol, geom=geom, homarefs=homarefs, connectivity=connectivity)
+        if homas is None:
+            print(" | Connectivity could not match parameters")
+        else:
+            print(" | EN           {} =  {:>.6f}".format(ring_index + 1, homas[1]))
+            print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, homas[2]))
+            print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, homas[0]))
             print(" ----------------------------------------------------------------------")
+
+            if nalpha_equal_nbeta(Smo) == "triplet":
+                print(" | Different number of alpha and beta electrons. Computing HOMER")
+                if homerrefs is not None:
+                    print(" | Using HOMER references provided by the user")
+                else:
+                    print(" | Using the default HOMER references")
+
+                homer = compute_homer(ring, mol, geom=geom, homerrefs=homerrefs, connectivity=connectivity)
+                print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, homer))
+                print(" ----------------------------------------------------------------------")
+
             blas = compute_bla(ring, mol, geom=geom)
 
             print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, blas[0]))
             print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, blas[1]))
             print(" ----------------------------------------------------------------------")
-        else:
-            print(" | No singlet nor triplet. Could not compute HOMA/HOMER")
-
         print(" ----------------------------------------------------------------------")
         flus_alpha = compute_flu(ring, mol, Smo[0], flurefs, connectivity, partition=partition)
         if flus_alpha is None:
@@ -727,7 +723,7 @@ def arom_unrest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=Non
 # AROMATICITY RESTRICTED
 
 
-def arom_rest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=None, homarefs=None, connectivity=None, geom=None, num_threads=1):
+def arom_rest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, num_threads=1):
     """Population analysis, localization and delocalization indices and aromaticity indicators
     for restricted AOMs.
 
@@ -757,6 +753,9 @@ def arom_rest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=None,
 
        homarefs: dictionary. Default: None
           User-provided references for the distance and polarizability for the HOMA or HOMER indices.
+
+       homerrefs: dictionary. Default: None
+          User-provided references for the optimal distance and polarizability for the HOMA or HOMER indices.
 
        connectivity: list. Default: None
           The atomic symbols of the atoms in the ring in 'mol' order.
@@ -915,7 +914,7 @@ def arom_rest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=None,
         print(" ---------------------------------------------------------------------- ")
 
 
-def arom_unrest_from_aoms(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=None, homarefs=None, connectivity=None, geom=None, num_threads=None):
+def arom_unrest_from_aoms(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, num_threads=None):
     """Population analysis, localization and delocalization indices and aromaticity indicators
     for previously saved restricted AOMs.
 
@@ -945,6 +944,9 @@ def arom_unrest_from_aoms(Smo, rings, partition, mol, mci=False, av1245=False, f
 
        homarefs: dictionary. Default: None
           User-provided references for the distance and polarizability for the HOMA or HOMER indices.
+
+       homerrefs: dictionary. Default: None
+          User-provided references for the optimal distance and polarizability for the HOMA or HOMER indices.
 
        connectivity: list. Default: None
           The atomic symbols of the atoms in the ring in 'mol' order.
@@ -987,50 +989,39 @@ def arom_unrest_from_aoms(Smo, rings, partition, mol, mci=False, av1245=False, f
         if connectivity is None:
             print(" | Connectivity not found. Could not compute geometric indices")
         else:
-            if nalpha_equal_nbeta(Smo) == "singlet":
-                print(" | Same number of alpha and beta electrons. Computing HOMA")
-                if homarefs is not None:
-                    print(" | Using HOMA references provided by the user")
-                else:
-                    print(" | Using default HOMA references")
-
-                homas = compute_homa(ring, mol, geom=geom, homarefs=homarefs, connectivity=connectivity)
-                if homas is None:
-                    print(" | Connectivity could not match parameters")
-                else:
-                    print(" | EN           {} =  {:>.6f}".format(ring_index + 1, homas[1]))
-                    print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, homas[2]))
-                    print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, homas[0]))
-                    print(" ----------------------------------------------------------------------")
-                    blas = compute_bla(ring, mol, geom=geom)
-
-                    print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, blas[0]))
-                    print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, blas[1]))
-                    print(" ----------------------------------------------------------------------")
-
-            elif nalpha_equal_nbeta(Smo) == "triplet":
-                print(" | Different number of alpha and beta electrons. Computing HOMER")
-                if homarefs is not None:
-                    print(" | Using HOMER references provided by the user")
-                else:
-                    print(" | Using default HOMER references")
-
-                homers = compute_homer(ring, mol, geom=geom, homarefs=homarefs, connectivity=connectivity)
-                if homers is None:
-                    print(" | Connectivity could not match parameters")
-                else:
-                    print(" | EN           {} =  {:>.6f}".format(ring_index + 1, homers[1]))
-                    print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, homers[2]))
-                    print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, homers[0]))
-                    print(" ----------------------------------------------------------------------")
-                    blas = compute_bla(ring, mol, geom=geom)
-
-                    print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, blas[0]))
-                    print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, blas[1]))
-                    print(" ----------------------------------------------------------------------")
+            if homarefs is not None:
+                print(" | Using HOMA references provided by the user")
             else:
-                print(" | No singlet nor triplet. Could not compute HOMA/HOMER")
+                print(" | Using default HOMA references")
 
+            homas = compute_homa(ring, mol, geom=geom, homarefs=homarefs, connectivity=connectivity)
+            if homas is None:
+                print(" | Connectivity could not match parameters")
+            else:
+                print(" | EN           {} =  {:>.6f}".format(ring_index + 1, homas[1]))
+                print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, homas[2]))
+                print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, homas[0]))
+                print(" ----------------------------------------------------------------------")
+
+                if nalpha_equal_nbeta(Smo) == "triplet":
+                    print(" | Different number of alpha and beta electrons. Computing HOMER")
+                    if homerrefs is not None:
+                        print(" | Using HOMER references provided by the user")
+                    else:
+                        print(" | Using default HOMER references")
+
+                    homer = compute_homer(ring, mol, geom=geom, homerrefs=homerrefs, connectivity=connectivity)
+                    if homer is None:
+                        print(" | Connectivity could not match parameters")
+                    else:
+                        print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, homer))
+                        print(" ----------------------------------------------------------------------")
+
+                blas = compute_bla(ring, mol, geom=geom)
+
+                print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, blas[0]))
+                print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, blas[1]))
+                print(" ----------------------------------------------------------------------")
         print(" ----------------------------------------------------------------------")
 
         if connectivity is not None:
@@ -1201,7 +1192,7 @@ def arom_unrest_from_aoms(Smo, rings, partition, mol, mci=False, av1245=False, f
 # AROMATICITY RESTRICTED
 
 
-def arom_rest_from_aoms(Smo, rings, partition, mol, mci=True, av1245=True, flurefs=None, homarefs=None, connectivity=None, geom=None, num_threads=1):
+def arom_rest_from_aoms(Smo, rings, partition, mol, mci=True, av1245=True, flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, num_threads=1):
     """Population analysis, localization and delocalization indices and aromaticity indicators
     for previously saved restricted AOMs.
 
@@ -1231,6 +1222,9 @@ def arom_rest_from_aoms(Smo, rings, partition, mol, mci=True, av1245=True, flure
 
        homarefs: dictionary. Default: None
           User-provided references for the distance and polarizability for the HOMA or HOMER indices.
+
+       homerrefs: dictionary. Default: None
+          User-provided references for the optimal distance and polarizability for the HOMA or HOMER indices.
 
        connectivity: list. Default: None
           The atomic symbols of the atoms in the ring in 'mol' order.
@@ -1458,18 +1452,6 @@ def load_aoms(Smo):
         Smo = np.load(f, allow_pickle=True)
     return Smo
 
-def save_aoms(Smo, name):
-    """Saves the AOMs in a Smo file.
-
-    Arguments:
-       Smo: List of matrices
-          Contains the AOMs.
-       
-       name: String
-          Contains the name of the file to save the AOMs.
-    """
-    with open(name, "wb") as f:
-        np.save(f, Smo)
 
 ##################################################################
 ########### COMPUTATION OF THE AROMATICITY DESCRIPTORS ###########
@@ -1559,7 +1541,7 @@ def multiprocessing_mci(arr, Smo, num_threads, partition):
           Type of desired atom-in-molecule partition scheme. Options are 'mulliken', lowdin', 'meta_lowdin', 'nao' and 'iao'.
 
     Returns:
-       mci_value: float
+       trace: float
           MCI value for the given ring.
     """
 
@@ -1846,11 +1828,73 @@ def compute_boa(arr, Smo):
 
 ######## GEOMETRIC INDICES ########
 
-# Setting of the parameters for the HOMA calculation (Restricted and Unrestricted)
+# Calculation of the HOMA and/or HOMER indices (Restricted and Unrestricted)
 
+def compute_homer(arr, mol, geom=None, homerrefs=None, connectivity=None):
+    """Computes the HOMER index.
+
+    Arguments:
+       arr: string
+          A string containing the indices of the atoms in ring connectivity.
+
+       mol: an instance of SCF class.
+          Mole class and helper functions to handle parameters and attributes for GTO integrals.
+
+       geom: list
+          The molecular coordinates as given by the mol.atom_coords() function.
+
+       homerrefs: dictionary
+          User-provided references for the optimal distance and polarizability for the HOMER index.
+
+       connectivity: list
+          The atomic symbols of the atoms in the ring in 'mol' order.
+
+    Returns:
+       homer_value
+          The HOMER value. 
+    """
+
+    refs = {
+            "CC": {"alpha": 950.74, "r_opt": 1.437},
+            "CN": {"alpha": 506.43, "r_opt": 1.390},
+            "NN": {"alpha": 187.36, "r_opt": 1.375},
+            "CO": {"alpha": 164.96, "r_opt": 1.379}
+           }
+    if homerrefs is not None:
+        refs.update(homerrefs)
+
+    if mol is None:
+        print(" | No mol object provided. Using the data provided by the user")
+        if connectivity is None:
+            print(" | No HOMA connectivity provided by the user")
+            return None
+        if geom is None:
+            print(" | No geometry provided by the user")
+            return None
+        else:
+            atom_symbols = connectivity
+            bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]])) for i in range(len(arr)) ]
+    else:
+        atom_symbols = [mol.atom_symbol(i) for i in range(mol.natm)]
+        bond_types = ["".join(sorted([atom_symbols[arr[i] - 1], atom_symbols[arr[(i + 1) % len(arr)] - 1]]))
+            for i in range(len(arr)) ]
+
+    for i in range(len(arr)):
+        if bond_types[i] not in refs:
+            print(f"No parameters found for bond type {bond_types[i]}")
+            return None
+
+    alpha = refs[bond_types[i]]["alpha"]
+    r_opt = refs[bond_types[i]]["r_opt"]
+
+    distances = find_distances(arr, mol, geom)
+    diff = np.mean([r_opt - distances[i] for i in range(len(arr))])
+    homer_value = 1 - alpha * diff ** 2
+
+    return homer_value
 
 def compute_homa(arr, mol, geom=None, homarefs=None, connectivity=None):
-    """Sets the references for the HOMA index and calls the function that computes the index.
+    """Computes the HOMA index.
 
     Arguments:
        arr: string
@@ -1863,7 +1907,7 @@ def compute_homa(arr, mol, geom=None, homarefs=None, connectivity=None):
           The molecular coordinates as given by the mol.atom_coords() function.
 
        homarefs: dictionary
-          User-provided references for the distance and polarizability for the HOMA or HOMER indices.
+          User-provided references for the HOMA index.
 
        connectivity: list
           The atomic symbols of the atoms in the ring in 'mol' order.
@@ -1874,59 +1918,21 @@ def compute_homa(arr, mol, geom=None, homarefs=None, connectivity=None):
     """
 
     refs = {
-        "CC": {"r_opt": 1.388, "alpha": 257.7},
-        "CN": {"r_opt": 1.334, "alpha": 93.52},
-        "NN": {"r_opt": 1.309, "alpha": 130.33},
-        "CO": {"r_opt": 1.265, "alpha": 157.38},
+            "CC": {"n_opt": 1.590, "c": 0.1702, "r1": 1.467},
+            "CN": {"n_opt": 1.589, "c": 0.2828, "r1": 1.465},
+            "CO": {"n_opt": 1.602, "c": 0.2164, "r1": 1.367},
+            "CP": {"n_opt": 1.587, "c": 0.2510, "r1": 1.814},
+            "CS": {"n_opt": 1.584, "c": 0.2828, "r1": 1.807},
+            "NN": {"n_opt": 1.590, "c": 0.2395, "r1": 1.420},
+            "NO": {"n_opt": 1.586, "c": 0.3621, "r1": 1.415},
+            "CSe": {"n_opt": 1.590, "c": 0.2970, "r1": 1.959}, # n_opt taken as C-C
+            "BB": {"n_opt": 1.590, "c": 0.2510, "r1": 1.814}, # n_opt taken as C-C
+            "BC": {"n_opt": 1.590, "c": 0.1752, "r1": 1.647}, # n_opt taken as C-C
+            "BN": {"n_opt": 1.590, "c": 0.2900, "r1": 1.564}, # n_opt taken as C-C
+            "alpha": 257.7, "r_opt": 1.388
     }
     if homarefs is not None:
         refs.update(homarefs)
-    return make_homaer(arr, mol, geom=geom, refs=refs, connectivity=connectivity)
-
-
-# Setting of the parameters for the HOMER calculation (Restricted and Unrestricted)
-
-
-def compute_homer(arr, mol, geom=None, homarefs=None, connectivity=None):
-    """Sets the references for the HOMER index and calls the function that computes the index.
-
-    Arguments:
-       arr: string
-          A string containing the indices of the atoms in ring connectivity.
-
-       mol: an instance of SCF class.
-          Mole class and helper functions to handle parameters and attributes for GTO integrals.
-
-       geom: list
-          The molecular coordinates as given by the mol.atom_coords() function.
-
-       homarefs: dictionary
-          User-provided references for the distance and polarizability for the HOMER index.
-
-       connectivity: list
-          The atomic symbols of the atoms in the ring in 'mol' order.
-
-    Returns:
-       list
-          Contains the HOMA value as well as the EN and GEO components.
-    """
-
-    refs = {
-        "CC": {"r_opt": 1.437, "alpha": 950.74},
-        "CN": {"r_opt": 1.390, "alpha": 506.43},
-        "NN": {"r_opt": 1.375, "alpha": 187.36},
-        "CO": {"r_opt": 1.379, "alpha": 164.96},
-    }
-
-    if homarefs is not None:
-        refs.update(homarefs)
-    return make_homaer(arr, mol, geom=geom, refs=refs, connectivity=connectivity)
-
-
-# Actual calculation of the HOMA and/or HOMER indices (Restricted and Unrestricted)
-
-
-def make_homaer(arr, mol, geom, refs, connectivity):
 
     if mol is None:
         print(" | No mol object provided. Using the data provided by the user")
@@ -1950,14 +1956,33 @@ def make_homaer(arr, mol, geom, refs, connectivity):
             return None
 
     distances = find_distances(arr, mol, geom)
+    alpha = refs["alpha"]
+    r_opt = refs["r_opt"]
 
-    EN, GEO = 0, 0
+    ravs, bonds = [], []
     for i in range(len(arr)):
-        EN += np.mean(refs[bond_types[i]]["alpha"] * (refs[bond_types[i]]["r_opt"] - np.mean(distances)) ** 2) / len(arr)
-    GEO = np.mean(refs[bond_types[i]]["alpha"] * np.sum((distances - np.mean(distances)) ** 2) / len(arr))
+        nopt = refs[bond_types[i]]["n_opt"]
+        c = refs[bond_types[i]]["c"]
+        r1 = refs[bond_types[i]]["r1"]
+
+        bond = np.exp((r1 - distances[i]) / c)
+        rn = 1.467 - 0.1702 * np.log(bond)
+        ravs.append(rn)
+
+    rav = sum(ravs) / len(arr)
+    avdist = np.mean(distances)
+
+    if np.mean(rav) > r_opt:
+        EN = alpha*(r_opt - rav)**2 
+    else:
+        EN = -alpha*(r_opt - rav)**2
+
+    GEO = 0
+    for i in range(len(arr)):
+        GEO += (rav - ravs[i])**2 
+    GEO = GEO * alpha / len(arr)
 
     homa_value = 1 - (EN + GEO)
-
     return homa_value, EN, GEO
 
 
