@@ -2235,7 +2235,10 @@ def mol_info(mol, mf, save=None, partition=None):
     info = []
     info.append([mol.atom_symbol(i) for i in range(mol.natm)])  # Atomic Symbols of the molecule
     info.append([i + 1 for i in range(mol.natm)])  # Indices of the atoms
-    info.append(mol.basis.upper())
+    if isinstance(molinfo, dict):
+        info.append("Not specified")
+    else:
+        info.append(mol.basis.upper())
     info.append(mol.atom_coords())
     info.append(mf.__class__.__name__)
     info.append(mf.e_tot)
