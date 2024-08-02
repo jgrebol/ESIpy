@@ -2061,7 +2061,7 @@ def make_aoms(mol, mf, partition=None, save=None):
         nocc_alpha = mf.mo_occ[0].astype(int)
         nocc_beta = mf.mo_occ[1].astype(int)
         occ_coeff_alpha = mf.mo_coeff[0][:, : nocc_alpha.sum()]
-        occ_coeff_beta = mf.mo_coeff[0][:, : nocc_beta.sum()]
+        occ_coeff_beta = mf.mo_coeff[1][:, : nocc_beta.sum()]
 
         # Building the Atomic Overlap Matrices
 
