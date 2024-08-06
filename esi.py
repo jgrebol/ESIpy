@@ -92,7 +92,7 @@ def aromaticity(Smo, rings, mol=None, mf=None, partition=None, mci=False, av1245
         symbols = [mol.atom_symbol(i) for i in range(mol.natm)]
         connectivity = symbols
         atom_numbers = [i + 1 for i in range(mol.natm)]
-        basisset = mol.basis.upper()
+        basisset = mol.basis
         geom = mol.atom_coords()
 
     if mf is None:
@@ -116,6 +116,10 @@ def aromaticity(Smo, rings, mol=None, mf=None, partition=None, mci=False, av1245
             functional = "Not specified"
         energy = mf.e_tot
         method = mf.__module__
+
+    # Case: Basis set is a dictionary. Will show "Not available"
+    if isinstance(basisset, dict):
+        basisset = "Not available"
 
     # Set fromaoms to False only if molinfo is provided and both mol and mf are None
     if mol is None and mf is None and molinfo is not None:
@@ -161,7 +165,7 @@ def aromaticity(Smo, rings, mol=None, mf=None, partition=None, mci=False, av1245
     if "dft" in method and functional is not None:
         print(" | Functional:              ", functional)
 
-    print(" | Basis set:               ", basisset)
+    print(" | Basis set:               ", basisset.upper())
     if isinstance(energy, str):
         print(" | Total energy:          {}".format(energy))
     else:
@@ -2235,10 +2239,7 @@ def mol_info(mol, mf, save=None, partition=None):
     info = []
     info.append([mol.atom_symbol(i) for i in range(mol.natm)])  # Atomic Symbols of the molecule
     info.append([i + 1 for i in range(mol.natm)])  # Indices of the atoms
-    if isinstance(molinfo, dict):
-        info.append("Not specified")
-    else:
-        info.append(mol.basis.upper())
+    info.append(mol.basis)
     info.append(mol.atom_coords())
     info.append(mf.__class__.__name__)
     info.append(mf.e_tot)
