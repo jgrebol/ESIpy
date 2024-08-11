@@ -6,8 +6,6 @@ import numpy as np
 def read_aoms(source, path='.'):
    if source == 'esipy':
       Smo = read_esipy(path)
-   elif source == 'esipy':
-      Smo = read_esipy(path)
    elif source == 'aimall':
       Smo = read_aimall(path)
    return Smo
