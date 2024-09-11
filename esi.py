@@ -81,6 +81,7 @@ def aromaticity(Smo, rings, mol=None, mf=None, partition=None, mci=False, av1245
         if molinfo is None:
             print(" | 'mol' object not found")
             symbols = None
+            basisset = "Not specified"
             fromaoms = True
         else:
             print(" | Obtaining molecular information from .molinfo file")
