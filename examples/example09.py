@@ -1,6 +1,15 @@
-import esi
-from utils import ints
+import esipy
+from esipy.aromaticity import aromaticity
+from esipy.atomicfiles import read_aoms
 
-Smo = ints.read_aoms('aimall', './example08_nao/')
+ring = [7,3,1,2,6,10]
+partition = 'nao'
+molinfo = 'example08_nao.molinfo'
+path='example08_nao/'
 
-esi.aromaticity(Smo, rings=[7,3,1,2,6,10], mci=True, av1245=True)
+# By default, will search for ".int" in the working directory
+arom = esipy.ESI(readpath=path, molinfo=molinfo, partition=partition, rings=ring, mci=True, av1245=True)
+arom.readaoms()
+
+# Now the variable arom.Smo contains the AOMs in the ./example08_nao/ directory
+arom.calc()

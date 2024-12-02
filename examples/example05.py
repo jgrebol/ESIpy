@@ -1,36 +1,31 @@
-import esi
+import esipy
 from pyscf import gto
 
-mol=gto.Mole()
-mol.atom='''
-6       -1.366007715     -0.671871000     -3.014007296
-6       -2.636254715     -1.421829000     -3.014007296
-6       -3.906495715     -0.671871000     -3.014007296
-6       -3.906495715      0.671871000     -3.014007296
-6       -2.636248715      1.421829000     -3.014007296
-6       -1.366007715      0.671871000     -3.014007296
-1       -0.428150715     -1.228590000     -3.014007296
-1       -2.636254715     -2.509051000     -3.014007296
-1       -4.844354715     -1.228588000     -3.014007296
-1       -4.844352715      1.228590000     -3.014007296
-1       -2.636248715      2.509051000     -3.014007296
-1       -0.428148715      1.228588000     -3.014007296
-'''
-mol.basis = 'sto-3g'
-mol.spin = 2
-mol.charge = 0
-mol.symmetry = True
-mol.verbose = 0
-mol.max_memory = 4000
-mol.build()
+# As an exercise, we use the HOMA references into the HOMER calculation
+# The HOMER value is the same, therefore, as the HOMA one
+# For custom homarefs, user should provide references as in:
+# J. Kruszewski and T. M. Krygowski. Tetrahedron Lett., 13(36):3839–3842, 1972
 
 homerref = {'CC': {'r_opt': 1.388, 'alpha': 257.7}}
-
-connec = ['C', 'C','C','C','C','C']
+connectivity = ['C', 'C','C','C','C','C']
 ring = [1,2,3,4,5,6]
 partition = 'nao'
-geom = mol.atom_coords()
+# The geometry can be directly extracted from the mol.atom_coords() method
+geom = [[-2.58138047, -1.26965218, -5.69564833],
+ [-4.98179941, -2.68686741, -5.69564833],
+ [-7.38220701, -1.26965218, -5.69564833],
+ [-7.38220701,  1.26965218, -5.69564833],
+ [-4.98178807,  2.68686741, -5.69564833],
+ [-2.58138047,  1.26965218, -5.69564833],
+ [-0.80908759, -2.32169862, -5.69564833],
+ [-4.98179941, -4.74141922, -5.69564833],
+ [-9.15450366, -2.32169484, -5.69564833],
+ [-9.15449988, 2.32169862, -5.69564833],
+ [-4.98178807, 4.74141922, -5.69564833],
+ [-0.80908381,  2.32169484, -5.69564833]]
+molinfo = 'example01_nao.molinfo'
+Smo = 'example01_nao.aoms'
 
-esi.aromaticity('example03_nao.aoms', rings=ring, partition=partition, mci=True, av1245=True, homerrefs=homerref, connectivity=connec, geom=geom)
+esipy.ESI(Smo=Smo, molinfo=molinfo, rings=ring, partition=partition, homerrefs=homerref, connectivity=connectivity, geom=geom).calc()
 
 

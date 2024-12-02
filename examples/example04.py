@@ -1,9 +1,11 @@
-import esi
+import esipy
 
-ring = [7,3,1,2,6,10]
+ring = [1,2,3,4,5,6]
 partition = 'nao'
 
 fluref = {'CC': 1.500}
-connec = ['C', 'C','C','C','C','C']
+connectivity = ['C', 'C','C','C','C','C']
+Smo = 'example01_nao.aoms'
+molinfo = 'example01_nao.molinfo'
 
-esi.aromaticity('example01_nao.aoms', rings=ring, partition=partition, mci=True, av1245=True, flurefs=fluref, connectivity=connec)
+esipy.ESI(Smo=Smo, molinfo=molinfo, rings=ring, partition=partition, flurefs=fluref, connectivity=connectivity).calc()

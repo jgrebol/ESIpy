@@ -1,6 +1,6 @@
-<p align="center"><img width=40.0% src="https://github.com/jgrebol/ESIpy/blob/main/logoesipy.png"></p>
+<p align="center"><img width="40.0%" src="https://github.com/jgrebol/ESIpy/blob/main/logoesipy.png"></p>
 
-The ESIpy program is aimed at the calculation of population analysis and aromaticity indicators from different Hilbert-space partitions using the PySCF module. The program supports both restricted and unrestricted calculations for single-determinant wave functions. The atomic partitions supported by the program are Mulliken, Löwdin, meta-Löwdin, Natural Atomic Orbitals (NAO), and Intrinsic Atomic Orbitals (IAO). The ESIpy repository contains the esi.py main code as well as several example scripts. 
+The ESIpy program is aimed at the calculation of population analysis and aromaticity indicators from different Hilbert-space partitions using the PySCF module. The program supports both restricted and unrestricted calculations for single-determinant wave functions. The atomic partitions supported by the program are Mulliken, Löwdin, meta-Löwdin, Natural Atomic Orbitals (NAO), and Intrinsic Atomic Orbita (IAO).
 
 ## Citation
 
@@ -10,12 +10,11 @@ All the calculations performed for the creation and implementation of this progr
 
 Also, find it on-line [here](https://chemistry-europe.onlinelibrary.wiley.com/doi/10.1002/chem.202401282?af=R). Please if you are publishing the results obtained from ESIpy remember to cite the program. The code is licensed under the GNU GPLv3. See the [LICENSE](LICENSE) file for details. See the [examples/README.md](examples/README.md) file for details on how to use the program. If you encounter any bugs, please feel free to report them on the [Issues page](https://github.com/jgrebol/ESIpy/issues), or send a mail to [joangrebol@gmail.com](mailto:joangrebol@gmail.com).
 
-
 ## Theoretical background
 
 ### Hilbert-space partitioning
 
-In order to obtain information of the atomic contributions in a given chemical system (for instance atomic populations and electron sharing indices) it is crucial to define an atom in a molecule (AIM), which can either be real-space partition (allocating each point of the 3D space fully or partially to a specific atom) or Hilbert-space partition (separating the atomic basis functions belonging to a certain atom). The ESI-3D code[1] developed by Dr. Eduard Matito mainly used Bader's QTAIM[2] (real-space scheme) as the AIM for the calculations. However, in this program we propose the use of Hilbert-space schemes (Mulliken[3], Löwdin[4], Meta-Löwdin[5], NAO[6], and IAO[7]) available in the PySCF[8] framework as the partition of the system. QTAIM relies on numerical integrations, so the error accumulation makes some of these aromaticity descriptors become unviable in large systems. This newer approach, however, does not require numerical integration, but rather relies on the separation of the molecule by using atomic basis functions, leading to an exact partition of the system. The most fundamental magnitude is the **Atomic Overlap Matrix (AOM, $\boldsymbol{S}^{\text{A}}$) in the Molecular Orbitals (MO, $\boldsymbol{\phi}$) basis**, with elements
+In order to obtain information of the atomic contributions in a given chemical system (for instance atomic populations and electron sharing indices) it is crucial to define an atom in a molecule (AIM), which can either be real-space partition (allocating each point of the 3D space fully or partially to a specific atom) or Hilbert-space partition (separating the atomic basis functions belonging to a certain atom). The ESI-3D code[1] developed by Dr. Eduard Matito mainly used Bader's QTAIM[2] (real-space scheme) as the AIM for the calculations. However, in this program we propose the use of Hilbert-space schemes (Mulliken[3], Löwdin[4], Meta-Löwdin[5], NAO[6], and IAO[7]) available in the PySCF[8] framework as the partition of the system. QTAIM relies on numerical integrations, so the unavoidable errors associated to them make some of these aromaticity descriptors unviable in large systems. This newer approach, however, does not require numerical integration, but rather relies on the separation of the molecule by using their atomic basis functions, leading to an exact partition of the system. The most fundamental magnitude is the **Atomic Overlap Matrix (AOM, $\mathbf{S}^{\text{A}}$) in the Molecular Orbitals (MO, $\mathbf{\phi}$) basis**, with elements
 
 $$S_{ij}^\text{A}=\int_{\Omega_\text{A}}\phi_i^*(\textbf{r})\phi_j(\textbf{r})\text{d}\textbf{r}.$$
 
@@ -29,13 +28,13 @@ Moreover, the Delocalization Index (DI, $\delta$), also referred to as Bond Orde
 
 $$\delta(\text{A,B})=\sum^\text{M}&#95;{\mu\in\text{A}}\sum^\text{M}&#95;{\nu\in\text{B}}(PS^\text{AO})&#95;{\nu\mu}(PS^\text{AO})&#95;{\mu\nu}.$$
 
-In order to mimic the expression of the AOM as that of QTAIM, one can introduce a new auxiliary matrix, $\boldsymbol{\eta}^{\text{A}}$, which is a bock-truncated unit matrix with all elements being zero except $\eta&#95;{\mu\mu}^\text{A}=1$. Hence, the general expression for Mulliken's approach is the following:
+In order to mimic the expression of the AOM as that of QTAIM, one can introduce a new auxiliary matrix, $\mathbf{\eta}^{\text{A}}$, which is a bock-truncated unit matrix with all elements being zero except $\eta&#95;{\mu\mu}^\text{A}=1$. Hence, the general expression for Mulliken's approach is the following:
 
-$$\boldsymbol{S}^\text{A,Mull}=\boldsymbol{c}^{+}\boldsymbol{S}^{AO}\boldsymbol{\eta}^\text{A}\boldsymbol{c}.$$
+$$\mathbf{S}^\text{A,Mull}=\mathbf{c}^{+}\mathbf{S}^{AO}\mathbf{\eta}^\text{A}\mathbf{c}.$$
 
 The resulting matrix is non-symmetric due to the underlying AO basis being non-orthogonal. To overcome these issues, chemists have explored alternative Hilbert-space methods that rely on orthogonalized AO bases, mainly obtained through a unitary transformation of the original AO basis used in calculations. Löwdin first proposed the symmetric orthogonalization procedure by using $T_{\mu\nu}=S_{\mu\nu}^{-1/2}$. Following his steps, several different approaches have been reported to find more robust schemes of basis set orthogonalization, being the ones applied in this article the meta-Löwdin, Natural Atomic Orbitals (NAO). Alternatively, Knizia proposed an ingenious scheme to express in an exact number the occupied MOs of a calculation in an orthogonal basis of reduced rank, the so-called Intrinsic Atomic Orbitals (IAO) approach. In all cases, the mapping from real-space to Hilbert-space can be performed as follows:
 
-$$\boldsymbol{S}^\text{A,X}=\boldsymbol{c}^{+}({\boldsymbol{T}}^{-1})^{+}\boldsymbol{\eta}^\text{A}\boldsymbol{T}^{-1}\boldsymbol{c}.$$
+$$\mathbf{S}^\text{A,X}=\mathbf{c}^{+}({\mathbf{T}}^{-1})^{+}\mathbf{\eta}^\text{A}\mathbf{T}^{-1}\mathbf{c}.$$
 
 ### Electron-Sharing Indices 
 
@@ -98,7 +97,7 @@ The Harmonic Oscillator Model of Aromaticity (HOMA)[15] was defined by Kruszewsk
 
 $$\text{HOMA}(\mathscr{A}) = 1 - \frac{\alpha}{n} \cdot \sum_i^n (R_{opt} - R_{A_i,A_{i+1}})^2 = 1 - \frac{\alpha}{n} \cdot ((R_{opt} - \bar{R})^2 + \sum_i^n (R_{A_i,A_{i+1}} - \bar{R})^2) = 1 - (EN + GEO)$$
 
-The formula depends on a series of tabulated $R_{opt}$, as well as the normalization factor $\alpha$ for each bond to make the index 1 for benzene and 0 and negative values for non-aromatic or antiaromatic molecules, which makes it a good option for most organic molecules but fails for newer systems. The HOMA index is separated into the EN and GEO subparts, which measure the deviation of the interatomic distance into some tabulated numbers and the variance of this interatomic distance, respectively, and are close to zero for aromatic molecules. At this moment, only the references from "CC", "CN", "NN" and "CO" are tabulated, but more references can be introduced to the code. The HOMER aromaticity index is a reparametrization of the HOMA for the T1 state.[16]
+The formula depends on a series of tabulated $R_{opt}$, as well as the normalization factor $\alpha$ for each bond to make the index 1 for benzene and 0 and negative values for non-aromatic or antiaromatic molecules, which makes it a good option for most organic molecules but fails for newer systems. The HOMA index is separated into the EN and GEO subparts, which measure the deviation of the interatomic distance into some tabulated numbers and the variance of this interatomic distance, respectively, and are close to zero for aromatic molecules. The implemented version of this index is [15]. The HOMER aromaticity index is a reparametrization of the HOMA for the T1 state.[16] Different parameters can be introduced using the `homarefs` and `homerrefs` attributes.
 
 #### Bond-Length Alternation (BLA)
 
@@ -113,59 +112,58 @@ $$ \text{BLA}&#95;c(\mathscr{A}) = \frac{1}{N} \sum_{i=1}^{N} \vert r_{A_{i},A_{
 This new definition can indeed be used for closed rings, but produces numbers that even if qualitatively agree with BLA, they do not match completely.
 
 ## Features
-- ``make_aoms(mol, mf, partition, save)``: From PySCF's `mol` and `mf` objects and `partition` as a string containing the desired partition (`mulliken`, `lowdin`, `meta_lowdin`, `nao`, `iao`), generate a list of matrices containing the Atomic Overlap Matrices (AOMs). The variable `save` is a string containing the name of the file where to save the AOMs.
-- `aromaticity(Smo, ring, mol, mf, partition, mci, av1245, flurefs, homarefs, connectivity, geom, num_threads)`: Compute population analyses, delocalization analyses, and aromaticity indicators from the AOMs (variable Smo). Only the AOMs, `Smo`, and the ring connectivities, `ring`, are required for the calculation. Any other information will complement the calculation. The varible `Smo` can either be the variable that directly comes from the `make_aoms()` function or a string containing the name of the previously saved AOMs. The variable `ring` is either a list or a list of lists containing the indices of the atoms for the aromaticity calculations. `mci` and `av1245` are boolean variables to compute the MCI and AV1425 indices, respectively. Multi-core processing for the MCI calculation is supported by setting `num_threads` at a number of cores different than 1, albeit the speed-up is non-linear. The `flurefs`, `homarefs`, `connectivity` and `geom` variables are optional in case of computing the FLU, HOMA, HOMER and/or BLA indicators without providing the `mol` object; see [examples/examples04.py](examples/example04.py) and [examples/examples05.py](examples/example05.py) for a guide on how to provide custom reference values for the HOMA, HOMER and FLU indicators.
+The object esipy.ESI() needs to be initialized with the attribute `rings` and the AOMs (the variable `Smo` or, otherwise, the `mol`, `mf` and `partition` variables to construct them. See the **Variable scope** section for more information). Further customization is also available.
+- `ESI.aoms()`: Will build the AOMs and store them in the **ESI.Smo** variable. From PySCF's `mol` and `mf` objects and `partition` as a string containing the desired partition (`mulliken`, `lowdin`, `meta_lowdin`, `nao`, `iao`), generate a list of matrices containing the Atomic Overlap Matrices (AOMs). The variable `save` is a string containing the name of the file where to save the AOMs, which will have the `.aoms` extension.
+- `ESI.calc()`: Compute population analyses, delocalization analyses, and aromaticity indicators from the AOMs (variable Smo). Only the AOMs, `Smo`, and the ring connectivities, `rings`, are required for the calculation. Any other information will complement the calculation, although it is highly recommended to provide the `mol` and `mf` objects. See **Variable scope** for more information. Multi-core processing for the MCI calculation is supported by setting `ncores` at a number of cores different than 1, albeit the speed-up is non-linear.
 - Sole functions to compute each of the aromaticity indicators (I<sub>ring</sub>, MCI, AV1245, PDI, BOA, FLU, HOMA, HOMER and BLA), see [examples/example06.py](examples/example06.py`).
-
-## Utilities
-- `write_int(mol, mf, molname, Smo, ring, partition)`: Writes the AOMs as input for Dr. Eduard Matito's ESI-3D code (see [examples/example08.py](examples/example08.py)). The atomic files are stored in a self-created directory, as well as a general input for the program (`'molname'.bad`). The ring variable is not mandatory but recommended.
-- `read_int(path)`: Reads the AOMs from either the .int files generated by ESIpy or the ones generated from the AIMAll package (see [examples/example09.py](examples/example09.py)).
+- `ESI.fromfile(act)`: To read the matrices from ESIpy or AIMAll (`act='r'`) or to write the AOMs into AIMAll format (`act='w'`). If read, the variable `ESI.Smo` will contain the aforementioned matrices. The path of the folder to read can be specified in `ESI.readpath`.
 
 ## Installation
-To install PySCF it is recommended to create a conda environment as follows:
+ESIpy can be installed through:
 ```
-conda create --name pyscf_env python=3.9
+pip install pyesi
 ```
-and install PySCF as:
+To install PySCF, following the official guidelines from [PySCF's installation guide](https://pyscf.org/install.html).:
 ```
-conda activate pyscf_env
-conda install -c pyscf_env pyscf
-```
-For a more detailed installation guide, please check [PySCF's installation guide](https://pyscf.org/install.html).
-
-To install ESIpy in your local working stations:
-```
-git clone https://github.com/jgrebol/ESIpy.git
-```
-Make sure to have previously installed `git` with `sudo apt install git`. Add to your ```.bashrc``` file or to the file sent to queue:
-```
-export PYTHONPATH=~/ESIpy:$PYTHONPATH (or the directory where it is located)
+pip install --prefer-binary pyscf
 ```
 For a detailed explanation on how to run the code and how to customize it, please see the directory [examples](examples) and the [examples/README.md](examples/README.md) file.
 
-## Variable scope
+## Attributes scope
 
-- ```Smo```: List of matrices or string. Contains each of the AOMs. Generated from the ```make_aoms()``` function. Can also be a string containing the name of the saved AOMs. 
-- ```ring```: List (or list of lists). Contains the indices for the definition of the ring required for the calculation of aromaticity indicators.
+- ```Smo```: List of matrices or string. Contains each of the AOMs. Generated from the ```ESI.aoms()``` method. The initialization of the `ESI` object will attempt generating this attribute. Can also be a string containing the name of the saved AOMs.  
+- ```rings```: List (or list of lists). Contains the indices for the connected set of atoms that form the ring. Can take the form `rings=[1,2,3,4,5,6]` for a single six-membered ring, or `rings=[[1,2,3,4,5,6],[7,8,9,10,11,12]]` for two or more separate rings.
 - ```mol```: From PySCF's module. Provides information about the molecule and the basis set employed for the calculation. 
 - ```mf```: From PySCF's module. Provides information about the type of calculation performed. 
-- ```partition```: String. Sets the type of partition of the system. 
-- ```save```: String. Sets the name of the file where to save the AOMs in the ```make_aoms()``` function.
-- ```molname```: String. Sets the name of the molecule for the generation of the ```.int``` files.
-- ```mci```: Boolean: Sets whether the MCI is desired to be computed. By default, False.
-- ```av1245```: Boolean: Sets whether the AV1245 (and AVmin) are desired to be computed. By default, False.
+- ```partition```: String. Sets the type of atomic partition of the system. Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao', although other ways to name them are available. Please see the [`aux.format_partition()`](esipy/tools.py) function.
+- ```mci```: Boolean: Sets whether the MCI is desired to be computed. By default, True if the length of the largest ring provided is less than 12.
+- ```av1245```: Boolean: Sets whether the AV1245 (and AVmin) are desired to be computed. By default, True if the length of the largest ring provided is larger than 9.
 - ```flurefs```: Dictionary. Contains the structure { "Bond tpye (e.g., "CC")" : DI (e.g., 1.400) }. By default, None.
-- ```homarefs```: Dictionary. Contains the structure "\{Bond type \{"r\_opt": distance\}, \{"alpha": alpha\} (e.g., \{"CC" : \{"r\_opt" : 1.400, "alpha" : 200.00\} \}.}. By default, None.
+- ```homarefs```: Dictionary. Contains the structure for the HOMA calculation as a dictionary using data from Ref. [15]. By default, None.
+- ```homerrefs```: Dictionary. Contains the structure for the HOMER calculation "\{Bond type \{"r\_opt": distance\}, \{"alpha": alpha\} (e.g., \{"CC" : \{"r\_opt" : 1.400, "alpha" : 200.00\} \}.}. By default, None.
 - ```connectivity```: List. The atomic symbols of the centers in ring connectivity: \["C", "C", "O", "C"\] for a "C-C-O-C" ring. By default, None.
 - ```geom```: List. The coordinates of the molecule as provided by the `mol.atom_coords()` PySCF function. By default, None.
-- ```num_threads```: Integer. Sets the number of threads desired for the calculation of the MCI. By default, 1.
+- ```molinfo```: Dictionary or string. Contains information about the molecule which is internally used by the program. Can also be provided by the user to avoid redoing the single-point calculation. Can also be a string with the name of the file where it is saved in binary.
+- ```name```: String. Sets the name of the molecule for the generation of the ```.int``` files.
+- ```ncores```: Integer. Sets the number of cores desired for the calculation of the MCI. By default, 1.
+- ```saveaoms```: String. Sets the name where to save the AOMs in binary. Recommended `.aoms` extension. By default, None.
+- ```savemolinfo```: String. Sets the name where to save the dictionary with the molecular information in binary. Recommended `.molinfo` extension. By default, None.
+- ```readsource```: String. The directory from which the `.int` files must be read. By default, 'aimall'.
+- ```readpath```: String. Path where the `\_atomicfiles` directory is located. By default, will search for the working directory.
+
+## Methods scope
+- ```calc()```: Main ESIpy program. It will compute atomic populations, electron delocalization measures and electronic aromaticity indicators, based on the `Smo` and `rings` attributes. If `Smo` is not provided, it will be generated automatically from the `mol` and `mf` attributes, coming directly from PySCF.
+- ```aoms()```: Generates the AOMs in the MO basis. It will update the `Smo` attribute when called.
+- ```readaoms()```: It will read the AOMs from some `.int` files. Requires setting the `readsource` and `readpath` variables, although default options are `aimall` and the working directory, respectively.
+- ```writeaoms()```: Will write the AOMs in an analogue format to that of AIMAll. These files can be read with ESI-3D (version from 15 November 2024).
 
 ## Further work
-- Function: Implementation for correlated wave functions.
-- Function: Approximations for the MCI calculation in large systems.
-- Function: Read the AOMs (or the data required for their calculation) from other source programs and store them as ESIpy's ```Smo```.
-- Function: Calculation of aromaticity indicators from defined fragments.
-- Utility: Split the calculation into orbital contributions.
+- Implementation for correlated wavefunctions.
+- Approximations for the MCI calculation in large systems.
+- Read the AOMs (or the data required for their calculation) from other source programs and store them as ESIpy `Smo`.
+- Calculation of aromaticity indicators from defined fragments.
+- Split the calculation into orbital contributions.
+- Algorithm to automatically find the rings inside a system.
 
 ## References
 - [1] E. Matito, in ‘ESI-3D Electron Sharing Indexes Program for 3D Molecular Space Partitioning’, Girona IQC, 2006

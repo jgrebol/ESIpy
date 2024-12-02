@@ -1,4 +1,4 @@
-import esi
+import esipy
 from pyscf import gto, dft
 
 molname = 'example07'
@@ -40,9 +40,5 @@ ring = [[1,2,3,4,10,9],[5,6,7,8,9,10],[1,2,3,4,10,5,6,7,8,9]]
 partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
 
 for part in partition:
-    Smo = esi.make_aoms(mol, mf, partition=part, save=molname + '_' + part + '.aoms')
-    molinfo = esi.mol_info(mol, mf, partition=part, save=molname + '_' + part +  '.molinfo')
-    esi.aromaticity(Smo, rings=ring, mol=mol, mf=mf, partition=part, mci=True, av1245=True, num_threads=1)
-    esi.aromaticity(Smo, rings=ring, mol=mol, mf=mf, partition=part, mci=True, av1245=True, num_threads=2)
-    esi.aromaticity(Smo, rings=ring, mol=mol, mf=mf, partition=part, mci=True, av1245=True, num_threads=4)
-    esi.aromaticity(Smo, rings=ring, mol=mol, mf=mf, partition=part, mci=True, av1245=True, num_threads=8)
+    for cores in [1,2,4,8]:
+        esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, ncores=cores).calc()

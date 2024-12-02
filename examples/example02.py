@@ -1,8 +1,9 @@
-import esi
+import esipy
 
 partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
+ring = [1,2,3,4,5,6]
 
 for part in partition:
     Smo = 'example01_' + part + '.aoms'
     molinfo = 'example01_' + part + '.molinfo'
-    esi.aromaticity(Smo, rings=[7,3,1,2,6,10], molinfo=molinfo, mci=True, av1245=True, partition=part)
+    esipy.ESI(Smo=Smo, rings=ring, partition=part, molinfo=molinfo).calc()

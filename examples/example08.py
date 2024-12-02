@@ -1,8 +1,7 @@
-from utils import ints
-import esi
+import esipy
+from esipy.atomicfiles import write_aoms
+from esipy.make_aoms import make_aoms
 from pyscf import gto, dft
-
-molname = 'example08'
 
 mol=gto.Mole()
 mol.atom='''
@@ -33,6 +32,10 @@ mf.kernel()
 
 ring = [7,3,1,2,6,10]
 partition = 'nao'
+name = 'example08'
+molinfo_name = name + '_' + partition + '.molinfo'
+aoms_name = name + '_' + partition + '.aoms'
 
-Smo = esi.make_aoms(mol,mf,partition=partition)
-ints.write_int(mol, mf, molname, Smo, ring, partition=partition)
+arom = esipy.ESI(rings=ring, partition=partition, mol=mol, mf=mf, name=name, saveaoms=aoms_name, savemolinfo=molinfo_name)
+arom.calc()
+arom.writeaoms()
