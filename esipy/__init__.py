@@ -1,9 +1,425 @@
 from os import environ
+
+from pyscf.symm.msym import basis_info
+
 from esipy.aromaticity import aromaticity
 from esipy.make_aoms import make_aoms
 from esipy.atomicfiles import write_aoms, read_aoms
 from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type
 
+
+class IndicatorsRest:
+    def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None, flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, molinfo=None, ncores=1, saveaoms=None, savemolinfo=None, name="calc", readpath='.'):
+        self._Smo = Smo
+        self._rings = rings
+        self._mol = mol
+        self._mf = mf
+        self._myhf = myhf
+        self._partition = partition
+        self._mci = mci
+        self._av1245 = av1245
+        self._flurefs = flurefs
+        self._homarefs = homarefs
+        self._homerrefs = homerrefs
+        self._connectivity = connectivity
+        self._geom = geom
+        self._molinfo = molinfo
+        self._ncores = ncores
+        self._saveaoms = saveaoms
+        self._savemolinfo = savemolinfo
+        self._name = name
+        self._readpath = readpath
+
+    @property
+    def iring(self):
+        return 2 * esipy.indicators.compute_iring(self._rings, self._Smo)
+
+    @property
+    def mci(self):
+        if self._ncores == "1":
+            return 2 * esipy.indicators.sequential_mci(self._rings, self._Smo, self._partition)
+        else:
+            return 2 * esipy.indicators.multiprocessing_mci(self._rings, self._Smo, self._ncores, self._partition)
+
+    def _av1245(self):
+        if not hasattr(self, '_done_av1245'):
+            self._done_av1245 = esipy.indicators.compute_av1245(self._rings, self._Smo, self._partition)
+        return self._done_av1245
+
+    @property
+    def av1245(self):
+        return 2 * self._av1245()[0]
+
+    @property
+    def avmin(self):
+        return 2 * self._av1245()[1]
+
+    @property
+    def av1245_list(self):
+        return self._av1245()[2]
+
+    def _pdi(self):
+        if not hasattr(self, '_done_pdi'):
+            self._done_pdi = esipy.indicators.compute_pdi(self._rings, self._Smo)
+        return self._done_pdi
+
+    @property
+    def pdi(self):
+        return 2 * self._pdi()[0]
+
+    @property
+    def pdi_list(self):
+        return 2 * np.array(self._pdi()[1], dtype=object)
+
+    @property
+    def flu(self):
+        return esipy.indicators.compute_flu(self._rings, self._mol, self._Smo, self._flurefs, self._connectivity, self._partition)
+
+    def _boa(self):
+        if not hasattr(self, '_done_boa'):
+            self._done_boa = esipy.indicators.compute_boa(self._rings, self._Smo)
+        return self._done_boa
+
+    @property
+    def boa(self):
+        return 2 * self._boa()[0]
+
+    @property
+    def boa_c(self):
+        return 2 * self._boa()[1]
+
+    @property
+    def homer(self):
+        if self._geom is None or self._homerrefs is None or self._connectivity is None:
+            return None
+        else:
+            return esipy.indicators.compute_homer(self._rings, self._mol, self._geom, self._homerrefs, self._connectivity)
+
+class IndicatorsUnrest:
+    def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None, flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, molinfo=None, ncores=1, saveaoms=None, savemolinfo=None, name="calc", readpath='.'):
+        self._Smo = Smo
+        self._rings = rings
+        self._mol = mol
+        self._mf = mf
+        self._myhf = myhf
+        self._partition = partition
+        self._mci = mci
+        self._av1245 = av1245
+        self._flurefs = flurefs
+        self._homarefs = homarefs
+        self._homerrefs = homerrefs
+        self._connectivity = connectivity
+        self._geom = geom
+        self._molinfo = molinfo
+        self._ncores = ncores
+        self._saveaoms = saveaoms
+        self._savemolinfo = savemolinfo
+        self._name = name
+        self._readpath = readpath
+
+    def _irings(self):
+        if not hasattr(self, '_done_irings'):
+            self._done_irings = (
+                esipy.indicators.compute_iring(self._rings, self._Smo[0]),
+                esipy.indicators.compute_iring(self._rings, self._Smo[1])
+            )
+        return self._done_irings
+
+    @property
+    def iring(self):
+        return self._irings()[0] + self._irings()[1]
+
+    @property
+    def iring_alpha(self):
+        return self._irings()[0]
+
+    @property
+    def iring_beta(self):
+        return self._irings()[1]
+
+    def _mcis(self):
+        if not hasattr(self, '_done_mcis'):
+            if self._ncores == 1:
+                mci_alpha = esipy.indicators.sequential_mci(self._rings, self._Smo[0], self._partition)
+                mci_beta = esipy.indicators.sequential_mci(self._rings, self._Smo[1], self._partition)
+            else:
+                mci_alpha = esipy.indicators.multiprocessing_mci(self._rings, self._Smo[0], self._ncores,
+                                                                 self._partition)
+                mci_beta = esipy.indicators.multiprocessing_mci(self._rings, self._Smo[1], self._ncores,
+                                                                self._partition)
+            self._done_mcis = (mci_alpha, mci_beta)
+        return self._done_mcis
+
+    @property
+    def mci(self):
+        return self._mcis()[0] + self._mcis()[1]
+
+    @property
+    def mci_alpha(self):
+        return self._mcis()[0]
+
+    @property
+    def mci_beta(self):
+        return self._mcis()[1]
+
+    def _av1245s(self):
+        if not hasattr(self, '_done_av1245s'):
+            self._done_av1245s = (
+                esipy.indicators.compute_av1245(self._rings, self._Smo[0], self._partition),
+                esipy.indicators.compute_av1245(self._rings, self._Smo[1], self._partition)
+            )
+        return self._done_av1245s
+
+    @property
+    def av1245(self):
+        return self._av1245s()[0][0] + self._av1245s()[1][0]
+
+    @property
+    def av1245_alpha(self):
+        return self._av1245s()[0][0]
+
+    @property
+    def av1245_beta(self):
+        return self._av1245s()[1][0]
+
+    @property
+    def avmin(self):
+        return self._av1245s()[0][1] + self._av1245s()[1][1]
+
+    @property
+    def avmin_alpha(self):
+        return self._av1245s()[0][1]
+
+    @property
+    def avmin_beta(self):
+        return self._av1245s()[1][1]
+
+    @property
+    def av1245_list(self):
+        return self._av1245s()[0][2] + self._av1245s()[1][2]
+
+    @property
+    def av1245_list_alpha(self):
+        return self._av1245s()[0][2]
+
+    @property
+    def av1245_list_beta(self):
+        return self._av1245s()[1][2]
+
+    def _pdis(self):
+        if not hasattr(self, '_done_pdis'):
+            self._done_pdis = (
+                esipy.indicators.compute_pdi(self._rings, self._Smo[0]),
+                esipy.indicators.compute_pdi(self._rings, self._Smo[1])
+            )
+        return self._done_pdis
+
+    @property
+    def pdi(self):
+        return self._pdis()[0][0] + self._pdis()[1][0]
+
+    @property
+    def pdi_alpha(self):
+        return self._pdis()[0][0]
+
+    @property
+    def pdi_beta(self):
+        return self._pdis()[1][0]
+
+    @property
+    def pdi_list(self):
+        return self._pdis()[0][1] + self._pdis()[1][1]
+
+    @property
+    def pdi_list_alpha(self):
+        return self._pdis()[0][1]
+
+    @property
+    def pdi_list_beta(self):
+        return self._pdis()[1][1]
+
+    @property
+    def flu(self):
+        return esipy.indicators.compute_flu(self._rings, self._mol, self._Smo[0], self._flurefs, self._connectivity, self._partition) + esipy.indicators.compute_flu(self._rings, self._mol, self._Smo[1], self._flurefs, self._connectivity, self._partition)
+
+    @property
+    def flu_alpha(self):
+        return esipy.indicators.compute_flu(self._rings, self._mol, self._Smo[0], self._flurefs, self._connectivity, self._partition)
+
+    @property
+    def flu_beta(self):
+        return esipy.indicators.compute_flu(self._rings, self._mol, self._Smo[1], self._flurefs, self._connectivity, self._partition)
+
+    def _boas(self):
+        if not hasattr(self, '_done_boas'):
+            self._done_boas = (
+                esipy.indicators.compute_boa(self._rings, self._Smo[0]),
+                esipy.indicators.compute_boa(self._rings, self._Smo[1])
+            )
+        return self._done_boas
+
+    @property
+    def boa(self):
+        return self._boas()[0][0] + self._boas()[1][0]
+
+    @property
+    def boa_alpha(self):
+        return self._boas()[0][0]
+
+    @property
+    def boa_beta(self):
+        return self._boas()[1][0]
+
+    @property
+    def boa_c(self):
+        return self._boas()[0][1] + self._boas()[1][1]
+
+    @property
+    def boa_c_alpha(self):
+        return self._boas()[0][1]
+
+    @property
+    def boa_c_beta(self):
+        return self._boas()[1][1]
+
+    @property
+    def homer(self):
+        if self._geom is None or self._homerrefs is None or self._connectivity is None:
+            return None
+        else:
+            return esipy.indicators.compute_homer(self._rings, self._mol, self._geom, self._homerrefs, self._connectivity) + esipy.indicators.compute_homer(self._rings, self._mol, self._geom, self._homerrefs, self._connectivity)
+
+    @property
+    def homer_alpha(self):
+        if self._geom is None or self._homerrefs is None or self._connectivity is None:
+            return None
+        else:
+            return esipy.indicators.compute_homer(self._rings, self._mol, self._geom, self._homerrefs, self._connectivity)
+
+    @property
+    def homer_beta(self):
+        if self._geom is None or self._homerrefs is None or self._connectivity is None:
+            return None
+        else:
+            return esipy.indicators.compute_homer(self._rings, self._mol, self._geom, self._homerrefs, self._connectivity)
+
+
+class IndicatorsNatorb:
+    def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None, flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, molinfo=None, ncores=1, saveaoms=None, savemolinfo=None, name="calc", readpath='.'):
+        self._Smo = Smo
+        self._rings = rings
+        self._mol = mol
+        self._mf = mf
+        self._myhf = myhf
+        self._partition = partition
+        self._mci = mci
+        self._av1245 = av1245
+        self._flurefs = flurefs
+        self._homarefs = homarefs
+        self._homerrefs = homerrefs
+        self._connectivity = connectivity
+        self._geom = geom
+        self._molinfo = molinfo
+        self._ncores = ncores
+        self._saveaoms = saveaoms
+        self._savemolinfo = savemolinfo
+        self._name = name
+        self._readpath = readpath
+
+    @property
+    def iring(self):
+        return esipy.indicators.compute_iring_no(self._rings, self._Smo)
+
+    @property
+    def mci(self):
+        if self._ncores == "1":
+            return esipy.indicators.sequential_mci_no(self._rings, self._Smo, self._partition)
+        else:
+            return esipy.indicators.multiprocessing_mci_no(self._rings, self._Smo, self._ncores, self._partition)
+
+    def _av1245_no(self):
+        if not hasattr(self, '_done_av1245_no'):
+            self._done_av1245_no = esipy.indicators.compute_av1245_no(self._rings, self._Smo, self._partition)
+        return self._done_av1245_no
+
+    @property
+    def av1245(self):
+        return self._av1245_no()[0]
+
+    @property
+    def avmin(self):
+        return self._av1245_no()[1]
+
+    @property
+    def av1245_list(self):
+        return self._av1245_no()[2]
+
+    def _pdi_no(self):
+        if not hasattr(self, '_done_pdi_no'):
+            self._done_pdi_no = esipy.indicators.compute_pdi_no(self._rings, self._Smo)
+        return self._done_pdi_no
+
+    @property
+    def pdi(self):
+        return self._pdi_no()[0]
+
+    @property
+    def pdi_list(self):
+        return self._pdi_no()[1]
+
+    @property
+    def flu(self):
+        return esipy.indicators.compute_flu(self._rings, self._mol, self._Smo, self._flurefs, self._connectivity, self._partition)
+
+    def _boa_no(self):
+        if not hasattr(self, '_done_boa_no'):
+            self._done_boa_no = esipy.indicators.compute_boa_no(self._rings, self._Smo)
+        return self._done_boa_no
+
+    @property
+    def boa(self):
+        return self._boa_no()[0]
+
+    @property
+    def boa_c(self):
+        return self._boa_no()[1]
+
+    @property
+    def homer(self):
+        if self._geom is None or self._homerrefs is None or self._connectivity is None:
+            return None
+        else:
+            return esipy.indicators.compute_homer(self._rings, self._mol, self._geom, self._homerrefs, self._connectivity)
+
+    def _homas(self):
+        if not hasattr(self, '_done_homas'):
+            self._done_homas = esipy.indicators.compute_homa(self._rings, self._mol, self._geom, self._homarefs, self._connectivity)
+        return self._done_homas
+
+    @property
+    def homa(self):
+        return self._homas()[0]
+
+    @property
+    def en(self):
+        return self._homas()[1]
+
+    @property
+    def geo(self):
+        return self._homas()[2]
+
+    def _blas(self):
+        if not hasattr(self, '_done_blas'):
+            self._done_blas = esipy.indicators.compute_bla(self._rings, self._mol, self._geom)
+        return self._done_blas
+
+    @property
+    def bla(self):
+        return self._blas()[0]
+
+    @property
+    def bla_c(self):
+        return self._blas()[1]
 
 class ESI:
     def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf = None, partition=None,
@@ -32,6 +448,16 @@ class ESI:
         self.saveaoms = saveaoms
         self.savemolinfo = savemolinfo
         self.readpath = readpath
+
+        wf = wf_type(self.mf)
+        if wf == "rest":
+            self.indicators = IndicatorsRest
+        elif wf == "unrest":
+            self.indicators = IndicatorsUnrest
+        elif wf == "natorb":
+            self.indicators = IndicatorsNatorb
+        else:
+            raise ValueError(" | Could not determine the wavefunction type")
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
@@ -146,12 +572,53 @@ class ESI:
         shortpart = format_short_partition(self.partition)
         print(f" | Written the AOMs in {self.readpath}/{self.name}_{shortpart}/")
 
-    def calc(self):
+    def print(self):
         """
         Main ESIpy. Calculation of population analysis, localization and delocalization indices and
         electronic (and geometric) aromaticity indicators.
         """
-        if isinstance(self.partition, list):
+        partition = format_partition(self.partition)
+        fromaoms = False
+        if molinfo and len(molinfo) != 1: # Molinfo may only get the partition if nothing is provided
+            if isinstance(molinfo, str):
+                with open(molinfo, "rb") as f:
+                    molinfo = np.load(f, allow_pickle=True)
+        else:
+            if mol is None:
+                if mf is None:
+                    print(" | Could not find mol nor mf. molinfo only contains the partition. ")
+                    fromaoms = True
+            molinfo = mol_info(mol=mol, mf=mf)
+
+        if "symbols" not in molinfo:
+            molinfo.update({"symbols": symbols})
+        if "basisset" not in molinfo:
+            if isinstance(molinfo["basisset"], dict):
+                basisset = "Different basis sets"
+            else:
+                basisset = molinfo["basisset"]
+            molinfo.update({"basisset": basisset})
+        if "calctype" not in molinfo:
+            molinfo.update({"calctype": "Not specified"})
+        if "xc" not in molinfo:
+            molinfo.update({"xc": "Not specified"})
+        if "energy" not in molinfo:
+            molinfo.update({"energy": "Not specified"})
+        if "method" not in molinfo:
+            molinfo.update({"method": "Not specified"})
+
+        if isinstance(Smo, str):
+            print(f" | Loading the AOMs from file {Smo}")
+            Smo = load_file(Smo)
+            if Smo is None:
+                raise NameError(" | Please provide a valid name to read the AOMs")
+
+        print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
+        if fromaoms is True:
+            aromaticity_from_aoms(Smo=Smo, rings=rings, partition=partition, mol=mol, mci=mci, av1245=av1245,
+                                  flurefs=flurefs, homarefs=homarefs, homerrefs=homerrefs, connectivity=connectivity,
+
+            if isinstance(self.partition, list):
             raise ValueError(" | Only one partition at a time. Partition should be a string, not a list\n | Please consider looping through the partitions before calling the function")
 
         if self.rings is None:

@@ -4,6 +4,33 @@ from os import environ
 from esipy.tools import load_file, mol_info
 from esipy.indicators import *
 
+def info_rest(Smo, molinfo):
+
+    partition = format_partition(molinfo["partition"])
+
+    print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
+    print(" | Number of Atoms:          {}".format(len(Smo)))
+    print(" | Occ. Mol. Orbitals:       {}({})".format(len(Smo), len(Smo)))
+    print(" | Wavefunction type:        Restricted")
+    print(" | Atomic partition:         {}".format(partition.upper() if partition else "Not specified"))
+    print(" ------------------------------------------- ")
+    print(" ------------------------------------------- ")
+    print(" | Method:                  ", molinfo["calctype"])
+
+    if "dft" in molinfo["method"] and molinfo["xc"] is not None:
+        print(" | Functional:              ", molinfo["xc"])
+
+    print(" | Basis set:               ", basisset.upper())
+    if isinstance(molinfo["energy"], str):
+        print(" | Total energy:          {}".format(molinfo["energy"]))
+    else:
+        print(" | Total energy:          {:>13f}".format(molinfo["energy"]))
+    print(" ------------------------------------------- ")
+    trace = np.sum([np.trace(matrix) for matrix in Smo])
+    print(" | Tr(Enter):    {:.13f}".format(trace))
+    print(" ------------------------------------------- ")
+
+
 def deloc_rest(Smo, mol=None, molinfo=None):
     """Population analysis, localization and delocalization indices for restricted AOMs.
 
@@ -29,13 +56,12 @@ def deloc_rest(Smo, mol=None, molinfo=None):
     else:
         raise NameError(" Could not find 'mol' nor 'molinfo' file")
 
-    # Getting the LIs and DIs
-    dis, lis, N = [], [], []
-
     print(" ------------------------------------- ")
     print(" | Atom    N(Sij)     loc.      dloc. ")
     print(" ------------------------------------- ")
 
+    # Getting the LIs and DIs
+    dis, lis, N = [], [], []
     for i in range(len(Smo)):
         li = 2 * np.trace(np.dot(Smo[i], Smo[i]))
         lis.append(li)
@@ -58,17 +84,17 @@ def deloc_rest(Smo, mol=None, molinfo=None):
     for i in range(len(Smo)):
         for j in range(i, len(Smo)):
             if i == j:
-                print(" | {} {:>2}-{} {:>2}   {:8.4f}".format(
+                print(" | {} {:>2}-{} {:>2}   {:>8.4f}".format(
             symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), lis[i]))
             else:
-                print(" | {} {:>2}-{} {:>2}   {:8.4f}".format(
+                print(" | {} {:>2}-{} {:>2}   {:>8.4f}".format(
             symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), 4 * np.trace(np.dot(Smo[i], Smo[j]))))
     print(" ------------------------ ")
-    print(" |   TOT:      {:8.4f} ".format(np.sum(dis) + np.sum(lis)))
-    print(" |   LOC:      {:8.4f} ".format(np.sum(lis)))
-    print(" | DELOC:      {:8.4f} ".format(np.sum(dis)))
+    print(" |   TOT:      {:>8.4f} ".format(np.sum(dis) + np.sum(lis)))
+    print(" |   LOC:      {:>8.4f} ".format(np.sum(lis)))
+    print(" | DELOC:      {:>8.4f} ".format(np.sum(dis)))
     print(" ------------------------ ")
 
 
