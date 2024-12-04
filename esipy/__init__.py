@@ -1,12 +1,9 @@
 from os import environ
 
-from pyscf.symm.msym import basis_info
-
-from esipy.aromaticity import aromaticity
 from esipy.make_aoms import make_aoms
 from esipy.atomicfiles import write_aoms, read_aoms
 from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type
-
+from esipy.indicators import *
 
 class IndicatorsRest:
     def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None, flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, molinfo=None, ncores=1, saveaoms=None, savemolinfo=None, name="calc", readpath='.'):
@@ -32,14 +29,14 @@ class IndicatorsRest:
 
     @property
     def iring(self):
-        return 2 * esipy.indicators.compute_iring(self._rings, self._Smo)
+        return 2 * compute_iring(self._rings, self._Smo)
 
     @property
     def mci(self):
         if self._ncores == "1":
-            return 2 * esipy.indicators.sequential_mci(self._rings, self._Smo, self._partition)
+            return 2 * sequential_mci(self._rings, self._Smo, self._partition)
         else:
-            return 2 * esipy.indicators.multiprocessing_mci(self._rings, self._Smo, self._ncores, self._partition)
+            return 2 * multiprocessing_mci(self._rings, self._Smo, self._ncores, self._partition)
 
     def _av1245(self):
         if not hasattr(self, '_done_av1245'):
@@ -60,7 +57,7 @@ class IndicatorsRest:
 
     def _pdi(self):
         if not hasattr(self, '_done_pdi'):
-            self._done_pdi = esipy.indicators.compute_pdi(self._rings, self._Smo)
+            self._done_pdi = compute_pdi(self._rings, self._Smo)
         return self._done_pdi
 
     @property
@@ -73,7 +70,11 @@ class IndicatorsRest:
 
     @property
     def flu(self):
-        return esipy.indicators.compute_flu(self._rings, self._mol, self._Smo, self._flurefs, self._connectivity, self._partition)
+        if self._flurefs is None:
+            print(" | Using default FLU references")
+        else:
+            print(" | Using FLU references provided by the user")
+        return compute_flu(self._rings, self._molinfo, self._Smo, self._flurefs, self._partition)
 
     def _boa(self):
         if not hasattr(self, '_done_boa'):
@@ -94,6 +95,46 @@ class IndicatorsRest:
             return None
         else:
             return esipy.indicators.compute_homer(self._rings, self._mol, self._geom, self._homerrefs, self._connectivity)
+
+    def _homa(self):
+        if not hasattr(self, '_done_homa'):
+            self._done_homa = compute_homa(self._rings, self._molinfo, self._homarefs)
+        return self._done_homa
+
+    @property
+    def homa(self):
+        return self._homa()[0]
+
+    @property
+    def en(self):
+        return self._homa()[1]
+
+    @property
+    def geo(self):
+        return self._homa()[2]
+
+
+    def _bla(self):
+        if not hasattr(self, '_done_bla'):
+            self._done_bla = compute_bla(self._rings, self._molinfo)
+        return self._done_bla
+
+    @property
+    def bla(self):
+        return self._bla()[0]
+
+    @property
+    def bla_c(self):
+        return self._bla()[1]
+
+
+@property
+def homer(self):
+    if self._geom is None or self._homerrefs is None or self._connectivity is None:
+        return None
+    else:
+        return esipy.indicators.compute_homer(self._rings, self._mol, self._geom, self._homerrefs, self._connectivity)
+
 
 class IndicatorsUnrest:
     def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None, flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, molinfo=None, ncores=1, saveaoms=None, savemolinfo=None, name="calc", readpath='.'):
@@ -449,9 +490,13 @@ class ESI:
         self.savemolinfo = savemolinfo
         self.readpath = readpath
 
-        wf = wf_type(self.mf)
+        wf = wf_type(self.Smo)
         if wf == "rest":
-            self.indicators = IndicatorsRest
+            self.indicators = IndicatorsRest()
+
+            self.indicators = IndicatorsRest(Smo=self.Smo, rings=self.rings, mol=self.mol, mf=self.mf, myhf=self.myhf, partition=self.partition, mci=self.mci,
+                         av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, connectivity=self.connectivity, geom=self.geom,
+                         molinfo=self.molinfo, ncores=self.ncores, saveaoms=self.saveaoms, savemolinfo=self.savemolinfo, name=self.name, readpath=self.readpath)
         elif wf == "unrest":
             self.indicators = IndicatorsUnrest
         elif wf == "natorb":
@@ -579,72 +624,58 @@ class ESI:
         """
         partition = format_partition(self.partition)
         fromaoms = False
-        if molinfo and len(molinfo) != 1: # Molinfo may only get the partition if nothing is provided
-            if isinstance(molinfo, str):
-                with open(molinfo, "rb") as f:
-                    molinfo = np.load(f, allow_pickle=True)
-        else:
-            if mol is None:
-                if mf is None:
-                    print(" | Could not find mol nor mf. molinfo only contains the partition. ")
-                    fromaoms = True
-            molinfo = mol_info(mol=mol, mf=mf)
 
-        if "symbols" not in molinfo:
-            molinfo.update({"symbols": symbols})
-        if "basisset" not in molinfo:
-            if isinstance(molinfo["basisset"], dict):
+        if "symbols" not in self.molinfo:
+            self.molinfo.update({"symbols": symbols})
+        if "basisset" not in self.molinfo:
+            if isinstance(self.molinfo["basisset"], dict):
                 basisset = "Different basis sets"
             else:
                 basisset = molinfo["basisset"]
-            molinfo.update({"basisset": basisset})
-        if "calctype" not in molinfo:
-            molinfo.update({"calctype": "Not specified"})
-        if "xc" not in molinfo:
-            molinfo.update({"xc": "Not specified"})
-        if "energy" not in molinfo:
-            molinfo.update({"energy": "Not specified"})
-        if "method" not in molinfo:
-            molinfo.update({"method": "Not specified"})
-
-        if isinstance(Smo, str):
-            print(f" | Loading the AOMs from file {Smo}")
-            Smo = load_file(Smo)
-            if Smo is None:
-                raise NameError(" | Please provide a valid name to read the AOMs")
+            self.molinfo.update({"basisset": basisset})
+        if "calctype" not in self.molinfo:
+            self.molinfo.update({"calctype": "Not specified"})
+        if "xc" not in self.molinfo:
+            self.molinfo.update({"xc": "Not specified"})
+        if "energy" not in self.molinfo:
+            self.molinfo.update({"energy": "Not specified"})
+        if "method" not in self.molinfo:
+            self.molinfo.update({"method": "Not specified"})
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
-        if fromaoms is True:
-            aromaticity_from_aoms(Smo=Smo, rings=rings, partition=partition, mol=mol, mci=mci, av1245=av1245,
-                                  flurefs=flurefs, homarefs=homarefs, homerrefs=homerrefs, connectivity=connectivity,
 
-            if isinstance(self.partition, list):
+        if isinstance(self.partition, list):
             raise ValueError(" | Only one partition at a time. Partition should be a string, not a list\n | Please consider looping through the partitions before calling the function")
 
         if self.rings is None:
             raise ValueError(" | The variable 'rings' is mandatory and must be a list with the ring connectivity")
 
         if self._Smo is None:
+            if isinstance(self.Smo, str):
+                print(f" | Loading the AOMs from file {self.Smo}")
+                Smo = load_file(self.Smo)
+                if Smo is None:
+                    raise NameError(" | Please provide a valid name to read the AOMs")
             print(f" | Partition {self.partition} does not have Smo, generating it")
             self._Smo = self.Smo
             if self._Smo is None:
                 raise ValueError(" | Could not build the AOMs from the given data")
 
-        aromaticity(
-            Smo=self.Smo,
-            rings=self.rings,
-            mol=self.mol,
-            mf=self.mf,
-            partition=self.partition,
-            mci=self.mci,
-            av1245=self.av1245,
-            flurefs=self.flurefs,
-            homarefs=self.homarefs,
-            homerrefs=self.homerrefs,
-            geom=self.geom,
-            ncores=self.ncores,
-            molinfo=self.molinfo
-           )
+        if wf_type(self.Smo) == "rest":
+            from esipy.rest import info_rest, deloc_rest, arom_rest
+            info_rest(self.Smo, self.molinfo)
+            deloc_rest(self.Smo, self.molinfo)
+            arom_rest(self.Smo, self.rings, self.molinfo, self.indicators, mci=self.mci, av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs,
+                      homerrefs=self.homerrefs, connectivity=self.connectivity, geom=self.connectivity, ncores=self.ncores)
+        elif wf_type(self.Smo) == "unrest":
+            info_unrest()
+            deloc_unrest()
+            arom_unrest()
+        elif wf_type(self.Smo) == "no":
+            info_no()
+            deloc_no()
+            arom_no()
+
 
 environ["NUMEXPR_NUM_THREADS"] = "1"
 environ["OMP_NUM_THREADS"] = "1"

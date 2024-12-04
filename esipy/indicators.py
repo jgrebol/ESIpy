@@ -343,7 +343,7 @@ def find_flurefs(partition=None):
         return {"CC": 1.4378, "CN": 1.4385, "BN": 1.1638, "NN": 1.3606, "CS": 1.1436}
 
 
-def compute_flu(arr, mol, Smo, flurefs=None, connectivity=None, partition=None):
+def compute_flu(arr, molinfo, Smo, flurefs=None, partition=None):
     """Computes the FLU index.
 
     Arguments:
@@ -368,24 +368,11 @@ def compute_flu(arr, mol, Smo, flurefs=None, connectivity=None, partition=None):
        float
           Value of the FLU index.
     """
-
     flu_value, flu_polar = 0, 0
-    if partition is None:
-        print(" | No partition provided. Could not find proper references")
-        return None
-    elif mol is None:
-        print(" | No mol object provided. Using the connectivity provided by the user")
-        if connectivity is None:
-            print(" | No FLU connectivity provided by the user")
-            return None
-        else:
-            atom_symbols = connectivity
-            bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]]))
-                          for i in range(len(arr))]
-    else:
-        atom_symbols = [mol.atom_symbol(i) for i in range(mol.natm)]
-        bond_types = ["".join(sorted([atom_symbols[arr[i] - 1], atom_symbols[arr[(i + 1) % len(arr)] - 1]]))
-                      for i in range(len(arr))]
+    symbols = molinfo["symbols"]
+    atom_symbols = [symbols[int(i) - 1] for i in arr]
+    bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]]))
+                  for i in range(len(arr))]
 
     # Setting and update of the reference values
     flu_refs = find_flurefs(partition)
@@ -410,7 +397,6 @@ def compute_flu(arr, mol, Smo, flurefs=None, connectivity=None, partition=None):
 
         flu_value += float(flu_deloc * flu_polar) ** 2
     return flu_value / len(arr)
-
 
 ########### BOA ###########
 
@@ -539,7 +525,7 @@ def compute_homer(arr, mol, geom=None, homerrefs=None, connectivity=None):
     return homer_value
 
 
-def compute_homa(arr, mol, geom=None, homarefs=None, connectivity=None):
+def compute_homa(arr, molinfo, homarefs=None):
     """Computes the HOMA index.
 
     Arguments:
@@ -579,27 +565,18 @@ def compute_homa(arr, mol, geom=None, homarefs=None, connectivity=None):
     if homarefs is not None:
         refs.update(homarefs)
 
-    if mol is None:
-        print(" | No mol object provided. Using the data provided by the user")
-        if connectivity is None:
-            return None
-        if geom is None:
-            print(" | No geometry provided by the user")
-            return None
-        else:
-            atom_symbols = connectivity
-            bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]])) for i in range(len(arr))]
-    else:
-        atom_symbols = [mol.atom_symbol(i) for i in range(mol.natm)]
-        bond_types = ["".join(sorted([atom_symbols[arr[i] - 1], atom_symbols[arr[(i + 1) % len(arr)] - 1]]))
-                      for i in range(len(arr))]
+    geom = molinfo["geom"]
+    symbols = molinfo["symbols"]
+    atom_symbols = [symbols[int(i) - 1] for i in arr]
+    bond_types = ["".join(sorted([atom_symbols[arr[i] - 1], atom_symbols[arr[(i + 1) % len(arr)] - 1]]))
+                  for i in range(len(arr))]
 
     for i in range(len(arr)):
         if bond_types[i] not in refs:
             print(f"No parameters found for bond type {bond_types[i]}")
             return None
 
-    distances = find_distances(arr, mol, geom)
+    distances = find_distances(arr, geom)
     alpha = refs["alpha"]
     r_opt = refs["r_opt"]
 
@@ -630,8 +607,7 @@ def compute_homa(arr, mol, geom=None, homarefs=None, connectivity=None):
 
 # Calculation of the BLA (Restricted and Unrestricted)
 
-
-def compute_bla(arr, mol, geom=None):
+def compute_bla(arr, molinfo):
     """Computes the BLA and BLA_c indices.
 
     Arguments:
@@ -648,7 +624,7 @@ def compute_bla(arr, mol, geom=None):
           Contains the BLA and the BLA_c indices, respectively.
     """
 
-    distances = find_distances(arr, mol, geom)
+    distances = find_distances(arr, molinfo["geom"])
 
     sum1 = sum(distances[i] for i in range(0, len(arr), 2))
     sum2 = sum(distances[i] for i in range(1, len(arr), 2))

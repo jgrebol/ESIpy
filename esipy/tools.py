@@ -85,7 +85,7 @@ def save_file(file, save):
         dump(file, f)
 
 
-def find_distances(arr, mol, geom=None):
+def find_distances(arr, geom):
     """
     Collects the distance between the atoms in ring connectivity.
     Args:
@@ -99,15 +99,9 @@ def find_distances(arr, mol, geom=None):
     """
     distances = []
     for i in range(len(arr)):
-
-        if mol is None:
-            coord1 = geom[arr[i] - 1]
-            coord2 = geom[arr[(i + 1) % len(arr)] - 1]
-            distances.append(np.linalg.norm(coord1 - coord2) * 0.529177249)  # From Bohr to Angstrom
-        else:
-            coord1 = mol.atom_coords()[arr[i] - 1]
-            coord2 = mol.atom_coords()[arr[(i + 1) % len(arr)] - 1]
-            distances.append(np.linalg.norm(coord1 - coord2) * 0.529177249)  # From Bohr to Angstrom
+        coord1 = geom[arr[i] - 1]
+        coord2 = geom[arr[(i + 1) % len(arr)] - 1]
+        distances.append(np.linalg.norm(coord1 - coord2) * 0.529177249)
     return distances
 
 def find_dis(arr, Smo):
