@@ -224,22 +224,10 @@ def format_short_partition(partition):
 def mapping(arr, perm):
     return [arr[i] for i in range(len(perm))]
 
-def get_natorbs_from_ao(mf, S):
+def get_natorbs(mf, S):
     from scipy.linalg import eigh
-    rdm1 = mf.make_rdm1() # In AO basis
+    rdm1 = mf.make_rdm1(ao_repr=True) # In AO basis
     occ, coeff = eigh(np.linalg.multi_dot((S, rdm1, S)), b=S)
-    occ = occ[::-1] # Order occupancies
-    occ[occ < 10**-12] = 0.0  # Set small occupancies to 0
-    occ = np.diag(occ)
-    return occ, coeff
-
-def get_natorbs_from_mo(mf):
-    from scipy.linalg import eigh
-    rdm1 = mf.make_rdm1()
-    occ, mo2no = eigh(rdm1) # In MO basis
-    mo2no = mo2no[:, ::-1] # Order orbitals
-    ao2mo = mf.mo_coeff
-    coeff = np.dot(ao2mo, mo2no)
     occ = occ[::-1] # Order occupancies
     occ[occ < 10**-12] = 0.0  # Set small occupancies to 0
     occ = np.diag(occ)

@@ -79,7 +79,6 @@ def deloc_no(Smo, mol, molinfo=None):
     print(" | DELOC:      {:>8.4f}  {:>8.4f} ".format(np.sum(difs), np.sum(dixs)))
     print(" ---------------------------------- ")
 
-
 def arom_no(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=None,
                   homarefs=None, homerrefs=None, connectivity=None, geom=None, ncores=1,
                   molinfo=None):

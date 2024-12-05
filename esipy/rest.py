@@ -1,15 +1,14 @@
 import numpy as np
 from os import environ
 
-from esipy.tools import load_file, mol_info, format_partition
-from esipy.indicators import *
+from esipy.tools import format_partition
 
 def info_rest(Smo, molinfo):
     partition = format_partition(molinfo["partition"])
 
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     print(" | Number of Atoms:          {}".format(len(Smo)))
-    print(" | Occ. Mol. Orbitals:       {}({})".format(len(Smo), len(Smo)))
+    print(" | Occ. Mol. Orbitals:       {}".format(np.shape(Smo[0])[0]))
     print(" | Wavefunction type:        Restricted")
     print(" | Atomic partition:         {}".format(partition.upper() if partition else "Not specified"))
     print(" ------------------------------------------- ")
@@ -29,7 +28,7 @@ def info_rest(Smo, molinfo):
     print(" | Tr(Enter):    {:.13f}".format(trace))
     print(" ------------------------------------------- ")
 
-def deloc_rest(Smo, molinfo=None):
+def deloc_rest(Smo, molinfo):
     """Population analysis, localization and delocalization indices for restricted AOMs.
 
     Arguments:
@@ -89,7 +88,7 @@ def deloc_rest(Smo, molinfo=None):
 
 
 def arom_rest(Smo, rings, molinfo, indicators, mci=False, av1245=False, flurefs=None, homarefs=None, homerrefs=None,
-              connectivity=None, geom=None, ncores=1):
+              ncores=1):
     """Population analysis, localization and delocalization indices and aromaticity indicators
     for restricted AOMs.
 
@@ -147,7 +146,6 @@ def arom_rest(Smo, rings, molinfo, indicators, mci=False, av1245=False, flurefs=
     # Checking where to read the atomic symbols from
     if molinfo:
         symbols = molinfo["symbols"]
-        geom = molinfo["geom"]
         partition = molinfo["partition"]
     else:
         raise NameError(" 'molinfo' not found. Check input")
@@ -201,10 +199,8 @@ def arom_rest(Smo, rings, molinfo, indicators, mci=False, av1245=False, flurefs=
             print(" | FLU          {} =  {:>.6f}".format(ring_index + 1, flu))
             print(" ----------------------------------------------------------------------")
 
-        boas = 2 * compute_boa(ring, Smo)
-
-        print(" | BOA          {} =  {:>.6f}".format(ring_index + 1, boas[0]))
-        print(" | BOA_cc       {} =  {:>.6f}".format(ring_index + 1, boas[1]))
+        print(" | BOA          {} =  {:>.6f}".format(ring_index + 1, indicators.boa))
+        print(" | BOA_cc       {} =  {:>.6f}".format(ring_index + 1, indicators.boa_c))
         print(" ----------------------------------------------------------------------")
 
         # Checking the length of the ring. PDI only computed for len(ring)=6.
@@ -212,7 +208,6 @@ def arom_rest(Smo, rings, molinfo, indicators, mci=False, av1245=False, flurefs=
             print(" |   PDI could not be calculated as the number of centers is not 6")
 
         else:
-            pdis = 2 * np.array(compute_pdi(ring, Smo), dtype=object)
             pdi_list = indicators.pdi_list
             print(" | DI ({:>2} -{:>2} )   =  {:.4f}".format(ring[0], ring[3], pdi_list[0]))
             print(" | DI ({:>2} -{:>2} )   =  {:.4f}".format(ring[1], ring[4], pdi_list[1]))

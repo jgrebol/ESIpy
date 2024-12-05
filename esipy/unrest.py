@@ -3,7 +3,38 @@ from esipy.tools import mol_info, find_multiplicity
 from esipy.indicators import *
 
 
-def deloc_unrest(Smo, mol=None, molinfo=None):
+from esipy.tools import load_file, mol_info, format_partition
+from esipy.indicators import *
+
+def info_unrest(Smo, molinfo):
+    partition = format_partition(molinfo["partition"])
+
+    print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
+    print(" | Number of Atoms:          {}".format(len(Smo[0])))
+    print(" | Occ. Mol. Orbitals:       {}({})".format(np.shape(Smo[0][0])[0], np.shape(Smo[1][0])[0]))
+    print(" | Wavefunction type:        Unrestricted")
+    print(" | Atomic partition:         {}".format(partition.upper() if partition else "Not specified"))
+    print(" ------------------------------------------- ")
+    print(" ------------------------------------------- ")
+    print(" | Method:                  ", molinfo["calctype"])
+
+    if "dft" in molinfo["method"] and molinfo["xc"] is not None:
+        print(" | Functional:              ", molinfo["xc"])
+
+    print(" | Basis set:               ", molinfo["basisset"].upper())
+    if isinstance(molinfo["energy"], str):
+        print(" | Total energy:          {}".format(molinfo["energy"]))
+    else:
+        print(" | Total energy:          {:>13f}".format(molinfo["energy"]))
+    print(" ------------------------------------------- ")
+    trace_a = np.sum([np.trace(matrix) for matrix in Smo[0]])
+    trace_b = np.sum([np.trace(matrix) for matrix in Smo[1]])
+    print(" | Tr(alpha):    {:.13f}".format(trace_a))
+    print(" | Tr(beta) :    {:.13f}".format(trace_b))
+    print(" | Tr(Enter):    {:.13f}".format(trace_a + trace_b))
+    print(" ------------------------------------------- ")
+
+def deloc_unrest(Smo, molinfo):
     """Population analysis, localization and delocalization indices for unrestriced AOMs.
 
     Arguments:
@@ -16,15 +47,8 @@ def deloc_unrest(Smo, mol=None, molinfo=None):
         molinfo (dict, optional, default: None):
             Contains molecule and calculation details from the 'molinfo()' method inside ESI.
     """
-    if molinfo:
-        if isinstance(molinfo, str):
-            with open(molinfo, "rb") as f:
-                molinfo = np.load(f, allow_pickle=True)
-        symbols = molinfo["symbols"]
-    elif mol:
-        symbols = mol_info(mol=mol)["symbols"]
-    else:
-        raise NameError("Could not find mol nor molinfo")
+
+    symbols = molinfo["symbols"]
 
     # Getting the LIs and DIs
     dis_alpha, dis_beta = [], []
@@ -85,8 +109,8 @@ def deloc_unrest(Smo, mol=None, molinfo=None):
         sum(dis_alpha) + sum(dis_beta), sum(dis_alpha), sum(dis_beta)))
     print(" ------------------------------------------- ")
 
-def arom_unrest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=None, homarefs=None, homerrefs=None,
-                connectivity=None, geom=None, ncores=1, molinfo=None):
+def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, flurefs=None, homarefs=None, homerrefs=None,
+              ncores=1):
     """Population analysis, localization and delocalization indices and aromaticity indicators
     for unrestricted AOMs.
 
@@ -140,23 +164,18 @@ def arom_unrest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=Non
     print(" |  For a recent review see: [CSR 44, 6434 (2015)]")
     print(" ----------------------------------------------------------------------")
 
+    # Checking where to read the atomic symbols from
     if molinfo:
-        if isinstance(molinfo, str):
-            with open(molinfo, "rb") as f:
-                molinfo = np.load(f, allow_pickle=True)
         symbols = molinfo["symbols"]
-    elif mol:
-        symbols = mol_info(mol=mol)["symbols"]
+        partition = molinfo["partition"]
     else:
-        raise NameError("Could not find mol nor molinfo")
+        raise NameError(" 'molinfo' not found. Check input")
 
-        # Checking if the list rings is contains more than one ring to analyze
-
+    # Checking if the list rings is contains more than one ring to analyze
     if not isinstance(rings[0], list):
         rings = [rings]
 
     # Looping through each of the rings
-
     for ring_index, ring in enumerate(rings):
         print(" ----------------------------------------------------------------------")
         print(" |")
@@ -172,13 +191,13 @@ def arom_unrest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=Non
         else:
             print(" | Using default HOMA references")
 
-        homas = compute_homa(ring, mol, geom=geom, homarefs=homarefs, connectivity=connectivity)
-        if homas is None:
+        homa = indicators.homa
+        if homa is None:
             print(" | Connectivity could not match parameters")
         else:
-            print(" | EN           {} =  {:>.6f}".format(ring_index + 1, homas[1]))
-            print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, homas[2]))
-            print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, homas[0]))
+            print(" | EN           {} =  {:>.6f}".format(ring_index + 1, indicators.en))
+            print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, indicators.geo))
+            print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, homa))
             print(" ----------------------------------------------------------------------")
 
             if find_multiplicity(Smo) == "triplet":
@@ -188,21 +207,17 @@ def arom_unrest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=Non
                 else:
                     print(" | Using the default HOMER references")
 
-                homer = compute_homer(ring, mol, geom=geom, homerrefs=homerrefs, connectivity=connectivity)
-                print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, homer))
+                print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators.homer))
                 print(" ----------------------------------------------------------------------")
 
-        blas = compute_bla(ring, mol, geom=geom)
-
-        print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, blas[0]))
-        print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, blas[1]))
+        print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, indicators.bla))
+        print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, indicators.bla_c))
         print(" ----------------------------------------------------------------------")
         print(" ----------------------------------------------------------------------")
-        flus_alpha = compute_flu(ring, mol, Smo[0], flurefs, connectivity, partition=partition)
-        if flus_alpha is None:
+        flu = indicators.flu
+        if flu is None:
             print(" | Could not compute FLU")
         else:
-            flus_beta = compute_flu(ring, mol, Smo[1], flurefs, connectivity, partition=partition)
             if flurefs is not None:
                 print(" | Using FLU references provided by the user")
             else:
@@ -211,30 +226,27 @@ def arom_unrest(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=Non
 
             print(" |")
             print(" | *** FLU_ALPHA ***")
-            print(" | FLU_aa       {} =  {:>.6f}".format(ring_index + 1, flus_alpha))
+            print(" | FLU_aa       {} =  {:>.6f}".format(ring_index + 1, indicators.flu_alpha))
             print(" |")
             print(" | *** FLU_BETA ***")
-            print(" | FLU_bb       {} =  {:>.6f}".format(ring_index + 1, flus_beta))
+            print(" | FLU_bb       {} =  {:>.6f}".format(ring_index + 1, indicators.flu_beta))
             print(" |")
             print(" | *** FLU_TOTAL ***")
-            print(" | FLU          {} =  {:>.6f}".format(ring_index + 1, flus_alpha + flus_beta))
+            print(" | FLU          {} =  {:>.6f}".format(ring_index + 1, indicators.flu))
             print(" ----------------------------------------------------------------------")
-
-        boas_alpha = compute_boa(ring, Smo[0])
-        boas_beta = compute_boa(ring, Smo[1])
 
         print(" |")
         print(" | *** BOA_ALPHA ***")
-        print(" | BOA_aa       {} =  {:>.6f}".format(ring_index + 1, boas_alpha[0]))
-        print(" | BOA_c_aa     {} =  {:>.6f}".format(ring_index + 1, boas_alpha[1]))
+        print(" | BOA_aa       {} =  {:>.6f}".format(ring_index + 1, indicators.boa_alpha))
+        print(" | BOA_c_aa     {} =  {:>.6f}".format(ring_index + 1, indicators.boa_c_alpha))
         print(" |")
         print(" | *** BOA_BETA ***")
-        print(" | BOA_bb       {} =  {:>.6f}".format(ring_index + 1, boas_beta[0]))
-        print(" | BOA_c_bb     {} =  {:>.6f}".format(ring_index + 1, boas_beta[1]))
+        print(" | BOA_bb       {} =  {:>.6f}".format(ring_index + 1, indicators.boa_beta))
+        print(" | BOA_c_bb     {} =  {:>.6f}".format(ring_index + 1, indicators.boa_c_beta))
         print(" |")
         print(" | *** BOA_TOTAL ***")
-        print(" | BOA          {} =  {:>.6f}".format(ring_index + 1, boas_alpha[0] + boas_beta[0]))
-        print(" | BOA_c        {} =  {:>.6f}".format(ring_index + 1, boas_alpha[1] + boas_beta[1]))
+        print(" | BOA          {} =  {:>.6f}".format(ring_index + 1, indicators.boa))
+        print(" | BOA_c        {} =  {:>.6f}".format(ring_index + 1, indicators.boa_c))
         print(" ----------------------------------------------------------------------")
 
         # Printing the PDI

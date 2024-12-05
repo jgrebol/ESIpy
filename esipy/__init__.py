@@ -70,15 +70,11 @@ class IndicatorsRest:
 
     @property
     def flu(self):
-        if self._flurefs is None:
-            print(" | Using default FLU references")
-        else:
-            print(" | Using FLU references provided by the user")
         return compute_flu(self._rings, self._molinfo, self._Smo, self._flurefs, self._partition)
 
     def _boa(self):
         if not hasattr(self, '_done_boa'):
-            self._done_boa = esipy.indicators.compute_boa(self._rings, self._Smo)
+            self._done_boa = compute_boa(self._rings, self._Smo)
         return self._done_boa
 
     @property
@@ -279,23 +275,31 @@ class IndicatorsUnrest:
     def pdi_list_beta(self):
         return self._pdis()[1][1]
 
+    def _flus(self):
+        if not hasattr(self, '_done_flus'):
+            self._done_flus = (
+                compute_flu(self._rings, self._molinfo, self._Smo[0], self._flurefs, self._partition),
+                compute_flu(self._rings, self._molinfo, self._Smo[1], self._flurefs, self._partition)
+            )
+        return self._done_flus
+
     @property
     def flu(self):
-        return esipy.indicators.compute_flu(self._rings, self._mol, self._Smo[0], self._flurefs, self._connectivity, self._partition) + esipy.indicators.compute_flu(self._rings, self._mol, self._Smo[1], self._flurefs, self._connectivity, self._partition)
+        return self._flus()[0] + self._flus()[1]
 
     @property
     def flu_alpha(self):
-        return esipy.indicators.compute_flu(self._rings, self._mol, self._Smo[0], self._flurefs, self._connectivity, self._partition)
+        return self._flus()[0]
 
     @property
     def flu_beta(self):
-        return esipy.indicators.compute_flu(self._rings, self._mol, self._Smo[1], self._flurefs, self._connectivity, self._partition)
+        return self._flus()[1]
 
     def _boas(self):
         if not hasattr(self, '_done_boas'):
             self._done_boas = (
-                esipy.indicators.compute_boa(self._rings, self._Smo[0]),
-                esipy.indicators.compute_boa(self._rings, self._Smo[1])
+                compute_boa(self._rings, self._Smo[0]),
+                compute_boa(self._rings, self._Smo[1])
             )
         return self._done_boas
 
@@ -323,27 +327,42 @@ class IndicatorsUnrest:
     def boa_c_beta(self):
         return self._boas()[1][1]
 
+    def _homas(self):
+        if not hasattr(self, '_done_homas'):
+            self._done_homas = compute_homa(self._rings, self._molinfo, self._homarefs)
+        return self._done_homas
+
+    @property
+    def homa(self):
+        return self._homas()[0]
+
+    @property
+    def en(self):
+        return self._homas()[1]
+
+    @property
+    def geo(self):
+        return self._homas()[2]
+
     @property
     def homer(self):
         if self._geom is None or self._homerrefs is None or self._connectivity is None:
             return None
         else:
-            return esipy.indicators.compute_homer(self._rings, self._mol, self._geom, self._homerrefs, self._connectivity) + esipy.indicators.compute_homer(self._rings, self._mol, self._geom, self._homerrefs, self._connectivity)
+            return compute_homer(self._rings, self._mol, self._geom, self._homerrefs, self._connectivity)
+
+    def _blas(self):
+        if not hasattr(self, '_done_blas'):
+            self._done_blas = compute_bla(self._rings, self._molinfo)
+        return self._done_blas
 
     @property
-    def homer_alpha(self):
-        if self._geom is None or self._homerrefs is None or self._connectivity is None:
-            return None
-        else:
-            return esipy.indicators.compute_homer(self._rings, self._mol, self._geom, self._homerrefs, self._connectivity)
+    def bla(self):
+        return self._blas()[0]
 
     @property
-    def homer_beta(self):
-        if self._geom is None or self._homerrefs is None or self._connectivity is None:
-            return None
-        else:
-            return esipy.indicators.compute_homer(self._rings, self._mol, self._geom, self._homerrefs, self._connectivity)
-
+    def bla_c(self):
+        return self._blas()[1]
 
 class IndicatorsNatorb:
     def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None, flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, molinfo=None, ncores=1, saveaoms=None, savemolinfo=None, name="calc", readpath='.'):
@@ -492,15 +511,17 @@ class ESI:
 
         wf = wf_type(self.Smo)
         if wf == "rest":
-            self.indicators = IndicatorsRest()
-
             self.indicators = IndicatorsRest(Smo=self.Smo, rings=self.rings, mol=self.mol, mf=self.mf, myhf=self.myhf, partition=self.partition, mci=self.mci,
                          av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, connectivity=self.connectivity, geom=self.geom,
                          molinfo=self.molinfo, ncores=self.ncores, saveaoms=self.saveaoms, savemolinfo=self.savemolinfo, name=self.name, readpath=self.readpath)
         elif wf == "unrest":
-            self.indicators = IndicatorsUnrest
+            self.indicators = IndicatorsUnrest(Smo=self.Smo, rings=self.rings, mol=self.mol, mf=self.mf, myhf=self.myhf, partition=self.partition, mci=self.mci,
+                                             av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, connectivity=self.connectivity, geom=self.geom,
+                                             molinfo=self.molinfo, ncores=self.ncores, saveaoms=self.saveaoms, savemolinfo=self.savemolinfo, name=self.name, readpath=self.readpath)
         elif wf == "natorb":
-            self.indicators = IndicatorsNatorb
+            self.indicators = IndicatorsNatorb(Smo=self.Smo, rings=self.rings, mol=self.mol, mf=self.mf, myhf=self.myhf, partition=self.partition, mci=self.mci,
+                                               av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, connectivity=self.connectivity, geom=self.geom,
+                                               molinfo=self.molinfo, ncores=self.ncores, saveaoms=self.saveaoms, savemolinfo=self.savemolinfo, name=self.name, readpath=self.readpath)
         else:
             raise ValueError(" | Could not determine the wavefunction type")
 
@@ -622,8 +643,6 @@ class ESI:
         Main ESIpy. Calculation of population analysis, localization and delocalization indices and
         electronic (and geometric) aromaticity indicators.
         """
-        partition = format_partition(self.partition)
-        fromaoms = False
 
         if "symbols" not in self.molinfo:
             self.molinfo.update({"symbols": symbols})
@@ -665,12 +684,14 @@ class ESI:
             from esipy.rest import info_rest, deloc_rest, arom_rest
             info_rest(self.Smo, self.molinfo)
             deloc_rest(self.Smo, self.molinfo)
-            arom_rest(self.Smo, self.rings, self.molinfo, self.indicators, mci=self.mci, av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs,
-                      homerrefs=self.homerrefs, connectivity=self.connectivity, geom=self.connectivity, ncores=self.ncores)
+            arom_rest(Smo=self.Smo, rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci, av1245=self.av1245,
+                      flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores)
         elif wf_type(self.Smo) == "unrest":
-            info_unrest()
-            deloc_unrest()
-            arom_unrest()
+            from esipy.unrest import info_unrest, deloc_unrest, arom_unrest
+            info_unrest(self.Smo, self.molinfo)
+            deloc_unrest(self.Smo, self.molinfo)
+            arom_unrest(Smo=self.Smo, rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci, av1245=self.av1245,
+                      flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores)
         elif wf_type(self.Smo) == "no":
             info_no()
             deloc_no()
