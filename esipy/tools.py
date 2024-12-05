@@ -234,8 +234,6 @@ def get_natorbs(mf, S):
     from scipy.linalg import eigh
     rdm1 = mf.make_rdm1()
     occ, coeff = eigh(np.linalg.multi_dot((S, rdm1, S)), b=S)
-    print(occ)
-    exit()
     rdm1[rdm1 < 10**-5] = 0.0  # Set small occupancies to 0
     with open("rdm1.txt", "w") as file:
         np.savetxt(file, rdm1)
