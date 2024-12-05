@@ -1,7 +1,7 @@
 from pyscf.lo.orth import lowdin, restore_ao_character
 from pyscf.lo import nao, iao
 import numpy as np
-from esipy.tools import save_file, format_partition, get_natorbs, get_natorbs_cas, build_eta
+from esipy.tools import save_file, format_partition, get_natorbs_from_mo, get_natorbs_from_ao, build_eta
 
 
 def make_aoms(mol, mf, partition, myhf=None, save=None):
@@ -168,7 +168,10 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
     else:
 
         S = mol.intor("int1e_ovlp")
-        occ, coeff = get_natorbs(mf, S)
+        if "CAS" in mf.__class__.__name__ or "CI" in mf.__class__.__name__:
+            occ, coeff = get_natorbs_from_ao(mf, S)
+        else:
+            occ, coeff = get_natorbs_from_mo(mf)
 
         Smo = []
         if partition == "lowdin" or partition == "meta_lowdin" or partition == "nao":
