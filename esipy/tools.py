@@ -234,15 +234,9 @@ def get_natorbs_from_ao(mf, S):
     from scipy.linalg import eigh
     rdm1 = mf.make_rdm1()
     occ, coeff = eigh(np.linalg.multi_dot((S, rdm1, S)), b=S)
-    rdm1[rdm1 < 10**-5] = 0.0  # Set small occupancies to 0
-    with open("rdm1.txt", "w") as file:
-        np.savetxt(file, rdm1)
-    occ, mo2no = eigh(rdm1) # In MO basis
     occ = occ[::-1] # Order occupancies
     occ[occ < 10**-12] = 0.0  # Set small occupancies to 0
-    mo2no = mo2no[:, ::-1] # Order orbitals
-    ao2mo = mf.mo_coeff
-    coeff = np.dot(ao2mo, mo2no)
+    coeff = coeff[:, ::-1] # Order orbitals
     occ = np.diag(occ)
     return occ, coeff
 
