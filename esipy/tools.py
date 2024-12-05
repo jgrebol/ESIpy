@@ -230,40 +230,15 @@ def format_short_partition(partition):
 def mapping(arr, perm):
     return [arr[i] for i in range(len(perm))]
 
-def get_natorbs_from_ao(mf, S):
+def get_natorbs(mf, S):
     from scipy.linalg import eigh
-    rdm1 = mf.make_rdm1()
+    rdm1 = mf.make_rdm1(ao_repr=True)
     occ, coeff = eigh(np.linalg.multi_dot((S, rdm1, S)), b=S)
     occ = occ[::-1] # Order occupancies
     occ[occ < 10**-12] = 0.0  # Set small occupancies to 0
     coeff = coeff[:, ::-1] # Order orbitals
     occ = np.diag(occ)
     return occ, coeff
-
-def get_natorbs_from_mo(mf):
-    from scipy.linalg import eigh
-    rdm1 = mf.make_rdm1() # In MO basis
-    occ, mo2no = eigh(rdm1)
-    mo2no = mo2no[:, ::-1] # Order orbitals
-    ao2mo = mf.mo_coeff
-    coeff = np.dot(ao2mo, mo2no)
-    occ = occ[::-1] # Order occupancies
-    occ[occ < 10**-12] = 0.0  # Set small occupancies to 0
-    occ = np.diag(occ)
-    return occ, coeff
-
-def get_natorbs_cas(mf, S):
-    from scipy.linalg import eigh
-    from pyscf.mcscf.addons import make_rdm1
-    rdm1 = make_rdm1(mf)
-    d = np.linalg.multi_dot((S, rdm1, S))
-    occ, orbs = eigh(d, b=S)
-    occ = occ[::-1] # Order occupancies
-    occ[occ < 10**-12] = 0.0  # Set small occupancies to 0
-    occ = np.diag(occ)
-    orbs[orbs < 10**-5] = 0.0  # Set small orbitals to 0
-    orbs = orbs[:, ::-1]
-    return occ, orbs
 
 def build_eta(mol):
     eta = [np.zeros((mol.nao, mol.nao)) for i in range(mol.natm)]
