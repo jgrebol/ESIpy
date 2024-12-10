@@ -24,10 +24,11 @@ mol.verbose = 0
 mol.max_memory = 4000
 mol.build()
 
-mf = dft.UKS(mol)
+mf = dft.RKS(mol)
+mf.xc = "B3LYP"
 mf.kernel()
 
-ring = [[1,2,3,4,5,6], [7,3,1,2,6,10]]
+ring = [1,2,3,4,5,6]
 name = "example01"
 for part in ["mulliken", "lowdin", "meta_lowdin", "nao", "iao"]:
     aoms_name = name + '_' + part + '.aoms'

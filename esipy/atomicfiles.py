@@ -282,12 +282,19 @@ def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
             f.write(i + ".int\n")
         f.close()
 
+    domci = False
+    if isinstance(ring[0], int):
+        ring = [ring]
+    for r in ring:
+        if len(r) < 12:
+            domci = True
+
     if wf == "no": # Will get information from ESIpy's wfx
         filename = os.path.join(new_dir_path, name + ".bad")
         with open(filename, "w") as f:
             f.write("$READWFN\n")
             f.write(name + ".wfx\n")
-            if len(ring) > 12:
+            if not domci:
                 f.write("$NOMCI\n")
             f.write("$RING\n")
             if ring is not None:
@@ -321,7 +328,7 @@ def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
                 f.write("uhf\n{}\n".format(mol.nelec[0] + 1))
             else:
                 f.write("hf\n")
-            if len(ring) > 12:
+            if not domci:
                 f.write("$NOMCI\n")
             f.write("$RING\n")
             if ring is not None:
