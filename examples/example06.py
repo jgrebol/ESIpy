@@ -36,50 +36,53 @@ mf.kernel()
 ring = [7,3,1,2,6,10]
 partition = 'nao'
 
-esi = ESI(mol=mol, mf=mf, partition=partition)
-Smo = esi.Smo
+esi = ESI(mol=mol, mf=mf, partition=partition, rings=ring)
 
 # For restricted calculations - add the 2* factor for the doubly occupied MOs
 print('Doing for restricted calculations')
 
-iring = ind.compute_iring(ring, Smo)
-print('The Iring is', 2 * iring) 
+iring = esi.indicators.iring
+print('The Iring is', iring)
 
-mci = ind.sequential_mci(ring, Smo, partition=partition)
-print('The MCI using 1 core is', 2 * mci) 
+mci = esi.indicators.mci
+print('The MCI using 1 core is', mci)
 
-mci = ind.multiprocessing_mci(ring, Smo, ncores=2, partition=partition)
-print('The MCI using 2 cores is', 2 * mci) 
+esi.ncores = 2
+mci = esi.indicators.mci
+print('The MCI using 2 cores is', mci)
 
-av1245 = ind.compute_av1245(ring, Smo)[0]
-print('The AV1245 is', 2 * av1245)
+av1245 = esi.indicators.av1245
+print('The AV1245 is', av1245)
 
-avmin = ind.compute_av1245(ring, Smo)[1]
-print('The AVmin is', 2 * avmin)
+avmin = esi.indicators.avmin
+print('The AVmin is', avmin)
 
-pdi = ind.compute_pdi(ring, Smo)[0]
-print('The PDI is', 2 * pdi)
+pdi = esi.indicators.pdi
+print('The PDI is', pdi)
 
-flu = ind.compute_flu(ring, mol, Smo, partition=partition)
-print('The FLU is', 2 * flu)
+flu = esi.indicators.flu
+print('The FLU is', flu)
 
-boa = ind.compute_boa(ring, Smo)[0]
-print('The BOA is', 2 * boa)
+boa = esi.indicators.boa
+print('The BOA is', boa)
 
-boa_c = ind.compute_boa(ring, Smo)[1]
-print('The BOA_c is', 2 * boa_c)
+boa_c = esi.indicators.boa_c
+print('The BOA_c is', boa_c)
 
-homa = ind.compute_homa(ring, mol)[0]
-print('The HOMA is',  homa)
+homa = esi.indicators.homa
+print('The HOMA is', homa)
 
-bla = ind.compute_bla(ring, mol)[0]
+en = esi.indicators.en
+print('The EN component is', en)
+
+geo = esi.indicators.geo
+print('The GEO component is', geo)
+
+bla = esi.indicators.bla
 print('The BLA is', bla)
 
-bla_c = ind.compute_bla(ring, mol)[1]
+bla_c = esi.indicators.bla_c
 print('The BLA_c is', bla_c)
-
-#To compute only the delocalization indices and atomic populations for restricted calculations
-deloc_rest(Smo, mol)
 
 molname = 'example06_unrestricted'
 
@@ -110,56 +113,70 @@ mf = dft.UKS(mol)
 mf.xc = 'B3LYP'
 mf.kernel()
 
-esi = ESI(mol=mol, mf=mf, partition=partition)
-Smo = esi.Smo
+esi = ESI(mol=mol, mf=mf, partition=partition, rings=ring)
 
 print('Doing for unrestricted calculation')
 
-iring_alpha = ind.compute_iring(ring, Smo[0])
-iring_beta = ind.compute_iring(ring, Smo[1])
-print('The Iring is', iring_alpha + iring_beta) 
+iring_alpha = esi.indicators.iring_alpha
+iring_beta = esi.indicators.iring_beta
+iring = esi.indicators.iring
+print('The alpha component of the Iring is', iring_alpha)
+print('The beta component of the Iring is', iring_beta)
+print('The Iring is', iring)
 
-mci_alpha = ind.sequential_mci(ring, Smo[0], partition=partition)
-mci_beta = ind.sequential_mci(ring, Smo[1], partition=partition)
-print('The MCI using 1 core is', mci_alpha + mci_beta) 
+mci_alpha = esi.indicators.mci_alpha
+mci_beta = esi.indicators.mci_beta
+mci = esi.indicators.mci
+print('The alpha component of the MCI is', mci_alpha)
+print('The beta component of the MCI is', mci_beta)
+print('The MCI using 1 core is', mci)
 
-mci_alpha = ind.multiprocessing_mci(ring, Smo[0], ncores=2, partition=partition)
-mci_beta = ind.multiprocessing_mci(ring, Smo[1], ncores=2, partition=partition)
-print('The MCI using 2 cores is', mci_alpha+ mci_beta) 
+esi.ncores = 2
+mci_alpha = esi.indicators.mci_alpha
+mci_beta = esi.indicators.mci_beta
+mci = esi.indicators.mci
+print('The alpha component of the MCI is', mci_alpha)
+print('The beta component of the MCI is', mci_beta)
+print('The MCI using 2 cores is', mci)
 
-av1245_alpha = ind.compute_av1245(ring, Smo[0])[0]
-av1245_beta = ind.compute_av1245(ring, Smo[1])[0]
-print('The AV1245 is', av1245_alpha + av1245_beta)
+av1245_alpha = esi.indicators.av1245_alpha
+av1245_beta = esi.indicators.av1245_beta
+av1245 = esi.indicators.av1245
+print('The alpha component of the AV1245 is', av1245_alpha)
+print('The beta component of the AV1245 is', av1245_beta)
+print('The AV1245 is', av1245)
 
-avmin_alpha = ind.compute_av1245(ring, Smo[0])[1]
-avmin_beta = ind.compute_av1245(ring, Smo[1])[1]
-print('The AVmin is', avmin_alpha + avmin_beta)
+avmin_alpha = esi.indicators.avmin_alpha
+avmin_beta = esi.indicators.avmin_beta
+avmin = esi.indicators.avmin
+print('The alpha component of the AVmin is', avmin_alpha)
+print('The beta component of the AVmin is', avmin_beta)
+print('The AVmin is', avmin)
 
-pdi_alpha = ind.compute_pdi(ring, Smo[0])[0]
-pdi_beta = ind.compute_pdi(ring, Smo[1])[0]
-print('The PDI is', pdi_alpha + pdi_beta)
+pdi_alpha = esi.indicators.pdi_alpha
+pdi_beta = esi.indicators.pdi_beta
+pdi = esi.indicators.pdi
+print('The alpha component of the PDI is', pdi_alpha)
+print('The beta component of the PDI is', pdi_beta)
+print('The PDI is', pdi)
 
-flu_alpha = ind.compute_flu(ring, mol, Smo[0], partition=partition)
-flu_beta = ind.compute_flu(ring, mol, Smo[1], partition=partition)
-print('The FLU is', flu_alpha + flu_beta)
+flu_alpha = esi.indicators.flu_alpha
+flu_beta = esi.indicators.flu_beta
+flu = esi.indicators.flu
+print('The alpha component of the FLU is', flu_alpha)
+print('The beta component of the FLU is', flu_beta)
+print('The FLU is', flu)
 
-boa_alpha = ind.compute_boa(ring, Smo[0])[0]
-boa_beta = ind.compute_boa(ring, Smo[1])[0]
-print('The BOA is', boa_alpha + boa_beta)
+boa_alpha = esi.indicators.boa_alpha
+boa_beta = esi.indicators.boa_beta
+boa = esi.indicators.boa
+print('The alpha component of the BOA is', boa_alpha)
+print('The beta component of the BOA is', boa_beta)
+print('The BOA is', boa)
 
-boa_c_alpha = ind.compute_boa(ring, Smo[0])[1]
-boa_c_beta = ind.compute_boa(ring, Smo[1])[1]
-print('The BOA_c is', boa_c_alpha + boa_c_beta)
-
-homer = ind.compute_homer(ring, mol)
-print('The HOMER is',homer)
-
-# The BLA does not change between restricted or unrestricted calculations
-bla = ind.compute_bla(ring, mol)[0]
-print('The BLA is', bla)
-
-bla_c = ind.compute_bla(ring, mol)[1]
-print('The BLA_c is', bla_c)
-
-#To compute only the delocalization indices and atomic populations for unrestricted calculations
-deloc_unrest(Smo, mol)
+boa_c_alpha = esi.indicators.boa_c_alpha
+boa_c_beta = esi.indicators.boa_c_beta
+boa_c = esi.indicators.boa_c
+print('The alpha component of the BOA_c is', boa_c_alpha)
+print('The beta component of the BOA_c is', boa_c_beta)
+print('The BOA_c is', boa_c)

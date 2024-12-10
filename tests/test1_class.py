@@ -90,24 +90,6 @@ class ESItest(unittest.TestCase):
         esitest = esipy.ESI(mol=mol, mf=mf, rings=[1,2,3,4,5,6], partition='mulliken', saveaoms='example01_mulliken.aoms')
         self.assertTrue(hasattr(esitest, "Smo"))
 
-        # We create a new class without Smo by removing 'mol' and 'mf'. Should raise ValueError
-        esitest = esipy.ESI(rings=[1,2,3,4,5,6], partition='mulliken')
-        with self.assertRaises(ValueError):
-            _ = esitest.Smo
-
-        # We try building it from 'mol' and 'mf'
-        esitest.mol = mol
-        esitest.mf = mf
-        esitest.Smo
-        self.assertTrue(hasattr(esitest, "Smo"))
-
-        # We build the Smo attribute from aoms()
-        esitest = esipy.ESI(rings=[1,2,3,4,5,6], partition='mulliken')
-        esitest.mol = mol
-        esitest.mf = mf
-        esitest.aoms()
-        self.assertTrue(hasattr(esitest, "Smo"))
-
         # We try getting the Smo from a file
         path = "/home/joan/DOCENCIA/Z-ESIpy/ESIpy-CLASS/esipy/tests/"
         Smo = path + "example01_mulliken.aoms"

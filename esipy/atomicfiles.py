@@ -348,7 +348,6 @@ def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
                 f.write(str(np.shape(Smo)[1]) + "\n")
             f.write("$AV1245\n")
             f.write("$FULLOUT\n")
-            f.write("$DEBUG\n")
             if partition == "mulliken":
                 f.write("$MULLIKEN\n")
             f.close()

@@ -1,7 +1,5 @@
-from itertools import permutations
-
 import numpy as np
-from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_distances, av1245_pairs, mapping
+from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_distances, av1245_pairs
 
 ########## Iring ###########
 
@@ -76,7 +74,7 @@ def sequential_mci(arr, Smo, partition):
         # We account for twice the value for symmetric AOMs
         return 0.5 * sum(compute_iring(p, Smo) for p in iterable2)
     else:  # Remove reversed permutations
-        iterable2 = (x for x in iterable2 if x[0] == arr[0] and x[1] < x[-1])
+        iterable2 = (x for x in iterable2 if x[1] < x[-1])
         return sum(compute_iring(p, Smo) for p in iterable2)
 
 def sequential_mci_no(arr, Smo, partition):
@@ -105,7 +103,7 @@ def sequential_mci_no(arr, Smo, partition):
         # We account for twice the value for symmetric AOMs
         return 0.5 * sum(compute_iring_no(p, Smo) for p in iterable2)
     else:  # Remove reversed permutations
-        iterable2 = (x for x in iterable2 if x[0] == arr[0] and x[1] < x[-1])
+        iterable2 = (x for x in iterable2 if x[1] < x[-1])
         return sum(compute_iring_no(p, Smo) for p in iterable2)
 
 def multiprocessing_mci(arr, Smo, ncores, partition):
@@ -143,7 +141,7 @@ def multiprocessing_mci(arr, Smo, ncores, partition):
         # We account for twice the value for symmetric AOMs
         return 0.5 * sum(pool.imap(dumb, iterable2, chunk_size))
     else:  # Remove reversed permutations
-        iterable2 = (x for x in iterable2 if x[0] == arr[0] and x[1] < x[-1])
+        iterable2 = (x for x in iterable2 if x[1] < x[-1])
         return sum(pool.imap(dumb, iterable2, chunk_size))
 
 def multiprocessing_mci_no(arr, Smo, ncores, partition):
@@ -181,7 +179,7 @@ def multiprocessing_mci_no(arr, Smo, ncores, partition):
         # We account for twice the value for symmetric AOMs
         return 0.5 * sum(pool.imap(dumb, iterable2, chunk_size))
     else:  # Remove reversed permutations
-        iterable2 = (x for x in iterable2 if x[0] == arr[0] and x[1] < x[-1])
+        iterable2 = (x for x in iterable2 if x[1] < x[-1])
         return sum(pool.imap(dumb, iterable2, chunk_size))
 
 ########### AV1245 ###########
@@ -384,7 +382,7 @@ def compute_flu(arr, molinfo, Smo, flurefs=None, partition=None):
     ns = find_ns(arr, Smo)
     for i in range(len(arr)):
         if bond_types[i] not in flu_refs:
-            print(f"No parameters found for bond type {bond_types[i]}")
+            print(f" | No parameters found for bond type {bond_types[i]}")
             return None
 
         flu_deloc = (dis[i] - flu_refs[bond_types[i]]) / flu_refs[bond_types[i]]
@@ -462,7 +460,7 @@ def compute_boa_no(arr, Smo):
 
 # Calculation of the HOMA and/or HOMER indices (Restricted and Unrestricted)
 
-def compute_homer(arr, mol, geom=None, homerrefs=None, connectivity=None):
+def compute_homer(arr, molinfo, homerrefs=None):
     """Computes the HOMER index.
 
     Arguments:
@@ -485,6 +483,7 @@ def compute_homer(arr, mol, geom=None, homerrefs=None, connectivity=None):
           The HOMER value.
     """
 
+    geom = molinfo["geom"]
     refs = {
         "CC": {"alpha": 950.74, "r_opt": 1.437},
         "CN": {"alpha": 506.43, "r_opt": 1.390},
@@ -494,20 +493,8 @@ def compute_homer(arr, mol, geom=None, homerrefs=None, connectivity=None):
     if homerrefs is not None:
         refs.update(homerrefs)
 
-    if mol is None:
-        print(" | No mol object provided. Using the data provided by the user")
-        if connectivity is None:
-            print(" | No HOMA connectivity provided by the user")
-            return None
-        if geom is None:
-            print(" | No geometry provided by the user")
-            return None
-        else:
-            atom_symbols = connectivity
-            bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]])) for i in range(len(arr))]
-    else:
-        atom_symbols = [mol.atom_symbol(i) for i in range(mol.natm)]
-        bond_types = ["".join(sorted([atom_symbols[arr[i] - 1], atom_symbols[arr[(i + 1) % len(arr)] - 1]]))
+    atom_symbols = molinfo["symbols"]
+    bond_types = ["".join(sorted([atom_symbols[arr[i] - 1], atom_symbols[arr[(i + 1) % len(arr)] - 1]]))
                       for i in range(len(arr))]
 
     for i in range(len(arr)):
@@ -518,7 +505,7 @@ def compute_homer(arr, mol, geom=None, homerrefs=None, connectivity=None):
     alpha = refs[bond_types[i]]["alpha"]
     r_opt = refs[bond_types[i]]["r_opt"]
 
-    distances = find_distances(arr, mol, geom)
+    distances = find_distances(arr, geom)
     diff = np.mean([r_opt - distances[i] for i in range(len(arr))])
     homer_value = 1 - alpha * diff ** 2
 
@@ -568,12 +555,12 @@ def compute_homa(arr, molinfo, homarefs=None):
     geom = molinfo["geom"]
     symbols = molinfo["symbols"]
     atom_symbols = [symbols[int(i) - 1] for i in arr]
-    bond_types = ["".join(sorted([atom_symbols[arr[i] - 1], atom_symbols[arr[(i + 1) % len(arr)] - 1]]))
-                  for i in range(len(arr))]
+    bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]]))
+              for i in range(len(arr))]
 
     for i in range(len(arr)):
         if bond_types[i] not in refs:
-            print(f"No parameters found for bond type {bond_types[i]}")
+            print(f" | No parameters found for bond type {bond_types[i]}")
             return None
 
     distances = find_distances(arr, geom)
@@ -603,7 +590,6 @@ def compute_homa(arr, molinfo, homarefs=None):
 
     homa_value = 1 - (EN + GEO)
     return homa_value, EN, GEO
-
 
 # Calculation of the BLA (Restricted and Unrestricted)
 

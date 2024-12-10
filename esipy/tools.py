@@ -226,8 +226,18 @@ def mapping(arr, perm):
 
 def get_natorbs(mf, S):
     from scipy.linalg import eigh
+    import numpy as np
     rdm1 = mf.make_rdm1(ao_repr=True) # In AO basis
-    occ, coeff = eigh(np.linalg.multi_dot((S, rdm1, S)), b=S)
+    # Only Restricted orbitals are supported
+    if np.ndim(rdm1) == 3:
+        D = rdm1[0] + rdm1[1]
+    elif np.ndim(rdm1) == 2:
+        D = rdm1
+    else:
+        raise ValueError(" | Could not find dimensions for the 1-RDM")
+
+    occ, coeff = eigh(np.linalg.multi_dot((S, D, S)), b=S)
+    coeff = coeff[:, ::-1] # Order coefficients
     occ = occ[::-1] # Order occupancies
     occ[occ < 10**-12] = 0.0  # Set small occupancies to 0
     occ = np.diag(occ)

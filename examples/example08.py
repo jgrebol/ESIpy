@@ -37,5 +37,5 @@ molinfo_name = name + '_' + partition + '.molinfo'
 aoms_name = name + '_' + partition + '.aoms'
 
 arom = esipy.ESI(rings=ring, partition=partition, mol=mol, mf=mf, name=name, saveaoms=aoms_name, savemolinfo=molinfo_name)
-arom.calc()
+arom.print()
 arom.writeaoms()

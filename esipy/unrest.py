@@ -1,14 +1,9 @@
 import numpy as np
-from esipy.tools import mol_info, find_multiplicity
-from esipy.indicators import *
-
-
-from esipy.tools import load_file, mol_info, format_partition
-from esipy.indicators import *
+from esipy.tools import mol_info, format_partition, find_multiplicity
 
 def info_unrest(Smo, molinfo):
-    partition = format_partition(molinfo["partition"])
 
+    partition = format_partition(molinfo["partition"])
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     print(" | Number of Atoms:          {}".format(len(Smo[0])))
     print(" | Occ. Mol. Orbitals:       {}({})".format(np.shape(Smo[0][0])[0], np.shape(Smo[1][0])[0]))
@@ -109,7 +104,7 @@ def deloc_unrest(Smo, molinfo):
         sum(dis_alpha) + sum(dis_beta), sum(dis_alpha), sum(dis_beta)))
     print(" ------------------------------------------- ")
 
-def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, flurefs=None, homarefs=None, homerrefs=None,
+def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, partition=None, flurefs=None, homarefs=None, homerrefs=None,
               ncores=1):
     """Population analysis, localization and delocalization indices and aromaticity indicators
     for unrestricted AOMs.
@@ -156,12 +151,17 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, fluref
     """
 
     print(" ----------------------------------------------------------------------")
-    print(" | Aromaticity indices - PDI [CEJ 9, 400 (2003)]")
-    print(" |                     Iring [PCCP 2, 3381 (2000)]")
-    print(" |                    AV1245 [PCCP 18, 11839 (2016)]")
-    print(" |                    AVmin  [JPCC 121, 27118 (2017)]")
-    print(" |                           [PCCP 20, 2787 (2018)]")
-    print(" |  For a recent review see: [CSR 44, 6434 (2015)]")
+    print(" | Aromaticity indices - PDI [CEJ 9, 400 (2003)]           ")
+    print(" |                      HOMA [Tetrahedron 52, 10255 (1996)]")
+    print(" |                       FLU [JCP 122, 014109 (2005)]      ")
+    print(" |                     Iring [PCCP 2, 3381 (2000)]         ")
+    if mci is True:
+        print(" |                       MCI [JPOC 18, 706 (2005)]         ")
+    if av1245 is True:
+        print(" |                    AV1245 [PCCP 18, 11839 (2016)]       ")
+        print(" |                    AVmin  [JPCC 121, 27118 (2017)]      ")
+        print(" |                           [PCCP 20, 2787 (2018)]        ")
+    print(" |  For a recent review see: [CSR 44, 6434 (2015)]         ")
     print(" ----------------------------------------------------------------------")
 
     # Checking where to read the atomic symbols from
@@ -191,12 +191,12 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, fluref
         else:
             print(" | Using default HOMA references")
 
-        homa = indicators.homa
+        homa = indicators[ring_index].homa
         if homa is None:
             print(" | Connectivity could not match parameters")
         else:
-            print(" | EN           {} =  {:>.6f}".format(ring_index + 1, indicators.en))
-            print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, indicators.geo))
+            print(" | EN           {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].en))
+            print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].geo))
             print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, homa))
             print(" ----------------------------------------------------------------------")
 
@@ -207,14 +207,13 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, fluref
                 else:
                     print(" | Using the default HOMER references")
 
-                print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators.homer))
-                print(" ----------------------------------------------------------------------")
+                print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homer))
 
-        print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, indicators.bla))
-        print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, indicators.bla_c))
         print(" ----------------------------------------------------------------------")
+        print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].bla))
+        print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].bla_c))
         print(" ----------------------------------------------------------------------")
-        flu = indicators.flu
+        flu = indicators[ring_index].flu
         if flu is None:
             print(" | Could not compute FLU")
         else:
@@ -223,30 +222,29 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, fluref
             else:
                 print(" | Using the default FLU references")
             print(" | Atoms  :   {}".format("  ".join(str(atom) for atom in connectivity)))
-
             print(" |")
             print(" | *** FLU_ALPHA ***")
-            print(" | FLU_aa       {} =  {:>.6f}".format(ring_index + 1, indicators.flu_alpha))
+            print(" | FLU_aa       {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].flu_alpha))
             print(" |")
             print(" | *** FLU_BETA ***")
-            print(" | FLU_bb       {} =  {:>.6f}".format(ring_index + 1, indicators.flu_beta))
+            print(" | FLU_bb       {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].flu_beta))
             print(" |")
             print(" | *** FLU_TOTAL ***")
-            print(" | FLU          {} =  {:>.6f}".format(ring_index + 1, indicators.flu))
-            print(" ----------------------------------------------------------------------")
+            print(" | FLU          {} =  {:>.6f}".format(ring_index + 1, flu))
+        print(" ----------------------------------------------------------------------")
 
         print(" |")
         print(" | *** BOA_ALPHA ***")
-        print(" | BOA_aa       {} =  {:>.6f}".format(ring_index + 1, indicators.boa_alpha))
-        print(" | BOA_c_aa     {} =  {:>.6f}".format(ring_index + 1, indicators.boa_c_alpha))
+        print(" | BOA_aa       {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].boa_alpha))
+        print(" | BOAc_aa      {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].boa_c_alpha))
         print(" |")
         print(" | *** BOA_BETA ***")
-        print(" | BOA_bb       {} =  {:>.6f}".format(ring_index + 1, indicators.boa_beta))
-        print(" | BOA_c_bb     {} =  {:>.6f}".format(ring_index + 1, indicators.boa_c_beta))
+        print(" | BOA_bb       {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].boa_beta))
+        print(" | BOAc_bb     {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].boa_c_beta))
         print(" |")
         print(" | *** BOA_TOTAL ***")
-        print(" | BOA          {} =  {:>.6f}".format(ring_index + 1, indicators.boa))
-        print(" | BOA_c        {} =  {:>.6f}".format(ring_index + 1, indicators.boa_c))
+        print(" | BOA          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].boa))
+        print(" | BOAc         {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].boa_c))
         print(" ----------------------------------------------------------------------")
 
         # Printing the PDI
@@ -255,27 +253,26 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, fluref
             print(" |   PDI could not be calculated as the number of centers is not 6")
 
         else:
-            pdis_alpha = compute_pdi(ring, Smo[0])
-            pdis_beta = compute_pdi(ring, Smo[1])
+            pdi_list_alpha = indicators[ring_index].pdi_list_alpha
+            pdi_list_beta = indicators[ring_index].pdi_list_beta
             print(" |")
             print(" | *** PDI_ALPHA ***")
-
-            print(" | DIaa ({:>2} -{:>2} )  =  {:.4f}".format(ring[0], ring[3], pdis_alpha[1][0]))
-            print(" | DIaa ({:>2} -{:>2} )  =  {:.4f}".format(ring[1], ring[4], pdis_alpha[1][1]))
-            print(" | DIaa ({:>2} -{:>2} )  =  {:.4f}".format(ring[2], ring[5], pdis_alpha[1][2]))
-            print(" | PDI_alpha     {} =  {:.4f} ".format(ring_index + 1, pdis_alpha[0]))
+            print(" | DIaa ({:>2} -{:>2} )  =  {:.4f}".format(ring[0], ring[3], pdi_list_alpha[0]))
+            print(" | DIaa ({:>2} -{:>2} )  =  {:.4f}".format(ring[1], ring[4], pdi_list_alpha[1]))
+            print(" | DIaa ({:>2} -{:>2} )  =  {:.4f}".format(ring[2], ring[5], pdi_list_alpha[2]))
+            print(" | PDI_alpha     {} =  {:.4f} ".format(ring_index + 1, indicators[ring_index].pdi_alpha))
             print(" |")
             print(" | *** PDI_BETA ***")
-            print(" | DIbb ({:>2} -{:>2} )  =  {:.4f}".format(ring[0], ring[3], pdis_beta[1][0]))
-            print(" | DIbb ({:>2} -{:>2} )  =  {:.4f}".format(ring[1], ring[4], pdis_beta[1][1]))
-            print(" | DIbb ({:>2} -{:>2} )  =  {:.4f}".format(ring[2], ring[5], pdis_beta[1][2]))
-            print(" | PDI_beta      {} =  {:.4f} ".format(ring_index + 1, pdis_beta[0]))
+            print(" | DIbb ({:>2} -{:>2} )  =  {:.4f}".format(ring[0], ring[3], pdi_list_beta[0]))
+            print(" | DIbb ({:>2} -{:>2} )  =  {:.4f}".format(ring[1], ring[4], pdi_list_beta[1]))
+            print(" | DIbb ({:>2} -{:>2} )  =  {:.4f}".format(ring[2], ring[5], pdi_list_beta[2]))
+            print(" | PDI_beta      {} =  {:.4f} ".format(ring_index + 1, indicators[ring_index].pdi_beta))
             print(" |")
             print(" | *** PDI_TOTAL ***")
-            print(" | DI   ({:>2} -{:>2} )  =  {:.4f}".format(ring[0], ring[3], pdis_alpha[1][0] + pdis_beta[1][0]))
-            print(" | DI   ({:>2} -{:>2} )  =  {:.4f}".format(ring[1], ring[4], pdis_alpha[1][1] + pdis_beta[1][1]))
-            print(" | DI   ({:>2} -{:>2} )  =  {:.4f}".format(ring[2], ring[5], pdis_alpha[1][2] + pdis_beta[1][2]))
-            print(" | PDI           {} =  {:.4f} ".format(ring_index + 1, pdis_alpha[0] + pdis_beta[0]))
+            print(" | DI   ({:>2} -{:>2} )  =  {:.4f}".format(ring[0], ring[3], pdi_list_alpha[0] + pdi_list_beta[0]))
+            print(" | DI   ({:>2} -{:>2} )  =  {:.4f}".format(ring[1], ring[4], pdi_list_alpha[1] + pdi_list_beta[1]))
+            print(" | DI   ({:>2} -{:>2} )  =  {:.4f}".format(ring[2], ring[5], pdi_list_alpha[2] + pdi_list_beta[2]))
+            print(" | PDI           {} =  {:.4f} ".format(ring_index + 1, indicators[ring_index].pdi))
             print(" ---------------------------------------------------------------------- ")
 
         if av1245 == True:
@@ -283,8 +280,9 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, fluref
                 print(" | AV1245 could not be calculated as the number of centers is smaller than 6 ")
 
             else:
-                avs_alpha = np.array(compute_av1245(ring, Smo[0], partition), dtype=object)
-                avs_beta = np.array(compute_av1245(ring, Smo[1], partition), dtype=object)
+                av1245_list_alpha = indicators[ring_index].av1245_list_alpha
+                av1245_list_beta = indicators[ring_index].av1245_list_beta
+                av1245_list = indicators[ring_index].av1245_list
 
                 print(" |")
                 print(" | *** AV1245_ALPHA ***")
@@ -294,9 +292,9 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, fluref
                         str(ring[(j + 1) % len(ring)]).rjust(2), symbols[(ring[(j + 1) % len(ring)] - 1)],
                         str(ring[(j + 3) % len(ring)]).rjust(2), symbols[(ring[(j + 3) % len(ring)] - 1)],
                         str(ring[(j + 4) % len(ring)]).rjust(2), symbols[(ring[(j + 4) % len(ring)] - 1)],
-                        np.array(avs_alpha[2][(ring[j] - 1) % len(ring)])))
-                print(" |   AV1245_alpha {} =             {:>9.4f}".format(ring_index + 1, avs_alpha[0]))
-                print(" |    AVmin_alpha {} =             {:>9.4f}".format(ring_index + 1, avs_alpha[1]))
+                        av1245_list_alpha[(ring[j] - 1) % len(ring)]))
+                print(" |   AV1245_alpha {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].av1245_alpha))
+                print(" |    AVmin_alpha {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].avmin_alpha))
 
                 print(" |")
                 print(" | *** AV1245_BETA ***")
@@ -307,9 +305,9 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, fluref
                         str(ring[(j + 1) % len(ring)]).rjust(2), symbols[(ring[(j + 1) % len(ring)] - 1)],
                         str(ring[(j + 3) % len(ring)]).rjust(2), symbols[(ring[(j + 3) % len(ring)] - 1)],
                         str(ring[(j + 4) % len(ring)]).rjust(2), symbols[(ring[(j + 4) % len(ring)] - 1)],
-                        np.array(avs_beta[2][(ring[j] - 1) % len(ring)])))
-                print(" |   AV1245_beta  {} =             {:>9.4f}".format(ring_index + 1, avs_beta[0]))
-                print(" |    AVmin_beta  {} =             {:>9.4f}".format(ring_index + 1, avs_beta[1]))
+                        av1245_list_beta[(ring[j] - 1) % len(ring)]))
+                print(" |   AV1245_beta  {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].av1245_beta))
+                print(" |    AVmin_beta  {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].avmin_beta))
                 print(" | ")
                 print(" | *** AV1245_TOTAL ***")
                 for j in range(len(ring)):
@@ -318,15 +316,13 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, fluref
                         str(ring[(j + 1) % len(ring)]).rjust(2), symbols[(ring[(j + 1) % len(ring)] - 1)],
                         str(ring[(j + 3) % len(ring)]).rjust(2), symbols[(ring[(j + 3) % len(ring)] - 1)],
                         str(ring[(j + 4) % len(ring)]).rjust(2), symbols[(ring[(j + 4) % len(ring)] - 1)],
-                        np.array(avs_alpha[2][(ring[j] - 1) % len(ring)]) + np.array(
-                            avs_beta[2][(ring[j] - 1) % len(ring)])))
-                print(" |   AV1245       {} =             {:>9.4f}".format(ring_index + 1, avs_alpha[0] + avs_beta[0]))
-                all_avs = [avs_alpha[2][i] + avs_beta[2][i] for i in range(len(avs_alpha[2]))]
-                print(" |    AVmin       {} =             {:>9.4f}".format(ring_index + 1, min(all_avs, key=abs)))
+                        av1245_list[(ring[j] - 1) % len(ring)]))
+                print(" |   AV1245       {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].av1245))
+                print(" |    AVmin       {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].avmin))
                 print(" ---------------------------------------------------------------------- ")
 
-        iring_alpha = np.array(compute_iring(ring, Smo[0]), dtype=object)
-        iring_beta = np.array(compute_iring(ring, Smo[1]), dtype=object)
+        iring_alpha = indicators[ring_index].iring_alpha
+        iring_beta = indicators[ring_index].iring_beta
         iring_total = iring_alpha + iring_beta
 
         print(" | Iring_alpha  {} =  {:>6f}".format(ring_index + 1, iring_alpha))
@@ -348,8 +344,8 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, fluref
                 if partition is None:
                     print(" | Partition not specified. Will assume symmetric AOMs")
                 start_mci = time.time()
-                mci_alpha = sequential_mci(ring, Smo[0], partition)
-                mci_beta = sequential_mci(ring, Smo[1], partition)
+                mci_alpha = indicators[ring_index].mci_alpha
+                mci_beta = indicators[ring_index].mci_beta
                 mci_total = mci_alpha + mci_beta
                 end_mci = time.time()
                 time_mci = end_mci - start_mci
@@ -363,8 +359,8 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, fluref
                 if partition is None:
                     print(" | Partition not specified. Will assume symmetric AOMs")
                 start_mci = time.time()
-                mci_alpha = multiprocessing_mci(ring, Smo[0], ncores, partition)
-                mci_beta = multiprocessing_mci(ring, Smo[1], ncores, partition)
+                mci_alpha = indicators[ring_index].mci_alpha
+                mci_beta = indicators[ring_index].mci_beta
                 mci_total = mci_alpha + mci_beta
                 end_mci = time.time()
                 time_mci = end_mci - start_mci
@@ -381,277 +377,3 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, fluref
 
             print(" ---------------------------------------------------------------------- ")
 
-
-def arom_unrest_from_aoms(Smo, rings, partition, mol, mci=False, av1245=False, flurefs=None, homarefs=None,
-                          homerrefs=None, connectivity=None, geom=None, ncores=1):
-    """Population analysis, localization and delocalization indices and aromaticity indicators
-    for previously saved restricted AOMs.
-
-    Arguments:
-        Smo (list of matrices or str):
-            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-
-        rings (list or list of lists of int):
-            Contains the indices defining the ring connectivity of a system. Can contain several rings as a list of lists.
-
-        partition (str):
-            Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
-
-        mol (SCF instance):
-            PySCF's Mole class and helper functions to handle parameters and attributes for GTO integrals.
-
-        mci (bool, optional, default: False):
-            If `True`, the function computes the MCI index.
-
-        av1245 (bool, optional, default: False):
-            If `True`, the function computes the AV1245 (and AVmin) indices.
-
-        flurefs (dict, optional, default: None):
-            User-provided references for Delocalization Indices used in the FLU index calculation.
-
-        homarefs (dict, optional, default: None):
-            User-provided references for the HOMA index. Required data as in [Krygowski, et al. Chem. Rev. 114 6383-6422 (2014)].
-
-        homerrefs (dict, optional, default: None):
-            User-provided references for optimal distance and polarizability in HOMA or HOMER indices.
-
-        connectivity (list of int, optional, default: None):
-            List of atomic symbols in the order they appear in `mol`, representing ring connectivity.
-
-        geom (list of floats, optional, default: None):
-            Molecular coordinates, typically obtained from `mol.atom_coords()`.
-
-        molinfo (dict or str, optional, default: None):
-            Contains molecule and calculation details from the 'molinfo()' method inside ESI.
-
-        ncores (int, optional, default: 1):
-            Specifies the number of cores for multi-processing MCI calculation.
-    """
-
-    print(" ----------------------------------------------------------------------")
-    print(" | Aromaticity indices - PDI [CEJ 9, 400 (2003)]")
-    print(" |                     Iring [PCCP 2, 3381 (2000)]")
-    print(" |                    AV1245 [PCCP 18, 11839 (2016)]")
-    print(" |                    AVmin  [JPCC 121, 27118 (2017)]")
-    print(" |                           [PCCP 20, 2787 (2018)]")
-    print(" |  For a recent review see: [CSR 44, 6434 (2015)]")
-    print(" ----------------------------------------------------------------------")
-
-    # Checking if the list rings is contains more than one ring to analyze
-
-    if not isinstance(rings[0], list):
-        rings = [rings]
-
-    # Looping through each of the rings
-
-    for ring_index, ring in enumerate(rings):
-        print(" ----------------------------------------------------------------------")
-        print(" |")
-        print(" | Ring  {} ({}):   {}".format(ring_index + 1, len(ring), "  ".join(str(num) for num in ring)))
-        print(" |")
-        print(" ----------------------------------------------------------------------")
-        if connectivity is None:
-            try:
-                symbols
-            except NameError:
-                symbols = None
-            if symbols is not None:
-                connectivity = [symbols[int(i) - 1] for i in ring]
-            else:
-                print(" | Connectivity not found. Could not compute geometric indices")
-        else:
-            if homarefs is not None:
-                print(" | Using HOMA references provided by the user")
-            else:
-                print(" | Using default HOMA references")
-
-            homas = compute_homa(ring, mol, geom=geom, homarefs=homarefs, connectivity=connectivity)
-            if homas is None:
-                print(" | Connectivity could not match parameters")
-            else:
-                print(" | EN           {} =  {:>.6f}".format(ring_index + 1, homas[1]))
-                print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, homas[2]))
-                print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, homas[0]))
-                print(" ----------------------------------------------------------------------")
-
-                if find_multiplicity(Smo) == "triplet":
-                    print(" | Different number of alpha and beta electrons. Computing HOMER")
-                    if homerrefs is not None:
-                        print(" | Using HOMER references provided by the user")
-                    else:
-                        print(" | Using default HOMER references")
-
-                    homer = compute_homer(ring, mol, geom=geom, homerrefs=homerrefs, connectivity=connectivity)
-                    if homer is None:
-                        print(" | Connectivity could not match parameters")
-                    else:
-                        print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, homer))
-                        print(" ----------------------------------------------------------------------")
-
-                blas = compute_bla(ring, mol, geom=geom)
-
-                print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, blas[0]))
-                print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, blas[1]))
-                print(" ----------------------------------------------------------------------")
-        print(" ----------------------------------------------------------------------")
-
-        if connectivity is not None:
-            if isinstance(connectivity[0], str) and mol is None and mol_info is None:
-                if connectivity[ring_index - 1] is None:
-                    print(ring_index)
-                    print(" | If no 'mol' nor 'molinfo', only one connectivity can be given")
-            flus_alpha = compute_flu(ring, mol, Smo[0], flurefs, connectivity, partition=partition)
-            if flus_alpha is None:
-                print(" | Could not compute FLU")
-            else:
-                flus_beta = compute_flu(ring, mol, Smo[1], flurefs, connectivity, partition=partition)
-                if flurefs is not None:
-                    print(" | Using FLU references provided by the user")
-                else:
-                    print(" | Using the default FLU references")
-                print(" | Atoms  :   {}".format("  ".join(str(atom) for atom in connectivity)))
-                print(" |")
-                print(" | *** FLU_ALPHA ***")
-                print(" | FLU_aa       {} =  {:>.6f}".format(ring_index + 1, flus_alpha))
-                print(" |")
-                print(" | *** FLU_BETA ***")
-                print(" | FLU_bb       {} =  {:>.6f}".format(ring_index + 1, flus_beta))
-                print(" |")
-                print(" | *** FLU_TOTAL ***")
-                print(" | FLU          {} =  {:>.6f}".format(ring_index + 1, flus_alpha + flus_beta))
-        print(" ----------------------------------------------------------------------")
-
-        boas_alpha = compute_boa(ring, Smo[0])
-        boas_beta = compute_boa(ring, Smo[1])
-
-        print(" |")
-        print(" | *** BOA_ALPHA ***")
-        print(" | BOA_aa       {} =  {:>.6f}".format(ring_index + 1, boas_alpha[0]))
-        print(" | BOA_c_aa     {} =  {:>.6f}".format(ring_index + 1, boas_alpha[1]))
-        print(" |")
-        print(" | *** BOA_BETA ***")
-        print(" | BOA_bb       {} =  {:>.6f}".format(ring_index + 1, boas_beta[0]))
-        print(" | BOA_c_bb     {} =  {:>.6f}".format(ring_index + 1, boas_beta[1]))
-        print(" |")
-        print(" | *** BOA_TOTAL ***")
-        print(" | BOA          {} =  {:>.6f}".format(ring_index + 1, boas_alpha[0] + boas_beta[0]))
-        print(" | BOA_c        {} =  {:>.6f}".format(ring_index + 1, boas_alpha[1] + boas_beta[1]))
-        print(" ----------------------------------------------------------------------")
-
-        # Printing the PDI
-
-        if len(ring) != 6:
-            print(" |   PDI could not be calculated as the number of centers is not 6")
-
-        else:
-            pdis_alpha = compute_pdi(ring, Smo[0])
-            pdis_beta = compute_pdi(ring, Smo[1])
-            print(" |")
-            print(" | *** PDI_ALPHA ***")
-
-            print(" | DIaa ({:>2} -{:>2} )  =  {:.4f}".format(ring[0], ring[3], pdis_alpha[1][0]))
-            print(" | DIaa ({:>2} -{:>2} )  =  {:.4f}".format(ring[1], ring[4], pdis_alpha[1][1]))
-            print(" | DIaa ({:>2} -{:>2} )  =  {:.4f}".format(ring[2], ring[5], pdis_alpha[1][2]))
-            print(" | PDI_alpha     {} =  {:.4f} ".format(ring_index + 1, pdis_alpha[0]))
-            print(" |")
-            print(" | *** PDI_BETA ***")
-            print(" | DIbb ({:>2} -{:>2} )  =  {:.4f}".format(ring[0], ring[3], pdis_beta[1][0]))
-            print(" | DIbb ({:>2} -{:>2} )  =  {:.4f}".format(ring[1], ring[4], pdis_beta[1][1]))
-            print(" | DIbb ({:>2} -{:>2} )  =  {:.4f}".format(ring[2], ring[5], pdis_beta[1][2]))
-            print(" | PDI_beta      {} =  {:.4f} ".format(ring_index + 1, pdis_beta[0]))
-            print(" |")
-            print(" | *** PDI_TOTAL ***")
-            print(" | DI   ({:>2} -{:>2} )  =  {:.4f}".format(ring[0], ring[3], pdis_alpha[1][0] + pdis_beta[1][0]))
-            print(" | DI   ({:>2} -{:>2} )  =  {:.4f}".format(ring[1], ring[4], pdis_alpha[1][1] + pdis_beta[1][1]))
-            print(" | DI   ({:>2} -{:>2} )  =  {:.4f}".format(ring[2], ring[5], pdis_alpha[1][2] + pdis_beta[1][2]))
-            print(" | PDI           {} =  {:.4f} ".format(ring_index + 1, pdis_alpha[0] + pdis_beta[0]))
-            print(" ---------------------------------------------------------------------- ")
-
-        if av1245 == True:
-            if len(ring) < 6:
-                print(" | AV1245 could not be calculated as the number of centers is smaller than 6 ")
-
-            else:
-                avs_alpha = np.array(compute_av1245(ring, Smo[0], partition), dtype=object)
-                avs_beta = np.array(compute_av1245(ring, Smo[1], partition), dtype=object)
-
-                print(" |")
-                print(" | *** AV1245_ALPHA ***")
-                for j in range(len(ring)):
-                    print(" |   A {} -  A {} -  A {} -  A {}  |  {:>9.4f}".format(
-                        str(ring[j]).rjust(2), str(ring[(j + 1) % len(ring)]).rjust(2),
-                        str(ring[(j + 3) % len(ring)]).rjust(2), str(ring[(j + 4) % len(ring)]).rjust(2),
-                        np.array(avs_alpha[2][(ring[j] - 1) % len(ring)])))
-                print(" |   AV1245_alpha {} =             {:>9.4f}".format(ring_index + 1, avs_alpha[0]))
-                print(" |    AVmin_alpha {} =             {:>9.4f}".format(ring_index + 1, avs_alpha[1]))
-
-                print(" |")
-                print(" | *** AV1245_BETA ***")
-
-                for j in range(len(ring)):
-                    print(" |   A {} -  A {} -  A {} -  A {}  |  {:>9.4f}".format(
-                        str(ring[j]).rjust(2), str(ring[(j + 1) % len(ring)]).rjust(2),
-                        str(ring[(j + 3) % len(ring)]).rjust(2), str(ring[(j + 4) % len(ring)]).rjust(2),
-                        np.array(avs_beta[2][(ring[j] - 1) % len(ring)])))
-                print(" |   AV1245_beta  {} =             {:>9.4f}".format(ring_index + 1, avs_beta[0]))
-
-                print(" |")
-                print(" | *** AV1245_TOTAL ***")
-                print(" |   AV1245       {} =             {:>9.4f}".format(ring_index + 1, avs_alpha[0] + avs_beta[0]))
-                print(" |    AVmin       {} =             {:>9.4f}".format(ring_index + 1, avs_alpha[1] + avs_beta[1]))
-                print(" ---------------------------------------------------------------------- ")
-
-        iring_alpha = compute_iring(ring, Smo[0])
-        iring_beta = compute_iring(ring, Smo[1])
-        iring_total = iring_alpha + iring_beta
-
-        print(" | Iring_alpha  {} =  {:>6f}".format(ring_index + 1, iring_alpha))
-        print(" | Iring_beta   {} =  {:>6f}".format(ring_index + 1, iring_beta))
-        print(" | Iring        {} =  {:>6f}".format(ring_index + 1, iring_total))
-
-        if iring_total < 0:
-            print(" | Iring**(1/n) {} =  {:>6f}".format(ring_index + 1, -(np.abs(iring_total) ** (1 / len(ring)))))
-
-        else:
-            print(" | Iring**(1/n) {} =  {:>6f}".format(ring_index + 1, iring_total ** (1 / len(ring))))
-        print(" ---------------------------------------------------------------------- ")
-
-        if mci == True:
-            import time
-
-            # SINGLE-CORE
-            if ncores == 1:
-                if partition is None:
-                    print(" | Partition not specified. Will assume symmetric AOMs")
-                start_mci = time.time()
-                mci_alpha = sequential_mci(ring, Smo[0], partition)
-                mci_beta = sequential_mci(ring, Smo[1], partition)
-                end_mci = time.time()
-                mci_total = mci_alpha + mci_beta
-                time_mci = end_mci - start_mci
-                print(" | The MCI calculation using 1 core took {:.4f} seconds".format(time_mci))
-                print(" | MCI_alpha    {} =  {:>6f}".format(ring_index + 1, mci_alpha))
-                print(" | MCI_beta     {} =  {:>6f}".format(ring_index + 1, mci_beta))
-                print(" | MCI          {} =  {:>6f}".format(ring_index + 1, mci_total))
-
-            # MULTI-CORE
-            else:
-                if partition is None:
-                    print(" | Partition not specified. Will assume symmetric AOMs")
-                start_mci = time.time()
-                mci_alpha = multiprocessing_mci(ring, Smo[0], ncores, partition)
-                mci_beta = multiprocessing_mci(ring, Smo[1], ncores, partition)
-                mci_total = mci_alpha + mci_beta
-                end_mci = time.time()
-                time_mci = end_mci - start_mci
-                print(" | The MCI calculation using {} cores took {:.4f} seconds".format(ncores, time_mci))
-                print(" | MCI_alpha    {} =  {:>6f}".format(ring_index + 1, mci_alpha))
-                print(" | MCI_beta     {} =  {:>6f}".format(ring_index + 1, mci_beta))
-                print(" | MCI          {} =  {:>6f}".format(ring_index + 1, mci_total))
-
-            if mci_total < 0:
-                print(" | MCI**(1/n)   {} =  {:>6f}".format(ring_index + 1, -((np.abs(mci_total)) ** (1 / len(ring)))))
-
-            else:
-                print(" | MCI**(1/n)   {} =  {:>6f}".format(ring_index + 1, mci_total ** (1 / len(ring))))
-            print(" ---------------------------------------------------------------------- ")

@@ -24,14 +24,14 @@ mol.verbose = 0
 mol.max_memory = 4000
 mol.build()
 
-mf = dft.RKS(mol)
+mf = dft.UKS(mol)
 mf.kernel()
 
-ring = [1,2,3,4,5,6]
+ring = [[1,2,3,4,5,6], [7,3,1,2,6,10]]
 name = "example01"
 for part in ["mulliken", "lowdin", "meta_lowdin", "nao", "iao"]:
     aoms_name = name + '_' + part + '.aoms'
     molinfo_name = name + '_' + part + '.molinfo'
     arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, saveaoms=aoms_name, savemolinfo=molinfo_name, name=name)
-    arom.calc()
+    arom.print()
     arom.writeaoms()

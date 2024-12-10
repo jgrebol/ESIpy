@@ -1,6 +1,4 @@
 import numpy as np
-from os import environ
-
 from esipy.tools import format_partition
 
 def info_rest(Smo, molinfo):
@@ -87,7 +85,7 @@ def deloc_rest(Smo, molinfo):
     print(" ------------------------ ")
 
 
-def arom_rest(Smo, rings, molinfo, indicators, mci=False, av1245=False, flurefs=None, homarefs=None, homerrefs=None,
+def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None, homarefs=None, homerrefs=None,
               ncores=1):
     """Population analysis, localization and delocalization indices and aromaticity indicators
     for restricted AOMs.
@@ -135,12 +133,17 @@ def arom_rest(Smo, rings, molinfo, indicators, mci=False, av1245=False, flurefs=
     """
 
     print(" ----------------------------------------------------------------------")
-    print(" | Aromaticity indices - PDI [CEJ 9, 400 (2003)]     ")
-    print(" |                     Iring [PCCP 2, 3381 (2000)]   ")
-    print(" |                    AV1245 [PCCP 18, 11839 (2016)] ")
-    print(" |                    AVmin  [JPCC 121, 27118 (2017)]")
-    print(" |                           [PCCP 20, 2787 (2018)]  ")
-    print(" |  For a recent review see: [CSR 44, 6434 (2015)]   ")
+    print(" | Aromaticity indices - PDI [CEJ 9, 400 (2003)]           ")
+    print(" |                      HOMA [Tetrahedron 52, 10255 (1996)]")
+    print(" |                       FLU [JCP 122, 014109 (2005)]      ")
+    print(" |                     Iring [PCCP 2, 3381 (2000)]         ")
+    if mci is True:
+        print(" |                       MCI [JPOC 18, 706 (2005)]         ")
+    if av1245 is True:
+        print(" |                    AV1245 [PCCP 18, 11839 (2016)]       ")
+        print(" |                    AVmin  [JPCC 121, 27118 (2017)]      ")
+        print(" |                           [PCCP 20, 2787 (2018)]        ")
+    print(" |  For a recent review see: [CSR 44, 6434 (2015)]         ")
     print(" ----------------------------------------------------------------------")
 
     # Checking where to read the atomic symbols from
@@ -166,27 +169,25 @@ def arom_rest(Smo, rings, molinfo, indicators, mci=False, av1245=False, flurefs=
             print(" | Using HOMA references provided by the user")
         else:
             print(" | Using default HOMA references")
-        homa = indicators.homa
+        homa = indicators[ring_index].homa
         if homa is None:
             print(" | Connectivity could not match parameters")
         else:
-            print(" | EN           {} =  {:>.6f}".format(ring_index + 1, indicators.en))
-            print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, indicators.geo))
-            print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, indicators.homa))
-            print(" | ")
+            print(" | EN           {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].en))
+            print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].geo))
+            print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homa))
 
         if homerrefs:
+            print(" | ")
             print(" | Found custom HOMER references 'alpha' and 'r_opt'. Computing")
-            print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators.homer))
+            print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homer))
         print(" ----------------------------------------------------------------------")
 
-        print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, indicators.bla))
-        print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, indicators.bla_c))
-        print(" ----------------------------------------------------------------------")
+        print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].bla))
+        print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].bla_c))
 
-        print(" ----------------------------------------------------------------------")
 
-        flu = indicators.flu
+        flu = indicators[ring_index].flu
         if flu is None:
             print(" | Could not compute FLU")
         else:
@@ -194,13 +195,14 @@ def arom_rest(Smo, rings, molinfo, indicators, mci=False, av1245=False, flurefs=
                 print(" | Using FLU references provided by the user")
             else:
                 print(" | Using the default FLU references")
+            print(" ----------------------------------------------------------------------")
             print(" | Atoms  :   {}".format("  ".join(str(atom) for atom in connectivity)))
             print(" |")
             print(" | FLU          {} =  {:>.6f}".format(ring_index + 1, flu))
-            print(" ----------------------------------------------------------------------")
+        print(" ----------------------------------------------------------------------")
 
-        print(" | BOA          {} =  {:>.6f}".format(ring_index + 1, indicators.boa))
-        print(" | BOA_cc       {} =  {:>.6f}".format(ring_index + 1, indicators.boa_c))
+        print(" | BOA          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].boa))
+        print(" | BOA_cc       {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].boa_c))
         print(" ----------------------------------------------------------------------")
 
         # Checking the length of the ring. PDI only computed for len(ring)=6.
@@ -208,12 +210,11 @@ def arom_rest(Smo, rings, molinfo, indicators, mci=False, av1245=False, flurefs=
             print(" |   PDI could not be calculated as the number of centers is not 6")
 
         else:
-            pdi_list = indicators.pdi_list
+            pdi_list = indicators[ring_index].pdi_list
             print(" | DI ({:>2} -{:>2} )   =  {:.4f}".format(ring[0], ring[3], pdi_list[0]))
             print(" | DI ({:>2} -{:>2} )   =  {:.4f}".format(ring[1], ring[4], pdi_list[1]))
             print(" | DI ({:>2} -{:>2} )   =  {:.4f}".format(ring[2], ring[5], pdi_list[2]))
-            print(" | PDI          {} =  {:.4f} ".format(ring_index + 1, indicators.pdi))
-        print(" ----------------------------------------------------------------------")
+            print(" | PDI          {} =  {:.4f} ".format(ring_index + 1, indicators[ring_index].pdi))
         print(" ----------------------------------------------------------------------")
 
         if av1245 == True:
@@ -221,7 +222,7 @@ def arom_rest(Smo, rings, molinfo, indicators, mci=False, av1245=False, flurefs=
                 print(" | AV1245 could not be calculated as the number of centers is smaller than 6 ")
 
             else:
-                av1245_list = indicators.av1245_list
+                av1245_list = indicators[ring_index].av1245_list
                 av1245_pairs = [(ring[i % len(ring)], ring[(i + 1) % len(ring)], ring[(i + 3) % len(ring)],
                                  ring[(i + 4) % len(ring)])
                                 for i in range(len(ring))]
@@ -232,12 +233,12 @@ def arom_rest(Smo, rings, molinfo, indicators, mci=False, av1245=False, flurefs=
                         str(ring[(j + 1) % len(ring)]).rjust(2), symbols[av1245_pairs[j][1] - 1].ljust(2),
                         str(ring[(j + 3) % len(ring)]).rjust(2), symbols[av1245_pairs[j][2] - 1].ljust(2),
                         str(ring[(j + 4) % len(ring)]).rjust(2), symbols[av1245_pairs[j][3] - 1].ljust(2),
-                        indicators.av1245_list[(ring[j]-1)%len(ring)]))
-                print(" | AV1245 {} =             {:.4f}".format(ring_index + 1, indicators.av1245))
-                print(" |  AVmin {} =             {:.4f}".format(ring_index + 1, indicators.avmin))
+                        av1245_list[(ring[j]-1)%len(ring)]))
+                print(" | AV1245 {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].av1245))
+                print(" |  AVmin {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].avmin))
                 print(" ---------------------------------------------------------------------- ")
 
-        iring_total = indicators.iring
+        iring_total = indicators[ring_index].iring
         print(" | Iring        {} =  {:>.6f}".format(ring_index + 1, iring_total))
 
         if iring_total < 0:
@@ -256,7 +257,7 @@ def arom_rest(Smo, rings, molinfo, indicators, mci=False, av1245=False, flurefs=
                 if partition is None:
                     print(" | Partition not specified. Will assume symmetric AOMs")
                 start_mci = time.time()
-                mci_total = indicators.mci
+                mci_total = indicators[ring_index].mci
                 end_mci = time.time()
                 time_mci = end_mci - start_mci
 
@@ -266,7 +267,7 @@ def arom_rest(Smo, rings, molinfo, indicators, mci=False, av1245=False, flurefs=
             # MULTI-CORE
             else:
                 start_mci = time.time()
-                mci_total = indicators.mci
+                mci_total = indicators[ring_index].mci
                 end_mci = time.time()
                 time_mci = end_mci - start_mci
 

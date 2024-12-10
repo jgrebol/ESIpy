@@ -10,6 +10,7 @@ homerref = {'CC': {'r_opt': 1.388, 'alpha': 257.7}}
 connectivity = ['C', 'C','C','C','C','C']
 ring = [1,2,3,4,5,6]
 partition = 'nao'
+
 # The geometry can be directly extracted from the mol.atom_coords() method
 geom = [[-2.58138047, -1.26965218, -5.69564833],
  [-4.98179941, -2.68686741, -5.69564833],
@@ -26,6 +27,6 @@ geom = [[-2.58138047, -1.26965218, -5.69564833],
 molinfo = 'example01_nao.molinfo'
 Smo = 'example01_nao.aoms'
 
-esipy.ESI(Smo=Smo, molinfo=molinfo, rings=ring, partition=partition, homerrefs=homerref, connectivity=connectivity, geom=geom).calc()
+esipy.ESI(Smo=Smo, molinfo=molinfo, rings=ring, partition=partition, homerrefs=homerref, connectivity=connectivity, geom=geom).print()
 
 
