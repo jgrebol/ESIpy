@@ -1,14 +1,14 @@
 <p align="center"><img width="40.0%" src="https://github.com/jgrebol/ESIpy/blob/main/logoesipy.png"></p>
 
-The ESIpy program is aimed at the calculation of population analysis and aromaticity indicators from different Hilbert-space partitions using the PySCF module. The program supports both restricted and unrestricted calculations for single-determinant wave functions. The atomic partitions supported by the program are Mulliken, Löwdin, meta-Löwdin, Natural Atomic Orbitals (NAO), and Intrinsic Atomic Orbita (IAO).
+The ESIpy program is aimed at the calculation of population analysis and aromaticity indicators from different Hilbert-space partitions using the PySCF module. The program supports both restricted and unrestricted calculations for single-determinant wavefunctions, and correlated wavefunctions from a restricted object (RHF). The atomic partitions supported by the program are Mulliken, Löwdin, meta-Löwdin, Natural Atomic Orbitals (NAO), and Intrinsic Atomic Orbita (IAO).
 
 ## Citation
 
 All the calculations performed for the creation and implementation of this program have been conducted in the following scientific paper:
 
-**Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador, Chem. Eur. J. 2024, e202401282.**
+**Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador, Chem. Eur. J. 2024, 30, e202401282.**
 
-Also, find it on-line [here](https://chemistry-europe.onlinelibrary.wiley.com/doi/10.1002/chem.202401282?af=R). Please if you are publishing the results obtained from ESIpy remember to cite the program. The code is licensed under the GNU GPLv3. See the [LICENSE](LICENSE) file for details. See the [examples/README.md](examples/README.md) file for details on how to use the program. If you encounter any bugs, please feel free to report them on the [Issues page](https://github.com/jgrebol/ESIpy/issues), or send a mail to [joangrebol@gmail.com](mailto:joangrebol@gmail.com).
+Also, find it on-line [here](https://chemistry-europe.onlinelibrary.wiley.com/doi/10.1002/chem.202401282?af=R). If you are publishing the results obtained from ESIpy remember to cite the program. The code is licensed under the GNU GPLv3. See the [LICENSE](LICENSE) file for details. See the [examples/README.md](examples/README.md) file for details on how to use the program. If you encounter any bugs, please feel free to report them on the [Issues page](https://github.com/jgrebol/ESIpy/issues), or send a mail to [joan.grebol@dipc.org](mailto:joan.grebol@dipc.org).
 
 ## Theoretical background
 
@@ -113,10 +113,9 @@ This new definition can indeed be used for closed rings, but produces numbers th
 
 ## Features
 The object esipy.ESI() needs to be initialized with the attribute `rings` and the AOMs (the variable `Smo` or, otherwise, the `mol`, `mf` and `partition` variables to construct them. See the **Variable scope** section for more information). Further customization is also available.
-- `ESI.aoms()`: Will build the AOMs and store them in the **ESI.Smo** variable. From PySCF's `mol` and `mf` objects and `partition` as a string containing the desired partition (`mulliken`, `lowdin`, `meta_lowdin`, `nao`, `iao`), generate a list of matrices containing the Atomic Overlap Matrices (AOMs). The variable `save` is a string containing the name of the file where to save the AOMs, which will have the `.aoms` extension.
-- `ESI.calc()`: Compute population analyses, delocalization analyses, and aromaticity indicators from the AOMs (variable Smo). Only the AOMs, `Smo`, and the ring connectivities, `rings`, are required for the calculation. Any other information will complement the calculation, although it is highly recommended to provide the `mol` and `mf` objects. See **Variable scope** for more information. Multi-core processing for the MCI calculation is supported by setting `ncores` at a number of cores different than 1, albeit the speed-up is non-linear.
-- Sole functions to compute each of the aromaticity indicators (I<sub>ring</sub>, MCI, AV1245, PDI, BOA, FLU, HOMA, HOMER and BLA), see [examples/example06.py](examples/example06.py`).
-- `ESI.fromfile(act)`: To read the matrices from ESIpy or AIMAll (`act='r'`) or to write the AOMs into AIMAll format (`act='w'`). If read, the variable `ESI.Smo` will contain the aforementioned matrices. The path of the folder to read can be specified in `ESI.readpath`.
+- `ESI.print()`: Compute population analyses, delocalization analyses, and aromaticity indicators from the AOMs (variable Smo). Only the AOMs, `Smo`, and the ring connectivities, `rings`, are required for the calculation. Any other information will complement the calculation, although it is highly recommended to provide the `mol` and `mf` objects. See **Variable scope** for more information. Multi-core processing for the MCI calculation is supported by setting `ncores` at a number of cores different than 1, albeit the speed-up is non-linear.
+- `ESI.readaoms()`: To read the matrices from ESIpy or AIMAll. If read, the variable `ESI.Smo` will contain the aforementioned matrices. The path of the folder to read can be specified in `ESI.readpath`.
+- `ESI.writeaoms()`: To write the matrices in the AIMAll format. The directory with the information will be located in the working directory.
 
 ## Installation
 ESIpy can be installed through:
@@ -148,17 +147,14 @@ For a detailed explanation on how to run the code and how to customize it, pleas
 - ```ncores```: Integer. Sets the number of cores desired for the calculation of the MCI. By default, 1.
 - ```saveaoms```: String. Sets the name where to save the AOMs in binary. Recommended `.aoms` extension. By default, None.
 - ```savemolinfo```: String. Sets the name where to save the dictionary with the molecular information in binary. Recommended `.molinfo` extension. By default, None.
-- ```readsource```: String. The directory from which the `.int` files must be read. By default, 'aimall'.
 - ```readpath```: String. Path where the `\_atomicfiles` directory is located. By default, will search for the working directory.
 
 ## Methods scope
-- ```calc()```: Main ESIpy program. It will compute atomic populations, electron delocalization measures and electronic aromaticity indicators, based on the `Smo` and `rings` attributes. If `Smo` is not provided, it will be generated automatically from the `mol` and `mf` attributes, coming directly from PySCF.
-- ```aoms()```: Generates the AOMs in the MO basis. It will update the `Smo` attribute when called.
-- ```readaoms()```: It will read the AOMs from some `.int` files. Requires setting the `readsource` and `readpath` variables, although default options are `aimall` and the working directory, respectively.
+- ```print()```: Main ESIpy program. It will compute atomic populations, electron delocalization measures and electronic aromaticity indicators, based on the `Smo` and `rings` attributes. If `Smo` is not provided, it will be generated automatically from the `mol` and `mf` attributes, coming directly from PySCF.
+- ```readaoms()```: It will read the AOMs from some `.int` files. Requires setting `readpath` variable. By default, the working directory.
 - ```writeaoms()```: Will write the AOMs in an analogue format to that of AIMAll. These files can be read with ESI-3D (version from 15 November 2024).
 
 ## Further work
-- Implementation for correlated wavefunctions.
 - Approximations for the MCI calculation in large systems.
 - Read the AOMs (or the data required for their calculation) from other source programs and store them as ESIpy `Smo`.
 - Calculation of aromaticity indicators from defined fragments.
