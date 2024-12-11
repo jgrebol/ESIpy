@@ -184,6 +184,7 @@ class IndicatorsRest:
         Returns:
             float: The BOA_c value.
         """
+        return 2 * self._boa()[1]
 
 
     @property
