@@ -2,6 +2,12 @@ import numpy as np
 from esipy.tools import format_partition
 
 def info_rest(Smo, molinfo):
+    """
+    Print the information of the molecule and the calculation.
+    Args:
+        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
+        molinfo: Information about the molecule and the calculation.
+    """
     partition = format_partition(molinfo["partition"])
 
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
@@ -27,17 +33,10 @@ def info_rest(Smo, molinfo):
     print(" ------------------------------------------- ")
 
 def deloc_rest(Smo, molinfo):
-    """Population analysis, localization and delocalization indices for restricted AOMs.
-
-    Arguments:
-        Smo (list of matrices):
-            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-
-        mol (SCF instance, optional, default: None):
-            PySCF's Mole class and helper functions to handle parameters and attributes for GTO integrals.
-
-        molinfo (dict, optional, default: None):
-            Contains molecule and calculation details from the 'molinfo()' method inside ESI.
+    """Population analysis, localization and delocalization indices for restricted, single-determinant calculations.
+    Args:
+        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
+        molinfo: Information about the molecule and the calculation.
     """
 
     # Checking where to read the atomic symbols from
@@ -87,49 +86,18 @@ def deloc_rest(Smo, molinfo):
 
 def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None, homarefs=None, homerrefs=None,
               ncores=1):
-    """Population analysis, localization and delocalization indices and aromaticity indicators
-    for restricted AOMs.
-
-    Arguments:
-        Smo (list of matrices or str):
-            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-
-        rings (list or list of lists of int):
-            Contains the indices defining the ring connectivity of a system. Can contain several rings as a list of lists.
-
-        partition (str):
-            Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
-
-        mol (SCF instance):
-            PySCF's Mole class and helper functions to handle parameters and attributes for GTO integrals.
-
-        mci (bool, optional, default: False):
-            If `True`, the function computes the MCI index.
-
-        av1245 (bool, optional, default: False):
-            If `True`, the function computes the AV1245 (and AVmin) indices.
-
-        flurefs (dict, optional, default: None):
-            User-provided references for Delocalization Indices used in the FLU index calculation.
-
-        homarefs (dict, optional, default: None):
-            User-provided references for the HOMA index. Required data as in [Krygowski, et al. Chem. Rev. 114 6383-6422 (2014)].
-
-        homerrefs (dict, optional, default: None):
-            User-provided references for optimal distance and polarizability in HOMA or HOMER indices.
-
-        connectivity (list of int, optional, default: None):
-            List of atomic symbols in the order they appear in `mol`, representing ring connectivity.
-
-        geom (list of floats, optional, default: None):
-            Molecular coordinates, typically obtained from `mol.atom_coords()`.
-
-        molinfo (dict or str, optional, default: None):
-            Contains molecule and calculation details from the 'molinfo()' method inside ESI.
-
-        ncores (int, optional, default: 1):
-            Specifies the number of cores for multi-processing MCI calculation.
-
+    """
+    Output for the aromaticity indices for restricted, single-determinant calculations.
+    Args:
+        rings: List of the atoms in the rings.
+        molinfo: Information about the molecule and the calculation.
+        indicators: Class containing the indicators for each ring.
+        mci: Boolean to compute the MCI.
+        av1245: Boolean to compute the AV1245.
+        flurefs: Dictionary with custom references for the FLU.
+        homarefs: Dictionary with custom references for the HOMA.
+        homerrefs: Dictionary with custom references for the HOMER.
+        ncores: Number of cores to use for the MCI calculation. By default, 1.
     """
 
     print(" ----------------------------------------------------------------------")

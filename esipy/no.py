@@ -2,6 +2,13 @@ import numpy as np
 from esipy.tools import format_partition
 
 def info_no(Smo, molinfo):
+    """Prints the initial information for Natural Orbitals calculations.
+    Args:
+        Smo: list of matrices or string
+            Atomic Overlap Matrices (AOMs) in the MO basis.
+        molinfo: dictionary
+            Contains the information about the molecule and the calculation.
+    """
 
     Smo, occ = Smo
     partition = format_partition(molinfo["partition"])
@@ -28,17 +35,12 @@ def info_no(Smo, molinfo):
     print(" ------------------------------------------- ")
 
 def deloc_no(Smo, molinfo):
-    """Population analysis, localization and delocalization indices for restricted AOMs.
-
-    Arguments:
-
-       mol: an instance of SCF class
-          Mole class and helper functions to handle parameters and attributes for GTO integrals.
-
-       Smo: list of matrices or string
-          Atomic Overlap Matrices (AOMs) in the MO basis generated from the make_aoms() function.
-          Can also be a string with the name of the file or the path where the AOMS have been saved.
-
+    """Population analysis, localization and delocalization indices for Natural Orbitals calculations.
+    Args:
+        Smo: list of matrices
+            Atomic Overlap Matrices (AOMs) in the MO basis.
+        molinfo: dictionary
+            Contains the information about the molecule and the calculation.
     """
 
     Smo, occ = Smo
@@ -95,47 +97,29 @@ def deloc_no(Smo, molinfo):
 
 def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None, flurefs=None, homarefs=None, homerrefs=None,
               ncores=1):
-    """Population analysis, localization and delocalization indices and aromaticity indicators
-    for restricted AOMs.
-
-    Arguments:
-
-       Smo: list of matrices / string
-          Atomic Overlap Matrices (AOMs) in the MO basis generated from the make_aoms() function.
-          Can also be a string with the name of the file or the path where the AOMS have been saved.
-
-       rings: list
-          Contains a list of the indices of the atoms in the ring connectivity for the aromaticity calculations.
-
-       partition: string. Default: None
-          Type of desired atom-in-molecule partition scheme. Options are 'mulliken', lowdin', 'meta_lowdin', 'nao' and 'iao'.
-
-       mol: an instance of SCF class. Default: None
-          Mole class and helper functions to handle parameters and attributes for GTO integrals.
-
-       mci: boolean. Default: None
-          Whether to compute the MCI index.
-
-       av1245: boolean. Default: None
-          Whether to compute the AV1245 (and AVmin) indices.
-
-       flurefs: dictionary. Default: None
-          User-provided references for the Delocalization Indices for the FLU index.
-
-       homarefs: dictionary. Default: None
-          User-provided references for the distance and polarizability for the HOMA or HOMER indices.
-
-       homerrefs: dictionary. Default: None
-          User-provided references for the optimal distance and polarizability for the HOMA or HOMER indices.
-
-       connectivity: list. Default: None
-          The atomic symbols of the atoms in the ring in 'mol' order.
-
-       geom: list. Default: None
-          The molecular coordinates as given by the mol.atom_coords() function.
-
-       ncores: integer
-          Number of threads required for the calculation.
+    """
+    Output for the aromaticity indices for Natural Orbitals calculations. Will use Fulton's approximation.
+    Args:
+        rings: list of lists
+            Contains the indices of the atoms in the rings.
+        molinfo: dictionary
+            Contains the information about the molecule and the calculation.
+        indicators: class
+            Contains the aromaticity indicators.
+        mci: boolean
+            If True, the MCI is computed.
+        av1245: boolean
+            If True, the AV1245 is computed.
+        partition: string
+            Contains the name of the partition.
+        flurefs: dictionary
+            Contains the custom references for the FLU aromaticity index.
+        homarefs: dictionary
+            Contains the custom references for the HOMA aromaticity index.
+        homerrefs: dictionary
+            Contains the custom references for the HOMER aromaticity index.
+        ncores: integer
+            Number of cores to use in the MCI calculation. By default, 1.
     """
 
     print(" | Fulton index used for the calculation of aromaticity indicators     ")

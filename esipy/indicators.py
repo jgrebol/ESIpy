@@ -6,17 +6,16 @@ from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_d
 # Computing the Iring (Restricted and Unrestricted)
 
 def compute_iring(arr, Smo):
-    """Calculation of the Iring aromaticity index.
-
-    Arguments:
-        arr (list of int):
-            Contains the indices defining the ring connectivity of a system.
-
-        Smo (list of matrices):
+    """
+    Calculation of the Iring aromaticity index.
+    Args:
+        arr: list of int
+            Contains the indices defining the ring connectivity.
+        Smo: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
     Returns:
-       float
-          The Iring for the given ring connectivity.
+        float
+            The Iring for the given ring connectivity.
     """
 
     product = np.identity(Smo[0].shape[0])
@@ -27,17 +26,16 @@ def compute_iring(arr, Smo):
     return iring
 
 def compute_iring_no(arr, Smo):
-    """Calculation of the Iring aromaticity index for Natural Orbitals calculations.
-
-    Arguments:
-        arr (list of int):
-            Contains the indices defining the ring connectivity of a system.
-
-        Smo (list of matrices):
+    """
+    Calculation of the Iring aromaticity index for Natural Orbital calculations.
+    Args:
+        arr: list of int
+            Contains the indices defining the ring connectivity.
+        Smo: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
     Returns:
-       float
-          The Iring for the given ring connectivity.
+        float
+            The Iring for the given ring connectivity.
     """
 
     Smo, occ = Smo
@@ -52,18 +50,17 @@ def sequential_mci(arr, Smo, partition):
     """Computes the MCI sequentially by computing the Iring without storing the permutations.
     Default option if no number of cores is specified.
 
-    Arguments:
-        arr (list of int):
-            Contains the indices defining the ring connectivity of a system.
-
-        Smo (list of matrices):
+    Args:
+        arr: list of int
+            Contains the indices defining the ring connectivity.
+        Smo: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-
-        partition (str):
-            Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
+        partition: str
+            Specifies the atom-in-molecule partition scheme.
+            Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
     Returns:
-       float
-          MCI value for the given ring.
+        float
+            MCI value for the given ring.
     """
 
     from math import factorial
@@ -80,19 +77,17 @@ def sequential_mci(arr, Smo, partition):
 def sequential_mci_no(arr, Smo, partition):
     """Computes the MCI sequentially for a Natural Orbitals calculation by computing the Iring
     without storing the permutations. Default option if no number of cores is specified.
-
-    Arguments:
-        arr (list of int):
-            Contains the indices defining the ring connectivity of a system.
-
-        Smo (list of matrices):
+    Args:
+        arr: list of int
+            Contains the indices defining the ring connectivity.
+        Smo: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-
-        partition (str):
-            Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
+        partition: str
+            Specifies the atom-in-molecule partition scheme.
+            Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
     Returns:
-       float
-          MCI value for the given ring.
+        float
+            MCI value for the given ring.
     """
 
     from math import factorial
@@ -107,24 +102,21 @@ def sequential_mci_no(arr, Smo, partition):
         return sum(compute_iring_no(p, Smo) for p in iterable2)
 
 def multiprocessing_mci(arr, Smo, ncores, partition):
-    """Computes the MCI split in different threads by generating all the permutations
+    """Computes the MCI by generating all the permutations
     for a later distribution along the specified number of cores.
-
-    Arguments:
-        arr (list of int):
-            Contains the indices defining the ring connectivity of a system.
-
-        Smo (list of matrices):
+    Args:
+        arr: list of int
+            Contains the indices defining the ring connectivity.
+        Smo: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-
-        ncores (int):
+        ncores: int
             Specifies the number of cores for multi-processing MCI calculation.
-
-        partition (str):
-            Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
+        partition: str
+            Specifies the atom-in-molecule partition scheme.
+            Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
     Returns:
-       float
-          MCI value for the given ring.
+        float
+            MCI value for the given ring.
     """
 
     from multiprocessing import Pool
@@ -147,22 +139,19 @@ def multiprocessing_mci(arr, Smo, ncores, partition):
 def multiprocessing_mci_no(arr, Smo, ncores, partition):
     """Computes the MCI from a Natural Orbitals calculation by generating all the permutations
     for a later distribution along the specified number of cores.
-
-    Arguments:
-        arr (list of int):
-            Contains the indices defining the ring connectivity of a system.
-
-        Smo (list of matrices):
+    Args:
+        arr: list of int
+            Contains the indices defining the ring connectivity.
+        Smo: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-
-        ncores (int):
+        ncores: int
             Specifies the number of cores for multi-processing MCI calculation.
-
-        partition (str):
-            Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
+        partition: str
+            Specifies the atom-in-molecule partition scheme.
+            Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
     Returns:
-       float
-          MCI value for the given ring.
+        float
+            MCI value for the given ring.
     """
 
     from multiprocessing import Pool
@@ -188,20 +177,20 @@ def multiprocessing_mci_no(arr, Smo, ncores, partition):
 
 def compute_av1245(arr, Smo, partition):
     """Computes the AV1245 and AVmin indices. Not available for rings smaller than 6 members.
-
-    Arguments:
-        arr (list of int):
-            Contains the indices defining the ring connectivity of a system.
-
-        Smo (list of matrices):
+    Args:
+        arr: list of int
+            Contains the indices defining the ring connectivity.
+        Smo: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
+        partition: str
+            Specifies the atom-in-molecule partition scheme.
+            Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
     Returns:
         tuple
             The AV1245 index, the AVmin index and each of the AV1245 in a list for the output, respectively.
     """
 
     products = []
-
     for cp in av1245_pairs(arr):
         product = sequential_mci(list(cp), Smo, partition)
         products.append(1000 * product / 3)
@@ -213,27 +202,20 @@ def compute_av1245(arr, Smo, partition):
 
 def compute_av1245_no(arr, Smo, partition):
     """Computes the AV1245 and AVmin indices. Not available for rings smaller than 6 members.
-
-    Arguments:
-        arr (list of int):
-            Contains the indices defining the ring connectivity of a system.
-
-        Smo (list of matrices):
+    Args:
+        arr: list of int
+            Contains the indices defining the ring connectivity.
+        Smo: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-
-        partition (str):
-            Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
+        partition: str
+            Specifies the atom-in-molecule partition scheme.
+            Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
     Returns:
         tuple
             The AV1245 index, the AVmin index and each of the AV1245 in a list for the output, respectively.
     """
 
-    def av1245_pairs(arr):
-        return [(arr[i % len(arr)], arr[(i + 1) % len(arr)], arr[(i + 3) % len(arr)], arr[(i + 4) % len(arr)])
-                for i in range(len(arr))]
-
     products = []
-
     for cp in av1245_pairs(arr):
         product = sequential_mci_no(list(cp), Smo, partition)
         products.append(1000 * product / 3)
@@ -249,17 +231,14 @@ def compute_av1245_no(arr, Smo, partition):
 
 def compute_pdi(arr, Smo):
     """Computes the PDI for the given 6-membered ring connectivity. Only computed for rings n=6.
-
-    Arguments:
-        arr (list of int):
+    Args:
+        arr: list of int
             Contains the indices defining the ring connectivity of a system.
-
-        Smo (list of matrices):
+        Smo: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-
     Returns:
-       tuple
-          The list contains the PDI value and each of the DIs in para position.
+        tuple
+            The list contains the PDI value and each of the DIs in para position.
     """
 
     if len(arr) == 6:
@@ -275,17 +254,14 @@ def compute_pdi(arr, Smo):
 
 def compute_pdi_no(arr, Smo):
     """Computes the PDI for the given 6-membered ring connectivity. Only computed for rings n=6.
-
-    Arguments:
-        arr (list of int):
+    Args:
+        arr: list of int
             Contains the indices defining the ring connectivity of a system.
-
-        Smo (list of matrices):
+        Smo: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-
     Returns:
-       tuple
-          The list contains the PDI value and each of the DIs in para position.
+        tuple
+            The list contains the PDI value and each of the DIs in para position.
     """
     Smo, occ = Smo
 
@@ -315,7 +291,8 @@ def find_flurefs(partition=None):
 
     Arguments:
         partition (str):
-            Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
+            Specifies the atom-in-molecule partition scheme.
+            Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
 
     Returns:
        dict
@@ -343,28 +320,18 @@ def find_flurefs(partition=None):
 
 def compute_flu(arr, molinfo, Smo, flurefs=None, partition=None):
     """Computes the FLU index.
-
-    Arguments:
-        arr (list of int):
-            Contains the indices defining the ring connectivity of a system.
-
-        mol (SCF instance, optional, default: None):
-            PySCF's Mole class and helper functions to handle parameters and attributes for GTO integrals.
-
-        Smo (list of matrices or str):
-            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis. This can either be a list of matrices generated from the `make_aoms()` function or a string with the filename/path where the AOMs are saved.
-
-        flurefs (dict, optional, default: None):
-            User-provided references for Delocalization Indices used in the FLU index calculation.
-
-        connectivity (list of int, optional, default: None):
-            List of atomic symbols in the order they appear in `mol`, representing ring connectivity.
-
-        partition (str):
-            Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
-    Returns:
-       float
-          Value of the FLU index.
+    Args:
+        arr: list of int
+            Contains the indices defining the ring connectivity.
+        molinfo: dictionary
+            Contains the molecular information.
+        Smo: list of matrices
+            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
+        flurefs: dict, optional, default: None
+            User-provided references for the FLU index.
+        partition: str, optional, default: None
+            Specifies the atom-in-molecule partition scheme.
+            Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
     """
     flu_value, flu_polar = 0, 0
     symbols = molinfo["symbols"]
@@ -402,16 +369,14 @@ def compute_flu(arr, molinfo, Smo, flurefs=None, partition=None):
 
 def compute_boa(arr, Smo):
     """Computes the BOA and BOA_c indices.
-
-    Arguments:
-        arr (list of int):
-            Contains the indices defining the ring connectivity of a system.
-
-        Smo (list of matrices):
+    Args:
+        arr: list of int
+            Contains the indices defining the ring connectivity.
+        Smo: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
     Returns:
-       tuple
-          Contains the BOA and the BOA_c indices, respectively.
+        tuple
+            Contains the BOA and the BOA_c indices, respectively.
     """
 
     n1 = len([i for i in arr if i % 2 != 0])
@@ -429,17 +394,15 @@ def compute_boa(arr, Smo):
     return boa, boa_c
 
 def compute_boa_no(arr, Smo):
-    """Computes the BOA and BOA_c indices.
-
-    Arguments:
-        arr (list of int):
-            Contains the indices defining the ring connectivity of a system.
-
-        Smo (list of matrices):
+    """Computes the BOA and BOA_c indices for Natural Orbitals calculations.
+    Args:
+        arr: list of int
+            Contains the indices defining the ring connectivity.
+        Smo: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
     Returns:
-       tuple
-          Contains the BOA and the BOA_c indices, respectively.
+        tuple
+            Contains the BOA and the BOA_c indices, respectively.
     """
 
     n1 = len([i for i in arr if i % 2 != 0])
@@ -462,25 +425,16 @@ def compute_boa_no(arr, Smo):
 
 def compute_homer(arr, molinfo, homerrefs=None):
     """Computes the HOMER index.
-
-    Arguments:
-        arr (list of int):
-            Contains the indices defining the ring connectivity of a system.
-
-        mol (SCF instance):
-            PySCF's Mole class and helper functions to handle parameters and attributes for GTO integrals.
-
-        geom (list of floats, optional, default: None):
-            Molecular coordinates, typically obtained from `mol.atom_coords()`.
-
-        homerrefs (dict, optional, default: None):
-            User-provided references for optimal distance and polarizability in HOMA or HOMER indices.
-
-        connectivity (list of int, optional, default: None):
-            List of atomic symbols in the order they appear in `mol`, representing ring connectivity.
+    Args:
+        arr: list of int
+            Contains the indices defining the ring connectivity.
+        molinfo: dictionary
+            Contains the molecular information.
+        homerrefs: dict, optional, default: None
+            User-provided references for the HOMER index.
     Returns:
         float
-          The HOMER value.
+            HOMER value for the given ring connectivity.
     """
 
     geom = molinfo["geom"]
@@ -514,25 +468,16 @@ def compute_homer(arr, molinfo, homerrefs=None):
 
 def compute_homa(arr, molinfo, homarefs=None):
     """Computes the HOMA index.
-
-    Arguments:
-        arr (list of int):
-            Contains the indices defining the ring connectivity of a system.
-
-        mol (SCF instance):
-            PySCF's Mole class and helper functions to handle parameters and attributes for GTO integrals.
-
-        geom (list of floats, optional, default: None):
-            Molecular coordinates, typically obtained from `mol.atom_coords()`.
-
-        homarefs (dict, optional, default: None):
-            User-provided references for the HOMA index. Required data as in [Krygowski, et al. Chem. Rev. 114 6383-6422 (2014)].
-
-        connectivity (list of int, optional, default: None):
-            List of atomic symbols in the order they appear in `mol`, representing ring connectivity.
+    Args:
+        arr: list of int
+            Contains the indices defining the ring connectivity.
+        molinfo: dictionary
+            Contains the molecular information.
+        homarefs: dict, optional, default: None
+            User-provided references for the HOMA index.
     Returns:
-       tuple
-          Contains the HOMA value as well as the EN and GEO components.
+        float
+            HOMA value for the given ring connectivity.
     """
 
     refs = {
@@ -595,19 +540,14 @@ def compute_homa(arr, molinfo, homarefs=None):
 
 def compute_bla(arr, molinfo):
     """Computes the BLA and BLA_c indices.
-
-    Arguments:
-        rings (list of int):
-            Contains the indices defining the ring connectivity of a system.
-
-        mol (SCF instance, optional, default: None):
-            PySCF's Mole class and helper functions to handle parameters and attributes for GTO integrals.
-
-        geom (list of floats, optional, default: None):
-            Molecular coordinates, typically obtained from `mol.atom_coords()`.
+    Args:
+        arr: list of int
+            Contains the indices defining the ring connectivity.
+        molinfo: dictionary
+            Contains the molecular information.
     Returns:
-       tuple
-          Contains the BLA and the BLA_c indices, respectively.
+        tuple
+            Contains the BLA and the BLA_c indices, respectively.
     """
 
     distances = find_distances(arr, molinfo["geom"])
