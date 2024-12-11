@@ -5,26 +5,18 @@ from esipy.tools import save_file, format_partition, get_natorbs, build_eta
 
 
 def make_aoms(mol, mf, partition, myhf=None, save=None):
-    """Build the Atomic Overlap Matrices (AOMs) in the Molecular Orbitals basis.
-
-    Arguments:
-        mol (SCF instance):
-            PySCF's Mole class and helper functions to handle parameters and attributes for GTO integrals.
-
-        mf (SCF instance):
-            PySCF's object holds all parameters to control SCF.
-
-        partition (str):
-            Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
-
-       save (str, optional, default: None):
-          Sets the name of the binary file **without extension** to be stored in disk. Extension '.aoms' will be used.
-
+    """Build the Atomic Overlap Matrices (AOMs) in the Molecular Orbitals basis. If using Natural Orbitals,
+    the HF instance is required as the reference to build the IAO transformation matrix.
+    Args:
+        mol: PySCF Mole object.
+        mf: PySCF SCF object.
+        partition: String with the name of the partition.
+        myhf: PySCF SCF object. Required if using Natural Orbitals.
+        save: String with the name of the file to save the AOMs.
     Returns:
-       Smo: list
-          Contains the atomic overlap matrices.
-            - For restricted-SD calculations: a list of matrices with the AOMS.
-            - For unrestricted-SD calculations: a list containing both alpha and beta lists of matrices as [Smo_alpha, Smo_beta].
+        For RESTRICTED calculations, a list with each of the AOMs.
+        For UNRESTRICTED calculations, a list with the alpha and beta AOMs, as [Smo_alpha, Smo_beta].
+        For NATURAL ORBITALS calculations, a list with the AOMs and the Natural Orbitals occupation numbers, as [Smo, occ].
     """
 
     partition = format_partition(partition)

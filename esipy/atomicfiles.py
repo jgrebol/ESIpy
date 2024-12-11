@@ -1,75 +1,12 @@
 import os
 import re
 import numpy as np
-from esipy.tools import wf_type
 
-def read_aimall(path='.'):
-    """
-    Reads the AOMs from AIMAll.
-    Args:
-        path: Path of the directory of the files.
-
-    Returns:
-        The AOMs in ESIpy format stored in 'ESI.Smo'.
-    """
-    Smo_alpha, Smo_beta = [], []
-    Smo = []
-    shape_Smo_alpha = 0
-    start_string = 'The Atomic Overlap Matrix'
-    mul = False
-
-    if not os.path.exists(path):
-        raise ValueError(f"The provided path '{path}' does not exist.")
-
-    ints = [intfile for intfile in os.listdir(path) if
-                 intfile.endswith('.int') and os.path.isfile(os.path.join(path, intfile))]
-    ordered = sorted(ints, key=lambda x: int(re.search(r'\d+', x).group()))
-
-    for intfile in ordered:
-        intfile_path = os.path.join(path, intfile)
-        with open(intfile_path, 'r') as f:
-            print("Doing for file", intfile)
-            mat_lines = []
-            mat_size = 1
-            for num, line in enumerate(f, 1):
-
-                if "Mulliken" in line:
-                    mul = True
-                # We first get the number of shape of the alpha-alpha matrix
-                if 'First Beta MO' in line:
-                    shape_Smo_alpha = int(line.split()[-1]) - 1
-
-                if start_string in line:
-                    next(f)
-                    calcinfo = next(f)
-                    print(calcinfo)
-                    next(f)
-                    while True:
-                        line = next(f).strip()
-                        if not line:
-                            break
-                        mat_lines.extend([float(num) for num in line.split()])
-                        mat_size += 1
-
-
-                    if 'Restricted' in calcinfo:
-                        Smo.append(matrix)
-
-                    if 'Unrestricted' in calcinfo and shape_Smo_alpha is not None:
-                        SCR_alpha = matrix[:shape_Smo_alpha, :shape_Smo_alpha]
-                        SCR_beta = matrix[shape_Smo_alpha:, shape_Smo_alpha:]
-                        Smo_alpha.append(SCR_alpha)
-                        Smo_beta.append(SCR_beta)
-
-    if 'Restricted' in calcinfo:
-        return Smo
-    elif 'Unrestricted' in calcinfo:
-        return [Smo_alpha, Smo_beta]
-
+from esipy.tools import wf_type, format_short_partition
 
 def read_aoms(path='.'):
     """
-    Reads the AOMs from ESIpy's writeaoms() method.
+    Reads the AOMs from ESIpy's writeaoms() method or from an AIMAll calculation.
     Args:
         path: Path of the directory of the files.
 
@@ -106,7 +43,7 @@ def read_aoms(path='.'):
                             break
                         mat_lines.extend([float(num) for num in line.split()])
 
-                    # Mulliken works on non-symmetric AOMs
+                    # Mulliken works on non-symmetric, square AOMs
                     if mul:
                         mat_size = int(np.sqrt(len(mat_lines)))
                         matrix = np.array(mat_lines).reshape((mat_size, mat_size))
@@ -116,7 +53,6 @@ def read_aoms(path='.'):
                         low_matrix = np.zeros((mat_size, mat_size))
                         low_matrix[np.tril_indices(mat_size)] = mat_lines
                         matrix = low_matrix + low_matrix.T - np.diag(low_matrix.diagonal())
-
 
                     # We first get the number of shape of the alpha-alpha matrix
                     if 'First Beta MO' in line:
@@ -144,36 +80,25 @@ def read_aoms(path='.'):
     elif 'Unrestricted' in calcinfo:
         return [Smo_alpha, Smo_beta]
 
-
 ########### WRITING THE INPUT FOR THE ESI-3D CODE FROM THE AOMS ###########
 
 def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
-    """Writes the AOMs as an input for the ESI-3D code.
-
-    Arguments:
-       mol (SCF instance, optional, default: None):
-           PySCF's Mole class and helper functions to handle parameters and attributes for GTO integrals.
-
-       mf (SCF instance, optional, default: None):
-           PySCF's object holds all parameters to control SCF.
-
-       name (string):
-           A string containing the name of the calculation.
-
-       Smo (list of matrices or str):
-            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis. This can either be a list of matrices generated from the `make_aoms()` function or a string with the filename/path where the AOMs are saved.
-
-       rings (list or list of lists of int):
-            Contains the indices defining the ring connectivity of a system. Can contain several rings as a list of lists.
-
-       partition (str, optional, default: None):
-           Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
+    """
+    Writes the input for the ESI-3D code from the AOMs.
+    Args:
+        mol: Molecule object from PySCF.
+        mf: Calculation object from PySCF.
+        name: Name of the calculation.
+        Smo: Atomic Overlap Matrices (AOMs) in the MO basis.
+        ring: Connectivity of the atoms in the ring. Can be more than one ring as a list of lists.
+        partition: Partition scheme for the AOMs. Options are "mulliken", "lowdin", "meta_lowdin", "nao", "iao".
 
     Generates:
-       A directory named 'name'_'partition'.
-       A file for each atom, '.int', containing its AOM, readable for the ESI-3D code.
-       A generalized input to the ESI-3D code, as 'name'.bad. If no ring is specified, none will be displayed.
-       A file 'name'.titles containing the names of the generated .int files.
+        A '_atomicfiles/' directory with all the files created.
+        A '.int' file for each atom with its corresponding AOM.
+        A 'name.files' with a list of the names of the '.int' files.
+        A 'name.bad' with a standard input for the ESI-3D code.
+        For Natural Orbitals, a 'name.wfx' with the occupancies for the ESI-3D code.
     """
 
     if isinstance(Smo, str):
@@ -206,18 +131,7 @@ def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
 
     # Creating a new directory for the calculation
 
-    if partition == "mulliken":
-        shortpart = "mul"
-    elif partition == "lowdin":
-        shortpart = "low"
-    elif partition == "meta_lowdin":
-        shortpart = "metalow"
-    elif partition == "nao":
-        shortpart = "nao"
-    elif partition == "iao":
-        shortpart = "iao"
-    else:
-        raise NameError("Hilbert-space scheme not available")
+    shortpart = format_short_partition(partition)
 
     new_dir_name = name + "_" + shortpart
     symbols = [s.lower() for s in symbols]
@@ -226,7 +140,6 @@ def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
     os.makedirs(new_dir_path, exist_ok=True)
 
     # Creating and writing the atomic .int files
-
     for i, item in enumerate(titles):
         with open(os.path.join(new_dir_path, item + ".int"), "w+") as f:
             f.write(" Created by ESIpy\n")
@@ -282,35 +195,15 @@ def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
             f.write(i + ".int\n")
         f.close()
 
-    if wf == "no": # Will get information from ESIpy's wfx
-        filename = os.path.join(new_dir_path, name + ".bad")
-        with open(filename, "w") as f:
-            f.write("$READWFN\n")
-            f.write(name + ".wfx\n")
-            if len(ring) > 12:
-                f.write("$NOMCI\n")
-            f.write("$RING\n")
-            if ring is not None:
-                if isinstance(ring[0], int):  # If only one ring is specified
-                    f.write("1\n{}\n".format(len(ring)))
-                    f.write(" ".join(str(value) for value in ring))
-                    f.write("\n")
-                else:
-                    f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
-                    for sublist in ring:
-                        f.write(str(len(sublist)) + "\n")
-                        f.write(" ".join(str(value) for value in sublist))
-                        f.write("\n")
-                    else:
-                        f.write("\n")  # No ring specified, write it manually
-            f.write("$AV1245\n")
-            f.write("$FULLOUT\n")
-            if partition == "mulliken":
-                f.write("$MULLIKEN\n")
-            f.close()
+    domci = False
+    if isinstance(ring[0], int):
+        ring = [ring]
+    for r in ring:
+        if len(r) < 12:
+            domci = True
 
     # Single-determinant input file
-    else:
+    if wf == "rest" or wf == "unrest":
         # Creating the input for the ESI-3D code
         filename = os.path.join(new_dir_path, name + ".bad")
         with open(filename, "w") as f:
@@ -321,7 +214,7 @@ def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
                 f.write("uhf\n{}\n".format(mol.nelec[0] + 1))
             else:
                 f.write("hf\n")
-            if len(ring) > 12:
+            if not domci:
                 f.write("$NOMCI\n")
             f.write("$RING\n")
             if ring is not None:
@@ -348,13 +241,40 @@ def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
                 f.write(str(np.shape(Smo)[1]) + "\n")
             f.write("$AV1245\n")
             f.write("$FULLOUT\n")
-            f.write("$DEBUG\n")
             if partition == "mulliken":
                 f.write("$MULLIKEN\n")
             f.close()
 
-        # Creating custom .wfx with occupancies for the ESI-3D code
-    if wf == "no":
+    # Natural orbitals input file
+    elif wf == "no":
+        # Creating the input for the ESI-3D code
+        filename = os.path.join(new_dir_path, name + ".bad")
+        with open(filename, "w") as f:
+            f.write("$READWFN\n")
+            f.write(name + ".wfx\n")
+            if not domci:
+                f.write("$NOMCI\n")
+            f.write("$RING\n")
+            if ring is not None:
+                if isinstance(ring[0], int):  # If only one ring is specified
+                    f.write("1\n{}\n".format(len(ring)))
+                    f.write(" ".join(str(value) for value in ring))
+                    f.write("\n")
+                else:
+                    f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
+                    for sublist in ring:
+                        f.write(str(len(sublist)) + "\n")
+                        f.write(" ".join(str(value) for value in sublist))
+                        f.write("\n")
+                    else:
+                        f.write("\n")  # No ring specified, write it manually
+            f.write("$AV1245\n")
+            f.write("$FULLOUT\n")
+            if partition == "mulliken":
+                f.write("$MULLIKEN\n")
+            f.close()
+
+        # Creating a custom .wfx file for the ESI-3D code with the occupation numbers
         filename = os.path.join(new_dir_path, name + ".wfx")
         with open(filename, "w") as f:
             f.write('<Number of Nuclei>\n')

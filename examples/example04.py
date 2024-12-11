@@ -8,4 +8,5 @@ connectivity = ['C', 'C','C','C','C','C']
 Smo = 'example01_nao.aoms'
 molinfo = 'example01_nao.molinfo'
 
-esipy.ESI(Smo=Smo, molinfo=molinfo, rings=ring, partition=partition, flurefs=fluref, connectivity=connectivity).calc()
+arom = esipy.ESI(Smo=Smo, molinfo=molinfo, rings=ring, partition=partition, flurefs=fluref, connectivity=connectivity)
+arom.print()

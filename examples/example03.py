@@ -34,5 +34,5 @@ for part in ["mulliken", "lowdin", "meta_lowdin", "nao", "iao"]:
     aoms_name = name + '_' + part + '.aoms'
     molinfo_name = name + '_' + part + '.molinfo'
     arom = esipy.ESI(rings=ring, partition=part, mol=mol, mf=mf, saveaoms=aoms_name, savemolinfo=molinfo_name, name=name)
-    arom.calc()
+    arom.print()
     arom.writeaoms()

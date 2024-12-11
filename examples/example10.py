@@ -38,12 +38,8 @@ print("Running MP2 calculation...")
 mf4 = mp.MP2(mf).run()
 ring = [1, 2, 3, 4, 5, 6]
 
-# For symmetric AOMs, aka "mulliken"
 for part in ["mulliken", "lowdin", "meta_lowdin", "nao", "iao"]:
-    arom = esipy.ESI(mol=mol, mf=mf3, myhf=mf, rings=ring, partition=part, ncores=1, name = "cas")
-    arom.calc()
-    arom.writeaoms()
-    #for method in [mf1, mf2, mf3]:
-    #    arom = esipy.ESI(mol=mol, mf=method, rings=ring, partition=part, ncores = 1)
-    #    arom.calc()
+    for method in [mf1, mf2, mf3, mf4]:
+        arom = esipy.ESI(mol=mol, mf=method, myhf=mf, rings=ring, partition=part, ncores=1)
+        arom.print()
 

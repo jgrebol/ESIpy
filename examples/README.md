@@ -8,16 +8,13 @@ ESipy works on the obect `ESI`, which will contain all the information required 
 
 We will go through the list of examples explaining and highlighting some key notes:
 
-- example01: The `ESI` object is initialized through the `mol` and `mf` objects coming from PySCF. The AOMs and the molecular information are automatically generated and stored in `Smo`. They can be saved by using the `saveaoms` and `savemolinfo` attributes in the initialization process. The calculation of aromaticity indicators comes from calling the method `calc()`.
+- example01: The `ESI` object is initialized through the `mol` and `mf` objects coming from PySCF. The AOMs and the molecular information are automatically generated and stored in `Smo`. They can be saved by using the `saveaoms` and `savemolinfo` attributes in the initialization process. To print the output of the code, simply use the method `print()`.
 
 > [!TIP]
 > We strongly recommend using ```meta_lowdin```, ```nao``` and ```iao``` as the atomic partitions as they have shown to be highly basis-set independent and reliable. We introduce the five atomic partitions available at ESIpy in a for-loop scheme, although one partition can be introduced for each calculation. The computation time is the same regardless of the partition employed. As some results may depend on the system and the calculation, we encourage comparing these three partitions to each other to find incongruences.
 
 > [!WARNING]
 > In PySCF versions downloaded later than 23rd July 2023, there is a bug in the symmetry-average of NAO schemes (issue [#1755](https://github.com/pyscf/pyscf/issues/1755), bug fixed in [#1803](https://github.com/pyscf/pyscf/pull/1803)).
-
-> [!NOTE]
-> In order to avoid problems when calling the functions, please call the variables by using `function(variable=val)`. That is, by manually matching the input vatiable with the name from ESIpy. By using Python's in-built `help()` function, a short description will be displayed containing the arguments and the correct use of the function (i.e., `help(esi.aromaticity)`).
 
 > [!WARNING]
 > In PySCF, the `mol.spin` object represents the number of unpaired electrons. It is not the spin of the molecule. For instance, `mol.spin = 0` is a singlet state.
@@ -34,12 +31,12 @@ We will go through the list of examples explaining and highlighting some key not
 > [!WARNING]
 > The `partition` variable is mandatory for reference-based indices. The FLU, HOMA and HOMER will not be computed if no partition is specified unless the connectivity and reference has been explicitly specified.
 
-- example05: As for the HOMA (and HOMER), the user needs to provide the dictionary ```homarefs```, which contains the bond pattern and an inner dictionary containing the ```r_opt``` (in Angstroms) and ```alpha``` parameters (see the example for a better understanding of the structure of the variable). The example provides the calculation of the HOMER values for benzene singlet, which indeed produce non-aromatic values as expected. Without the molecule information, the user needs to provide the connectivtiy of the atoms and the molecular geometry as stated in the ```mol.atom_coords()``` object.
+- example05: Custom references for the HOMA can be introduced as stated in Ref. 15 of the main README.md. The custom "r_opt" and "alpha" parameters need to be given in the `homerrefs` attribute.
 
 > [!NOTE]
 > The program will check the topology of the AOMs to separate into singlet and triplet calculations. Thus, it will only compute HOMA for singlets and HOMER for triplets.
 
-- example06: Individual calculation of the indicators can be performed. However, we strongly suggest using the `ESI` object as the computational time is minimal for indices other than MCI for large rings.
+- example06: Individual calculation of the indicators can be performed. However, we strongly suggest using `ESI.print()` as the computational time is minimal for indices other than MCI for large rings.
 
 - example07: Multi-processing is allowed for the calculation of the MCI, primarily in large systems. For more detailed information, please see [ESIpy/MCI_TIMINGS](ESIpy/MCI_TIMINGS).
 
@@ -48,4 +45,8 @@ We will go through the list of examples explaining and highlighting some key not
 
 - example08: The method `writeaoms()` allows to write the AOMs into a file readable for both ESIpy and ESI-3D programs. 
 
-- example09: Equally, the AOMs from the `.int` files can be loaded into `Smo` objects, throuhg the `readaoms()` method. This function supports reading the AOMs from ESIpy and AIMAll from both restricted and unrestricted calculations.
+- example09: Equally, the AOMs from the `.int` files can be loaded into `Smo` objects, throuhg the `readaoms()` method. This function supports reading the AOMs from ESIpy and AIMAll from both restricted and unrestricted single-determinant calculations.
+
+## Correlated wavefunctions
+
+- example10: Aromaticity indicators use Fulton's approximation for the aromaticity indicators in correlated wavefunctions. If the `writeaoms()` is requested, it will additionally create a custom `.wfx` file with the occupation numbers as input for the ESI-3D program.

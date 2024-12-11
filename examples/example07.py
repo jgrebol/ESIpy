@@ -41,4 +41,4 @@ partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
 
 for part in partition:
     for cores in [1,2,4,8]:
-        esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, ncores=cores).calc()
+        esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, ncores=cores).print()

@@ -81,7 +81,8 @@ class ESItest(unittest.TestCase):
 
     def run_indicator_tests(self, partition, exp):
         esitest = ESI(mol=mol, mf=mf, rings=ring, partition=partition)
-        aom = esitest.Smo
+        esitest.writeaoms()
+        inds = esitest.indicators[0]
 
         exp_iring = exp['exp_iring']
         exp_mci = exp['exp_mci']
@@ -89,20 +90,19 @@ class ESItest(unittest.TestCase):
         exp_pdi = exp['exp_pdi']
 
         # Multicenter indicators
-        self.assertAlmostEqual(2 * compute_iring(ring, aom), exp_iring, places=6)
-        self.assertAlmostEqual(2 * sequential_mci(ring, aom, partition=partition), exp_mci, places=5)
-        self.assertAlmostEqual(2 * multiprocessing_mci(ring, aom, ncores=1, partition=partition), exp_mci, places=5)
-        self.assertAlmostEqual(2 * compute_av1245(ring, aom)[0], exp_av, places=2)
-        esitest.av1245 = True
-        esitest.calc()
-        self.assertAlmostEqual(2 * compute_pdi(ring, aom)[0], exp_pdi, places=6)
+        self.assertAlmostEqual(inds.iring, exp_iring, places=6)
+        self.assertAlmostEqual(inds.mci, exp_mci, places=5)
+        esitest = ESI(mol=mol, mf=mf, rings=ring, partition=partition, ncores=2)
+        inds = esitest.indicators[0]
+        self.assertAlmostEqual(inds.mci, exp_mci, places=5)
+        self.assertAlmostEqual(inds.av1245, exp_av, places=2)
+        self.assertAlmostEqual(inds.pdi, exp_pdi, places=6)
 
         #Geometric indicators
-        homa, en, geo = compute_homa(ring, mol)
-        self.assertAlmostEqual(homa, 0.993307, places=6)
-        self.assertAlmostEqual(en, 0.006693, places=6)
-        self.assertAlmostEqual(geo, 0, places=6)
-        self.assertAlmostEqual(compute_bla(ring, mol)[0], 0, places=6)
+        self.assertAlmostEqual(inds.homa, 0.993307, places=6)
+        self.assertAlmostEqual(inds.en, 0.006693, places=6)
+        self.assertAlmostEqual(inds.geo, 0, places=6)
+        self.assertAlmostEqual(inds.bla, 0, places=6)
 
     def test_mulliken(self):
         partition = 'mulliken'
