@@ -285,7 +285,7 @@ def mapping(arr, perm):
     Returns:
         List of elements corresponding to a given permutation.
     """
-    return [arr[i] for i in range(len(perm))]
+    return [arr[i] for i in perm]
 
 
 def get_natorbs(mf, S):

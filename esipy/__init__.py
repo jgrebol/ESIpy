@@ -9,6 +9,8 @@ from esipy.indicators import (
     compute_iring_no, sequential_mci_no, multiprocessing_mci_no, compute_av1245_no,
     compute_pdi_no, compute_boa_no
 )
+from esipy.mciaprox import aproxmci
+from math import factorial
 
 class IndicatorsRest:
     def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None, flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, molinfo=None, ncores=1):
@@ -1043,7 +1045,8 @@ class ESI:
     def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf = None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
-                 ncores=1, saveaoms=None, savemolinfo=None, name="calc", readpath='.'):
+                 ncores=1, saveaoms=None, savemolinfo=None, name="calc", readpath='.',
+                 d=1, mcialg=0):
         # For usual ESIpy calculations
         self._Smo = Smo
         self.rings = rings
@@ -1066,6 +1069,9 @@ class ESI:
         self.saveaoms = saveaoms
         self.savemolinfo = savemolinfo
         self.readpath = readpath
+        # For the MCI approximations
+        self.d = d
+        self.mcialg = mcialg
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
@@ -1226,6 +1232,59 @@ class ESI:
         write_aoms(self.mol, self.mf, self.name, self.Smo, self.rings, self.partition)
         shortpart = format_short_partition(self.partition)
         print(f" | Written the AOMs in {self.readpath}/{self.name}_{shortpart}/")
+
+
+    def mciaprox(self):
+        print(" | Module to compute approximations for the MCI")
+        print(' -------------------------------------------------')
+        if getattr(self, "partition") is None:
+            print(" | No partition specified. Will assume non-symmetric AOMs")
+
+        if self.ncores == 1:
+            print(" | Using MCI's single-core algorithm")
+        else:
+            print(f" | Using MCI's multi-core algorithm for {self.ncores} cores")
+
+        if self.mcialg == 0:
+            print(" | Exact MCI calcualtion")
+        elif self.mcialg == 1:
+            print(f" | Approximate MCI. Algorithm 1.\n | All permutations having a maximum distance of {self.d}")
+        elif self.mcialg == 2:
+            print(f" | Approximate MCI. Algorithm 2.\n | Only permutations having a maximum distance of {self.d}")
+        elif self.mcialg == 3:
+            print(f" | Approximate MCI. Algorithm 3.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any even distance between two vertices")
+        elif self.mcialg == 4:
+            print(f" | Approximate MCI. Algorithm 4.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any odd distance between two vertices")
+        print(' -------------------------------------------------')
+
+        if isinstance(self.rings[0], int):
+            self.rings = [self.rings]
+
+        for ring_index, ring in enumerate(self.rings):
+            print(f" | Ring {ring_index+1} ({len(ring)}): {ring}")
+            print(' -------------------------------------------------')
+
+            if wf_type(self.Smo) == "rest":
+                val, nperms, t = aproxmci(ring, self.Smo, self.partition, self.mcialg, self.d, self.ncores)
+                val = 2 * val
+            elif wf_type(self.Smo) == "unrest":
+                val_a, nperms, t_a = aproxmci(ring, self.Smo[0], self.partition, self.mcialg, self.d, self.ncores)
+                val_b, _, t_b = aproxmci(ring, self.Smo[1], self.partition, self.mcialg, self.d, self.ncores)
+                val = val_a + val_b
+                t = t_a + t_b
+                nperms = 2 * nperms
+
+            print(f" | Number of permutations:           {nperms:.14g}")
+            print(f" | Number of permutations if exact:  {0.5 * factorial(len(ring)-1):.14g}")
+
+            print(f" | Time for the MCI calculation:     {t:.5f} seconds")
+            print(f" | MCI(mcialg={self.mcialg}, d={self.d}):               {val:.8f}")
+            if val > 0:
+                print(f" | MCI(mcialg={self.mcialg}, d={self.d})**(1/n):        {val ** (1/len(ring)):.8f}")
+            else:
+                from numpy import abs
+                print(f" | MCI(mcialg={self.mcialg}, d={self.d})**(1/n):        -{abs(val) ** (1 / len(ring)):.8f}")
+            print(' -------------------------------------------------')
 
     def print(self):
         """
