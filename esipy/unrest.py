@@ -26,7 +26,7 @@ def info_unrest(Smo, molinfo):
     if isinstance(molinfo["energy"], str):
         print(" | Total energy:          {}".format(molinfo["energy"]))
     else:
-        print(" | Total energy:          {:>13f}".format(molinfo["energy"]))
+        print(" | Total energy:             {:<13f}".format(molinfo["energy"]))
     print(" ------------------------------------------- ")
     trace_a = np.sum([np.trace(matrix) for matrix in Smo[0]])
     trace_b = np.sum([np.trace(matrix) for matrix in Smo[1]])
@@ -64,42 +64,42 @@ def deloc_unrest(Smo, molinfo):
             dis_beta.append(dibb)
 
     print(" ------------------------------------------------------------------- ")
-    print(" |  Atom     N(Sij)      Na(Sij)     Nb(Sij)     dloc_a     dloc_b  ")
+    print(" |  Atom     N(Sij)    Na(Sij)   Nb(Sij)    dloc_a    dloc_b  ")
     print(" ------------------------------------------------------------------- ")
 
     for i in range(len(Smo[0])):
-        print(" | {} {:>2d}   {:10.6f}  {:10.6f}  {:10.6f}   {:8.4f}   {:8.4f} ".format(
+        print(" | {:>2}{:>2d}    {:8.4f}  {:8.4f}  {:8.4f}   {:8.4f}   {:8.4f} ".format(
             symbols[i], i + 1, Nij_alpha[i] + Nij_beta[i], Nij_alpha[i], Nij_beta[i], Nij_alpha[i] - lis_alpha[i],
                         Nij_beta[i] - lis_beta[i]))
     print(" ------------------------------------------------------------------- ")
-    print(" | TOT:   {:10.6f}  {:10.6f}  {:10.6f}   {:8.4f}   {:8.4f}".format(
+    print(" | TOT:    {:8.4f}  {:8.4f}  {:8.4f}   {:8.4f}   {:8.4f}".format(
         sum(Nij_alpha) + sum(Nij_beta), sum(Nij_alpha), sum(Nij_beta), sum(Nij_alpha) - sum(lis_alpha),
         sum(Nij_beta) - sum(lis_beta)))
     print(" ------------------------------------------------------------------- ")
     print(" ------------------------------------------- ")
-    print(" |    Pair         DI       DIaa      DIbb ")
+    print(" |    Pair        DI       DIaa      DIbb ")
     print(" ------------------------------------------- ")
 
     for i in range(len(symbols)):
         for j in range(i, len(symbols)):
             if i == j:
-                print(" | {} {:>2}-{} {:>2}   {:8.4f}  {:8.4f}  {:8.4f}".format(
+                print(" | {:>2}{:>2}-{:>2}{:>2}  {:8.4f}  {:8.4f}  {:8.4f}".format(
             symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), lis_alpha[i] + lis_beta[i], lis_alpha[i], lis_beta[i]))
             else:
                 dia = 2 * np.trace(np.dot(Smo[0][i], Smo[0][j]))
                 dib = 2 * np.trace(np.dot(Smo[1][i], Smo[1][j]))
                 ditot = dia + dib
-                print(" | {} {:>2}-{} {:>2}   {:8.4f}  {:8.4f}  {:8.4f}".format(
+                print(" | {:>2}{:>2}-{:>2}{:>2}  {:8.4f}  {:8.4f}  {:8.4f}".format(
             symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), ditot, dia, dib))
     print(" ------------------------------------------- ")
-    print(" |    TOT:    {:>9.4f} {:>9.4f} {:>9.4f} ".format(
+    print(" |    TOT:   {:>9.4f} {:>9.4f} {:>9.4f} ".format(
         sum(dis_alpha) + sum(dis_beta) + sum(lis_alpha) + sum(lis_beta), sum(dis_alpha) + sum(lis_alpha),
         sum(dis_beta) + sum(lis_beta)))
-    print(" |    LOC:    {:>9.4f} {:>9.4f} {:>9.4f} ".format(
+    print(" |    LOC:   {:>9.4f} {:>9.4f} {:>9.4f} ".format(
         sum(lis_alpha) + sum(lis_beta), sum(lis_alpha), sum(lis_beta)))
-    print(" |  DELOC:    {:>9.4f} {:>9.4f} {:>9.4f} ".format(
+    print(" |  DELOC:   {:>9.4f} {:>9.4f} {:>9.4f} ".format(
         sum(dis_alpha) + sum(dis_beta), sum(dis_alpha), sum(dis_beta)))
     print(" ------------------------------------------- ")
 

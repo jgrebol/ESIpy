@@ -30,7 +30,7 @@ mf.kernel()
 
 ring = [1,2,3,4,5,6]
 name = "example01"
-for part in ["mulliken", "lowdin", "meta_lowdin", "nao", "iao"]:
+for part in ["m", "lowdin", "meta_lowdin", "nao", "iao"]:
     aoms_name = name + '_' + part + '.aoms'
     molinfo_name = name + '_' + part + '.molinfo'
     arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, saveaoms=aoms_name, savemolinfo=molinfo_name, name=name)

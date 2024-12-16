@@ -26,7 +26,7 @@ def info_rest(Smo, molinfo):
     if isinstance(molinfo["energy"], str):
         print(" | Total energy:          {}".format(molinfo["energy"]))
     else:
-        print(" | Total energy:          {:>13f}".format(molinfo["energy"]))
+        print(" | Total energy:             {:<13f}".format(molinfo["energy"]))
     print(" ------------------------------------------- ")
     trace = np.sum([np.trace(matrix) for matrix in Smo])
     print(" | Tr(Enter):    {:.13f}".format(trace))
@@ -53,14 +53,14 @@ def deloc_rest(Smo, molinfo):
         lis.append(li)
         N.append(2 * np.trace(Smo[i]))
 
-        print(" | {} {:>2d}  {:>8.4f}  {:>8.4f}  {:>8.4f} ".format(
+        print(" | {:>2}{:>2d}  {:>8.4f}  {:>8.4f}  {:>8.4f} ".format(
                 symbols[i], i + 1, N[i], lis[i], N[i] - lis[i]))
 
         for j in range(i + 1, len(Smo)):
                 di = 4 * np.trace(np.dot(Smo[i], Smo[j]))
                 dis.append(di)
     print(" ------------------------------------- ")
-    print(" | TOT:   {:>8.4f} {:>8.4f}  {:>8.4f}".format(
+    print(" | TOT:  {:>8.4f}  {:>8.4f}  {:>8.4f}".format(
     sum(N), sum(N) - sum(dis), sum(dis)))
     print(" ------------------------------------- ")
 
@@ -70,11 +70,11 @@ def deloc_rest(Smo, molinfo):
     for i in range(len(Smo)):
         for j in range(i, len(Smo)):
             if i == j:
-                print(" | {} {:>2}-{} {:>2}   {:>8.4f}".format(
+                print(" | {:>2}{:>2}-{:>2}{:>2}   {:>8.4f}".format(
             symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), lis[i]))
             else:
-                print(" | {} {:>2}-{} {:>2}   {:>8.4f}".format(
+                print(" | {:>2}{:>2}-{:>2}{:>2}   {:>8.4f}".format(
             symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), 4 * np.trace(np.dot(Smo[i], Smo[j]))))
     print(" ------------------------ ")

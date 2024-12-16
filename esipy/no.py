@@ -28,7 +28,7 @@ def info_no(Smo, molinfo):
     if isinstance(molinfo["energy"], str):
         print(" | Total energy:          {}".format(molinfo["energy"]))
     else:
-        print(" | Total energy:          {:>13f}".format(molinfo["energy"]))
+        print(" | Total energy:             {:<13f}".format(molinfo["energy"]))
     print(" ------------------------------------------- ")
     trace = np.sum([np.trace(matrix) for matrix in Smo])
     print(" | Tr(Enter):    {:.13f}".format(trace))
@@ -71,7 +71,7 @@ def deloc_no(Smo, molinfo):
                 difs.append(dif)
                 dixs.append(dix)
 
-        print(" | {} {:>2d}   {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}".format(
+        print(" | {:>2} {:>2d}  {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}".format(
             symbols[i], i + 1, N[i], dlocF, dlocX, lif, lix))
     print(" ---------------------------------------------------------- ")
     print(" | TOT:   {:>8.4f}  {:>8.4f}  {:>8.4f}  {:>8.4f}  {:>8.4f}".format(
@@ -84,15 +84,15 @@ def deloc_no(Smo, molinfo):
     for i in range(len(Smo)):
         for j in range(i, len(Smo)):
             if i == j:
-                print(" | {} {:>2}-{} {:>2}  {:>8.4f}  {:>8.4f}".format(
+                print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
                         symbols[i], i + 1, symbols[j], j + 1, lifs[i], lixs[i]))
             else:
-                print(" | {} {:>2}-{} {:>2}  {:>8.4f}  {:>8.4f}".format(
+                print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
             symbols[i], i + 1, symbols[j], j + 1, 2 * difs[i * len(Smo) + j - (i + 1)], 2 * dixs[i * len(Smo) + j - (i + 1)]))
     print(" ---------------------------------- ")
-    print(" |   TOT:      {:>8.4f}  {:>8.4f}  ".format(np.sum(difs) + np.sum(lifs), np.sum(dixs) + np.sum(lixs)))
-    print(" |   LOC:      {:>8.4f}  {:>8.4f} ".format(np.sum(lifs), np.sum(lixs)))
-    print(" | DELOC:      {:>8.4f}  {:>8.4f} ".format(np.sum(difs), np.sum(dixs)))
+    print(" |   TOT:     {:>8.4f}  {:>8.4f}  ".format(np.sum(difs) + np.sum(lifs), np.sum(dixs) + np.sum(lixs)))
+    print(" |   LOC:     {:>8.4f}  {:>8.4f} ".format(np.sum(lifs), np.sum(lixs)))
+    print(" | DELOC:     {:>8.4f}  {:>8.4f} ".format(np.sum(difs), np.sum(dixs)))
     print(" ---------------------------------- ")
 
 def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None, flurefs=None, homarefs=None, homerrefs=None,

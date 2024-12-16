@@ -1091,8 +1091,9 @@ class ESI:
                                              av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, connectivity=self.connectivity, geom=self.geom,
                                              molinfo=self.molinfo, ncores=self.ncores))
         elif wf == "no":
-            if np.ndim(self.mf.make_rdm1(ao_repr=True)) == 3:
-                raise ValueError(" | Can not compute Natural Orbitals from unrestricted orbitals YET.")
+            if not "fci" in self.mf.__module__:
+                if np.ndim(self.mf.make_rdm1(ao_repr=True)) == 3:
+                    raise ValueError(" | Can not compute Natural Orbitals from unrestricted orbitals YET.")
             self.indicators = []
             for i in self.rings:
                 self.indicators.append(IndicatorsNatorb(Smo=self.Smo, rings=i, mol=self.mol, mf=self.mf, myhf=self.myhf, partition=self.partition, mci=self.mci,

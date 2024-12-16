@@ -287,7 +287,6 @@ def mapping(arr, perm):
     """
     return [arr[i] for i in range(len(perm))]
 
-
 def get_natorbs(mf, S):
     """
     Obtains the natural orbitals from the SCF calculation.
@@ -316,6 +315,52 @@ def get_natorbs(mf, S):
     occ = np.diag(occ)
     return occ, coeff
 
+def di_exact(mf, Smo): # DI exact and exchange-only
+    ncas = mf.ncore
+    nelec = getattr(mf, 'nelec', mol.nelec)
+    dm1 = mf.make_rdm1(mf.ci, ncas, nelec)
+    dm2 = mf.make_rdm12(mf.ci, ncas, nelec)
+    xc_dens = np.zeros((ncas, ncas, ncas, ncas))
+    x_dens = np.zeros((ncas, ncas, ncas, ncas))
+    for i in range(ncas):
+        for j in range(ncas):
+            for k in range(ncas):
+                for l in range(ncas):
+                    xc_dens[i,j,k,l] = dm2[i,j,k,l] - dm1[i,j] * dm1[k,l]
+                    x_dens[i,j,k,l] = -0.5 * dm1[i,l] * dm1[k,l]
+    trdm2 = np.einsum("iijj", dm2)
+    trxc = np.einsum("iijj", xc_dens)
+    trx = np.einsum("iijj", x_dens)
+    print("Trace of the 2-RDM: ", trdm2)
+    print("Trace of the exchange-correlation part of the 2-RDM: ", trxc)
+    print("Trace of the exchange-only 2-RDM: ", trx)
+
+    DIex = -2 * np.einsum("ijkl, ji, kl", xc_dens, Smo[0], Smo[1])
+    DI_x = -2 * np.einsum("ijkl, ji, kl", x_dens, Smo[0], Smo[1])
+    print("DI exact: ", DIex)
+    print("DI exchange-only: ", DI_x)
+    return DIex, DI_x
+
+
+def get_natorbs_fci(mf, S, myhf, nalpha, nbeta):
+    """
+    Obtains the natural orbitals from a FCI calculation.
+    Args:
+        mf: PySCF SCF object.
+        S: Overlap matrix in an AO basis.
+
+    Returns:
+        List containing the occupancies and the Natural Orbitals.
+    """
+    from scipy.linalg import eigh
+    import numpy as np
+    D = mf.make_rdm1(mf.fcivec, myhf.mo_coeff.shape[1], (nalpha, nbeta))  # In MO basis
+    occ, coeff = eigh(D)
+    coeff = np.dot(myhf.mo_coeff, coeff)[:, ::-1]
+    occ = occ[::-1]  # Order occupancies
+    occ[occ < 10 ** -12] = 0.0  # Set small occupancies to 0
+    occ = np.diag(occ)
+    return occ, coeff
 
 def build_eta(mol):
     """
@@ -327,7 +372,7 @@ def build_eta(mol):
     Returns:
         List containing the eta matrices for each atom.
     """
-    eta = [np.zeros((mol.nao, mol.nao)) for i in range(mol.natm)]
+    eta = [np.zeros((mol.nao, mol.nao)) for _ in range(mol.natm)]
     for i in range(mol.natm):
         start = mol.aoslice_by_atom()[i, -2]
         end = mol.aoslice_by_atom()[i, -1]
