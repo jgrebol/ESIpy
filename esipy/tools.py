@@ -52,9 +52,8 @@ def find_multiplicity(Smo):
     else:
         return None
 
-
 def load_file(file):
-    """Loads a variable from a file.
+    """Loads the data from a file using Pickle.
 
     Args:
        file: string
@@ -66,9 +65,7 @@ def load_file(file):
     """
     from pickle import load
     with open(file, "rb") as f:
-        file = load(f)
-    return file
-
+        return load(f)
 
 def save_file(file, save):
     """Loads the variable into a file.

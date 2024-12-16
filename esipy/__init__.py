@@ -1322,6 +1322,7 @@ class ESI:
             if isinstance(self.Smo, str):
                 print(f" | Loading the AOMs from file {self.Smo}")
                 Smo = load_file(self.Smo)
+                print(Smo)
                 if Smo is None:
                     raise NameError(" | Please provide a valid name to read the AOMs")
             print(f" | Partition {self.partition} does not have Smo, generating it")
