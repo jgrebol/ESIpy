@@ -1,5 +1,5 @@
 import numpy as np
-from esipy.tools import mapping, wf_type
+from esipy.tools import mapping, find_di
 from esipy.indicators import sequential_mci, multiprocessing_mci
 from math import factorial
 
