@@ -1,8 +1,10 @@
 import os
 import re
+
 import numpy as np
 
 from esipy.tools import wf_type, format_short_partition
+
 
 def read_aoms(path='.'):
     """
@@ -23,7 +25,7 @@ def read_aoms(path='.'):
         raise ValueError(f"The provided path '{path}' does not exist.")
 
     ints = [intfile for intfile in os.listdir(path) if
-                 intfile.endswith('.int') and os.path.isfile(os.path.join(path, intfile))]
+            intfile.endswith('.int') and os.path.isfile(os.path.join(path, intfile))]
     ordered = sorted(ints, key=lambda x: int(re.search(r'\d+', x).group()))
 
     for intfile in ordered:
@@ -69,7 +71,6 @@ def read_aoms(path='.'):
                         Smo.append(matrix)
 
                     if 'Unrestricted' in calcinfo:
-
                         SCR_alpha = matrix[:shape_Smo_alpha, :shape_Smo_alpha]
                         SCR_beta = matrix[shape_Smo_alpha:, shape_Smo_alpha:]
                         Smo_alpha.append(SCR_alpha)
@@ -79,6 +80,7 @@ def read_aoms(path='.'):
         return Smo
     elif 'Unrestricted' in calcinfo:
         return [Smo_alpha, Smo_beta]
+
 
 ########### WRITING THE INPUT FOR THE ESI-3D CODE FROM THE AOMS ###########
 
@@ -106,7 +108,7 @@ def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
 
     wf = wf_type(Smo)
     if wf == "no":
-        Smo, occ = Smo # Separating AOMs and orbital occupations
+        Smo, occ = Smo  # Separating AOMs and orbital occupations
 
     # Obtaining information for the files
 
@@ -158,7 +160,8 @@ def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
             f.write(" INTEGRATION IS OVER ATOM  {}\n".format(titles[i]))
             f.write(" RESULTS OF THE INTEGRATION\n")
             if wf == "unrest":
-                f.write("          N   {:.10E}    NET CHARGE 0.0000000000E+00\n".format(np.trace(Smo[0][i]) + np.trace(Smo[1][i])))
+                f.write("          N   {:.10E}    NET CHARGE 0.0000000000E+00\n".format(
+                    np.trace(Smo[0][i]) + np.trace(Smo[1][i])))
             elif wf == "rest":
                 f.write("          N   {:.10E}    NET CHARGE 0.0000000000E+00\n".format(2 * np.trace(Smo[i])))
             else:

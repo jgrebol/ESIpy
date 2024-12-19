@@ -1,8 +1,9 @@
-import esipy
 from pyscf import gto, dft
 
-mol=gto.Mole()
-mol.atom='''
+import esipy
+
+mol = gto.Mole()
+mol.atom = '''
 C       -2.250458781      0.000000000     -0.958601895
 C       -2.250458781      1.207953000     -1.720758895
 C       -2.250458781      1.207953000     -3.149876895
@@ -28,11 +29,12 @@ mf = dft.UKS(mol)
 mf.xc = 'B3LYP'
 mf.kernel()
 
-ring = [1,2,3,4,5,6]
+ring = [1, 2, 3, 4, 5, 6]
 name = "example03"
 for part in ["mulliken", "lowdin", "meta_lowdin", "nao", "iao"]:
     aoms_name = name + '_' + part + '.aoms'
     molinfo_name = name + '_' + part + '.molinfo'
-    arom = esipy.ESI(rings=ring, partition=part, mol=mol, mf=mf, saveaoms=aoms_name, savemolinfo=molinfo_name, name=name)
+    arom = esipy.ESI(rings=ring, partition=part, mol=mol, mf=mf, saveaoms=aoms_name, savemolinfo=molinfo_name,
+                     name=name)
     arom.print()
     arom.writeaoms()

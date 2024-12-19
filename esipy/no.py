@@ -1,5 +1,7 @@
 import numpy as np
+
 from esipy.tools import format_partition
+
 
 def info_no(Smo, molinfo):
     """Prints the initial information for Natural Orbitals calculations.
@@ -34,6 +36,7 @@ def info_no(Smo, molinfo):
     print(" | Tr(Enter):    {:.13f}".format(trace))
     print(" ------------------------------------------- ")
 
+
 def deloc_no(Smo, molinfo):
     """Population analysis, localization and delocalization indices for Natural Orbitals calculations.
     Args:
@@ -54,7 +57,7 @@ def deloc_no(Smo, molinfo):
     print(" ---------------------------------------------------------- ")
 
     for i in range(len(Smo)):
-        lif = np.trace(np.linalg.multi_dot((occ**(1/2), Smo[i], occ**(1/2), Smo[i])))
+        lif = np.trace(np.linalg.multi_dot((occ ** (1 / 2), Smo[i], occ ** (1 / 2), Smo[i])))
         lix = 0.5 * np.trace(np.linalg.multi_dot((occ, Smo[i], occ, Smo[i])))
         lifs.append(lif)
         lixs.append(lix)
@@ -64,7 +67,7 @@ def deloc_no(Smo, molinfo):
         dlocX = 0
         for j in range(len(Smo)):
             if i != j:
-                dif = np.trace(np.linalg.multi_dot((occ**(1/2), Smo[i], occ**(1/2), Smo[j])))
+                dif = np.trace(np.linalg.multi_dot((occ ** (1 / 2), Smo[i], occ ** (1 / 2), Smo[j])))
                 dix = 0.5 * np.trace(np.linalg.multi_dot((occ, Smo[i], occ, Smo[j])))
                 dlocF += dif
                 dlocX += dix
@@ -72,10 +75,10 @@ def deloc_no(Smo, molinfo):
                 dixs.append(dix)
 
         print(" | {:>2} {:>2d}  {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}".format(
-            symbols[i], i + 1, N[i], dlocF, dlocX, lif, lix))
+            symbols[i], i + 1, N[i], N[i] - lif, dlocX, lif, lix))
     print(" ---------------------------------------------------------- ")
     print(" | TOT:   {:>8.4f}  {:>8.4f}  {:>8.4f}  {:>8.4f}  {:>8.4f}".format(
-        sum(N), sum(difs), sum(dixs), sum(lifs), sum(lixs)))
+        sum(N), sum(N) - sum(lifs), sum(dixs), sum(lifs), sum(lixs)))
     print(" ---------------------------------------------------------- ")
 
     print(" ---------------------------------- ")
@@ -85,18 +88,21 @@ def deloc_no(Smo, molinfo):
         for j in range(i, len(Smo)):
             if i == j:
                 print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
-                        symbols[i], i + 1, symbols[j], j + 1, lifs[i], lixs[i]))
+                    symbols[i], i + 1, symbols[j], j + 1, lifs[i], lixs[i]))
             else:
                 print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
-            symbols[i], i + 1, symbols[j], j + 1, 2 * difs[i * len(Smo) + j - (i + 1)], 2 * dixs[i * len(Smo) + j - (i + 1)]))
+                    symbols[i], i + 1, symbols[j], j + 1, 2 * difs[i * len(Smo) + j - (i + 1)],
+                                2 * dixs[i * len(Smo) + j - (i + 1)]))
     print(" ---------------------------------- ")
     print(" |   TOT:     {:>8.4f}  {:>8.4f}  ".format(np.sum(difs) + np.sum(lifs), np.sum(dixs) + np.sum(lixs)))
     print(" |   LOC:     {:>8.4f}  {:>8.4f} ".format(np.sum(lifs), np.sum(lixs)))
     print(" | DELOC:     {:>8.4f}  {:>8.4f} ".format(np.sum(difs), np.sum(dixs)))
     print(" ---------------------------------- ")
 
-def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None, flurefs=None, homarefs=None, homerrefs=None,
-              ncores=1):
+
+def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None, flurefs=None, homarefs=None,
+            homerrefs=None,
+            ncores=1):
     """
     Output for the aromaticity indices for Natural Orbitals calculations. Will use Fulton's approximation.
     Args:
@@ -264,4 +270,3 @@ def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None,
             else:
                 print(" | MCI**(1/n)   {} =  {:>6f}".format(ring_index + 1, mci_total ** (1 / len(ring))))
             print(" ---------------------------------------------------------------------- ")
-

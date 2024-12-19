@@ -1,10 +1,9 @@
-import esipy
-from esipy.atomicfiles import write_aoms
-from esipy.make_aoms import make_aoms
 from pyscf import gto, dft
 
-mol=gto.Mole()
-mol.atom='''
+import esipy
+
+mol = gto.Mole()
+mol.atom = '''
 C                     0.       -1.39633   0.
 C                    -1.20926  -0.69816   0.
 C                     1.20926  -0.69816   0.
@@ -30,12 +29,13 @@ mf = dft.RKS(mol)
 mf.xc = 'B3LYPg'
 mf.kernel()
 
-ring = [7,3,1,2,6,10]
+ring = [7, 3, 1, 2, 6, 10]
 partition = 'nao'
 name = 'example08'
 molinfo_name = name + '_' + partition + '.molinfo'
 aoms_name = name + '_' + partition + '.aoms'
 
-arom = esipy.ESI(rings=ring, partition=partition, mol=mol, mf=mf, name=name, saveaoms=aoms_name, savemolinfo=molinfo_name)
+arom = esipy.ESI(rings=ring, partition=partition, mol=mol, mf=mf, name=name, saveaoms=aoms_name,
+                 savemolinfo=molinfo_name)
 arom.print()
 arom.writeaoms()

@@ -1,7 +1,9 @@
 import unittest
-from esipy import ESI
+
 from numpy import trace, dot
 from pyscf import gto, dft
+
+from esipy import ESI
 
 # Set up molecule and DFT calculations
 mol = gto.M(
@@ -29,18 +31,20 @@ ring = [1, 2, 3, 4, 5, 6]
 expected = {'mulliken': dict(exp_pop_atm1_a=3.1944, exp_pop_atm1_b=2.7968, exp_di_all_a=0.9840, exp_di_all_b=0.8946,
                              exp_dis_sum_a=7.2308, exp_dis_sum_b=7.2260, exp_di_12_a=0.7150, exp_di_12_b=0.5524,
                              exp_iring=0.007366, exp_mci=-0.023448, exp_av=1.165, exp_pdi=0.062509, exp_avmin=-3.501),
-    'lowdin': dict(exp_pop_atm1_a=3.1460, exp_pop_atm1_b=2.7565, exp_di_all_a=0.9936, exp_di_all_b=0.9000,
-                     exp_dis_sum_a=7.2857, exp_dis_sum_b=7.2612, exp_di_12_a=0.7227, exp_di_12_b=0.5574,
-                     exp_iring=0.007371, exp_mci=-0.023151, exp_av=1.126, exp_pdi=0.062565, exp_avmin=-3.529),
-    'meta_lowdin': dict(exp_pop_atm1_a=3.1486, exp_pop_atm1_b=2.7591, exp_di_all_a=0.9933, exp_di_all_b=0.8999,
-                           exp_dis_sum_a=7.2831, exp_dis_sum_b=7.2600, exp_di_12_a=0.7226, exp_di_12_b=0.5575,
-                           exp_iring=0.007380, exp_mci=-0.023148, exp_av=1.128, exp_pdi=0.062664, exp_avmin=-3.527),
-    'nao': dict(exp_pop_atm1_a=3.1291, exp_pop_atm1_b=2.7418, exp_di_all_a=0.9915, exp_di_all_b=0.8968,
-                                exp_dis_sum_a=7.2669, exp_dis_sum_b=7.2487, exp_di_12_a=0.7205, exp_di_12_b=0.5554,
-                                exp_iring=0.007423, exp_mci=-0.022291, exp_av=1.094, exp_pdi=0.062161, exp_avmin=-3.486),
-    'iao': dict(exp_pop_atm1_a=3.1922, exp_pop_atm1_b=2.8019, exp_di_all_a=0.9852, exp_di_all_b=0.8925,
+            'lowdin': dict(exp_pop_atm1_a=3.1460, exp_pop_atm1_b=2.7565, exp_di_all_a=0.9936, exp_di_all_b=0.9000,
+                           exp_dis_sum_a=7.2857, exp_dis_sum_b=7.2612, exp_di_12_a=0.7227, exp_di_12_b=0.5574,
+                           exp_iring=0.007371, exp_mci=-0.023151, exp_av=1.126, exp_pdi=0.062565, exp_avmin=-3.529),
+            'meta_lowdin': dict(exp_pop_atm1_a=3.1486, exp_pop_atm1_b=2.7591, exp_di_all_a=0.9933, exp_di_all_b=0.8999,
+                                exp_dis_sum_a=7.2831, exp_dis_sum_b=7.2600, exp_di_12_a=0.7226, exp_di_12_b=0.5575,
+                                exp_iring=0.007380, exp_mci=-0.023148, exp_av=1.128, exp_pdi=0.062664,
+                                exp_avmin=-3.527),
+            'nao': dict(exp_pop_atm1_a=3.1291, exp_pop_atm1_b=2.7418, exp_di_all_a=0.9915, exp_di_all_b=0.8968,
+                        exp_dis_sum_a=7.2669, exp_dis_sum_b=7.2487, exp_di_12_a=0.7205, exp_di_12_b=0.5554,
+                        exp_iring=0.007423, exp_mci=-0.022291, exp_av=1.094, exp_pdi=0.062161, exp_avmin=-3.486),
+            'iao': dict(exp_pop_atm1_a=3.1922, exp_pop_atm1_b=2.8019, exp_di_all_a=0.9852, exp_di_all_b=0.8925,
                         exp_dis_sum_a=7.2175, exp_dis_sum_b=7.2003, exp_di_12_a=0.7197, exp_di_12_b=0.5533,
                         exp_iring=0.007212, exp_mci=-0.023300, exp_av=1.102, exp_pdi=0.059074, exp_avmin=-3.559)}
+
 
 class ESItest(unittest.TestCase):
 
@@ -91,14 +95,14 @@ class ESItest(unittest.TestCase):
         # Multicenter indicators
         self.assertAlmostEqual(inds.iring, exp_iring, places=6)
         self.assertAlmostEqual(inds.mci, exp_mci, places=5)
-        esitest = ESI(mol=mol, mf=mf, rings=ring, partition=partition, ncores = 2)
+        esitest = ESI(mol=mol, mf=mf, rings=ring, partition=partition, ncores=2)
         inds = esitest.indicators[0]
         self.assertAlmostEqual(inds.mci, exp_mci, places=5)
         self.assertAlmostEqual(inds.av1245, exp_av, places=2)
         self.assertAlmostEqual(inds.avmin, exp_avmin, places=2)
         self.assertAlmostEqual(inds.pdi, exp_pdi, places=6)
 
-        #Geometric indicators
+        # Geometric indicators
         self.assertAlmostEqual(inds.homa, 0.993307, places=6)
         self.assertAlmostEqual(inds.en, 0.006693, places=6)
         self.assertAlmostEqual(inds.geo, 0, places=6)
@@ -109,7 +113,6 @@ class ESItest(unittest.TestCase):
         exp = expected[partition]
         self.run_pop_tests(partition, exp=exp)
         self.run_indicator_tests(partition, exp=exp)
-
 
     def test_lowdin(self):
         partition = 'lowdin'
@@ -138,4 +141,3 @@ class ESItest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

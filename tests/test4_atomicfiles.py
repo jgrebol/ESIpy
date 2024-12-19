@@ -1,6 +1,8 @@
 import unittest
-import esipy
+
 from pyscf import gto, dft
+
+import esipy
 
 mol = gto.M(
     atom='''
@@ -35,6 +37,7 @@ unrest.kernel()
 
 ring = [1, 2, 3, 4, 5, 6]
 
+
 class ESItest(unittest.TestCase):
 
     def test_write_aoms_rest(self):
@@ -46,29 +49,32 @@ class ESItest(unittest.TestCase):
 
     def test_read_aoms_rest(self):
         name = "test4_atomicfiles_rest"
-        esitest = esipy.ESI(molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name, readpath=name + '_nao')
+        esitest = esipy.ESI(molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name,
+                            readpath=name + '_nao')
         esitest.readaoms()
         esitest.print()
         esitest = esipy.ESI(molinfo=name + "_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
         esitest.readaoms()
         esitest.print()
 
-
     def test_read_aoms_unrest(self):
         name = "test4_atomicfiles_unrest"
-        esitest = esipy.ESI(molinfo=name+"_nao.molinfo", rings=ring, partition='nao', name=name, readpath = name +"_nao")
+        esitest = esipy.ESI(molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name,
+                            readpath=name + "_nao")
         esitest.readaoms()
         esitest.print()
-        esitest = esipy.ESI(molinfo=name+"_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
+        esitest = esipy.ESI(molinfo=name + "_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
         esitest.readaoms()
         esitest.print()
 
     def test_write_aoms_unrest(self):
         name = "test4_atomicfiles_unrest"
-        esitest = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='nao', name=name, savemolinfo=name + "_nao.molinfo")
+        esitest = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='nao', name=name,
+                            savemolinfo=name + "_nao.molinfo")
         esitest.writeaoms()
-        esitest = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='m', name= name, savemolinfo=name + "_mul.molinfo")
+        esitest = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='m', name=name, savemolinfo=name + "_mul.molinfo")
         esitest.writeaoms()
+
 
 if __name__ == '__main__':
     # Create a test suite and add tests in the desired order
@@ -81,4 +87,3 @@ if __name__ == '__main__':
     # Run the test suite
     runner = unittest.TextTestRunner()
     runner.run(suite)
-

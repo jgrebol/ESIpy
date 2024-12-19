@@ -1,9 +1,9 @@
 import esipy
 
-ring = [7,3,1,2,6,10]
+ring = [7, 3, 1, 2, 6, 10]
 partition = 'nao'
 molinfo = 'example08_nao.molinfo'
-path='example08_nao/'
+path = 'example08_nao/'
 
 # By default, will search for ".int" in the working directory
 arom = esipy.ESI(readpath=path, molinfo=molinfo, partition=partition, rings=ring, mci=True, av1245=True)

@@ -1,5 +1,7 @@
 import numpy as np
+
 from esipy.tools import format_partition
+
 
 def info_rest(Smo, molinfo):
     """
@@ -32,6 +34,7 @@ def info_rest(Smo, molinfo):
     print(" | Tr(Enter):    {:.13f}".format(trace))
     print(" ------------------------------------------- ")
 
+
 def deloc_rest(Smo, molinfo):
     """Population analysis, localization and delocalization indices for restricted, single-determinant calculations.
     Args:
@@ -54,14 +57,14 @@ def deloc_rest(Smo, molinfo):
         N.append(2 * np.trace(Smo[i]))
 
         print(" | {:>2}{:>2d}  {:>8.4f}  {:>8.4f}  {:>8.4f} ".format(
-                symbols[i], i + 1, N[i], lis[i], N[i] - lis[i]))
+            symbols[i], i + 1, N[i], lis[i], N[i] - lis[i]))
 
         for j in range(i + 1, len(Smo)):
-                di = 4 * np.trace(np.dot(Smo[i], Smo[j]))
-                dis.append(di)
+            di = 4 * np.trace(np.dot(Smo[i], Smo[j]))
+            dis.append(di)
     print(" ------------------------------------- ")
     print(" | TOT:  {:>8.4f}  {:>8.4f}  {:>8.4f}".format(
-    sum(N), sum(N) - sum(dis), sum(dis)))
+        sum(N), sum(N) - sum(dis), sum(dis)))
     print(" ------------------------------------- ")
 
     print(" ------------------------ ")
@@ -71,11 +74,11 @@ def deloc_rest(Smo, molinfo):
         for j in range(i, len(Smo)):
             if i == j:
                 print(" | {:>2}{:>2}-{:>2}{:>2}   {:>8.4f}".format(
-            symbols[i], str(i + 1).center(2), symbols[j],
+                    symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), lis[i]))
             else:
                 print(" | {:>2}{:>2}-{:>2}{:>2}   {:>8.4f}".format(
-            symbols[i], str(i + 1).center(2), symbols[j],
+                    symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), 4 * np.trace(np.dot(Smo[i], Smo[j]))))
     print(" ------------------------ ")
     print(" |   TOT:      {:>8.4f} ".format(np.sum(dis) + np.sum(lis)))
@@ -154,7 +157,6 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
         print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].bla))
         print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].bla_c))
 
-
         flu = indicators[ring_index].flu
         if flu is None:
             print(" | Could not compute FLU")
@@ -201,7 +203,7 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
                         str(ring[(j + 1) % len(ring)]).rjust(2), symbols[av1245_pairs[j][1] - 1].ljust(2),
                         str(ring[(j + 3) % len(ring)]).rjust(2), symbols[av1245_pairs[j][2] - 1].ljust(2),
                         str(ring[(j + 4) % len(ring)]).rjust(2), symbols[av1245_pairs[j][3] - 1].ljust(2),
-                        av1245_list[(ring[j]-1)%len(ring)]))
+                        av1245_list[(ring[j] - 1) % len(ring)]))
                 print(" | AV1245 {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].av1245))
                 print(" |  AVmin {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].avmin))
                 print(" ---------------------------------------------------------------------- ")
@@ -248,4 +250,3 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
             else:
                 print(" | MCI**(1/n)   {} =  {:>6f}".format(ring_index + 1, mci_total ** (1 / len(ring))))
         print(" ---------------------------------------------------------------------- ")
-

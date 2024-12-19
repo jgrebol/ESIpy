@@ -1,5 +1,7 @@
 import numpy as np
+
 from esipy.tools import format_partition, find_multiplicity
+
 
 def info_unrest(Smo, molinfo):
     """
@@ -34,6 +36,7 @@ def info_unrest(Smo, molinfo):
     print(" | Tr(beta) :    {:.13f}".format(trace_b))
     print(" | Tr(Enter):    {:.13f}".format(trace_a + trace_b))
     print(" ------------------------------------------- ")
+
 
 def deloc_unrest(Smo, molinfo):
     """Population analysis, localization and delocalization indices for unrestriced, single-determinant calculations.
@@ -84,14 +87,14 @@ def deloc_unrest(Smo, molinfo):
         for j in range(i, len(symbols)):
             if i == j:
                 print(" | {:>2}{:>2}-{:>2}{:>2}  {:8.4f}  {:8.4f}  {:8.4f}".format(
-            symbols[i], str(i + 1).center(2), symbols[j],
+                    symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), lis_alpha[i] + lis_beta[i], lis_alpha[i], lis_beta[i]))
             else:
                 dia = 2 * np.trace(np.dot(Smo[0][i], Smo[0][j]))
                 dib = 2 * np.trace(np.dot(Smo[1][i], Smo[1][j]))
                 ditot = dia + dib
                 print(" | {:>2}{:>2}-{:>2}{:>2}  {:8.4f}  {:8.4f}  {:8.4f}".format(
-            symbols[i], str(i + 1).center(2), symbols[j],
+                    symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), ditot, dia, dib))
     print(" ------------------------------------------- ")
     print(" |    TOT:   {:>9.4f} {:>9.4f} {:>9.4f} ".format(
@@ -103,8 +106,10 @@ def deloc_unrest(Smo, molinfo):
         sum(dis_alpha) + sum(dis_beta), sum(dis_alpha), sum(dis_beta)))
     print(" ------------------------------------------- ")
 
-def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, partition=None, flurefs=None, homarefs=None, homerrefs=None,
-              ncores=1):
+
+def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, partition=None, flurefs=None, homarefs=None,
+                homerrefs=None,
+                ncores=1):
     """
     Outputs the aromaticity indices for unrestricted, single-determinant wavefunctions.
 
@@ -265,8 +270,10 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, partit
                         str(ring[(j + 3) % len(ring)]).rjust(2), symbols[(ring[(j + 3) % len(ring)] - 1)],
                         str(ring[(j + 4) % len(ring)]).rjust(2), symbols[(ring[(j + 4) % len(ring)] - 1)],
                         av1245_list_alpha[(ring[j] - 1) % len(ring)]))
-                print(" |   AV1245_alpha {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].av1245_alpha))
-                print(" |    AVmin_alpha {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].avmin_alpha))
+                print(" |   AV1245_alpha {} =             {:>9.4f}".format(ring_index + 1,
+                                                                           indicators[ring_index].av1245_alpha))
+                print(" |    AVmin_alpha {} =             {:>9.4f}".format(ring_index + 1,
+                                                                           indicators[ring_index].avmin_alpha))
 
                 print(" |")
                 print(" | *** AV1245_BETA ***")
@@ -278,8 +285,10 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, partit
                         str(ring[(j + 3) % len(ring)]).rjust(2), symbols[(ring[(j + 3) % len(ring)] - 1)],
                         str(ring[(j + 4) % len(ring)]).rjust(2), symbols[(ring[(j + 4) % len(ring)] - 1)],
                         av1245_list_beta[(ring[j] - 1) % len(ring)]))
-                print(" |   AV1245_beta  {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].av1245_beta))
-                print(" |    AVmin_beta  {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].avmin_beta))
+                print(" |   AV1245_beta  {} =             {:>9.4f}".format(ring_index + 1,
+                                                                           indicators[ring_index].av1245_beta))
+                print(" |    AVmin_beta  {} =             {:>9.4f}".format(ring_index + 1,
+                                                                           indicators[ring_index].avmin_beta))
                 print(" | ")
                 print(" | *** AV1245_TOTAL ***")
                 for j in range(len(ring)):
@@ -289,8 +298,10 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, partit
                         str(ring[(j + 3) % len(ring)]).rjust(2), symbols[(ring[(j + 3) % len(ring)] - 1)],
                         str(ring[(j + 4) % len(ring)]).rjust(2), symbols[(ring[(j + 4) % len(ring)] - 1)],
                         av1245_list[(ring[j] - 1) % len(ring)]))
-                print(" |   AV1245       {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].av1245))
-                print(" |    AVmin       {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].avmin))
+                print(
+                    " |   AV1245       {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].av1245))
+                print(
+                    " |    AVmin       {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].avmin))
                 print(" ---------------------------------------------------------------------- ")
 
         iring_alpha = indicators[ring_index].iring_alpha
@@ -348,4 +359,3 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, partit
                 print(" | MCI**(1/n)   {} =  {:>6f}".format(ring_index + 1, mci_total ** (1 / len(ring))))
 
             print(" ---------------------------------------------------------------------- ")
-

@@ -1,6 +1,8 @@
 import unittest
-import esipy
+
 from pyscf import gto, dft
+
+import esipy
 
 mol = gto.M(
     atom='''
@@ -29,6 +31,7 @@ mf.kernel()
 
 ring = [1, 2, 3, 4, 5, 6]
 
+
 class ESItest(unittest.TestCase):
 
     def init_partition(self, part, exp):
@@ -48,7 +51,8 @@ class ESItest(unittest.TestCase):
                 self.init_partition(part, 'lowdin')
 
     def test_init_partition_meta_lowdin(self):
-        meta_lowdin_parts = ["ml", "ML", "meta-low", "m-low", "mlow", "meta-lowdin", "metalowdin", "mlowdin", "m-lowdin"]
+        meta_lowdin_parts = ["ml", "ML", "meta-low", "m-low", "mlow", "meta-lowdin", "metalowdin", "mlowdin",
+                             "m-lowdin"]
         for part in meta_lowdin_parts:
             with self.subTest(partition=part):
                 self.init_partition(part, 'meta_lowdin')
@@ -67,17 +71,17 @@ class ESItest(unittest.TestCase):
 
     def test_init_mci_av1245(self):
         # For a 6MR: mci=True, av1245=False
-        esitest = esipy.ESI(mol=mol, mf=mf, rings=[1,2,3,4,5,6], partition='mulliken')
+        esitest = esipy.ESI(mol=mol, mf=mf, rings=[1, 2, 3, 4, 5, 6], partition='mulliken')
         self.assertTrue(esitest.mci)
         self.assertFalse(esitest.av1245)
 
         # For a 10MR: mci=True, av1245=True
-        esitest = esipy.ESI(mol=mol, mf=mf, rings=[1,2,3,4,5,6,7,8,9,10], partition='mulliken')
+        esitest = esipy.ESI(mol=mol, mf=mf, rings=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], partition='mulliken')
         self.assertTrue(esitest.mci)
         self.assertTrue(esitest.av1245)
 
         # For a 12MR: mci=False, av1245=True
-        esitest = esipy.ESI(mol=mol, mf=mf, rings=[1,2,3,4,5,6,7,8,9,10,11,12], partition='mulliken')
+        esitest = esipy.ESI(mol=mol, mf=mf, rings=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], partition='mulliken')
         self.assertFalse(esitest.mci)
         self.assertTrue(esitest.av1245)
 
@@ -87,7 +91,8 @@ class ESItest(unittest.TestCase):
         self.assertTrue(esitest.av1245)
 
     def test_init_aoms(self):
-        esitest = esipy.ESI(mol=mol, mf=mf, rings=[1,2,3,4,5,6], partition='mulliken', saveaoms='example01_mulliken.aoms')
+        esitest = esipy.ESI(mol=mol, mf=mf, rings=[1, 2, 3, 4, 5, 6], partition='mulliken',
+                            saveaoms='example01_mulliken.aoms')
         self.assertTrue(hasattr(esitest, "Smo"))
 
         # We try getting the Smo from a file
@@ -98,7 +103,8 @@ class ESItest(unittest.TestCase):
         self.assertTrue(isinstance(esitest.Smo, list))
 
     def test_init_molinfo(self):
-        esitest = esipy.ESI(mol=mol, mf=mf, rings=[1,2,3,4,5,6], partition='mulliken', savemolinfo='example01_mulliken.molinfo')
+        esitest = esipy.ESI(mol=mol, mf=mf, rings=[1, 2, 3, 4, 5, 6], partition='mulliken',
+                            savemolinfo='example01_mulliken.molinfo')
         self.assertTrue(hasattr(esitest, "molinfo"))
         self.assertTrue(isinstance(esitest.molinfo, dict))
 
@@ -116,6 +122,6 @@ class ESItest(unittest.TestCase):
         self.assertTrue(hasattr(esitest, "molinfo"))
         self.assertTrue(isinstance(esitest.molinfo, dict))
 
+
 if __name__ == "__main__":
     unittest.main()
-

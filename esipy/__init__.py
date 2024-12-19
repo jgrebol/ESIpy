@@ -1,17 +1,21 @@
 from os import environ
+
 import numpy as np
-from esipy.make_aoms import make_aoms
+
 from esipy.atomicfiles import write_aoms, read_aoms
-from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type
 from esipy.indicators import (
     compute_iring, sequential_mci, multiprocessing_mci, compute_av1245, compute_pdi,
     compute_flu, compute_boa, compute_homer, compute_homa, compute_bla,
     compute_iring_no, sequential_mci_no, multiprocessing_mci_no, compute_av1245_no,
     compute_pdi_no, compute_boa_no
 )
+from esipy.make_aoms import make_aoms
+from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type
+
 
 class IndicatorsRest:
-    def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None, flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, molinfo=None, ncores=1):
+    def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None,
+                 flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, molinfo=None, ncores=1):
         """
         Initialize the indicators from Restricted calculations.
 
@@ -186,7 +190,6 @@ class IndicatorsRest:
         """
         return 2 * self._boa()[1]
 
-
     @property
     def homer(self):
         """
@@ -284,6 +287,7 @@ class IndicatorsRest:
         """
         return compute_homer(self._rings, self._molinfo, self._homerrefs)
 
+
 class IndicatorsUnrest:
     """
     Initialize the indicators from Unrestricted calculations.
@@ -306,7 +310,8 @@ class IndicatorsUnrest:
         ncores (optional, int): Number of cores to use for the MCI calculation. Default is 1.
     """
 
-    def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None, flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, molinfo=None, ncores=1):
+    def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None,
+                 flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, molinfo=None, ncores=1):
         self._Smo = Smo
         self._rings = rings
         self._mol = mol
@@ -381,9 +386,9 @@ class IndicatorsUnrest:
                 mci_beta = sequential_mci(self._rings, self._Smo[1], self._partition)
             else:
                 mci_alpha = multiprocessing_mci(self._rings, self._Smo[0], self._ncores,
-                                                                 self._partition)
+                                                self._partition)
                 mci_beta = multiprocessing_mci(self._rings, self._Smo[1], self._ncores,
-                                                                self._partition)
+                                               self._partition)
             self._done_mcis = (mci_alpha, mci_beta)
         return self._done_mcis
 
@@ -764,6 +769,7 @@ class IndicatorsUnrest:
         """
         return self._blas()[1]
 
+
 class IndicatorsNatorb:
     """
     Initialize the indicators from Natural Orbitals calculations.
@@ -787,7 +793,8 @@ class IndicatorsNatorb:
         ncores (optional, int): Number of cores to use for the MCI calculation. Default is 1.
     """
 
-    def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None, flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, molinfo=None, ncores=1):
+    def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None,
+                 flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, molinfo=None, ncores=1):
         self._Smo = Smo
         self._rings = rings
         self._mol = mol
@@ -1008,6 +1015,7 @@ class IndicatorsNatorb:
         """
         return self._blas()[1]
 
+
 class ESI:
     """
     Main class for the ESIpy code.
@@ -1040,7 +1048,8 @@ class ESI:
     writeaoms(): Writes ESIpy's AOMs in AIMAll format.
     print(): Prints the output for the main ESIpy functions.
     """
-    def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf = None, partition=None,
+
+    def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf=None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
                  ncores=1, saveaoms=None, savemolinfo=None, name="calc", readpath='.'):
@@ -1081,24 +1090,34 @@ class ESI:
         if wf == "rest":
             self.indicators = []
             for i in self.rings:
-                self.indicators.append(IndicatorsRest(Smo=self.Smo, rings=i, mol=self.mol, mf=self.mf, myhf=self.myhf, partition=self.partition, mci=self.mci,
-                     av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, connectivity=self.connectivity, geom=self.geom,
-                     molinfo=self.molinfo, ncores=self.ncores))
+                self.indicators.append(IndicatorsRest(Smo=self.Smo, rings=i, mol=self.mol, mf=self.mf, myhf=self.myhf,
+                                                      partition=self.partition, mci=self.mci,
+                                                      av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs,
+                                                      homerrefs=self.homerrefs, connectivity=self.connectivity,
+                                                      geom=self.geom,
+                                                      molinfo=self.molinfo, ncores=self.ncores))
         elif wf == "unrest":
             self.indicators = []
             for i in self.rings:
-                self.indicators.append(IndicatorsUnrest(Smo=self.Smo, rings=i, mol=self.mol, mf=self.mf, myhf=self.myhf, partition=self.partition, mci=self.mci,
-                                             av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, connectivity=self.connectivity, geom=self.geom,
-                                             molinfo=self.molinfo, ncores=self.ncores))
+                self.indicators.append(IndicatorsUnrest(Smo=self.Smo, rings=i, mol=self.mol, mf=self.mf, myhf=self.myhf,
+                                                        partition=self.partition, mci=self.mci,
+                                                        av1245=self.av1245, flurefs=self.flurefs,
+                                                        homarefs=self.homarefs, homerrefs=self.homerrefs,
+                                                        connectivity=self.connectivity, geom=self.geom,
+                                                        molinfo=self.molinfo, ncores=self.ncores))
         elif wf == "no":
-            if not "fci" in self.mf.__module__:
-                if np.ndim(self.mf.make_rdm1(ao_repr=True)) == 3:
-                    raise ValueError(" | Can not compute Natural Orbitals from unrestricted orbitals YET.")
+            if "fci" in self.mf.__module__:
+                raise ValueError(" | Can not compute Natural Orbitals from FCI calculation YET.")
+            if np.ndim(self.mf.make_rdm1(ao_repr=True)) == 3:
+                raise ValueError(" | Can not compute Natural Orbitals from unrestricted orbitals YET.")
             self.indicators = []
             for i in self.rings:
-                self.indicators.append(IndicatorsNatorb(Smo=self.Smo, rings=i, mol=self.mol, mf=self.mf, myhf=self.myhf, partition=self.partition, mci=self.mci,
-                                               av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, connectivity=self.connectivity, geom=self.geom,
-                                               molinfo=self.molinfo, ncores=self.ncores))
+                self.indicators.append(IndicatorsNatorb(Smo=self.Smo, rings=i, mol=self.mol, mf=self.mf, myhf=self.myhf,
+                                                        partition=self.partition, mci=self.mci,
+                                                        av1245=self.av1245, flurefs=self.flurefs,
+                                                        homarefs=self.homarefs, homerrefs=self.homerrefs,
+                                                        connectivity=self.connectivity, geom=self.geom,
+                                                        molinfo=self.molinfo, ncores=self.ncores))
         else:
             raise ValueError(" | Could not determine the wavefunction type")
 
@@ -1152,7 +1171,8 @@ class ESI:
         """
         if isinstance(self._partition, str):
             return format_partition(self._partition)
-        raise ValueError(" | Partition could not be processed. Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao'")
+        raise ValueError(
+            " | Partition could not be processed. Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao'")
 
     @property
     def mci(self):
@@ -1163,7 +1183,7 @@ class ESI:
         """
         if self._mci is not None:
             return self._mci
-        if isinstance(self.rings[0], list): # Check if there are more than one rings
+        if isinstance(self.rings[0], list):  # Check if there are more than one rings
             maxring = max(len(ring) for ring in self.rings)
         else:
             maxring = len(self.rings)
@@ -1182,7 +1202,7 @@ class ESI:
         """
         if self._av1245 is not None:
             return self._av1245
-        if isinstance(self.rings[0], list): # Check if there are more than one rings
+        if isinstance(self.rings[0], list):  # Check if there are more than one rings
             maxring = max(len(ring) for ring in self.rings)
         else:
             maxring = len(self.rings)
@@ -1255,7 +1275,8 @@ class ESI:
             self.molinfo.update({"method": "Not specified"})
 
         if isinstance(self.partition, list):
-            raise ValueError(" | Only one partition at a time. Partition should be a string, not a list\n | Please consider looping through the partitions before calling the function")
+            raise ValueError(
+                " | Only one partition at a time. Partition should be a string, not a list\n | Please consider looping through the partitions before calling the function")
 
         if self.rings is None:
             raise ValueError(" | The variable 'rings' is mandatory and must be a list with the ring connectivity")
@@ -1275,25 +1296,27 @@ class ESI:
             from esipy.rest import info_rest, deloc_rest, arom_rest
             info_rest(self.Smo, self.molinfo)
             deloc_rest(self.Smo, self.molinfo)
-            arom_rest(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci, av1245=self.av1245,
+            arom_rest(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
+                      av1245=self.av1245,
                       flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores)
 
         elif wf_type(self.Smo) == "unrest":
             from esipy.unrest import info_unrest, deloc_unrest, arom_unrest
             info_unrest(self.Smo, self.molinfo)
             deloc_unrest(self.Smo, self.molinfo)
-            arom_unrest(Smo=self.Smo, rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci, av1245=self.av1245, partition=self.partition,
-                      flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores)
+            arom_unrest(Smo=self.Smo, rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
+                        av1245=self.av1245, partition=self.partition,
+                        flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores)
 
         elif wf_type(self.Smo) == "no":
             from esipy.no import info_no, deloc_no, arom_no
             info_no(self.Smo, self.molinfo)
             deloc_no(self.Smo, self.molinfo)
-            arom_no(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci, av1245=self.av1245,
-                        flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores)
+            arom_no(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
+                    av1245=self.av1245,
+                    flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores)
 
 
 environ["NUMEXPR_NUM_THREADS"] = "1"
 environ["OMP_NUM_THREADS"] = "1"
 environ["MKL_NUM_THREADS"] = "1"
-

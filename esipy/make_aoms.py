@@ -1,8 +1,8 @@
-from pyscf.lo.orth import lowdin, restore_ao_character
-from pyscf.lo import nao, iao
 import numpy as np
+from pyscf.lo import nao, iao
+from pyscf.lo.orth import lowdin, restore_ao_character
+
 from esipy.tools import save_file, format_partition, get_natorbs, build_eta
-from esipy.tools import get_natorbs_fci
 
 
 def make_aoms(mol, mf, partition, myhf=None, save=None):
@@ -220,7 +220,3 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             save_file(Smo, save)
 
         return [Smo, occ]
-
-
-
-

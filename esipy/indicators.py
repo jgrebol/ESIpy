@@ -1,5 +1,7 @@
 import numpy as np
+
 from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_distances, av1245_pairs
+
 
 ########## Iring ###########
 
@@ -25,6 +27,7 @@ def compute_iring(arr, Smo):
 
     return iring
 
+
 def compute_iring_no(arr, Smo):
     """
     Calculation of the Iring aromaticity index for Natural Orbital calculations.
@@ -41,8 +44,9 @@ def compute_iring_no(arr, Smo):
     Smo, occ = Smo
     product = np.identity(Smo[0].shape[0])
     for i in arr:
-        product = np.dot(product, np.dot(occ, Smo[i-1]))
+        product = np.dot(product, np.dot(occ, Smo[i - 1]))
     return np.trace(product)
+
 
 ########### MCI ###########
 
@@ -74,6 +78,7 @@ def sequential_mci(arr, Smo, partition):
         iterable2 = (x for x in iterable2 if x[1] < x[-1])
         return sum(compute_iring(p, Smo) for p in iterable2)
 
+
 def sequential_mci_no(arr, Smo, partition):
     """Computes the MCI sequentially for a Natural Orbitals calculation by computing the Iring
     without storing the permutations. Default option if no number of cores is specified.
@@ -100,6 +105,7 @@ def sequential_mci_no(arr, Smo, partition):
     else:  # Remove reversed permutations
         iterable2 = (x for x in iterable2 if x[1] < x[-1])
         return sum(compute_iring_no(p, Smo) for p in iterable2)
+
 
 def multiprocessing_mci(arr, Smo, ncores, partition):
     """Computes the MCI by generating all the permutations
@@ -136,6 +142,7 @@ def multiprocessing_mci(arr, Smo, ncores, partition):
         iterable2 = (x for x in iterable2 if x[1] < x[-1])
         return sum(pool.imap(dumb, iterable2, chunk_size))
 
+
 def multiprocessing_mci_no(arr, Smo, ncores, partition):
     """Computes the MCI from a Natural Orbitals calculation by generating all the permutations
     for a later distribution along the specified number of cores.
@@ -171,6 +178,7 @@ def multiprocessing_mci_no(arr, Smo, ncores, partition):
         iterable2 = (x for x in iterable2 if x[1] < x[-1])
         return sum(pool.imap(dumb, iterable2, chunk_size))
 
+
 ########### AV1245 ###########
 
 # Calculation of the AV1245 index (Restricted and Unrestricted)
@@ -200,6 +208,7 @@ def compute_av1245(arr, Smo, partition):
 
     return av1245_value, avmin_value, products
 
+
 def compute_av1245_no(arr, Smo, partition):
     """Computes the AV1245 and AVmin indices. Not available for rings smaller than 6 members.
     Args:
@@ -224,6 +233,7 @@ def compute_av1245_no(arr, Smo, partition):
     avmin_value = min(products, key=abs)
 
     return av1245_value, avmin_value, products
+
 
 ########### PDI ###########
 
@@ -252,6 +262,7 @@ def compute_pdi(arr, Smo):
     else:
         return None
 
+
 def compute_pdi_no(arr, Smo):
     """Computes the PDI for the given 6-membered ring connectivity. Only computed for rings n=6.
     Args:
@@ -267,16 +278,17 @@ def compute_pdi_no(arr, Smo):
 
     if len(arr) == 6:
 
-        i1, i2, i3, i4, i5, i6 = arr[0]-1, arr[1]-1, arr[2]-1, arr[3]-1, arr[4]-1, arr[5]-1
-        pdi_a = 2 * np.trace(np.linalg.multi_dot((occ**(1/2), Smo[i1], occ**(1/2), Smo[i4])))
-        pdi_b = 2 * np.trace(np.linalg.multi_dot((occ**(1/2), Smo[i2], occ**(1/2), Smo[i5])))
-        pdi_c = 2 * np.trace(np.linalg.multi_dot((occ**(1/2), Smo[i3], occ**(1/2), Smo[i6])))
+        i1, i2, i3, i4, i5, i6 = arr[0] - 1, arr[1] - 1, arr[2] - 1, arr[3] - 1, arr[4] - 1, arr[5] - 1
+        pdi_a = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), Smo[i1], occ ** (1 / 2), Smo[i4])))
+        pdi_b = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), Smo[i2], occ ** (1 / 2), Smo[i5])))
+        pdi_c = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), Smo[i3], occ ** (1 / 2), Smo[i6])))
         pdi_value = (pdi_a + pdi_b + pdi_c) / 3
 
         return pdi_value, [pdi_a, pdi_b, pdi_c]
 
     else:
         return None
+
 
 ########### FLU ###########
 
@@ -363,6 +375,7 @@ def compute_flu(arr, molinfo, Smo, flurefs=None, partition=None):
         flu_value += float(flu_deloc * flu_polar) ** 2
     return flu_value / len(arr)
 
+
 ########### BOA ###########
 
 # Calculation of the BOA (Restricted and Unrestricted)
@@ -393,6 +406,7 @@ def compute_boa(arr, Smo):
         boa_c += diff_di / len(arr)
     return boa, boa_c
 
+
 def compute_boa_no(arr, Smo):
     """Computes the BOA and BOA_c indices for Natural Orbitals calculations.
     Args:
@@ -418,6 +432,7 @@ def compute_boa_no(arr, Smo):
             find_di_no(Smo, arr[i - 1], arr[i]) - find_di_no(Smo, arr[(i + 1) % len(arr) - 1], arr[(i + 1) % len(arr)]))
         boa_c += diff_di / len(arr)
     return boa, boa_c
+
 
 ######## GEOMETRIC INDICES ########
 
@@ -449,7 +464,7 @@ def compute_homer(arr, molinfo, homerrefs=None):
 
     atom_symbols = molinfo["symbols"]
     bond_types = ["".join(sorted([atom_symbols[arr[i] - 1], atom_symbols[arr[(i + 1) % len(arr)] - 1]]))
-                      for i in range(len(arr))]
+                  for i in range(len(arr))]
 
     for i in range(len(arr)):
         if bond_types[i] not in refs:
@@ -501,7 +516,7 @@ def compute_homa(arr, molinfo, homarefs=None):
     symbols = molinfo["symbols"]
     atom_symbols = [symbols[int(i) - 1] for i in arr]
     bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]]))
-              for i in range(len(arr))]
+                  for i in range(len(arr))]
 
     for i in range(len(arr)):
         if bond_types[i] not in refs:
@@ -535,6 +550,7 @@ def compute_homa(arr, molinfo, homarefs=None):
 
     homa_value = 1 - (EN + GEO)
     return homa_value, EN, GEO
+
 
 # Calculation of the BLA (Restricted and Unrestricted)
 
