@@ -187,7 +187,6 @@ def compute_huckel_iring(arr, Smo, ref=None):
             # We susbtract 1 to not account for sigma bonds in orto connectivity
             di = di - 1
         total_di *= di
-
     return total_di
 
 def compute_huckel_sequential_mci(arr, Smo, partition="non-symmetric"):
