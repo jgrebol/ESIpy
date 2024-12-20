@@ -1,6 +1,6 @@
 import esipy
 
-partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
+partition = ['m', 'lowdin', 'meta_lowdin', 'nao', 'iao']
 ring = [1, 2, 3, 4, 5, 6]
 
 for part in partition:

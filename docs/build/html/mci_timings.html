@@ -1,0 +1,222 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCI TIMINGS &mdash; ESIpy 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Examples" href="examples.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESIpy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="theory.html">Theoretical background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esipy.html">esipy package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">MCI TIMINGS</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESIpy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">MCI TIMINGS</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/mci_timings.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="mci-timings">
+<h1>MCI TIMINGS<a class="headerlink" href="#mci-timings" title="Link to this heading"></a></h1>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>This page is under construction, and thus the results should not be taken as a direct reference.</p>
+</div>
+<p>The ESIpy code provides an improved algorithm for the generation of permutations in the MCI calculation.
+ESI-3D used a Nested Summation Symbol (NSS) to compute all the ring connectivities.
+In ESIpy, two separate algorithms are used: <strong>S</strong> and <strong>M</strong>. Both algorithms only generate the (n-1)!/2 permutations of
+a given n-lenghted list for non-symmetric AOMs and (n-1)! for symmetric AOMs (i.e., Mulliken).
+In order to obtain the non-cyclic permutations, one approach computes the (n-1) cyclic permutations and appends the nth
+term, resulting in the non-cyclic ring connectivities.
+Moreover, due to the topology of the permutations, a factor of 2 is present if the first (n-1) elements of the list of
+length n are reversed. Hence, the algorithms check this reversability and gets rid of the <span class="math notranslate nohighlight">\(2\)</span> factor.</p>
+<p>Both <strong>S</strong> and <strong>M</strong> perform slices of the original list using the <cite>itertools.islice</cite> module. The <strong>S</strong> algorithm
+computes the Iring for each permutatation, while the <strong>M</strong> separates them into different chunks as iterators.
+Then computes the MCI for each chunk and sums up all the MCIs. The storage of the slices as iterators allows for
+multiprocessing without memory requirements, although the speed-up is non-linear.</p>
+<p>By default, ESIpy works on a single core unless specified otherwise in the <cite>num_threads</cite> variable (if it is not
+specified or it is equal to one). To use the other algorithm, <strong>M</strong>, set the variable to an integer greater than 1.
+The following tests have been performed by generating and computing the MCI for 35x35 AOMs (a [10]annulene molecule) in
+an Intel(R) Xeon(R) W-2123 CPU &#64; 3.60Hz) machine.</p>
+<p>Table 1. Time (in seconds) for the MCI calculation of an n-membered ring in single-core processing, computed as an
+average of three timings.</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>n</p></td>
+<td><p>TIME AT 1 CORE (s)</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p>S ALG.</p></td>
+<td><p>M ALG.</p></td>
+</tr>
+<tr class="row-odd"><td><p>6
+7
+8
+9
+10
+11
+12</p></td>
+<td><p>0.002
+0.010
+0.077
+0.664
+6.525
+71.694
+869.263</p></td>
+<td><p>0.022
+0.042
+0.116
+0.778
+7.166
+78.580
+894.523</p></td>
+</tr>
+</tbody>
+</table>
+<p>Table 2. Time (in seconds) for the MCI calculation of different n-membered rings and different number of cores, computed
+as an average of three timings.</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>n</p></td>
+<td><p>Time at ≥ 1 cores (s)</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p>ncores</p></td>
+<td><p>M ALG.</p></td>
+</tr>
+<tr class="row-odd"><td><p>10</p>
+<p>11</p>
+<p>12</p>
+</td>
+<td><p>1
+2
+4
+6
+8
+1
+2
+4
+6
+8
+1
+2
+4
+6
+8</p></td>
+<td><p>7.166
+3.807
+2.436
+2.352
+2.052
+78.580
+4.0338
+31.871
+25.850
+21.159
+869.263
+470.362
+268.909
+273.089
+243.110</p></td>
+</tr>
+</tbody>
+</table>
+<p>Although the speedup is non-linear and falls at higher number of threads, we still recommend using 2-4 cores for larger
+rings n=11-12.
+The M algorithm has been tested for rings up to n=14 at 4 cores, which lasted around 21 hours for 42x42 AOMs (a [14]
+annulene molecule) on an Intel(R) Xeon(R) Platinum 8260 CPU &#64; 2.40GHz machine.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="examples.html" class="btn btn-neutral float-left" title="Examples" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

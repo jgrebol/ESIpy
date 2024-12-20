@@ -1,0 +1,202 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Examples &mdash; ESIpy 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="esipy package" href="esipy.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESIpy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esipy.html">esipy package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#core-esipy">Core ESIpy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#treating-int-files">Treating .int files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#correlated-wavefunctions">Correlated wavefunctions</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESIpy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Examples</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/examples.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="examples">
+<h1>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h1>
+<p>In this section we will go through the process of performing all the available calculations using ESIpy’s functions
+based on the provided examples. The program is intended to be installed locally in computer clusters. To run the code
+from the terminal, generate the Python script or adapt those of this repository and run it as <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">code.py</span></code> or
+<code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">code.py</span></code>. To save the output as a file, use <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">code.py</span> <span class="pre">&gt;</span> <span class="pre">code.esi</span></code>. Even though the <code class="docutils literal notranslate"><span class="pre">.esi</span></code>
+extension is not mandatory, we recommend using it. The test files have been generated from benzene and naphthalene at
+singlet (and triplet) level of theory, and are just set to showcase the capabilities of the code.</p>
+<section id="core-esipy">
+<h2>Core ESIpy<a class="headerlink" href="#core-esipy" title="Link to this heading"></a></h2>
+<p>ESIpy works on the object <cite>ESI</cite>, which will contain all the information required for the calculation. It is recommended
+to initialize the object with all the data, rather than adding it once the initialization process is finished.</p>
+<p>We will go through the list of examples explaining and highlighting some key notes:</p>
+<ul>
+<li><p>example01: The <cite>ESI</cite> object is initialized through the <cite>mol</cite> and <cite>mf</cite> objects coming from PySCF. The AOMs and the
+molecular information are automatically generated and stored in <cite>Smo</cite>. They can be saved by using the <cite>saveaoms</cite> and
+<cite>savemolinfo</cite> attributes in the initialization process. To print the output of the code, simply use the method
+<cite>print()</cite>.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>We strongly recommend using <code class="docutils literal notranslate"><span class="pre">meta_lowdin</span></code>, <code class="docutils literal notranslate"><span class="pre">nao</span></code> and <code class="docutils literal notranslate"><span class="pre">iao</span></code> as the atomic partitions as they have shown to
+be highly basis-set independent and reliable. We introduce the five atomic partitions available at ESIpy in a for-loop
+scheme, although one partition can be introduced for each calculation. The computation time is the same regardless of
+the partition employed. As some results may depend on the system and the calculation, we encourage comparing these three
+partitions to each other to find incongruences.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>In PySCF versions downloaded later than 23rd July 2023, there is a bug in the symmetry-average of NAO schemes
+(issue <a class="reference external" href="https://github.com/pyscf/pyscf/issues/1755">#1755</a>, bug fixed
+in <a class="reference external" href="https://github.com/pyscf/pyscf/pull/1803">#1803</a>).</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>In PySCF, the <cite>mol.spin</cite> object represents the number of unpaired electrons. It is not the spin of the molecule. For
+instance, <cite>mol.spin = 0</cite> is a singlet state.</p>
+</div>
+</li>
+<li><p>example02: With the already generated <code class="docutils literal notranslate"><span class="pre">.aoms</span></code> and <code class="docutils literal notranslate"><span class="pre">.molinfo</span></code> files, we can perform a fast aromaticity
+calculation without any re-calculation, which will provide the same information as that coming directly from the
+single-point.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the <code class="docutils literal notranslate"><span class="pre">.molinfo</span></code> file has not been generated, one can still obtain the information from the <code class="docutils literal notranslate"><span class="pre">mol</span></code> object
+without requiring the single-point calculation: just do not include the <cite>mf</cite> object.</p>
+</div>
+</li>
+<li><p>example03: The program will set the AOMs from an unrestricted calculation as <code class="docutils literal notranslate"><span class="pre">[Smo_alpha,</span> <span class="pre">Smo_beta]</span></code>. The indicators
+are calculated from alpha-alpha and beta-beta contributions.</p></li>
+<li><p>example04: To provide FLU references to the code, one needs to provide a dictionary, <code class="docutils literal notranslate"><span class="pre">flurefs</span></code>, with the bond
+symbols the DI value corresponding to it. If the pattern already exists, it will be updated, and if it does not it
+will be added to the existing ones. Without the <code class="docutils literal notranslate"><span class="pre">mol</span></code> nor the <code class="docutils literal notranslate"><span class="pre">.molinfo</span></code> variables, one needs to provide the
+list connectivity, which is a list containing the symbols in ring connectivity, but only one can be given at a time.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The <cite>partition</cite> variable is mandatory for reference-based indices. The FLU, HOMA and HOMER will not be computed if no
+partition is specified unless the connectivity and reference has been explicitly specified.</p>
+</div>
+</li>
+<li><p>example05: Custom references for the HOMA can be introduced as stated in Ref. 15 of the main README.md. The custom
+<code class="docutils literal notranslate"><span class="pre">r_opt</span></code> and <code class="docutils literal notranslate"><span class="pre">alpha</span></code> parameters need to be given in the <cite>homerrefs</cite> attribute.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The program will check the topology of the AOMs to separate into singlet and triplet calculations. Thus, it will only
+compute HOMA for singlets and HOMER for triplets.</p>
+</div>
+</li>
+<li><p>example06: Individual calculation of the indicators can be performed. However, we strongly suggest using <cite>ESI.print()</cite>
+as the computational time is minimal for indices other than MCI for large rings.</p></li>
+<li><p>example07: Multi-processing is allowed for the calculation of the MCI, primarily in large systems. For more detailed
+information, please see <a class="reference external" href="ESIpy/MCI_TIMINGS">ESIpy/MCI_TIMINGS</a>.</p></li>
+</ul>
+</section>
+<section id="treating-int-files">
+<h2>Treating .int files<a class="headerlink" href="#treating-int-files" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>example08: The method <cite>writeaoms()</cite> allows to write the AOMs into a file readable for both ESIpy and ESI-3D programs.</p></li>
+<li><p>example09: Equally, the AOMs from the <code class="docutils literal notranslate"><span class="pre">.int</span></code> files can be loaded into <cite>Smo</cite> objects, through the <cite>readaoms()</cite> method.
+This function supports reading the AOMs from ESIpy and AIMAll from both restricted and unrestricted single-determinant
+calculations.</p></li>
+</ul>
+</section>
+<section id="correlated-wavefunctions">
+<h2>Correlated wavefunctions<a class="headerlink" href="#correlated-wavefunctions" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>example10: Aromaticity indicators use Fulton’s approximation for the aromaticity indicators in correlated
+wavefunctions. If the <cite>writeaoms()</cite> is requested, it will additionally create a custom <code class="docutils literal notranslate"><span class="pre">.wfx</span></code> file with the occupation
+numbers as input for the ESI-3D program.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="esipy.html" class="btn btn-neutral float-left" title="esipy package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
