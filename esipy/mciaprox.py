@@ -1,5 +1,5 @@
 import numpy as np
-from esipy.tools import mapping, find_di
+from esipy.tools import mapping
 from esipy.indicators import sequential_mci, multiprocessing_mci
 from math import factorial
 
@@ -49,6 +49,18 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1):
             val += compute_iring(mapping(arr, p), Smo)
         return val, nperms, time() - start
     else:
+        pool = Pool(processes=ncores)
+        dumb = partial(compute_iring, Smo=Smo)
+        chunk_size = 50000
+
+        if partition == 'mulliken' or partition == "non-symmetric":
+            iter = perms
+            # We account for twice the value for symmetric AOMs
+            return 0.5 * sum(pool.imap(dumb, iter, chunk_size))
+        else:  # Remove reversed permutations
+            iter = (x for x in perms if x[1] < x[-1])
+            return sum(pool.imap(dumb, iter, chunk_size))
+
         with Pool(processes=ncores) as pool:
             val = sum(pool.map(partial(compute_iring, Smo=Smo), [mapping(arr, p) for p in perms]))
         return val, nperms, time() - start
