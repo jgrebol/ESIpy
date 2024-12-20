@@ -24,7 +24,7 @@ geom = [[-2.58138047, -1.26965218, -5.69564833],
         [-4.98178807, 4.74141922, -5.69564833],
         [-0.80908381, 2.32169484, -5.69564833]]
 molinfo = 'example01_nao.molinfo'
-Smo = 'example01_nao.aoms'
+aom = 'example01_nao.aoms'
 
-esipy.ESI(Smo=Smo, molinfo=molinfo, rings=ring, partition=partition, homerrefs=homerref, connectivity=connectivity,
+esipy.ESI(aom=aom, molinfo=molinfo, rings=ring, partition=partition, homerrefs=homerref, connectivity=connectivity,
           geom=geom).print()

@@ -7,45 +7,45 @@ environ["OMP_NUM_THREADS"] = "1"
 environ["MKL_NUM_THREADS"] = "1"
 
 
-def wf_type(Smo):
+def wf_type(aom):
     """
     Checks the topology of the AOMs to obtain the type of wavefunction.
     Args:
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
+        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
 
     Returns:
         A string with the type of wave function ('rest', 'unrest' or 'no').
     """
-    if isinstance(Smo[0][0][0], float):
+    if isinstance(aom[0][0][0], float):
         return "rest"
-    elif isinstance(Smo[1][0][0], float):
+    elif isinstance(aom[1][0][0], float):
         return "no"
-    elif isinstance(Smo[1][0][0][0], float):
+    elif isinstance(aom[1][0][0][0], float):
         return "unrest"
     else:
         raise NameError("Could not find the type of wave function from the AOMs")
 
 
-def find_multiplicity(Smo):
+def find_multiplicity(aom):
     """
     Checks the topology of the AOMs to get the difference between alpha and beta electrons.
 
     Arguments:
-       Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
+       aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
 
     Returns:
        A string with the multiplicity of the calculations.
     """
 
-    if len(Smo[0][0]) == len(Smo[1][0]):
+    if len(aom[0][0]) == len(aom[1][0]):
         return "singlet"
-    elif len(Smo[0][0]) == (len(Smo[1][0]) + 1):
+    elif len(aom[0][0]) == (len(aom[1][0]) + 1):
         return "doublet"
-    elif len(Smo[0][0]) == (len(Smo[1][0]) + 2):
+    elif len(aom[0][0]) == (len(aom[1][0]) + 2):
         return "triplet"
-    elif len(Smo[0][0]) == (len(Smo[1][0]) + 3):
+    elif len(aom[0][0]) == (len(aom[1][0]) + 3):
         return "quadruplet"
-    elif len(Smo[0][0]) == (len(Smo[1][0]) + 4):
+    elif len(aom[0][0]) == (len(aom[1][0]) + 4):
         return "quintuplet"
     else:
         return None
@@ -74,11 +74,11 @@ def save_file(file, save):
     Args:
          file:
              Contains the variable to be stored.
-         Smo: string
+         save: string
             Contains the name or the path containing the AOMs.
 
     Returns:
-       Smo: list of matrices
+       aom: list of matrices
           The AOMs required for the ESIpy code.
     """
     from pickle import dump
@@ -105,24 +105,24 @@ def find_distances(arr, geom):
     return distances
 
 
-def find_dis(arr, Smo):
+def find_dis(arr, aom):
     """
     Collects the DIs between the atoms in ring connectivity.
     Args:
         arr: Indices of the atoms in ring connectivity.
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
+        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
 
     Returns:
         List containing the DIs in of the members of the ring
     """
-    return [4 * np.trace(np.dot(Smo[arr[i] - 1], Smo[arr[(i + 1) % len(arr)] - 1])) for i in range(len(arr))]
+    return [4 * np.trace(np.dot(aom[arr[i] - 1], aom[arr[(i + 1) % len(arr)] - 1])) for i in range(len(arr))]
 
 
-def find_di(Smo, i, j):
+def find_di(aom, i, j):
     """
     Collects the DI between two atoms.
     Args:
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
+        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
         i: Index of the first atom.
         j: Index of the second atom.
 
@@ -130,47 +130,47 @@ def find_di(Smo, i, j):
         DI between the atoms i and j.
 
     """
-    return 2 * np.trace(np.dot(Smo[i - 1], Smo[j - 1]))
+    return 2 * np.trace(np.dot(aom[i - 1], aom[j - 1]))
 
 
-def find_di_no(Smo, i, j):
+def find_di_no(aom, i, j):
     """
     Collects the DI between two atoms for Natural Orbitals calcualtion.
     Args:
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
+        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
         i: Index of the first atom.
         j: Index of the second atom.
 
     Returns:
         DI between the atoms i and j.
     """
-    return np.trace(np.linalg.multi_dot((Smo[1], Smo[0][i - 1], Smo[1], Smo[0][j - 1])))
+    return np.trace(np.linalg.multi_dot((aom[1], aom[0][i - 1], aom[1], aom[0][j - 1])))
 
 
-def find_lis(arr, Smo):
+def find_lis(arr, aom):
     """
     Collects the LIs between the atoms in ring connectivity.
     Args:
         arr: Indices of the atoms in ring connectivity.
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
+        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
 
     Returns:
         List containing the LIs in of the members of the ring
     """
-    return [2 * np.trace(np.dot(Smo[arr[i] - 1], Smo[arr[i] - 1])) for i in range(len(arr))]
+    return [2 * np.trace(np.dot(aom[arr[i] - 1], aom[arr[i] - 1])) for i in range(len(arr))]
 
 
-def find_ns(arr, Smo):
+def find_ns(arr, aom):
     """
     Collects the atomic populations of all the atoms in the ring.
     Args:
         arr: Indices of the atoms in ring connectivity.
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
+        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
 
     Returns:
         List containing the atomic populations of the members of the ring.
     """
-    return [2 * np.trace(Smo[arr[i] - 1]) for i in range(len(arr))]
+    return [2 * np.trace(aom[arr[i] - 1]) for i in range(len(arr))]
 
 
 def av1245_pairs(arr):

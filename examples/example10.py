@@ -1,4 +1,4 @@
-from pyscf import gto, scf, mcscf
+from pyscf import gto, scf, ci, cc, mp, mcscf
 
 import esipy
 
@@ -29,17 +29,17 @@ mol.build()
 
 mf = scf.RHF(mol).run()
 
-# print("Running CCSD calculation...")
-# mf1 = cc.CCSD(mf).run()
-# print("Running CISD calculation...")
-# mf2 = ci.CISD(mf).run()
+print("Running CCSD calculation...")
+mf1 = cc.CCSD(mf).run()
+print("Running CISD calculation...")
+mf2 = ci.CISD(mf).run()
 print("Running CASSCF calculation...")
 mf3 = mcscf.CASSCF(mf, 6, 6).run()
-# print("Running MP2 calculation...")
-# mf4 = mp.MP2(mf).run()
+print("Running MP2 calculation...")
+mf4 = mp.MP2(mf).run()
 ring = [1, 2, 3, 4, 5, 6]
 
 for part in ["mulliken", "lowdin", "meta_lowdin", "nao", "iao"]:
-    # for method in [mf1, mf2, mf3, mf4]:
-    arom = esipy.ESI(mol=mol, mf=mf3, myhf=mf, rings=ring, partition=part, ncores=1)
-    arom.print()
+    for method in [mf1, mf2, mf3, mf4]:
+        arom = esipy.ESI(mol=mol, mf=mf3, myhf=mf, rings=ring, partition=part, ncores=1)
+        arom.print()

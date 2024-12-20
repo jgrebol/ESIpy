@@ -13,10 +13,10 @@ def read_aoms(path='.'):
         path: Path of the directory of the files.
 
     Returns:
-        The AOMs in ESIpy format stored in 'ESI.Smo'.
+        The AOMs in ESIpy format stored in 'ESI.aom'.
     """
-    Smo = []
-    Smo_alpha, Smo_beta = [], []
+    aom = []
+    aom_alpha, aom_beta = [], []
     start_string = 'The Atomic Overlap Matrix'
     mul = False
 
@@ -58,40 +58,40 @@ def read_aoms(path='.'):
 
                     # We first get the number of shape of the alpha-alpha matrix
                     if 'First Beta MO' in line:
-                        shape_Smo_alpha = int(line.split()[-1]) - 1
+                        shape_aom_alpha = int(line.split()[-1]) - 1
                     else:
-                        shape_Smo_alpha = 0
+                        shape_aom_alpha = 0
                         for num in mat_lines:
                             if num == 0.0:
-                                shape_Smo_alpha += 1
-                            elif shape_Smo_alpha > 0:
+                                shape_aom_alpha += 1
+                            elif shape_aom_alpha > 0:
                                 break
 
                     if 'Restricted' in calcinfo:
-                        Smo.append(matrix)
+                        aom.append(matrix)
 
                     if 'Unrestricted' in calcinfo:
-                        SCR_alpha = matrix[:shape_Smo_alpha, :shape_Smo_alpha]
-                        SCR_beta = matrix[shape_Smo_alpha:, shape_Smo_alpha:]
-                        Smo_alpha.append(SCR_alpha)
-                        Smo_beta.append(SCR_beta)
+                        SCR_alpha = matrix[:shape_aom_alpha, :shape_aom_alpha]
+                        SCR_beta = matrix[shape_aom_alpha:, shape_aom_alpha:]
+                        aom_alpha.append(SCR_alpha)
+                        aom_beta.append(SCR_beta)
 
     if 'Restricted' in calcinfo:
-        return Smo
+        return aom
     elif 'Unrestricted' in calcinfo:
-        return [Smo_alpha, Smo_beta]
+        return [aom_alpha, aom_beta]
 
 
 ########### WRITING THE INPUT FOR THE ESI-3D CODE FROM THE AOMS ###########
 
-def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
+def write_aoms(mol, mf, name, aom, ring=None, partition=None):
     """
     Writes the input for the ESI-3D code from the AOMs.
     Args:
         mol: Molecule object from PySCF.
         mf: Calculation object from PySCF.
         name: Name of the calculation.
-        Smo: Atomic Overlap Matrices (AOMs) in the MO basis.
+        aom: Atomic Overlap Matrices (AOMs) in the MO basis.
         ring: Connectivity of the atoms in the ring. Can be more than one ring as a list of lists.
         partition: Partition scheme for the AOMs. Options are "mulliken", "lowdin", "meta_lowdin", "nao", "iao".
 
@@ -103,12 +103,12 @@ def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
         For Natural Orbitals, a 'name.wfx' with the occupancies for the ESI-3D code.
     """
 
-    if isinstance(Smo, str):
-        Smo = load_aoms(Smo)
+    if isinstance(aom, str):
+        aom = load_aoms(aom)
 
-    wf = wf_type(Smo)
+    wf = wf_type(aom)
     if wf == "no":
-        Smo, occ = Smo  # Separating AOMs and orbital occupations
+        aom, occ = aom  # Separating AOMs and orbital occupations
 
     # Obtaining information for the files
 
@@ -117,19 +117,19 @@ def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
     if wf == "unrest":
         nocc_alpha = mf.mo_occ[0].astype(int)
         nocc_beta = mf.mo_occ[1].astype(int)
-        nalpha = [np.trace(aom_alpha) for aom_alpha in Smo[0]]
-        nbeta = [np.trace(aom_beta) for aom_beta in Smo[1]]
+        nalpha = [np.trace(aom_alpha) for aom_alpha in aom[0]]
+        nbeta = [np.trace(aom_beta) for aom_beta in aom[1]]
 
-        Smos = []
+        aoms= []
         fill = np.zeros((nocc_beta.sum(), nocc_alpha.sum()))
         for i in range(mol.natm):
-            left = np.vstack((Smo[0][i], fill))
-            right = np.vstack((fill.T, Smo[1][i]))
+            left = np.vstack((aom[0][i], fill))
+            right = np.vstack((fill.T, aom[1][i]))
             matrix = np.hstack((left, right))
-            Smos.append(matrix)
+            aoms.append(matrix)
 
     else:
-        nalpha = nbeta = [np.trace(aom) for aom in Smo]
+        nalpha = nbeta = [np.trace(aom) for aom in aom]
 
     # Creating a new directory for the calculation
 
@@ -161,11 +161,11 @@ def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
             f.write(" RESULTS OF THE INTEGRATION\n")
             if wf == "unrest":
                 f.write("          N   {:.10E}    NET CHARGE 0.0000000000E+00\n".format(
-                    np.trace(Smo[0][i]) + np.trace(Smo[1][i])))
+                    np.trace(aom[0][i]) + np.trace(aom[1][i])))
             elif wf == "rest":
-                f.write("          N   {:.10E}    NET CHARGE 0.0000000000E+00\n".format(2 * np.trace(Smo[i])))
+                f.write("          N   {:.10E}    NET CHARGE 0.0000000000E+00\n".format(2 * np.trace(aom[i])))
             else:
-                f.write("          N   {:.10E}    NET CHARGE 0.0000000000E+00\n".format(np.trace(np.dot(occ, Smo[i]))))
+                f.write("          N   {:.10E}    NET CHARGE 0.0000000000E+00\n".format(np.trace(np.dot(occ, aom[i]))))
             f.write("              G\n")
             f.write("              K   1.00000000000000E+01        E(ATOM)  1.00000000000000E+00\n")
             f.write("              L   0.00000000000000E+01\n\n")
@@ -174,19 +174,19 @@ def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
                 f.write("\n The Atomic Overlap Matrix:\n\n Unrestricted\n\n")
                 if partition == "mulliken":
                     f.write("  \n".join(["  ".join(["{:.16E}".format(num, 16) for num in row])
-                                         for row in Smos[i]]) + "\n")
+                                         for row in aoms[i]]) + "\n")
                 else:
-                    f.write("\n".join(["  ".join([("{:.16E}".format(Smos[i][j][k]) if j >= k else "")
-                                                  for k in range(len(Smos[i][j]))]) for j in
-                                       range(len(Smos[i]))]) + "\n")
+                    f.write("\n".join(["  ".join([("{:.16E}".format(aoms[i][j][k]) if j >= k else "")
+                                                  for k in range(len(aoms[i][j]))]) for j in
+                                       range(len(aoms[i]))]) + "\n")
             else:
                 f.write("\n The Atomic Overlap Matrix:\n\n Restricted Closed-Shell Wavefunction\n\n  ")
                 if partition == "mulliken":
                     f.write(
-                        "  \n".join(["  ".join(["{:.16E}".format(num, 16) for num in row]) for row in Smo[i]]) + "\n")
+                        "  \n".join(["  ".join(["{:.16E}".format(num, 16) for num in row]) for row in aom[i]]) + "\n")
                 else:
-                    f.write("\n".join(["  ".join([("{:.16E}".format(Smo[i][j][k], 16) if j >= k else "")
-                                                  for k in range(len(Smo[i][j]))]) for j in range(len(Smo[i]))]) + "\n")
+                    f.write("\n".join(["  ".join([("{:.16E}".format(aom[i][j][k], 16) if j >= k else "")
+                                                  for k in range(len(aom[i][j]))]) for j in range(len(aom[i]))]) + "\n")
             f.write("\n Alpha electrons (NAlpha)                        {:.10E}".format(nalpha[i]))
             f.write("\n Beta electrons (NBeta)                          {:.10E}\n".format(nbeta[i]))
             f.write(" NORMAL TERMINATION OF PROAIMV")
@@ -239,9 +239,9 @@ def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
                 f.write(title + ".int\n")
             f.write("$BASIS\n")
             if wf == "unrest":
-                f.write(str(int(np.shape(Smo[0])[1]) + int(np.shape(Smo[1])[1])) + "\n")
+                f.write(str(int(np.shape(aom[0])[1]) + int(np.shape(aom[1])[1])) + "\n")
             else:
-                f.write(str(np.shape(Smo)[1]) + "\n")
+                f.write(str(np.shape(aom)[1]) + "\n")
             f.write("$AV1245\n")
             f.write("$FULLOUT\n")
             if partition == "mulliken":
@@ -325,12 +325,12 @@ def write_aoms(mol, mf, name, Smo, ring=None, partition=None):
             f.write("</Molecular Orbital Occupation Numbers>\n")
 
             f.write("<Molecular Orbital Spin Types>\n")
-            for i in range(0, len(Smo[0])):
+            for i in range(0, len(aom[0])):
                 f.write(" Alpha and Beta\n")
             f.write("</Molecular Orbital Spin Types>\n")
 
             f.write("<Molecular Orbital Energies>\n")
-            for i in range(0, len(Smo[0])):
+            for i in range(0, len(aom[0])):
                 f.write("  0.000000000000e+00\n")
             f.write("</Molecular Orbital Energies>\n")
 

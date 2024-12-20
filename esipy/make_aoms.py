@@ -16,8 +16,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         save: String with the name of the file to save the AOMs.
     Returns:
         For RESTRICTED calculations, a list with each of the AOMs.
-        For UNRESTRICTED calculations, a list with the alpha and beta AOMs, as [Smo_alpha, Smo_beta].
-        For NATURAL ORBITALS calculations, a list with the AOMs and the Natural Orbitals occupation numbers, as [Smo, occ].
+        For UNRESTRICTED calculations, a list with the alpha and beta AOMs, as [aom_alpha, aom_beta].
+        For NATURAL ORBITALS calculations, a list with the AOMs and the Natural Orbitals occupation numbers, as [aom, occ].
     """
 
     partition = format_partition(partition)
@@ -33,8 +33,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
         # Building the Atomic Overlap Matrices
 
-        Smo_alpha = []
-        Smo_beta = []
+        aom_alpha = []
+        aom_beta = []
 
         if partition == "lowdin" or partition == "meta_lowdin" or partition == "nao":
             if partition == "lowdin":
@@ -52,8 +52,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             for i in range(mol.natm):
                 SCR_alpha = np.linalg.multi_dot((coeff_alpha.T, U.T, eta[i]))
                 SCR_beta = np.linalg.multi_dot((coeff_beta.T, U.T, eta[i]))
-                Smo_alpha.append(np.dot(SCR_alpha, SCR_alpha.T))
-                Smo_beta.append(np.dot(SCR_beta, SCR_beta.T))
+                aom_alpha.append(np.dot(SCR_alpha, SCR_alpha.T))
+                aom_beta.append(np.dot(SCR_beta, SCR_beta.T))
 
         # Special case IAO
         elif partition == "iao":
@@ -72,8 +72,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             for i in range(pmol.natm):
                 SCR_alpha = np.linalg.multi_dot((coeff_alpha.T, U_alpha, eta[i]))
                 SCR_beta = np.linalg.multi_dot((coeff_beta.T, U_beta, eta[i]))
-                Smo_alpha.append(np.dot(SCR_alpha, SCR_alpha.T))
-                Smo_beta.append(np.dot(SCR_beta, SCR_beta.T))
+                aom_alpha.append(np.dot(SCR_alpha, SCR_alpha.T))
+                aom_beta.append(np.dot(SCR_beta, SCR_beta.T))
 
         # Special case plain Mulliken
         elif partition == "mulliken":
@@ -86,18 +86,18 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             for i in range(mol.natm):
                 SCR_alpha = np.linalg.multi_dot((coeff_alpha.T, S, eta[i], coeff_alpha))
                 SCR_beta = np.linalg.multi_dot((coeff_beta.T, S, eta[i], coeff_beta))
-                Smo_alpha.append(SCR_alpha)
-                Smo_beta.append(SCR_beta)
+                aom_alpha.append(SCR_alpha)
+                aom_beta.append(SCR_beta)
 
         else:
             raise NameError("Hilbert-space scheme not available")
 
-        Smo = [Smo_alpha, Smo_beta]
+        aom = [aom_alpha, aom_beta]
 
         if save:
-            save_file(Smo, save)
+            save_file(aom, save)
 
-        return Smo
+        return aom
 
     # RESTRICTED
 
@@ -109,7 +109,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
         # Building the Atomic Overlap Matrices
 
-        Smo = []
+        aom = []
 
         if partition == "lowdin" or partition == "meta_lowdin" or partition == "nao":
             if partition == "lowdin":
@@ -126,7 +126,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
             for i in range(mol.natm):
                 SCR = np.linalg.multi_dot((coeff.T, U.T, eta[i]))
-                Smo.append(np.dot(SCR, SCR.T))
+                aom.append(np.dot(SCR, SCR.T))
 
         # Special case IAO
         elif partition == "iao":
@@ -140,7 +140,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
             for i in range(pmol.natm):
                 SCR = np.linalg.multi_dot((coeff.T, U, eta[i]))
-                Smo.append(np.dot(SCR, SCR.T))
+                aom.append(np.dot(SCR, SCR.T))
 
         # Special case plain Mulliken
         elif partition == "mulliken":
@@ -148,15 +148,15 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
             for i in range(mol.natm):
                 SCR = np.linalg.multi_dot((coeff.T, S, eta[i], coeff))
-                Smo.append(SCR)
+                aom.append(SCR)
 
         else:
             raise NameError("Hilbert-space scheme not available")
 
         if save:
-            save_file(Smo, save)
+            save_file(aom, save)
 
-        return Smo
+        return aom
 
     else:
 
@@ -166,7 +166,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         else:
             occ, coeff = get_natorbs(mf, S)
 
-        Smo = []
+        aom = []
         if partition == "lowdin" or partition == "meta_lowdin" or partition == "nao":
             if partition == "lowdin":
                 U_inv = lowdin(S)
@@ -183,7 +183,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
             for i in range(mol.natm):
                 SCR = np.linalg.multi_dot((coeff.T, U.T, eta[i]))
-                Smo.append(np.dot(SCR, SCR.T))
+                aom.append(np.dot(SCR, SCR.T))
 
             # Special case IAO
         elif partition == "iao":
@@ -202,7 +202,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
             for i in range(pmol.natm):
                 SCR = np.linalg.multi_dot((coeff.T, U.T, eta[i]))
-                Smo.append(np.dot(SCR, SCR.T))
+                aom.append(np.dot(SCR, SCR.T))
 
             # Special case plain Mulliken
         elif partition == "mulliken":
@@ -211,12 +211,12 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
             for i in range(mol.natm):
                 SCR = np.linalg.multi_dot((coeff.T, S, eta[i], coeff))
-                Smo.append(SCR)
+                aom.append(SCR)
 
         else:
             raise NameError("Hilbert-space scheme not available")
 
         if save:
-            save_file(Smo, save)
+            save_file(aom, save)
 
-        return [Smo, occ]
+        return [aom, occ]

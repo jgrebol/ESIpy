@@ -1,20 +1,21 @@
 import numpy as np
+from PIL.ImageFilter import SMOOTH
 
 from esipy.tools import format_partition
 
 
-def info_rest(Smo, molinfo):
+def info_rest(aom, molinfo):
     """
     Print the information of the molecule and the calculation.
     Args:
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
+        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
         molinfo: Information about the molecule and the calculation.
     """
     partition = format_partition(molinfo["partition"])
 
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
-    print(" | Number of Atoms:          {}".format(len(Smo)))
-    print(" | Occ. Mol. Orbitals:       {}".format(np.shape(Smo[0])[0]))
+    print(" | Number of Atoms:          {}".format(len(aom)))
+    print(" | Occ. Mol. Orbitals:       {}".format(np.shape(aom[0])[0]))
     print(" | Wavefunction type:        Restricted")
     print(" | Atomic partition:         {}".format(partition.upper() if partition else "Not specified"))
     print(" ------------------------------------------- ")
@@ -30,15 +31,15 @@ def info_rest(Smo, molinfo):
     else:
         print(" | Total energy:             {:<13f}".format(molinfo["energy"]))
     print(" ------------------------------------------- ")
-    trace = np.sum([np.trace(matrix) for matrix in Smo])
+    trace = np.sum([np.trace(matrix) for matrix in aom])
     print(" | Tr(Enter):    {:.13f}".format(trace))
     print(" ------------------------------------------- ")
 
 
-def deloc_rest(Smo, molinfo):
+def deloc_rest(aom, molinfo):
     """Population analysis, localization and delocalization indices for restricted, single-determinant calculations.
     Args:
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
+        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
         molinfo: Information about the molecule and the calculation.
     """
 
@@ -51,16 +52,16 @@ def deloc_rest(Smo, molinfo):
 
     # Getting the LIs and DIs
     dis, lis, N = [], [], []
-    for i in range(len(Smo)):
-        li = 2 * np.trace(np.dot(Smo[i], Smo[i]))
+    for i in range(len(aom)):
+        li = 2 * np.trace(np.dot(aom[i], aom[i]))
         lis.append(li)
-        N.append(2 * np.trace(Smo[i]))
+        N.append(2 * np.trace(aom[i]))
 
         print(" | {:>2}{:>2d}  {:>8.4f}  {:>8.4f}  {:>8.4f} ".format(
             symbols[i], i + 1, N[i], lis[i], N[i] - lis[i]))
 
-        for j in range(i + 1, len(Smo)):
-            di = 4 * np.trace(np.dot(Smo[i], Smo[j]))
+        for j in range(i + 1, len(aom)):
+            di = 4 * np.trace(np.dot(aom[i], aom[j]))
             dis.append(di)
     print(" ------------------------------------- ")
     print(" | TOT:  {:>8.4f}  {:>8.4f}  {:>8.4f}".format(
@@ -70,8 +71,8 @@ def deloc_rest(Smo, molinfo):
     print(" ------------------------ ")
     print(" |    Pair         DI ")
     print(" ------------------------ ")
-    for i in range(len(Smo)):
-        for j in range(i, len(Smo)):
+    for i in range(len(aom)):
+        for j in range(i, len(aom)):
             if i == j:
                 print(" | {:>2}{:>2}-{:>2}{:>2}   {:>8.4f}".format(
                     symbols[i], str(i + 1).center(2), symbols[j],
@@ -79,7 +80,7 @@ def deloc_rest(Smo, molinfo):
             else:
                 print(" | {:>2}{:>2}-{:>2}{:>2}   {:>8.4f}".format(
                     symbols[i], str(i + 1).center(2), symbols[j],
-                    str(j + 1).center(2), 4 * np.trace(np.dot(Smo[i], Smo[j]))))
+                    str(j + 1).center(2), 4 * np.trace(np.dot(aom[i], aom[j]))))
     print(" ------------------------ ")
     print(" |   TOT:      {:>8.4f} ".format(np.sum(dis) + np.sum(lis)))
     print(" |   LOC:      {:>8.4f} ".format(np.sum(lis)))

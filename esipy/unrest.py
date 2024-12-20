@@ -3,18 +3,18 @@ import numpy as np
 from esipy.tools import format_partition, find_multiplicity
 
 
-def info_unrest(Smo, molinfo):
+def info_unrest(aom, molinfo):
     """
     Prints the information of the calculation for unrestricted wavefunctions.
     Args:
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
+        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
         molinfo: Contains the information of the molecule and the calculation.
     """
 
     partition = format_partition(molinfo["partition"])
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
-    print(" | Number of Atoms:          {}".format(len(Smo[0])))
-    print(" | Occ. Mol. Orbitals:       {}({})".format(np.shape(Smo[0][0])[0], np.shape(Smo[1][0])[0]))
+    print(" | Number of Atoms:          {}".format(len(aom[0])))
+    print(" | Occ. Mol. Orbitals:       {}({})".format(np.shape(aom[0][0])[0], np.shape(aom[1][0])[0]))
     print(" | Wavefunction type:        Unrestricted")
     print(" | Atomic partition:         {}".format(partition.upper() if partition else "Not specified"))
     print(" ------------------------------------------- ")
@@ -30,18 +30,18 @@ def info_unrest(Smo, molinfo):
     else:
         print(" | Total energy:             {:<13f}".format(molinfo["energy"]))
     print(" ------------------------------------------- ")
-    trace_a = np.sum([np.trace(matrix) for matrix in Smo[0]])
-    trace_b = np.sum([np.trace(matrix) for matrix in Smo[1]])
+    trace_a = np.sum([np.trace(matrix) for matrix in aom[0]])
+    trace_b = np.sum([np.trace(matrix) for matrix in aom[1]])
     print(" | Tr(alpha):    {:.13f}".format(trace_a))
     print(" | Tr(beta) :    {:.13f}".format(trace_b))
     print(" | Tr(Enter):    {:.13f}".format(trace_a + trace_b))
     print(" ------------------------------------------- ")
 
 
-def deloc_unrest(Smo, molinfo):
+def deloc_unrest(aom, molinfo):
     """Population analysis, localization and delocalization indices for unrestriced, single-determinant calculations.
     Args:
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
+        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
         molinfo: Contains the information of the molecule and the calculation.
     """
 
@@ -52,17 +52,17 @@ def deloc_unrest(Smo, molinfo):
     lis_alpha, lis_beta = [], []
     Nij_alpha, Nij_beta = [], []
 
-    for i in range(len(Smo[0])):
-        li_alpha = np.trace(np.dot(Smo[0][i], Smo[0][i]))
-        li_beta = np.trace(np.dot(Smo[1][i], Smo[1][i]))
+    for i in range(len(aom[0])):
+        li_alpha = np.trace(np.dot(aom[0][i], aom[0][i]))
+        li_beta = np.trace(np.dot(aom[1][i], aom[1][i]))
         lis_alpha.append(li_alpha)
         lis_beta.append(li_beta)
-        Nij_alpha.append(np.trace(Smo[0][i]))
-        Nij_beta.append(np.trace(Smo[1][i]))
+        Nij_alpha.append(np.trace(aom[0][i]))
+        Nij_beta.append(np.trace(aom[1][i]))
 
-        for j in range(i + 1, len(Smo[0])):
-            diaa = 2 * np.trace(np.dot(Smo[0][i], Smo[0][j]))
-            dibb = 2 * np.trace(np.dot(Smo[1][i], Smo[1][j]))
+        for j in range(i + 1, len(aom[0])):
+            diaa = 2 * np.trace(np.dot(aom[0][i], aom[0][j]))
+            dibb = 2 * np.trace(np.dot(aom[1][i], aom[1][j]))
             dis_alpha.append(diaa)
             dis_beta.append(dibb)
 
@@ -70,7 +70,7 @@ def deloc_unrest(Smo, molinfo):
     print(" |  Atom     N(Sij)    Na(Sij)   Nb(Sij)    dloc_a    dloc_b  ")
     print(" ------------------------------------------------------------------- ")
 
-    for i in range(len(Smo[0])):
+    for i in range(len(aom[0])):
         print(" | {:>2}{:>2d}    {:8.4f}  {:8.4f}  {:8.4f}   {:8.4f}   {:8.4f} ".format(
             symbols[i], i + 1, Nij_alpha[i] + Nij_beta[i], Nij_alpha[i], Nij_beta[i], Nij_alpha[i] - lis_alpha[i],
                         Nij_beta[i] - lis_beta[i]))
@@ -90,8 +90,8 @@ def deloc_unrest(Smo, molinfo):
                     symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), lis_alpha[i] + lis_beta[i], lis_alpha[i], lis_beta[i]))
             else:
-                dia = 2 * np.trace(np.dot(Smo[0][i], Smo[0][j]))
-                dib = 2 * np.trace(np.dot(Smo[1][i], Smo[1][j]))
+                dia = 2 * np.trace(np.dot(aom[0][i], aom[0][j]))
+                dib = 2 * np.trace(np.dot(aom[1][i], aom[1][j]))
                 ditot = dia + dib
                 print(" | {:>2}{:>2}-{:>2}{:>2}  {:8.4f}  {:8.4f}  {:8.4f}".format(
                     symbols[i], str(i + 1).center(2), symbols[j],
@@ -107,14 +107,14 @@ def deloc_unrest(Smo, molinfo):
     print(" ------------------------------------------- ")
 
 
-def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, partition=None, flurefs=None, homarefs=None,
+def arom_unrest(aom, rings, molinfo, indicators, mci=False, av1245=False, partition=None, flurefs=None, homarefs=None,
                 homerrefs=None,
                 ncores=1):
     """
     Outputs the aromaticity indices for unrestricted, single-determinant wavefunctions.
 
     Args:
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
+        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
         rings: List containing the atoms in the ring.
         molinfo: Contains the information of the molecule and the calculation.
         indicators: Class containing the aromaticity indicators.
@@ -177,7 +177,7 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, partit
             print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, homa))
             print(" ----------------------------------------------------------------------")
 
-            if find_multiplicity(Smo) == "triplet":
+            if find_multiplicity(aom) == "triplet":
                 print(" | Triplet AOMs. Computing HOMER")
                 if homerrefs is not None:
                     print(" | Using HOMER references provided by the user")

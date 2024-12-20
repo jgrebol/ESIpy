@@ -68,9 +68,8 @@ class ESItest(unittest.TestCase):
 
     def run_pop_tests(self, partition, exp):
         esitest = ESI(mol=mol, mf=mf, myhf=myhf, rings=ring, partition=partition, name="test6_ccsd")
-        esitest.writeaoms()
         esitest.print()
-        aom, occ = esitest.Smo
+        aom, occ = esitest.aom
 
         exp_pop_atm1 = exp['exp_pop_atm1']
         exp_lif_atm1 = exp['exp_lif_atm1']
@@ -124,7 +123,6 @@ class ESItest(unittest.TestCase):
 
     def run_indicator_tests(self, partition, exp):
         esitest = ESI(mol=mol, mf=mf, myhf=myhf, rings=ring, partition=partition)
-        esitest.writeaoms()
         inds = esitest.indicators[0]
 
         exp_iring = exp['exp_iring']

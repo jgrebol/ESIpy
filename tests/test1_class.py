@@ -93,14 +93,14 @@ class ESItest(unittest.TestCase):
     def test_init_aoms(self):
         esitest = esipy.ESI(mol=mol, mf=mf, rings=[1, 2, 3, 4, 5, 6], partition='mulliken',
                             saveaoms='example01_mulliken.aoms')
-        self.assertTrue(hasattr(esitest, "Smo"))
+        self.assertTrue(hasattr(esitest, "aom"))
 
-        # We try getting the Smo from a file
+        # We try getting the AOMs from a file
         path = "/home/joan/DOCENCIA/Z-ESIpy/ESIpy-CLASS/esipy/tests/"
-        Smo = path + "example01_mulliken.aoms"
-        esitest = esipy.ESI(Smo=Smo, rings=[1, 2, 3, 4, 5, 6], partition='mulliken')
-        self.assertTrue(hasattr(esitest, "Smo"))
-        self.assertTrue(isinstance(esitest.Smo, list))
+        aom = path + "example01_mulliken.aoms"
+        esitest = esipy.ESI(aom=aom, rings=[1, 2, 3, 4, 5, 6], partition='mulliken')
+        self.assertTrue(hasattr(esitest, "aom"))
+        self.assertTrue(isinstance(esitest.aom, list))
 
     def test_init_molinfo(self):
         esitest = esipy.ESI(mol=mol, mf=mf, rings=[1, 2, 3, 4, 5, 6], partition='mulliken',
@@ -116,9 +116,9 @@ class ESItest(unittest.TestCase):
 
         # We try getting the molinfo from a file
         path = "/home/joan/DOCENCIA/Z-ESIpy/ESIpy-CLASS/esipy/tests/"
-        Smo = path + "example01_mulliken.aoms"
+        aom = path + "example01_mulliken.aoms"
         molinfo = path + "example01_mulliken.molinfo"
-        esitest = esipy.ESI(Smo=Smo, molinfo=molinfo, rings=[1, 2, 3, 4, 5, 6], partition='mulliken')
+        esitest = esipy.ESI(aom=aom, molinfo=molinfo, rings=[1, 2, 3, 4, 5, 6], partition='mulliken')
         self.assertTrue(hasattr(esitest, "molinfo"))
         self.assertTrue(isinstance(esitest.molinfo, dict))
 

@@ -3,20 +3,20 @@ import numpy as np
 from esipy.tools import format_partition
 
 
-def info_no(Smo, molinfo):
+def info_no(aom, molinfo):
     """Prints the initial information for Natural Orbitals calculations.
     Args:
-        Smo: list of matrices or string
+        aom: list of matrices or string
             Atomic Overlap Matrices (AOMs) in the MO basis.
         molinfo: dictionary
             Contains the information about the molecule and the calculation.
     """
 
-    Smo, occ = Smo
+    aom, occ = aom
     partition = format_partition(molinfo["partition"])
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
-    print(" | Number of Atoms:          {}".format(len(Smo)))
-    print(" | Occ. Mol. Orbitals:       {}".format(np.shape(Smo[0])[0]))
+    print(" | Number of Atoms:          {}".format(len(aom)))
+    print(" | Occ. Mol. Orbitals:       {}".format(np.shape(aom[0])[0]))
     print(" | Wavefunction type:        Natural Orbitals")
     print(" | Atomic partition:         {}".format(partition.upper() if partition else "Not specified"))
     print(" ------------------------------------------- ")
@@ -32,21 +32,21 @@ def info_no(Smo, molinfo):
     else:
         print(" | Total energy:             {:<13f}".format(molinfo["energy"]))
     print(" ------------------------------------------- ")
-    trace = np.sum([np.trace(matrix) for matrix in Smo])
+    trace = np.sum([np.trace(matrix) for matrix in aom])
     print(" | Tr(Enter):    {:.13f}".format(trace))
     print(" ------------------------------------------- ")
 
 
-def deloc_no(Smo, molinfo):
+def deloc_no(aom, molinfo):
     """Population analysis, localization and delocalization indices for Natural Orbitals calculations.
     Args:
-        Smo: list of matrices
+        aom: list of matrices
             Atomic Overlap Matrices (AOMs) in the MO basis.
         molinfo: dictionary
             Contains the information about the molecule and the calculation.
     """
 
-    Smo, occ = Smo
+    aom, occ = aom
     symbols = molinfo["symbols"]
 
     # Getting the LIs and DIs
@@ -56,19 +56,19 @@ def deloc_no(Smo, molinfo):
     print(" | Atom     N(Sij)    dlocF     dlocX      locF      locX ")
     print(" ---------------------------------------------------------- ")
 
-    for i in range(len(Smo)):
-        lif = np.trace(np.linalg.multi_dot((occ ** (1 / 2), Smo[i], occ ** (1 / 2), Smo[i])))
-        lix = 0.5 * np.trace(np.linalg.multi_dot((occ, Smo[i], occ, Smo[i])))
+    for i in range(len(aom)):
+        lif = np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i], occ ** (1 / 2), aom[i])))
+        lix = 0.5 * np.trace(np.linalg.multi_dot((occ, aom[i], occ, aom[i])))
         lifs.append(lif)
         lixs.append(lix)
-        N.append(np.trace(np.dot(occ, Smo[i])))
+        N.append(np.trace(np.dot(occ, aom[i])))
 
         dlocF = 0
         dlocX = 0
-        for j in range(len(Smo)):
+        for j in range(len(aom)):
             if i != j:
-                dif = np.trace(np.linalg.multi_dot((occ ** (1 / 2), Smo[i], occ ** (1 / 2), Smo[j])))
-                dix = 0.5 * np.trace(np.linalg.multi_dot((occ, Smo[i], occ, Smo[j])))
+                dif = np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i], occ ** (1 / 2), aom[j])))
+                dix = 0.5 * np.trace(np.linalg.multi_dot((occ, aom[i], occ, aom[j])))
                 dlocF += dif
                 dlocX += dix
                 difs.append(dif)
@@ -84,15 +84,15 @@ def deloc_no(Smo, molinfo):
     print(" ---------------------------------- ")
     print(" |    Pair       DI(F)     DI(X) ")
     print(" ---------------------------------- ")
-    for i in range(len(Smo)):
-        for j in range(i, len(Smo)):
+    for i in range(len(aom)):
+        for j in range(i, len(aom)):
             if i == j:
                 print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
                     symbols[i], i + 1, symbols[j], j + 1, lifs[i], lixs[i]))
             else:
                 print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
-                    symbols[i], i + 1, symbols[j], j + 1, 2 * difs[i * len(Smo) + j - (i + 1)],
-                                2 * dixs[i * len(Smo) + j - (i + 1)]))
+                    symbols[i], i + 1, symbols[j], j + 1, 2 * difs[i * len(aom) + j - (i + 1)],
+                                2 * dixs[i * len(aom) + j - (i + 1)]))
     print(" ---------------------------------- ")
     print(" |   TOT:     {:>8.4f}  {:>8.4f}  ".format(np.sum(difs) + np.sum(lifs), np.sum(dixs) + np.sum(lixs)))
     print(" |   LOC:     {:>8.4f}  {:>8.4f} ".format(np.sum(lifs), np.sum(lixs)))

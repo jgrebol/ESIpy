@@ -49,9 +49,8 @@ expected = {'mulliken': dict(exp_pop_atm1_a=3.1944, exp_pop_atm1_b=2.7968, exp_d
 class ESItest(unittest.TestCase):
 
     def run_pop_tests(self, partition, exp):
-        esitest = ESI(mol=mol, mf=mf, rings=ring, partition=partition, name="test3_unrest")
-        esitest.writeaoms()
-        aom = esitest.Smo
+        esitest = ESI(mol=mol, mf=mf, rings=ring, partition=partition)
+        aom = esitest.aom
 
         exp_pop_atm1_a = exp['exp_pop_atm1_a']
         exp_pop_atm1_b = exp['exp_pop_atm1_b']

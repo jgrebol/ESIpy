@@ -7,57 +7,57 @@ from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_d
 
 # Computing the Iring (Restricted and Unrestricted)
 
-def compute_iring(arr, Smo):
+def compute_iring(arr, aom):
     """
     Calculation of the Iring aromaticity index.
     Args:
         arr: list of int
             Contains the indices defining the ring connectivity.
-        Smo: list of matrices
+        aom: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
     Returns:
         float
             The Iring for the given ring connectivity.
     """
 
-    product = np.identity(Smo[0].shape[0])
+    product = np.identity(aom[0].shape[0])
     for i in arr:
-        product = np.dot(product, Smo[i - 1])
+        product = np.dot(product, aom[i - 1])
     iring = 2 ** (len(arr) - 1) * np.trace(product)
 
     return iring
 
 
-def compute_iring_no(arr, Smo):
+def compute_iring_no(arr, aom):
     """
     Calculation of the Iring aromaticity index for Natural Orbital calculations.
     Args:
         arr: list of int
             Contains the indices defining the ring connectivity.
-        Smo: list of matrices
+        aom: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
     Returns:
         float
             The Iring for the given ring connectivity.
     """
 
-    Smo, occ = Smo
-    product = np.identity(Smo[0].shape[0])
+    aom, occ = aom
+    product = np.identity(aom[0].shape[0])
     for i in arr:
-        product = np.dot(product, np.dot(occ, Smo[i - 1]))
+        product = np.dot(product, np.dot(occ, aom[i - 1]))
     return np.trace(product)
 
 
 ########### MCI ###########
 
-def sequential_mci(arr, Smo, partition):
+def sequential_mci(arr, aom, partition):
     """Computes the MCI sequentially by computing the Iring without storing the permutations.
     Default option if no number of cores is specified.
 
     Args:
         arr: list of int
             Contains the indices defining the ring connectivity.
-        Smo: list of matrices
+        aom: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
         partition: str
             Specifies the atom-in-molecule partition scheme.
@@ -73,19 +73,19 @@ def sequential_mci(arr, Smo, partition):
     iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
     if partition == 'mulliken' or partition == "non-symmetric":
         # We account for twice the value for symmetric AOMs
-        return 0.5 * sum(compute_iring(p, Smo) for p in iterable2)
+        return 0.5 * sum(compute_iring(p, aom) for p in iterable2)
     else:  # Remove reversed permutations
         iterable2 = (x for x in iterable2 if x[1] < x[-1])
-        return sum(compute_iring(p, Smo) for p in iterable2)
+        return sum(compute_iring(p, aom) for p in iterable2)
 
 
-def sequential_mci_no(arr, Smo, partition):
+def sequential_mci_no(arr, aom, partition):
     """Computes the MCI sequentially for a Natural Orbitals calculation by computing the Iring
     without storing the permutations. Default option if no number of cores is specified.
     Args:
         arr: list of int
             Contains the indices defining the ring connectivity.
-        Smo: list of matrices
+        aom: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
         partition: str
             Specifies the atom-in-molecule partition scheme.
@@ -101,19 +101,19 @@ def sequential_mci_no(arr, Smo, partition):
     iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
     if partition == 'mulliken' or partition == "non-symmetric":
         # We account for twice the value for symmetric AOMs
-        return 0.5 * sum(compute_iring_no(p, Smo) for p in iterable2)
+        return 0.5 * sum(compute_iring_no(p, aom) for p in iterable2)
     else:  # Remove reversed permutations
         iterable2 = (x for x in iterable2 if x[1] < x[-1])
-        return sum(compute_iring_no(p, Smo) for p in iterable2)
+        return sum(compute_iring_no(p, aom) for p in iterable2)
 
 
-def multiprocessing_mci(arr, Smo, ncores, partition):
+def multiprocessing_mci(arr, aom, ncores, partition):
     """Computes the MCI by generating all the permutations
     for a later distribution along the specified number of cores.
     Args:
         arr: list of int
             Contains the indices defining the ring connectivity.
-        Smo: list of matrices
+        aom: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
         ncores: int
             Specifies the number of cores for multi-processing MCI calculation.
@@ -131,7 +131,7 @@ def multiprocessing_mci(arr, Smo, ncores, partition):
     from itertools import permutations, islice
 
     pool = Pool(processes=ncores)
-    dumb = partial(compute_iring, Smo=Smo)
+    dumb = partial(compute_iring, aom=aom)
     chunk_size = 50000
 
     iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
@@ -143,13 +143,13 @@ def multiprocessing_mci(arr, Smo, ncores, partition):
         return sum(pool.imap(dumb, iterable2, chunk_size))
 
 
-def multiprocessing_mci_no(arr, Smo, ncores, partition):
+def multiprocessing_mci_no(arr, aom, ncores, partition):
     """Computes the MCI from a Natural Orbitals calculation by generating all the permutations
     for a later distribution along the specified number of cores.
     Args:
         arr: list of int
             Contains the indices defining the ring connectivity.
-        Smo: list of matrices
+        aom: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
         ncores: int
             Specifies the number of cores for multi-processing MCI calculation.
@@ -167,7 +167,7 @@ def multiprocessing_mci_no(arr, Smo, ncores, partition):
     from itertools import permutations, islice
 
     pool = Pool(processes=ncores)
-    dumb = partial(compute_iring_no, Smo=Smo)
+    dumb = partial(compute_iring_no, aom=aom)
     chunk_size = 50000
 
     iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
@@ -183,12 +183,12 @@ def multiprocessing_mci_no(arr, Smo, ncores, partition):
 
 # Calculation of the AV1245 index (Restricted and Unrestricted)
 
-def compute_av1245(arr, Smo, partition):
+def compute_av1245(arr, aom, partition):
     """Computes the AV1245 and AVmin indices. Not available for rings smaller than 6 members.
     Args:
         arr: list of int
             Contains the indices defining the ring connectivity.
-        Smo: list of matrices
+        aom: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
         partition: str
             Specifies the atom-in-molecule partition scheme.
@@ -200,7 +200,7 @@ def compute_av1245(arr, Smo, partition):
 
     products = []
     for cp in av1245_pairs(arr):
-        product = sequential_mci(list(cp), Smo, partition)
+        product = sequential_mci(list(cp), aom, partition)
         products.append(1000 * product / 3)
 
     av1245_value = np.mean(products)
@@ -209,12 +209,12 @@ def compute_av1245(arr, Smo, partition):
     return av1245_value, avmin_value, products
 
 
-def compute_av1245_no(arr, Smo, partition):
+def compute_av1245_no(arr, aom, partition):
     """Computes the AV1245 and AVmin indices. Not available for rings smaller than 6 members.
     Args:
         arr: list of int
             Contains the indices defining the ring connectivity.
-        Smo: list of matrices
+        aom: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
         partition: str
             Specifies the atom-in-molecule partition scheme.
@@ -226,7 +226,7 @@ def compute_av1245_no(arr, Smo, partition):
 
     products = []
     for cp in av1245_pairs(arr):
-        product = sequential_mci_no(list(cp), Smo, partition)
+        product = sequential_mci_no(list(cp), aom, partition)
         products.append(1000 * product / 3)
 
     av1245_value = np.mean(products)
@@ -239,12 +239,12 @@ def compute_av1245_no(arr, Smo, partition):
 
 # Calculation of the PDI (Restricted and Unrestricted)
 
-def compute_pdi(arr, Smo):
+def compute_pdi(arr, aom):
     """Computes the PDI for the given 6-membered ring connectivity. Only computed for rings n=6.
     Args:
         arr: list of int
             Contains the indices defining the ring connectivity of a system.
-        Smo: list of matrices
+        aom: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
     Returns:
         tuple
@@ -252,9 +252,9 @@ def compute_pdi(arr, Smo):
     """
 
     if len(arr) == 6:
-        pdi_a = 2 * np.trace(np.dot(Smo[arr[0] - 1], Smo[arr[3] - 1]))
-        pdi_b = 2 * np.trace(np.dot(Smo[arr[1] - 1], Smo[arr[4] - 1]))
-        pdi_c = 2 * np.trace(np.dot(Smo[arr[2] - 1], Smo[arr[5] - 1]))
+        pdi_a = 2 * np.trace(np.dot(aom[arr[0] - 1], aom[arr[3] - 1]))
+        pdi_b = 2 * np.trace(np.dot(aom[arr[1] - 1], aom[arr[4] - 1]))
+        pdi_c = 2 * np.trace(np.dot(aom[arr[2] - 1], aom[arr[5] - 1]))
         pdi_value = (pdi_a + pdi_b + pdi_c) / 3
 
         return pdi_value, [pdi_a, pdi_b, pdi_c]
@@ -263,25 +263,25 @@ def compute_pdi(arr, Smo):
         return None
 
 
-def compute_pdi_no(arr, Smo):
+def compute_pdi_no(arr, aom):
     """Computes the PDI for the given 6-membered ring connectivity. Only computed for rings n=6.
     Args:
         arr: list of int
             Contains the indices defining the ring connectivity of a system.
-        Smo: list of matrices
+        aom: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
     Returns:
         tuple
             The list contains the PDI value and each of the DIs in para position.
     """
-    Smo, occ = Smo
+    aom, occ = aom
 
     if len(arr) == 6:
 
         i1, i2, i3, i4, i5, i6 = arr[0] - 1, arr[1] - 1, arr[2] - 1, arr[3] - 1, arr[4] - 1, arr[5] - 1
-        pdi_a = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), Smo[i1], occ ** (1 / 2), Smo[i4])))
-        pdi_b = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), Smo[i2], occ ** (1 / 2), Smo[i5])))
-        pdi_c = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), Smo[i3], occ ** (1 / 2), Smo[i6])))
+        pdi_a = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i1], occ ** (1 / 2), aom[i4])))
+        pdi_b = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i2], occ ** (1 / 2), aom[i5])))
+        pdi_c = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i3], occ ** (1 / 2), aom[i6])))
         pdi_value = (pdi_a + pdi_b + pdi_c) / 3
 
         return pdi_value, [pdi_a, pdi_b, pdi_c]
@@ -330,14 +330,14 @@ def find_flurefs(partition=None):
         return {"CC": 1.4378, "CN": 1.4385, "BN": 1.1638, "NN": 1.3606, "CS": 1.1436}
 
 
-def compute_flu(arr, molinfo, Smo, flurefs=None, partition=None):
+def compute_flu(arr, molinfo, aom, flurefs=None, partition=None):
     """Computes the FLU index.
     Args:
         arr: list of int
             Contains the indices defining the ring connectivity.
         molinfo: dictionary
             Contains the molecular information.
-        Smo: list of matrices
+        aom: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
         flurefs: dict, optional, default: None
             User-provided references for the FLU index.
@@ -356,9 +356,9 @@ def compute_flu(arr, molinfo, Smo, flurefs=None, partition=None):
     if flurefs is not None:
         flu_refs.update(flurefs)
 
-    dis = find_dis(arr, Smo)
-    lis = find_lis(arr, Smo)
-    ns = find_ns(arr, Smo)
+    dis = find_dis(arr, aom)
+    lis = find_lis(arr, aom)
+    ns = find_ns(arr, aom)
     for i in range(len(arr)):
         if bond_types[i] not in flu_refs:
             print(f" | No parameters found for bond type {bond_types[i]}")
@@ -380,12 +380,12 @@ def compute_flu(arr, molinfo, Smo, flurefs=None, partition=None):
 
 # Calculation of the BOA (Restricted and Unrestricted)
 
-def compute_boa(arr, Smo):
+def compute_boa(arr, aom):
     """Computes the BOA and BOA_c indices.
     Args:
         arr: list of int
             Contains the indices defining the ring connectivity.
-        Smo: list of matrices
+        aom: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
     Returns:
         tuple
@@ -395,24 +395,24 @@ def compute_boa(arr, Smo):
     n1 = len([i for i in arr if i % 2 != 0])
     n2 = len([i for i in arr if i % 2 == 1])
 
-    sum_odd = sum(find_di(Smo, arr[i - 1], arr[i]) for i in range(0, len(arr), 2))
-    sum_even = sum(find_di(Smo, arr[i + 1], arr[i]) for i in range(0, len(arr) - 1, 2))
+    sum_odd = sum(find_di(aom, arr[i - 1], arr[i]) for i in range(0, len(arr), 2))
+    sum_even = sum(find_di(aom, arr[i + 1], arr[i]) for i in range(0, len(arr) - 1, 2))
     boa = abs(sum_odd / n1 - sum_even / n2)
 
     boa_c = 0
     for i in range(len(arr)):
         diff_di = abs(
-            find_di(Smo, arr[i - 1], arr[i]) - find_di(Smo, arr[(i + 1) % len(arr) - 1], arr[(i + 1) % len(arr)]))
+            find_di(aom, arr[i - 1], arr[i]) - find_di(aom, arr[(i + 1) % len(arr) - 1], arr[(i + 1) % len(arr)]))
         boa_c += diff_di / len(arr)
     return boa, boa_c
 
 
-def compute_boa_no(arr, Smo):
+def compute_boa_no(arr, aom):
     """Computes the BOA and BOA_c indices for Natural Orbitals calculations.
     Args:
         arr: list of int
             Contains the indices defining the ring connectivity.
-        Smo: list of matrices
+        aom: list of matrices
             Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
     Returns:
         tuple
@@ -422,14 +422,14 @@ def compute_boa_no(arr, Smo):
     n1 = len([i for i in arr if i % 2 != 0])
     n2 = len([i for i in arr if i % 2 == 1])
 
-    sum_odd = sum(find_di_no(Smo, arr[i - 1], arr[i]) for i in range(0, len(arr), 2))
-    sum_even = sum(find_di_no(Smo, arr[i + 1], arr[i]) for i in range(0, len(arr) - 1, 2))
+    sum_odd = sum(find_di_no(aom, arr[i - 1], arr[i]) for i in range(0, len(arr), 2))
+    sum_even = sum(find_di_no(aom, arr[i + 1], arr[i]) for i in range(0, len(arr) - 1, 2))
     boa = abs(sum_odd / n1 - sum_even / n2)
 
     boa_c = 0
     for i in range(len(arr)):
         diff_di = abs(
-            find_di_no(Smo, arr[i - 1], arr[i]) - find_di_no(Smo, arr[(i + 1) % len(arr) - 1], arr[(i + 1) % len(arr)]))
+            find_di_no(aom, arr[i - 1], arr[i]) - find_di_no(aom, arr[(i + 1) % len(arr) - 1], arr[(i + 1) % len(arr)]))
         boa_c += diff_di / len(arr)
     return boa, boa_c
 
