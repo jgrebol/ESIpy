@@ -6,14 +6,12 @@
 ESIpy documentation
 ===================
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
+Program aimed at the population analysis, calculation of localization and delocalization indices and electronic
+aromaticity calculations from Hilbert-space analyses.
 
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-    source/index
-    source/installation
+    installation

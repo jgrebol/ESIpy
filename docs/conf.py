@@ -7,8 +7,8 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'ESIpy'
-copyright = '2024, Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador'
-author = 'Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador'
+copyright = u'2024, Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador'
+author = u'Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
