@@ -1,5 +1,4 @@
 import numpy as np
-from PIL.ImageFilter import SMOOTH
 
 from esipy.tools import format_partition
 
