@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+
+exmamples/__pycache__/
+exmamples/*.pyc
+exmamples/*.pyo
+
+tests/__pycache__/
+tests/*.pyc
+tests/*.pyo
+
+```
