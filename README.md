@@ -201,7 +201,7 @@ information). Further customization is also available.
 ESIpy can be installed through:
 
 ```
-pip install pyesi
+pip install esipython
 ```
 
 To install PySCF, following the official guidelines from [PySCF's installation guide](https://pyscf.org/install.html).:
