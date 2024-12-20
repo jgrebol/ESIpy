@@ -6,6 +6,10 @@
 ESIpy documentation
 ===================
 
+.. image:: https://img.shields.io/pypi/v/esipython
+   :target: https://pypi.org/project/esipython/
+   :alt: PyPI - ESIpython
+
 Program aimed at the population analysis, calculation of localization and delocalization indices and electronic
 aromaticity calculations from Hilbert-space analyses.
 
