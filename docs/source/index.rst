@@ -1,7 +1,7 @@
 .. ESIpy documentation master file, created by
-   sphinx-quickstart on Fri Dec 20 16:37:26 2024.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+sphinx-quickstart on Fri Dec 20 16:37:26 2024.
+You can adapt this file completely to your liking, but it should at least
+contain the root `toctree` directive.
 
 ESIpy documentation
 ===================
@@ -17,7 +17,9 @@ partitions using the PySCF module.
    intro
    installation
    theory
-   esipy
+   get_started
+   custom_refs
    examples
+   api
    mci_timings
 

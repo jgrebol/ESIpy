@@ -87,20 +87,26 @@ def read_aoms(path='.'):
 def write_aoms(mol, mf, name, aom, ring=None, partition=None):
     """
     Writes the input for the ESI-3D code from the AOMs.
-    Args:
-        mol: Molecule object from PySCF.
-        mf: Calculation object from PySCF.
-        name: Name of the calculation.
-        aom: Atomic Overlap Matrices (AOMs) in the MO basis.
-        ring: Connectivity of the atoms in the ring. Can be more than one ring as a list of lists.
-        partition: Partition scheme for the AOMs. Options are "mulliken", "lowdin", "meta_lowdin", "nao", "iao".
+    Parameters:
+        mol: PySCF instance
+            Molecule object from PySCF.
+        mf: PySCF instance
+            Calculation object from PySCF.
+        name: str
+            Name of the calculation.
+        aom: concatenated list
+            Atomic Overlap Matrices (AOMs) in the MO basis.
+        ring: list of int
+            Connectivity of the atoms in the ring. Can be more than one ring as a list of lists.
+        partition: str
+            Partition scheme for the AOMs. Options are "mulliken", "lowdin", "meta_lowdin", "nao", "iao".
 
     Generates:
-        A '_atomicfiles/' directory with all the files created.
-        A '.int' file for each atom with its corresponding AOM.
-        A 'name.files' with a list of the names of the '.int' files.
-        A 'name.bad' with a standard input for the ESI-3D code.
-        For Natural Orbitals, a 'name.wfx' with the occupancies for the ESI-3D code.
+        - A '_atomicfiles/' directory with all the files created.
+        - A '.int' file for each atom with its corresponding AOM.
+        - A 'name.files' with a list of the names of the '.int' files.
+        - A 'name.bad' with a standard input for the ESI-3D code.
+        - For Natural Orbitals, a 'name.wfx' with the occupancies for the ESI-3D code.
     """
 
     if isinstance(aom, str):
@@ -120,7 +126,7 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
         nalpha = [np.trace(aom_alpha) for aom_alpha in aom[0]]
         nbeta = [np.trace(aom_beta) for aom_beta in aom[1]]
 
-        aoms= []
+        aoms = []
         fill = np.zeros((nocc_beta.sum(), nocc_alpha.sum()))
         for i in range(mol.natm):
             left = np.vstack((aom[0][i], fill))

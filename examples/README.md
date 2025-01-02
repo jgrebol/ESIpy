@@ -23,7 +23,8 @@ We will go through the list of examples explaining and highlighting some key not
 > We strongly recommend using ```meta_lowdin```, ```nao``` and ```iao``` as the atomic partitions as they have shown to
 > be highly basis-set independent and reliable. We introduce the five atomic partitions available at ESIpy in a for-loop
 > scheme, although one partition can be introduced for each calculation. The computation time is the same regardless of
-> the partition employed. As some results may depend on the system and the calculation, we encourage comparing these three
+> the partition employed. As some results may depend on the system and the calculation, we encourage comparing these
+> three
 > partitions to each other to find incongruences.
 
 > [!WARNING]

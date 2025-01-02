@@ -165,7 +165,7 @@ class ESItest(unittest.TestCase):
 
     # PySCF should be installed from source to avoid Issue #1755, solved in commit #1803.
     # For simplicity, this test is removed as the bug is not corrected through updating with pip.
-    #def test_nao(self):
+    # def test_nao(self):
     #    partition = 'nao'
     #    exp = expected[partition]
     #    self.run_pop_tests(partition, exp=exp)

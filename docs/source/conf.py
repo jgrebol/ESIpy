@@ -8,6 +8,7 @@
 
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath('../../esipy'))
 
 project = 'ESIpy'
@@ -18,7 +19,9 @@ release = '1.0'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx.ext.autodoc', 'sphinx_copybutton', 'sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.githubpages', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.viewcode', 'sphinx.ext.napoleon']
+extensions = ['sphinx.ext.autodoc', 'sphinx_copybutton', 'sphinx.ext.autodoc', 'sphinx.ext.doctest',
+              'sphinx.ext.githubpages', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.viewcode',
+              'sphinx.ext.napoleon']
 
 templates_path = ['_templates']
 exclude_patterns = []

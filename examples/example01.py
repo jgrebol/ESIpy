@@ -30,7 +30,7 @@ mf.xc = "B3LYP"
 mf.kernel()
 
 ring = [1, 2, 3, 4, 5, 6]
-ring = [[1, 2, 3, 4, 5, 6], [7,8,9,10,11,12]]
+ring = [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]]
 name = "example01"
 for part in ["m", "lowdin", "meta_lowdin", "nao", "iao"]:
     aoms_name = name + '_' + part + '.aoms'

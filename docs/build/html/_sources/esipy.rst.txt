@@ -1,4 +1,4 @@
-ESIpy package
+esipy package
 =============
 
 Submodules
@@ -11,8 +11,6 @@ esipy.atomicfiles module
    :members:
    :undoc-members:
    :show-inheritance:
-
-.. autofunction:: esipy.atomicfiles.
 
 esipy.indicators module
 -----------------------

@@ -1,7 +1,8 @@
-esipy
+ESIpy
 =====
 
 .. toctree::
    :maxdepth: 4
 
    esipy
+   setup
