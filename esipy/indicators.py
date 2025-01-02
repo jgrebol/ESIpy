@@ -1,7 +1,6 @@
-from audioop import reverse
-
 import numpy as np
-from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_distances, av1245_pairs
+
+from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_distances, av1245_pairs, mapping
 
 ########## Iring ###########
 
@@ -174,9 +173,11 @@ def multiprocessing_mci_no(arr, Smo, ncores, partition):
         return sum(pool.imap(dumb, iterable2, chunk_size))
 
 def compute_huckel_iring(arr, Smo, ref=None):
+
     if not ref:
         ref = arr
-    # ref is the ring connectivity
+
+    # ref is the reference ring connectivity
     ref_pairs = [[ref[i], ref[(i + 1) % len(ref)]] for i in range(len(ref))]
 
     total_di = 1
@@ -196,9 +197,9 @@ def compute_huckel_sequential_mci(arr, Smo, partition="non-symmetric"):
     iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
     if partition == 'mulliken' or partition == "non-symmetric":
         # We account for twice the value for symmetric AOMs
-        return 0.5 * sum(compute_huckel_iring(p, Smo, arr) for p in iterable2)
+        return 0.5 * sum(compute_huckel_iring(mapping(arr, p), Smo, arr) for p in iterable2)
     else:  # Remove reversed permutations
-        iterable2 = (x for x in iterable2 if x[1] < x[-1])
+        iterable2 = (mapping(arr, x) for x in iterable2 if x[1] < x[-1])
         return sum(compute_huckel_iring(p, Smo, arr) for p in iterable2)
 
 def compute_huckel_multiprocessing_mci(arr, Smo, ncores, partition="non-symmetric"):

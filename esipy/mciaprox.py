@@ -44,8 +44,13 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1):
     nperms = perms.countperms()
 
     if ncores == 1:
-        val = sum(compute_iring(mapping(arr, p), Smo) for p in perms)
-        return val, nperms, time() - start
+        if partition == 'mulliken' or partition == "non-symmetric":
+            val = 0.5 * sum(compute_iring(p, Smo) for p in perms)
+            return val, nperms, time() - start
+        else:
+            perms = (x for x in perms if x[1] < x[-1])
+            val = sum(compute_iring(mapping(arr, p), Smo) for p in perms)
+            return val, nperms, time() - start
     else:
         pool = Pool(processes=ncores)
         dumb = partial(compute_iring, Smo=Smo)
