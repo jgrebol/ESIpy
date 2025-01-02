@@ -40,21 +40,8 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1):
         t = time() - start
         return val, nperms, t
 
-    elif mcialg == 1:
-        perms = HamiltonMCIalg1(arr, d)
-        nperms = perms.countperms()
-
-    elif mcialg == 2:
-        perms= HamiltonMCIalg2(arr,d)
-        nperms = perms.countperms()
-
-    elif mcialg == 3:
-        perms= HamiltonMCIalg3(arr,d)
-        nperms = perms.countperms()
-
-    elif mcialg == 4:
-        perms= HamiltonMCIalg4(arr,d)
-        nperms = perms.countperms()
+    perms = HamiltonMCI(arr, d, mcialg)
+    nperms = perms.countperms()
 
     if ncores == 1:
         val = sum(compute_iring(mapping(arr, p), Smo) for p in perms)
@@ -65,11 +52,11 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1):
         chunk_size = 50000
 
         if partition == 'mulliken' or partition == "non-symmetric":
-            iter = perms
+            iter =(mapping(arr, p) for p in perms)
             # We account for twice the value for symmetric AOMs
             result = 0.5 * sum(pool.imap(dumb, iter, chunk_size))
         else:  # Remove reversed permutations
-            iter = (x for x in perms if x[1] < x[-1])
+            iter = (mapping(arr, x) for x in perms if x[1] < x[-1])
             result = sum(pool.imap(dumb, iter, chunk_size))
 
         pool.close()
@@ -84,17 +71,17 @@ def compute_iring(arr, Smo):
 
     return 2 ** (len(arr) - 1) * np.trace(product)
 
-class HamiltonMCIalg1:
+
+class HamiltonMCI:
     """
-    ALGORITHM 1
-    Creates an iterator with all the permutations that have a maximum
-    distance between vertices of d. Thus, all until d.
+    HamiltonMCI class with four different algorithms for generating permutations.
     """
-    def __init__(self, arr, d):
+    def __init__(self, arr, d, alg):
         self.arr = arr
         self.d = d
         self.n = len(arr)
-        self.generator = self.dfs([0])
+        self.alg = alg
+        self.generator = self._select_algorithm()
 
     def __iter__(self):
         return self
@@ -102,7 +89,19 @@ class HamiltonMCIalg1:
     def __next__(self):
         return next(self.generator)
 
-    def dfs(self, path):
+    def _select_algorithm(self):
+        if self.alg == 1:
+            return self._alg1([0])
+        elif self.alg == 2:
+            return self._alg2([0])
+        elif self.alg == 3:
+            return self._alg3([0])
+        elif self.alg == 4:
+            return self._alg4([0])
+        else:
+            raise ValueError("Invalid algorithm number. Choose between 1 and 4.")
+
+    def _alg1(self, path):
         if len(path) == self.n:
             val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
             if val <= self.d and path[1] < path[-1]:
@@ -111,41 +110,13 @@ class HamiltonMCIalg1:
         for v in range(self.n):
             if v not in path:
                 val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
-
                 if val <= self.d:
-                    yield from self.dfs(path + [v])
+                    yield from self._alg1(path + [v])
 
-    def countperms(self):
-        count = 0
-        for _ in self.dfs([0]):
-            count += 1
-        return count
-
-class HamiltonMCIalg2:
-    """
-    ALGORITHM 2
-    Creates an iterator with all the permutations that ONLY
-    have a pair of vertices separated by a distance d.
-    Thus, all that have as the maximum distance d.
-    """
-    def __init__(self, arr, d):
-        self.arr = arr
-        self.d = d
-        self.n = len(arr)
-        self.generator = self.dfs([0])
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        return next(self.generator)
-
-    def dfs(self, path):
-        import math
+    def _alg2(self, path):
         if len(path) == self.n:
             maxval = 0
             for i in range(self.n - 1):
-
                 val = min(abs(path[i] - path[i + 1]), self.n - abs(path[i] - path[i + 1]))
                 if val > maxval:
                     maxval = val
@@ -158,78 +129,22 @@ class HamiltonMCIalg2:
         for v in range(self.n):
             if v not in path:
                 val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
-
                 if val <= self.d:
-                    yield from self.dfs(path + [v])
+                    yield from self._alg2(path + [v])
 
-    def countperms(self):
-        count = 0
-        for _ in self.dfs([0]):
-            count += 1
-        return count
-
-
-class HamiltonMCIalg3:
-    """
-    ALGORITHM 3
-    Creates iterator with maximum distance between vertices set to do,
-    excluding all permutations where there is at least two vertices
-    separated by an EVEN distance. Thus, only odd distances.
-    """
-    def __init__(self, arr, d):
-        self.arr = arr
-        self.d = d
-        self.n = len(arr)
-        self.generator = self.dfs([0])
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        return next(self.generator)
-
-    def dfs(self, path):
+    def _alg3(self, path):
         if len(path) == self.n:
             val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
             if val <= self.d and val % 2 != 0 and path[1] < path[-1]:
-                    yield path
+                yield path
 
         for v in range(self.n):
             if v not in path:
                 val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
-
                 if val <= self.d and val % 2 != 0:
-                    yield from self.dfs(path + [v])
+                    yield from self._alg3(path + [v])
 
-    def countperms(self):
-        count = 0
-        for _ in self.dfs([0]):
-            count += 1
-        return count
-
-
-class HamiltonMCIalg4:
-    """
-    ALGORITHM 4
-    Creates iterator with maximum distance between vertices set to do,
-    excluding all permutations where there is at least two vertices
-    separated by an ODD distance. Thus, only odd distances.
-    Only works for odd-membered rings
-
-    """
-    def __init__(self, arr, d):
-        self.arr = arr
-        self.d = d
-        self.n = len(arr)
-        self.generator = self.dfs([0])
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        return next(self.generator)
-
-    def dfs(self, path):
+    def _alg4(self, path):
         if len(path) == self.n:
             val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
             if val <= self.d and val % 2 == 0 and path[1] < path[-1]:
@@ -238,12 +153,11 @@ class HamiltonMCIalg4:
         for v in range(self.n):
             if v not in path:
                 val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
-
                 if val <= self.d and val % 2 == 0:
-                    yield from self.dfs(path + [v])
+                    yield from self._alg4(path + [v])
 
     def countperms(self):
         count = 0
-        for _ in self.dfs([0]):
+        for _ in self._select_algorithm():
             count += 1
         return count
