@@ -9,6 +9,7 @@
   <title>esipy &mdash; ESIpy 1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
@@ -16,6 +17,8 @@
       <script src="_static/documentation_options.js?v=f2a433a1"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" /> 
@@ -43,8 +46,11 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="esipy.html">esipy package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="theory.html">Theoretical background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="esipy.html">ESIpy package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mci_timings.html">MCI TIMINGS</a></li>
 </ul>
 
         </div>
@@ -75,16 +81,93 @@
 <h1>esipy<a class="headerlink" href="#esipy" title="Link to this heading"></a></h1>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="esipy.html">esipy package</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="esipy.html">ESIpy package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="esipy.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="esipy.html#esipy-atomicfiles-module">esipy.atomicfiles module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="esipy.html#esipy-indicators-module">esipy.indicators module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="esipy.html#esipy-make-aoms-module">esipy.make_aoms module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="esipy.html#esipy-no-module">esipy.no module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="esipy.html#esipy-rest-module">esipy.rest module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="esipy.html#esipy-tools-module">esipy.tools module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="esipy.html#esipy-unrest-module">esipy.unrest module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="esipy.html#module-contents">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="esipy.html#module-esipy.atomicfiles">esipy.atomicfiles module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.atomicfiles.read_aimall"><code class="docutils literal notranslate"><span class="pre">read_aimall()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.atomicfiles.read_aoms"><code class="docutils literal notranslate"><span class="pre">read_aoms()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.atomicfiles.read_esipy"><code class="docutils literal notranslate"><span class="pre">read_esipy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.atomicfiles.write_aoms"><code class="docutils literal notranslate"><span class="pre">write_aoms()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="esipy.html#module-esipy.indicators">esipy.indicators module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.compute_av1245"><code class="docutils literal notranslate"><span class="pre">compute_av1245()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.compute_av1245_no"><code class="docutils literal notranslate"><span class="pre">compute_av1245_no()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.compute_bla"><code class="docutils literal notranslate"><span class="pre">compute_bla()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.compute_boa"><code class="docutils literal notranslate"><span class="pre">compute_boa()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.compute_boa_no"><code class="docutils literal notranslate"><span class="pre">compute_boa_no()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.compute_flu"><code class="docutils literal notranslate"><span class="pre">compute_flu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.compute_homa"><code class="docutils literal notranslate"><span class="pre">compute_homa()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.compute_homer"><code class="docutils literal notranslate"><span class="pre">compute_homer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.compute_iring"><code class="docutils literal notranslate"><span class="pre">compute_iring()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.compute_iring_no"><code class="docutils literal notranslate"><span class="pre">compute_iring_no()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.compute_pdi"><code class="docutils literal notranslate"><span class="pre">compute_pdi()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.compute_pdi_no"><code class="docutils literal notranslate"><span class="pre">compute_pdi_no()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.find_flurefs"><code class="docutils literal notranslate"><span class="pre">find_flurefs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.multiprocessing_mci"><code class="docutils literal notranslate"><span class="pre">multiprocessing_mci()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.multiprocessing_mci_no"><code class="docutils literal notranslate"><span class="pre">multiprocessing_mci_no()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.sequential_mci"><code class="docutils literal notranslate"><span class="pre">sequential_mci()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.indicators.sequential_mci_no"><code class="docutils literal notranslate"><span class="pre">sequential_mci_no()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="esipy.html#module-esipy.make_aoms">esipy.make_aoms module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.make_aoms.make_aoms"><code class="docutils literal notranslate"><span class="pre">make_aoms()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="esipy.html#module-esipy.no">esipy.no module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.no.arom_no"><code class="docutils literal notranslate"><span class="pre">arom_no()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.no.arom_no_from_aoms"><code class="docutils literal notranslate"><span class="pre">arom_no_from_aoms()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.no.deloc_no"><code class="docutils literal notranslate"><span class="pre">deloc_no()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="esipy.html#module-esipy.rest">esipy.rest module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.rest.arom_rest"><code class="docutils literal notranslate"><span class="pre">arom_rest()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.rest.arom_rest_from_aoms"><code class="docutils literal notranslate"><span class="pre">arom_rest_from_aoms()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.rest.deloc_rest"><code class="docutils literal notranslate"><span class="pre">deloc_rest()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="esipy.html#module-esipy.tools">esipy.tools module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.av1245_pairs"><code class="docutils literal notranslate"><span class="pre">av1245_pairs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.build_eta"><code class="docutils literal notranslate"><span class="pre">build_eta()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.find_di"><code class="docutils literal notranslate"><span class="pre">find_di()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.find_di_no"><code class="docutils literal notranslate"><span class="pre">find_di_no()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.find_dis"><code class="docutils literal notranslate"><span class="pre">find_dis()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.find_distances"><code class="docutils literal notranslate"><span class="pre">find_distances()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.find_lis"><code class="docutils literal notranslate"><span class="pre">find_lis()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.find_multiplicity"><code class="docutils literal notranslate"><span class="pre">find_multiplicity()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.find_ns"><code class="docutils literal notranslate"><span class="pre">find_ns()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.format_partition"><code class="docutils literal notranslate"><span class="pre">format_partition()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.format_short_partition"><code class="docutils literal notranslate"><span class="pre">format_short_partition()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.get_info"><code class="docutils literal notranslate"><span class="pre">get_info()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.get_natorbs"><code class="docutils literal notranslate"><span class="pre">get_natorbs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.load_file"><code class="docutils literal notranslate"><span class="pre">load_file()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.mapping"><code class="docutils literal notranslate"><span class="pre">mapping()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.mol_info"><code class="docutils literal notranslate"><span class="pre">mol_info()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.save_file"><code class="docutils literal notranslate"><span class="pre">save_file()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.tools.wf_type"><code class="docutils literal notranslate"><span class="pre">wf_type()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="esipy.html#module-esipy.unrest">esipy.unrest module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.unrest.arom_unrest"><code class="docutils literal notranslate"><span class="pre">arom_unrest()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.unrest.arom_unrest_from_aoms"><code class="docutils literal notranslate"><span class="pre">arom_unrest_from_aoms()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.unrest.deloc_unrest"><code class="docutils literal notranslate"><span class="pre">deloc_unrest()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="esipy.html#module-esipy">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="esipy.html#esipy.ESI"><code class="docutils literal notranslate"><span class="pre">ESI</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="esipy.html#esipy.ESI.Smo"><code class="docutils literal notranslate"><span class="pre">ESI.Smo</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="esipy.html#esipy.ESI.aoms"><code class="docutils literal notranslate"><span class="pre">ESI.aoms()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="esipy.html#esipy.ESI.av1245"><code class="docutils literal notranslate"><span class="pre">ESI.av1245</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="esipy.html#esipy.ESI.calc"><code class="docutils literal notranslate"><span class="pre">ESI.calc()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="esipy.html#esipy.ESI.mci"><code class="docutils literal notranslate"><span class="pre">ESI.mci</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="esipy.html#esipy.ESI.molinfo"><code class="docutils literal notranslate"><span class="pre">ESI.molinfo</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="esipy.html#esipy.ESI.partition"><code class="docutils literal notranslate"><span class="pre">ESI.partition</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="esipy.html#esipy.ESI.readaoms"><code class="docutils literal notranslate"><span class="pre">ESI.readaoms()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="esipy.html#esipy.ESI.writeaoms"><code class="docutils literal notranslate"><span class="pre">ESI.writeaoms()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

@@ -1,0 +1,828 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>esipy.indicators &mdash; ESIpy 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ESIpy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../theory.html">Theoretical background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../esipy.html">ESIpy package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mci_timings.html">MCI TIMINGS</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ESIpy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../esipy.html">esipy</a></li>
+      <li class="breadcrumb-item active">esipy.indicators</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for esipy.indicators</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">esipy.tools</span> <span class="kn">import</span> <span class="n">find_dis</span><span class="p">,</span> <span class="n">find_di</span><span class="p">,</span> <span class="n">find_di_no</span><span class="p">,</span> <span class="n">find_lis</span><span class="p">,</span> <span class="n">find_ns</span><span class="p">,</span> <span class="n">find_distances</span><span class="p">,</span> <span class="n">av1245_pairs</span>
+
+<span class="c1">########## Iring ###########</span>
+
+<span class="c1"># Computing the Iring (Restricted and Unrestricted)</span>
+
+<div class="viewcode-block" id="compute_iring">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.compute_iring">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_iring</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">Smo</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculation of the Iring aromaticity index.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        arr (list of int):</span>
+<span class="sd">            Contains the indices defining the ring connectivity of a system.</span>
+
+<span class="sd">        Smo (list of matrices):</span>
+<span class="sd">            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">       float</span>
+<span class="sd">          The Iring for the given ring connectivity.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">product</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">Smo</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">arr</span><span class="p">:</span>
+        <span class="n">product</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="n">Smo</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">iring</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">product</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">iring</span></div>
+
+
+<div class="viewcode-block" id="compute_iring_no">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.compute_iring_no">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_iring_no</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">Smo</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculation of the Iring aromaticity index for Natural Orbitals calculations.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        arr (list of int):</span>
+<span class="sd">            Contains the indices defining the ring connectivity of a system.</span>
+
+<span class="sd">        Smo (list of matrices):</span>
+<span class="sd">            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">       float</span>
+<span class="sd">          The Iring for the given ring connectivity.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">Smo</span><span class="p">,</span> <span class="n">occ</span> <span class="o">=</span> <span class="n">Smo</span>
+    <span class="n">product</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">Smo</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">arr</span><span class="p">:</span>
+        <span class="n">product</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">occ</span><span class="p">,</span> <span class="n">Smo</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">product</span><span class="p">)</span></div>
+
+
+<span class="c1">########### MCI ###########</span>
+
+<div class="viewcode-block" id="sequential_mci">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.sequential_mci">[docs]</a>
+<span class="k">def</span> <span class="nf">sequential_mci</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">Smo</span><span class="p">,</span> <span class="n">partition</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the MCI sequentially by computing the Iring without storing the permutations.</span>
+<span class="sd">    Default option if no number of cores is specified.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        arr (list of int):</span>
+<span class="sd">            Contains the indices defining the ring connectivity of a system.</span>
+
+<span class="sd">        Smo (list of matrices):</span>
+<span class="sd">            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.</span>
+
+<span class="sd">        partition (str):</span>
+<span class="sd">            Specifies the atom-in-molecule partition scheme. Options include &#39;mulliken&#39;, &#39;lowdin&#39;, &#39;meta_lowdin&#39;, &#39;nao&#39;, and &#39;iao&#39;.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">       float</span>
+<span class="sd">          MCI value for the given ring.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">factorial</span>
+    <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">permutations</span><span class="p">,</span> <span class="n">islice</span>
+
+    <span class="k">if</span> <span class="n">partition</span> <span class="o">==</span> <span class="s1">&#39;mulliken&#39;</span><span class="p">:</span>
+        <span class="n">iterable2</span> <span class="o">=</span> <span class="n">islice</span><span class="p">(</span><span class="n">permutations</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">factorial</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="c1"># We account for twice the value for symmetric AOMs</span>
+        <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="nb">sum</span><span class="p">(</span><span class="n">compute_iring</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Smo</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">iterable2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># Remove reversed permutations</span>
+        <span class="n">iterable</span> <span class="o">=</span> <span class="n">islice</span><span class="p">(</span><span class="n">permutations</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">factorial</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">factorial</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">iterable2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">iterable</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">compute_iring</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Smo</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">iterable2</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="sequential_mci_no">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.sequential_mci_no">[docs]</a>
+<span class="k">def</span> <span class="nf">sequential_mci_no</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">Smo</span><span class="p">,</span> <span class="n">partition</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the MCI sequentially for a Natural Orbitals calculation by computing the Iring</span>
+<span class="sd">    without storing the permutations. Default option if no number of cores is specified.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        arr (list of int):</span>
+<span class="sd">            Contains the indices defining the ring connectivity of a system.</span>
+
+<span class="sd">        Smo (list of matrices):</span>
+<span class="sd">            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.</span>
+
+<span class="sd">        partition (str):</span>
+<span class="sd">            Specifies the atom-in-molecule partition scheme. Options include &#39;mulliken&#39;, &#39;lowdin&#39;, &#39;meta_lowdin&#39;, &#39;nao&#39;, and &#39;iao&#39;.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">       float</span>
+<span class="sd">          MCI value for the given ring.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">factorial</span>
+    <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">permutations</span><span class="p">,</span> <span class="n">islice</span>
+
+    <span class="k">if</span> <span class="n">partition</span> <span class="o">==</span> <span class="s1">&#39;mulliken&#39;</span><span class="p">:</span>
+        <span class="n">iterable2</span> <span class="o">=</span> <span class="n">islice</span><span class="p">(</span><span class="n">permutations</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">factorial</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="c1"># We account for twice the value for symmetric AOMs</span>
+        <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="nb">sum</span><span class="p">(</span><span class="n">compute_iring_no</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Smo</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">iterable2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># Remove reversed permutations</span>
+        <span class="n">iterable</span> <span class="o">=</span> <span class="n">islice</span><span class="p">(</span><span class="n">permutations</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">factorial</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">factorial</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">iterable2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">iterable</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">compute_iring_no</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Smo</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">iterable2</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="multiprocessing_mci">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.multiprocessing_mci">[docs]</a>
+<span class="k">def</span> <span class="nf">multiprocessing_mci</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">Smo</span><span class="p">,</span> <span class="n">ncores</span><span class="p">,</span> <span class="n">partition</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the MCI split in different threads by generating all the permutations</span>
+<span class="sd">    for a later distribution along the specified number of cores.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        arr (list of int):</span>
+<span class="sd">            Contains the indices defining the ring connectivity of a system.</span>
+
+<span class="sd">        Smo (list of matrices):</span>
+<span class="sd">            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.</span>
+
+<span class="sd">        ncores (int):</span>
+<span class="sd">            Specifies the number of cores for multi-processing MCI calculation.</span>
+
+<span class="sd">        partition (str):</span>
+<span class="sd">            Specifies the atom-in-molecule partition scheme. Options include &#39;mulliken&#39;, &#39;lowdin&#39;, &#39;meta_lowdin&#39;, &#39;nao&#39;, and &#39;iao&#39;.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">       float</span>
+<span class="sd">          MCI value for the given ring.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">Pool</span>
+    <span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">factorial</span>
+    <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+    <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">permutations</span><span class="p">,</span> <span class="n">islice</span>
+
+    <span class="n">pool</span> <span class="o">=</span> <span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="n">ncores</span><span class="p">)</span>
+    <span class="n">dumb</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">compute_iring</span><span class="p">,</span> <span class="n">Smo</span><span class="o">=</span><span class="n">Smo</span><span class="p">)</span>
+    <span class="n">chunk_size</span> <span class="o">=</span> <span class="mi">50000</span>
+
+    <span class="k">if</span> <span class="n">partition</span> <span class="o">==</span> <span class="s1">&#39;mulliken&#39;</span><span class="p">:</span>
+        <span class="n">iterable2</span> <span class="o">=</span> <span class="n">islice</span><span class="p">(</span><span class="n">permutations</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">factorial</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="c1"># We account for twice the value for symmetric AOMs</span>
+        <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="nb">sum</span><span class="p">(</span><span class="n">pool</span><span class="o">.</span><span class="n">imap</span><span class="p">(</span><span class="n">dumb</span><span class="p">,</span> <span class="n">iterable2</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># Remove reversed permutations</span>
+        <span class="n">iterable</span> <span class="o">=</span> <span class="n">islice</span><span class="p">(</span><span class="n">permutations</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">factorial</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">factorial</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">iterable2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">iterable</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">pool</span><span class="o">.</span><span class="n">imap</span><span class="p">(</span><span class="n">dumb</span><span class="p">,</span> <span class="n">iterable2</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="multiprocessing_mci_no">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.multiprocessing_mci_no">[docs]</a>
+<span class="k">def</span> <span class="nf">multiprocessing_mci_no</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">Smo</span><span class="p">,</span> <span class="n">ncores</span><span class="p">,</span> <span class="n">partition</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the MCI from a Natural Orbitals calculation by generating all the permutations</span>
+<span class="sd">    for a later distribution along the specified number of cores.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        arr (list of int):</span>
+<span class="sd">            Contains the indices defining the ring connectivity of a system.</span>
+
+<span class="sd">        Smo (list of matrices):</span>
+<span class="sd">            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.</span>
+
+<span class="sd">        ncores (int):</span>
+<span class="sd">            Specifies the number of cores for multi-processing MCI calculation.</span>
+
+<span class="sd">        partition (str):</span>
+<span class="sd">            Specifies the atom-in-molecule partition scheme. Options include &#39;mulliken&#39;, &#39;lowdin&#39;, &#39;meta_lowdin&#39;, &#39;nao&#39;, and &#39;iao&#39;.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">       float</span>
+<span class="sd">          MCI value for the given ring.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">Pool</span>
+    <span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">factorial</span>
+    <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+    <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">permutations</span><span class="p">,</span> <span class="n">islice</span>
+
+    <span class="n">pool</span> <span class="o">=</span> <span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="n">ncores</span><span class="p">)</span>
+    <span class="n">dumb</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">compute_iring_no</span><span class="p">,</span> <span class="n">Smo</span><span class="o">=</span><span class="n">Smo</span><span class="p">)</span>
+    <span class="n">chunk_size</span> <span class="o">=</span> <span class="mi">50000</span>
+
+    <span class="k">if</span> <span class="n">partition</span> <span class="o">==</span> <span class="s1">&#39;mulliken&#39;</span><span class="p">:</span>
+        <span class="n">iterable2</span> <span class="o">=</span> <span class="n">islice</span><span class="p">(</span><span class="n">permutations</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">factorial</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="c1"># We account for twice the value for symmetric AOMs</span>
+        <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="nb">sum</span><span class="p">(</span><span class="n">pool</span><span class="o">.</span><span class="n">imap</span><span class="p">(</span><span class="n">dumb</span><span class="p">,</span> <span class="n">iterable2</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># Remove reversed permutations</span>
+        <span class="n">iterable</span> <span class="o">=</span> <span class="n">islice</span><span class="p">(</span><span class="n">permutations</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="n">factorial</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">factorial</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">iterable2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">iterable</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">pool</span><span class="o">.</span><span class="n">imap</span><span class="p">(</span><span class="n">dumb</span><span class="p">,</span> <span class="n">iterable2</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">))</span></div>
+
+
+<span class="c1">########### AV1245 ###########</span>
+
+<span class="c1"># Calculation of the AV1245 index (Restricted and Unrestricted)</span>
+
+<div class="viewcode-block" id="compute_av1245">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.compute_av1245">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_av1245</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">Smo</span><span class="p">,</span> <span class="n">partition</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the AV1245 and AVmin indices. Not available for rings smaller than 6 members.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        arr (list of int):</span>
+<span class="sd">            Contains the indices defining the ring connectivity of a system.</span>
+
+<span class="sd">        Smo (list of matrices):</span>
+<span class="sd">            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.</span>
+
+<span class="sd">        partition (str):</span>
+<span class="sd">            Specifies the atom-in-molecule partition scheme. Options include &#39;mulliken&#39;, &#39;lowdin&#39;, &#39;meta_lowdin&#39;, &#39;nao&#39;, and &#39;iao&#39;.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple</span>
+<span class="sd">            The AV1245 index, the AVmin index and each of the AV1245 in a list for the output, respectively.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">products</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">cp</span> <span class="ow">in</span> <span class="n">av1245_pairs</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
+        <span class="n">product</span> <span class="o">=</span> <span class="n">sequential_mci</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">cp</span><span class="p">),</span> <span class="n">Smo</span><span class="p">,</span> <span class="n">partition</span><span class="p">)</span>
+        <span class="n">products</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1000</span> <span class="o">*</span> <span class="n">product</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+
+    <span class="n">av1245_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">products</span><span class="p">)</span>
+    <span class="n">avmin_value</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">products</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="nb">abs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">av1245_value</span><span class="p">,</span> <span class="n">avmin_value</span><span class="p">,</span> <span class="n">products</span></div>
+
+
+<div class="viewcode-block" id="compute_av1245_no">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.compute_av1245_no">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_av1245_no</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">Smo</span><span class="p">,</span> <span class="n">partition</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the AV1245 and AVmin indices. Not available for rings smaller than 6 members.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        arr (list of int):</span>
+<span class="sd">            Contains the indices defining the ring connectivity of a system.</span>
+
+<span class="sd">        Smo (list of matrices):</span>
+<span class="sd">            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.</span>
+
+<span class="sd">        partition (str):</span>
+<span class="sd">            Specifies the atom-in-molecule partition scheme. Options include &#39;mulliken&#39;, &#39;lowdin&#39;, &#39;meta_lowdin&#39;, &#39;nao&#39;, and &#39;iao&#39;.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple</span>
+<span class="sd">            The AV1245 index, the AVmin index and each of the AV1245 in a list for the output, respectively.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">av1245_pairs</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[(</span><span class="n">arr</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)],</span> <span class="n">arr</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)],</span> <span class="n">arr</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">3</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)],</span> <span class="n">arr</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)])</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">))]</span>
+
+    <span class="n">products</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">cp</span> <span class="ow">in</span> <span class="n">av1245_pairs</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
+        <span class="n">product</span> <span class="o">=</span> <span class="n">sequential_mci_no</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">cp</span><span class="p">),</span> <span class="n">Smo</span><span class="p">,</span> <span class="n">partition</span><span class="p">)</span>
+        <span class="n">products</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1000</span> <span class="o">*</span> <span class="n">product</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+
+    <span class="n">av1245_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">products</span><span class="p">)</span>
+    <span class="n">avmin_value</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">products</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="nb">abs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">av1245_value</span><span class="p">,</span> <span class="n">avmin_value</span><span class="p">,</span> <span class="n">products</span></div>
+
+
+<span class="c1">########### PDI ###########</span>
+
+<span class="c1"># Calculation of the PDI (Restricted and Unrestricted)</span>
+
+<div class="viewcode-block" id="compute_pdi">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.compute_pdi">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_pdi</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">Smo</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the PDI for the given 6-membered ring connectivity. Only computed for rings n=6.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        arr (list of int):</span>
+<span class="sd">            Contains the indices defining the ring connectivity of a system.</span>
+
+<span class="sd">        Smo (list of matrices):</span>
+<span class="sd">            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">       tuple</span>
+<span class="sd">          The list contains the PDI value and each of the DIs in para position.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+        <span class="n">pdi_a</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Smo</span><span class="p">[</span><span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">Smo</span><span class="p">[</span><span class="n">arr</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]))</span>
+        <span class="n">pdi_b</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Smo</span><span class="p">[</span><span class="n">arr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">Smo</span><span class="p">[</span><span class="n">arr</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]))</span>
+        <span class="n">pdi_c</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Smo</span><span class="p">[</span><span class="n">arr</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">Smo</span><span class="p">[</span><span class="n">arr</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]))</span>
+        <span class="n">pdi_value</span> <span class="o">=</span> <span class="p">(</span><span class="n">pdi_a</span> <span class="o">+</span> <span class="n">pdi_b</span> <span class="o">+</span> <span class="n">pdi_c</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span>
+
+        <span class="k">return</span> <span class="n">pdi_value</span><span class="p">,</span> <span class="p">[</span><span class="n">pdi_a</span><span class="p">,</span> <span class="n">pdi_b</span><span class="p">,</span> <span class="n">pdi_c</span><span class="p">]</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="compute_pdi_no">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.compute_pdi_no">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_pdi_no</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">Smo</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the PDI for the given 6-membered ring connectivity. Only computed for rings n=6.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        arr (list of int):</span>
+<span class="sd">            Contains the indices defining the ring connectivity of a system.</span>
+
+<span class="sd">        Smo (list of matrices):</span>
+<span class="sd">            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">       tuple</span>
+<span class="sd">          The list contains the PDI value and each of the DIs in para position.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Smo</span><span class="p">,</span> <span class="n">occ</span> <span class="o">=</span> <span class="n">Smo</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+
+        <span class="n">i1</span><span class="p">,</span> <span class="n">i2</span><span class="p">,</span> <span class="n">i3</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="n">i5</span><span class="p">,</span> <span class="n">i6</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+        <span class="n">pdi_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">occ</span><span class="p">,</span> <span class="n">Smo</span><span class="p">[</span><span class="n">i1</span><span class="p">],</span> <span class="n">occ</span><span class="p">,</span> <span class="n">Smo</span><span class="p">[</span><span class="n">i4</span><span class="p">])))</span>
+        <span class="n">pdi_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">occ</span><span class="p">,</span> <span class="n">Smo</span><span class="p">[</span><span class="n">i2</span><span class="p">],</span> <span class="n">occ</span><span class="p">,</span> <span class="n">Smo</span><span class="p">[</span><span class="n">i5</span><span class="p">])))</span>
+        <span class="n">pdi_c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">occ</span><span class="p">,</span> <span class="n">Smo</span><span class="p">[</span><span class="n">i3</span><span class="p">],</span> <span class="n">occ</span><span class="p">,</span> <span class="n">Smo</span><span class="p">[</span><span class="n">i6</span><span class="p">])))</span>
+        <span class="n">pdi_value</span> <span class="o">=</span> <span class="p">(</span><span class="n">pdi_a</span> <span class="o">+</span> <span class="n">pdi_b</span> <span class="o">+</span> <span class="n">pdi_c</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span>
+
+        <span class="k">return</span> <span class="n">pdi_value</span><span class="p">,</span> <span class="p">[</span><span class="n">pdi_a</span><span class="p">,</span> <span class="n">pdi_b</span><span class="p">,</span> <span class="n">pdi_c</span><span class="p">]</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<span class="c1">########### FLU ###########</span>
+
+<span class="c1"># Calculation of the FLU (Restricted and Unrestricted)</span>
+
+<div class="viewcode-block" id="find_flurefs">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.find_flurefs">[docs]</a>
+<span class="k">def</span> <span class="nf">find_flurefs</span><span class="p">(</span><span class="n">partition</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sets the reference of the FLU index based on the provided partition.</span>
+<span class="sd">    The available options are &quot;CC&quot; from benzene, &quot;CN&quot; from pyridine,</span>
+<span class="sd">    &quot;BN&quot; from borazine, &quot;NN&quot; from pyridazine and &quot;CS&quot; from thiophene,</span>
+<span class="sd">    all obtained from optimized and single-point calculations at HF/6-31G(d)</span>
+<span class="sd">    level of theory.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        partition (str):</span>
+<span class="sd">            Specifies the atom-in-molecule partition scheme. Options include &#39;mulliken&#39;, &#39;lowdin&#39;, &#39;meta_lowdin&#39;, &#39;nao&#39;, and &#39;iao&#39;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">       dict</span>
+<span class="sd">          Contains the reference DI for each bond.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;qtaim&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;CC&quot;</span><span class="p">:</span> <span class="mf">1.3993</span><span class="p">,</span> <span class="s2">&quot;CN&quot;</span><span class="p">:</span> <span class="mf">1.1958</span><span class="p">,</span> <span class="s2">&quot;BN&quot;</span><span class="p">:</span> <span class="mf">0.3934</span><span class="p">,</span> <span class="s2">&quot;NN&quot;</span><span class="p">:</span> <span class="mf">1.5252</span><span class="p">,</span> <span class="s2">&quot;CS&quot;</span><span class="p">:</span> <span class="mf">1.2369</span><span class="p">}</span>
+
+    <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;mulliken&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;CC&quot;</span><span class="p">:</span> <span class="mf">1.4530</span><span class="p">,</span> <span class="s2">&quot;CN&quot;</span><span class="p">:</span> <span class="mf">1.4149</span><span class="p">,</span> <span class="s2">&quot;BN&quot;</span><span class="p">:</span> <span class="mf">1.0944</span><span class="p">,</span> <span class="s2">&quot;NN&quot;</span><span class="p">:</span> <span class="mf">1.3044</span><span class="p">,</span> <span class="s2">&quot;CS&quot;</span><span class="p">:</span> <span class="mf">1.1024</span><span class="p">}</span>
+
+    <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;lowdin&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;CC&quot;</span><span class="p">:</span> <span class="mf">1.5000</span><span class="p">,</span> <span class="s2">&quot;CN&quot;</span><span class="p">:</span> <span class="mf">1.6257</span><span class="p">,</span> <span class="s2">&quot;BN&quot;</span><span class="p">:</span> <span class="mf">1.6278</span><span class="p">,</span> <span class="s2">&quot;NN&quot;</span><span class="p">:</span> <span class="mf">1.5252</span><span class="p">,</span> <span class="s2">&quot;CS&quot;</span><span class="p">:</span> <span class="mf">1.2675</span><span class="p">}</span>
+
+    <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;meta_lowdin&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;CC&quot;</span><span class="p">:</span> <span class="mf">1.4394</span><span class="p">,</span> <span class="s2">&quot;CN&quot;</span><span class="p">:</span> <span class="mf">1.4524</span><span class="p">,</span> <span class="s2">&quot;BN&quot;</span><span class="p">:</span> <span class="mf">1.3701</span><span class="p">,</span> <span class="s2">&quot;NN&quot;</span><span class="p">:</span> <span class="mf">1.5252</span><span class="p">,</span> <span class="s2">&quot;CS&quot;</span><span class="p">:</span> <span class="mf">1.1458</span><span class="p">}</span>
+
+    <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;nao&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;CC&quot;</span><span class="p">:</span> <span class="mf">1.4338</span><span class="p">,</span> <span class="s2">&quot;CN&quot;</span><span class="p">:</span> <span class="mf">1.4117</span><span class="p">,</span> <span class="s2">&quot;BN&quot;</span><span class="p">:</span> <span class="mf">0.9238</span><span class="p">,</span> <span class="s2">&quot;NN&quot;</span><span class="p">:</span> <span class="mf">1.3706</span><span class="p">,</span> <span class="s2">&quot;CS&quot;</span><span class="p">:</span> <span class="mf">1.1631</span><span class="p">}</span>
+
+    <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;iao&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;CC&quot;</span><span class="p">:</span> <span class="mf">1.4378</span><span class="p">,</span> <span class="s2">&quot;CN&quot;</span><span class="p">:</span> <span class="mf">1.4385</span><span class="p">,</span> <span class="s2">&quot;BN&quot;</span><span class="p">:</span> <span class="mf">1.1638</span><span class="p">,</span> <span class="s2">&quot;NN&quot;</span><span class="p">:</span> <span class="mf">1.3606</span><span class="p">,</span> <span class="s2">&quot;CS&quot;</span><span class="p">:</span> <span class="mf">1.1436</span><span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="compute_flu">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.compute_flu">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_flu</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">mol</span><span class="p">,</span> <span class="n">Smo</span><span class="p">,</span> <span class="n">flurefs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">partition</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the FLU index.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        arr (list of int):</span>
+<span class="sd">            Contains the indices defining the ring connectivity of a system.</span>
+
+<span class="sd">        mol (SCF instance, optional, default: None):</span>
+<span class="sd">            PySCF&#39;s Mole class and helper functions to handle parameters and attributes for GTO integrals.</span>
+
+<span class="sd">        Smo (list of matrices or str):</span>
+<span class="sd">            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis. This can either be a list of matrices generated from the `make_aoms()` function or a string with the filename/path where the AOMs are saved.</span>
+
+<span class="sd">        flurefs (dict, optional, default: None):</span>
+<span class="sd">            User-provided references for Delocalization Indices used in the FLU index calculation.</span>
+
+<span class="sd">        connectivity (list of int, optional, default: None):</span>
+<span class="sd">            List of atomic symbols in the order they appear in `mol`, representing ring connectivity.</span>
+
+<span class="sd">        partition (str):</span>
+<span class="sd">            Specifies the atom-in-molecule partition scheme. Options include &#39;mulliken&#39;, &#39;lowdin&#39;, &#39;meta_lowdin&#39;, &#39;nao&#39;, and &#39;iao&#39;.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">       float</span>
+<span class="sd">          Value of the FLU index.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">flu_value</span><span class="p">,</span> <span class="n">flu_polar</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">partition</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; | No partition provided. Could not find proper references&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">elif</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; | No mol object provided. Using the connectivity provided by the user&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">connectivity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; | No FLU connectivity provided by the user&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">atom_symbols</span> <span class="o">=</span> <span class="n">connectivity</span>
+            <span class="n">bond_types</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">([</span><span class="n">atom_symbols</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">atom_symbols</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)]]))</span>
+                          <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">))]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">atom_symbols</span> <span class="o">=</span> <span class="p">[</span><span class="n">mol</span><span class="o">.</span><span class="n">atom_symbol</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">)]</span>
+        <span class="n">bond_types</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">([</span><span class="n">atom_symbols</span><span class="p">[</span><span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">atom_symbols</span><span class="p">[</span><span class="n">arr</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]))</span>
+                      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">))]</span>
+
+    <span class="c1"># Setting and update of the reference values</span>
+    <span class="n">flu_refs</span> <span class="o">=</span> <span class="n">find_flurefs</span><span class="p">(</span><span class="n">partition</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">flurefs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">flu_refs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">flurefs</span><span class="p">)</span>
+
+    <span class="n">dis</span> <span class="o">=</span> <span class="n">find_dis</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">Smo</span><span class="p">)</span>
+    <span class="n">lis</span> <span class="o">=</span> <span class="n">find_lis</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">Smo</span><span class="p">)</span>
+    <span class="n">ns</span> <span class="o">=</span> <span class="n">find_ns</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">Smo</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">bond_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">flu_refs</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No parameters found for bond type </span><span class="si">{</span><span class="n">bond_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">flu_deloc</span> <span class="o">=</span> <span class="p">(</span><span class="n">dis</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">flu_refs</span><span class="p">[</span><span class="n">bond_types</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span> <span class="o">/</span> <span class="n">flu_refs</span><span class="p">[</span><span class="n">bond_types</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+        <span class="n">a_to_b</span> <span class="o">=</span> <span class="n">dis</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">ns</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">lis</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">b_to_a</span> <span class="o">=</span> <span class="n">dis</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">ns</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)]</span> <span class="o">-</span> <span class="n">lis</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)])</span>
+        <span class="n">flu_polar</span> <span class="o">=</span> <span class="n">a_to_b</span> <span class="o">/</span> <span class="n">b_to_a</span>
+
+        <span class="k">if</span> <span class="n">flu_polar</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">flu_polar</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">flu_polar</span>
+
+        <span class="n">flu_value</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">flu_deloc</span> <span class="o">*</span> <span class="n">flu_polar</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="k">return</span> <span class="n">flu_value</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span></div>
+
+
+
+<span class="c1">########### BOA ###########</span>
+
+<span class="c1"># Calculation of the BOA (Restricted and Unrestricted)</span>
+
+<div class="viewcode-block" id="compute_boa">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.compute_boa">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_boa</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">Smo</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the BOA and BOA_c indices.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        arr (list of int):</span>
+<span class="sd">            Contains the indices defining the ring connectivity of a system.</span>
+
+<span class="sd">        Smo (list of matrices):</span>
+<span class="sd">            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">       tuple</span>
+<span class="sd">          Contains the BOA and the BOA_c indices, respectively.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n1</span> <span class="o">=</span> <span class="nb">len</span><span class="p">([</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">arr</span> <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">n2</span> <span class="o">=</span> <span class="nb">len</span><span class="p">([</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">arr</span> <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">sum_odd</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">find_di</span><span class="p">(</span><span class="n">Smo</span><span class="p">,</span> <span class="n">arr</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">sum_even</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">find_di</span><span class="p">(</span><span class="n">Smo</span><span class="p">,</span> <span class="n">arr</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">boa</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">sum_odd</span> <span class="o">/</span> <span class="n">n1</span> <span class="o">-</span> <span class="n">sum_even</span> <span class="o">/</span> <span class="n">n2</span><span class="p">)</span>
+
+    <span class="n">boa_c</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)):</span>
+        <span class="n">diff_di</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span>
+            <span class="n">find_di</span><span class="p">(</span><span class="n">Smo</span><span class="p">,</span> <span class="n">arr</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">-</span> <span class="n">find_di</span><span class="p">(</span><span class="n">Smo</span><span class="p">,</span> <span class="n">arr</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">arr</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)]))</span>
+        <span class="n">boa_c</span> <span class="o">+=</span> <span class="n">diff_di</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">boa</span><span class="p">,</span> <span class="n">boa_c</span></div>
+
+
+<div class="viewcode-block" id="compute_boa_no">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.compute_boa_no">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_boa_no</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">Smo</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the BOA and BOA_c indices.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        arr (list of int):</span>
+<span class="sd">            Contains the indices defining the ring connectivity of a system.</span>
+
+<span class="sd">        Smo (list of matrices):</span>
+<span class="sd">            Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">       tuple</span>
+<span class="sd">          Contains the BOA and the BOA_c indices, respectively.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n1</span> <span class="o">=</span> <span class="nb">len</span><span class="p">([</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">arr</span> <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">n2</span> <span class="o">=</span> <span class="nb">len</span><span class="p">([</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">arr</span> <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">sum_odd</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">find_di_no</span><span class="p">(</span><span class="n">Smo</span><span class="p">,</span> <span class="n">arr</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">sum_even</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">find_di_no</span><span class="p">(</span><span class="n">Smo</span><span class="p">,</span> <span class="n">arr</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">boa</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">sum_odd</span> <span class="o">/</span> <span class="n">n1</span> <span class="o">-</span> <span class="n">sum_even</span> <span class="o">/</span> <span class="n">n2</span><span class="p">)</span>
+
+    <span class="n">boa_c</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)):</span>
+        <span class="n">diff_di</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span>
+            <span class="n">find_di_no</span><span class="p">(</span><span class="n">Smo</span><span class="p">,</span> <span class="n">arr</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">-</span> <span class="n">find_di_no</span><span class="p">(</span><span class="n">Smo</span><span class="p">,</span> <span class="n">arr</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">arr</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)]))</span>
+        <span class="n">boa_c</span> <span class="o">+=</span> <span class="n">diff_di</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">boa</span><span class="p">,</span> <span class="n">boa_c</span></div>
+
+
+<span class="c1">######## GEOMETRIC INDICES ########</span>
+
+<span class="c1"># Calculation of the HOMA and/or HOMER indices (Restricted and Unrestricted)</span>
+
+<div class="viewcode-block" id="compute_homer">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.compute_homer">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_homer</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">mol</span><span class="p">,</span> <span class="n">geom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">homerrefs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the HOMER index.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        arr (list of int):</span>
+<span class="sd">            Contains the indices defining the ring connectivity of a system.</span>
+
+<span class="sd">        mol (SCF instance):</span>
+<span class="sd">            PySCF&#39;s Mole class and helper functions to handle parameters and attributes for GTO integrals.</span>
+
+<span class="sd">        geom (list of floats, optional, default: None):</span>
+<span class="sd">            Molecular coordinates, typically obtained from `mol.atom_coords()`.</span>
+
+<span class="sd">        homerrefs (dict, optional, default: None):</span>
+<span class="sd">            User-provided references for optimal distance and polarizability in HOMA or HOMER indices.</span>
+
+<span class="sd">        connectivity (list of int, optional, default: None):</span>
+<span class="sd">            List of atomic symbols in the order they appear in `mol`, representing ring connectivity.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        float</span>
+<span class="sd">          The HOMER value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">refs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;CC&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="mf">950.74</span><span class="p">,</span> <span class="s2">&quot;r_opt&quot;</span><span class="p">:</span> <span class="mf">1.437</span><span class="p">},</span>
+        <span class="s2">&quot;CN&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="mf">506.43</span><span class="p">,</span> <span class="s2">&quot;r_opt&quot;</span><span class="p">:</span> <span class="mf">1.390</span><span class="p">},</span>
+        <span class="s2">&quot;NN&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="mf">187.36</span><span class="p">,</span> <span class="s2">&quot;r_opt&quot;</span><span class="p">:</span> <span class="mf">1.375</span><span class="p">},</span>
+        <span class="s2">&quot;CO&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="mf">164.96</span><span class="p">,</span> <span class="s2">&quot;r_opt&quot;</span><span class="p">:</span> <span class="mf">1.379</span><span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">homerrefs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">refs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">homerrefs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; | No mol object provided. Using the data provided by the user&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">connectivity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; | No HOMA connectivity provided by the user&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">geom</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; | No geometry provided by the user&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">atom_symbols</span> <span class="o">=</span> <span class="n">connectivity</span>
+            <span class="n">bond_types</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">([</span><span class="n">atom_symbols</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">atom_symbols</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)]]))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">))]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">atom_symbols</span> <span class="o">=</span> <span class="p">[</span><span class="n">mol</span><span class="o">.</span><span class="n">atom_symbol</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">)]</span>
+        <span class="n">bond_types</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">([</span><span class="n">atom_symbols</span><span class="p">[</span><span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">atom_symbols</span><span class="p">[</span><span class="n">arr</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]))</span>
+                      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">))]</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">bond_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">refs</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No parameters found for bond type </span><span class="si">{</span><span class="n">bond_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">refs</span><span class="p">[</span><span class="n">bond_types</span><span class="p">[</span><span class="n">i</span><span class="p">]][</span><span class="s2">&quot;alpha&quot;</span><span class="p">]</span>
+    <span class="n">r_opt</span> <span class="o">=</span> <span class="n">refs</span><span class="p">[</span><span class="n">bond_types</span><span class="p">[</span><span class="n">i</span><span class="p">]][</span><span class="s2">&quot;r_opt&quot;</span><span class="p">]</span>
+
+    <span class="n">distances</span> <span class="o">=</span> <span class="n">find_distances</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">mol</span><span class="p">,</span> <span class="n">geom</span><span class="p">)</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">r_opt</span> <span class="o">-</span> <span class="n">distances</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">))])</span>
+    <span class="n">homer_value</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">diff</span> <span class="o">**</span> <span class="mi">2</span>
+
+    <span class="k">return</span> <span class="n">homer_value</span></div>
+
+
+
+<div class="viewcode-block" id="compute_homa">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.compute_homa">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_homa</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">mol</span><span class="p">,</span> <span class="n">geom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">homarefs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the HOMA index.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        arr (list of int):</span>
+<span class="sd">            Contains the indices defining the ring connectivity of a system.</span>
+
+<span class="sd">        mol (SCF instance):</span>
+<span class="sd">            PySCF&#39;s Mole class and helper functions to handle parameters and attributes for GTO integrals.</span>
+
+<span class="sd">        geom (list of floats, optional, default: None):</span>
+<span class="sd">            Molecular coordinates, typically obtained from `mol.atom_coords()`.</span>
+
+<span class="sd">        homarefs (dict, optional, default: None):</span>
+<span class="sd">            User-provided references for the HOMA index. Required data as in [Krygowski, et al. Chem. Rev. 114 6383-6422 (2014)].</span>
+
+<span class="sd">        connectivity (list of int, optional, default: None):</span>
+<span class="sd">            List of atomic symbols in the order they appear in `mol`, representing ring connectivity.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">       tuple</span>
+<span class="sd">          Contains the HOMA value as well as the EN and GEO components.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">refs</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;CC&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;n_opt&quot;</span><span class="p">:</span> <span class="mf">1.590</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mf">0.1702</span><span class="p">,</span> <span class="s2">&quot;r1&quot;</span><span class="p">:</span> <span class="mf">1.467</span><span class="p">},</span>
+        <span class="s2">&quot;CN&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;n_opt&quot;</span><span class="p">:</span> <span class="mf">1.589</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mf">0.2828</span><span class="p">,</span> <span class="s2">&quot;r1&quot;</span><span class="p">:</span> <span class="mf">1.465</span><span class="p">},</span>
+        <span class="s2">&quot;CO&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;n_opt&quot;</span><span class="p">:</span> <span class="mf">1.602</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mf">0.2164</span><span class="p">,</span> <span class="s2">&quot;r1&quot;</span><span class="p">:</span> <span class="mf">1.367</span><span class="p">},</span>
+        <span class="s2">&quot;CP&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;n_opt&quot;</span><span class="p">:</span> <span class="mf">1.587</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mf">0.2510</span><span class="p">,</span> <span class="s2">&quot;r1&quot;</span><span class="p">:</span> <span class="mf">1.814</span><span class="p">},</span>
+        <span class="s2">&quot;CS&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;n_opt&quot;</span><span class="p">:</span> <span class="mf">1.584</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mf">0.2828</span><span class="p">,</span> <span class="s2">&quot;r1&quot;</span><span class="p">:</span> <span class="mf">1.807</span><span class="p">},</span>
+        <span class="s2">&quot;NN&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;n_opt&quot;</span><span class="p">:</span> <span class="mf">1.590</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mf">0.2395</span><span class="p">,</span> <span class="s2">&quot;r1&quot;</span><span class="p">:</span> <span class="mf">1.420</span><span class="p">},</span>
+        <span class="s2">&quot;NO&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;n_opt&quot;</span><span class="p">:</span> <span class="mf">1.586</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mf">0.3621</span><span class="p">,</span> <span class="s2">&quot;r1&quot;</span><span class="p">:</span> <span class="mf">1.415</span><span class="p">},</span>
+        <span class="s2">&quot;CSe&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;n_opt&quot;</span><span class="p">:</span> <span class="mf">1.590</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mf">0.2970</span><span class="p">,</span> <span class="s2">&quot;r1&quot;</span><span class="p">:</span> <span class="mf">1.959</span><span class="p">},</span>  <span class="c1"># n_opt taken as C-C</span>
+        <span class="s2">&quot;BB&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;n_opt&quot;</span><span class="p">:</span> <span class="mf">1.590</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mf">0.2510</span><span class="p">,</span> <span class="s2">&quot;r1&quot;</span><span class="p">:</span> <span class="mf">1.814</span><span class="p">},</span>  <span class="c1"># n_opt taken as C-C</span>
+        <span class="s2">&quot;BC&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;n_opt&quot;</span><span class="p">:</span> <span class="mf">1.590</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mf">0.1752</span><span class="p">,</span> <span class="s2">&quot;r1&quot;</span><span class="p">:</span> <span class="mf">1.647</span><span class="p">},</span>  <span class="c1"># n_opt taken as C-C</span>
+        <span class="s2">&quot;BN&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;n_opt&quot;</span><span class="p">:</span> <span class="mf">1.590</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mf">0.2900</span><span class="p">,</span> <span class="s2">&quot;r1&quot;</span><span class="p">:</span> <span class="mf">1.564</span><span class="p">},</span>  <span class="c1"># n_opt taken as C-C</span>
+        <span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="mf">257.7</span><span class="p">,</span> <span class="s2">&quot;r_opt&quot;</span><span class="p">:</span> <span class="mf">1.388</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">homarefs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">refs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">homarefs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; | No mol object provided. Using the data provided by the user&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">connectivity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">geom</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; | No geometry provided by the user&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">atom_symbols</span> <span class="o">=</span> <span class="n">connectivity</span>
+            <span class="n">bond_types</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">([</span><span class="n">atom_symbols</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">atom_symbols</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)]]))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">))]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">atom_symbols</span> <span class="o">=</span> <span class="p">[</span><span class="n">mol</span><span class="o">.</span><span class="n">atom_symbol</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">)]</span>
+        <span class="n">bond_types</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">([</span><span class="n">atom_symbols</span><span class="p">[</span><span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">atom_symbols</span><span class="p">[</span><span class="n">arr</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]))</span>
+                      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">))]</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">bond_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">refs</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No parameters found for bond type </span><span class="si">{</span><span class="n">bond_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">distances</span> <span class="o">=</span> <span class="n">find_distances</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">mol</span><span class="p">,</span> <span class="n">geom</span><span class="p">)</span>
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">refs</span><span class="p">[</span><span class="s2">&quot;alpha&quot;</span><span class="p">]</span>
+    <span class="n">r_opt</span> <span class="o">=</span> <span class="n">refs</span><span class="p">[</span><span class="s2">&quot;r_opt&quot;</span><span class="p">]</span>
+
+    <span class="n">ravs</span><span class="p">,</span> <span class="n">bonds</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)):</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">refs</span><span class="p">[</span><span class="n">bond_types</span><span class="p">[</span><span class="n">i</span><span class="p">]][</span><span class="s2">&quot;c&quot;</span><span class="p">]</span>
+        <span class="n">r1</span> <span class="o">=</span> <span class="n">refs</span><span class="p">[</span><span class="n">bond_types</span><span class="p">[</span><span class="n">i</span><span class="p">]][</span><span class="s2">&quot;r1&quot;</span><span class="p">]</span>
+
+        <span class="n">bond</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="n">r1</span> <span class="o">-</span> <span class="n">distances</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">/</span> <span class="n">c</span><span class="p">)</span>
+        <span class="n">rn</span> <span class="o">=</span> <span class="mf">1.467</span> <span class="o">-</span> <span class="mf">0.1702</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">bond</span><span class="p">)</span>
+        <span class="n">ravs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rn</span><span class="p">)</span>
+
+    <span class="n">rav</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">ravs</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">rav</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">r_opt</span><span class="p">:</span>
+        <span class="n">EN</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="p">(</span><span class="n">r_opt</span> <span class="o">-</span> <span class="n">rav</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">EN</span> <span class="o">=</span> <span class="o">-</span><span class="n">alpha</span> <span class="o">*</span> <span class="p">(</span><span class="n">r_opt</span> <span class="o">-</span> <span class="n">rav</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+
+    <span class="n">GEO</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)):</span>
+        <span class="n">GEO</span> <span class="o">+=</span> <span class="p">(</span><span class="n">rav</span> <span class="o">-</span> <span class="n">ravs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="n">GEO</span> <span class="o">=</span> <span class="n">GEO</span> <span class="o">*</span> <span class="n">alpha</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+
+    <span class="n">homa_value</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">EN</span> <span class="o">+</span> <span class="n">GEO</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">homa_value</span><span class="p">,</span> <span class="n">EN</span><span class="p">,</span> <span class="n">GEO</span></div>
+
+
+
+<span class="c1"># Calculation of the BLA (Restricted and Unrestricted)</span>
+
+
+<div class="viewcode-block" id="compute_bla">
+<a class="viewcode-back" href="../../esipy.html#esipy.indicators.compute_bla">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_bla</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">mol</span><span class="p">,</span> <span class="n">geom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the BLA and BLA_c indices.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        rings (list of int):</span>
+<span class="sd">            Contains the indices defining the ring connectivity of a system.</span>
+
+<span class="sd">        mol (SCF instance, optional, default: None):</span>
+<span class="sd">            PySCF&#39;s Mole class and helper functions to handle parameters and attributes for GTO integrals.</span>
+
+<span class="sd">        geom (list of floats, optional, default: None):</span>
+<span class="sd">            Molecular coordinates, typically obtained from `mol.atom_coords()`.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">       tuple</span>
+<span class="sd">          Contains the BLA and the BLA_c indices, respectively.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">distances</span> <span class="o">=</span> <span class="n">find_distances</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">mol</span><span class="p">,</span> <span class="n">geom</span><span class="p">)</span>
+
+    <span class="n">sum1</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">distances</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">sum2</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">distances</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+
+    <span class="n">bla</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">sum1</span> <span class="o">/</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">sum2</span> <span class="o">/</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">))</span>
+
+    <span class="n">bla_c</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)):</span>
+        <span class="n">bla_c</span> <span class="o">+=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">distances</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">distances</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">distances</span><span class="p">)])</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">distances</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">bla</span><span class="p">,</span> <span class="n">bla_c</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,306 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>esipy &mdash; ESIpy 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESIpy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../theory.html">Theoretical background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../esipy.html">ESIpy package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mci_timings.html">MCI TIMINGS</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESIpy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">esipy</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for esipy</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">environ</span>
+<span class="kn">from</span> <span class="nn">esipy.aromaticity</span> <span class="kn">import</span> <span class="n">aromaticity</span>
+<span class="kn">from</span> <span class="nn">esipy.make_aoms</span> <span class="kn">import</span> <span class="n">make_aoms</span>
+<span class="kn">from</span> <span class="nn">esipy.atomicfiles</span> <span class="kn">import</span> <span class="n">write_aoms</span><span class="p">,</span> <span class="n">read_aoms</span>
+<span class="kn">from</span> <span class="nn">esipy.tools</span> <span class="kn">import</span> <span class="n">mol_info</span><span class="p">,</span> <span class="n">format_partition</span><span class="p">,</span> <span class="n">load_file</span><span class="p">,</span> <span class="n">format_short_partition</span><span class="p">,</span> <span class="n">wf_type</span>
+
+
+<div class="viewcode-block" id="ESI">
+<a class="viewcode-back" href="../esipy.html#esipy.ESI">[docs]</a>
+<span class="k">class</span> <span class="nc">ESI</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Smo</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">partition</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">mci</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">av1245</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">flurefs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">homarefs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">homerrefs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">geom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">molinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">ncores</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">saveaoms</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">savemolinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;calc&quot;</span><span class="p">,</span> <span class="n">readsource</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">readpath</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">):</span>
+        <span class="c1"># For usual ESIpy calculations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Smo</span> <span class="o">=</span> <span class="n">Smo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rings</span> <span class="o">=</span> <span class="n">rings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mol</span> <span class="o">=</span> <span class="n">mol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mf</span> <span class="o">=</span> <span class="n">mf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_partition</span> <span class="o">=</span> <span class="n">partition</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mci</span> <span class="o">=</span> <span class="n">mci</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_av1245</span> <span class="o">=</span> <span class="n">av1245</span>
+        <span class="c1"># For custom references</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flurefs</span> <span class="o">=</span> <span class="n">flurefs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">homarefs</span> <span class="o">=</span> <span class="n">homarefs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">homerrefs</span> <span class="o">=</span> <span class="n">homerrefs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connectivity</span> <span class="o">=</span> <span class="n">connectivity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">geom</span> <span class="o">=</span> <span class="n">geom</span>
+        <span class="c1"># For other tools</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_molinfo</span> <span class="o">=</span> <span class="n">molinfo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ncores</span> <span class="o">=</span> <span class="n">ncores</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">saveaoms</span> <span class="o">=</span> <span class="n">saveaoms</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">savemolinfo</span> <span class="o">=</span> <span class="n">savemolinfo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">readsource</span> <span class="o">=</span> <span class="n">readsource</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">readpath</span> <span class="o">=</span> <span class="n">readpath</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ &quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; ** Localization &amp; Delocalization Indices **  &quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; ** For Hilbert-Space Atomic Partitioning **  &quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ &quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;   Application to Aromaticity Calculations   &quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  Joan Grebol, Eduard Matito, Pedro Salvador  &quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ &quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ESI.aoms">
+<a class="viewcode-back" href="../esipy.html#esipy.ESI.aoms">[docs]</a>
+    <span class="k">def</span> <span class="nf">aoms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates the Atomic Overlap Matrices (AOMs) in the Molecular Orbitals basis.</span>
+<span class="sd">        Can be saved in binary through the &#39;ESI.saveaoms&#39; attribute set to a string.</span>
+<span class="sd">        Will automatically overwrite &#39;ESI.Smo&#39; attribute.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The AOMs in MO basis</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">partition</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot; | Only one partition at a time. Partition should be a string, not a list.</span><span class="se">\n</span><span class="s2"> | Please consider looping through the partitions before calling the function&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mol</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">mf</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">partition</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Smo</span> <span class="o">=</span> <span class="n">make_aoms</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mol</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mf</span><span class="p">,</span> <span class="n">partition</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">partition</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">saveaoms</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">saveaoms</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; | Saved the AOMs in the </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">saveaoms</span><span class="si">}</span><span class="s2"> file&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Smo</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot; | Missing variables &#39;mol&#39;, &#39;mf&#39;, or &#39;partition&#39;&quot;</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">Smo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_Smo</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">load_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_Smo</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Smo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Smo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aoms</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Smo</span>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">molinfo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_molinfo</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">load_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_molinfo</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_molinfo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_molinfo</span> <span class="o">=</span> <span class="n">mol_info</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mol</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mf</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">savemolinfo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partition</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">savemolinfo</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; | Saved the molinfo in the </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">savemolinfo</span><span class="si">}</span><span class="s2"> file&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_molinfo</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">partition</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_partition</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">format_partition</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_partition</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot; | Partition could not be processed. Options are &#39;mulliken&#39;, &#39;lowdin&#39;, &#39;meta_lowdin&#39;, &#39;nao&#39; and &#39;iao&#39;&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mci</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mci</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mci</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rings</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span> <span class="c1"># Check if there are more than one rings</span>
+            <span class="n">maxring</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ring</span><span class="p">)</span> <span class="k">for</span> <span class="n">ring</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rings</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">maxring</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rings</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">maxring</span> <span class="o">&lt;</span> <span class="mi">12</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">av1245</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_av1245</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_av1245</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rings</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span> <span class="c1"># Check if there are more than one rings</span>
+            <span class="n">maxring</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ring</span><span class="p">)</span> <span class="k">for</span> <span class="n">ring</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rings</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">maxring</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rings</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">maxring</span> <span class="o">&gt;</span> <span class="mi">9</span>
+
+<div class="viewcode-block" id="ESI.readaoms">
+<a class="viewcode-back" href="../esipy.html#esipy.ESI.readaoms">[docs]</a>
+    <span class="k">def</span> <span class="nf">readaoms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads the AOMs from a directory in AIMAll and ESIpy format.</span>
+<span class="sd">        Overwrites &#39;ESI.Smo&#39; variable.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The AOMs in the MO basis.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">readpath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; | No path specified in &#39;ESI.readpath&#39;. Will assume working directory&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">readsource</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; | No source program defined in &#39;ESI.readsource&#39;. Will assume &#39;aimall&#39;&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">readsource</span> <span class="o">=</span> <span class="s1">&#39;aimall&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Smo</span> <span class="o">=</span> <span class="n">read_aoms</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">readsource</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">readpath</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; | Read the AOMs from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">readpath</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.aoms&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Smo</span></div>
+
+
+<div class="viewcode-block" id="ESI.writeaoms">
+<a class="viewcode-back" href="../esipy.html#esipy.ESI.writeaoms">[docs]</a>
+    <span class="k">def</span> <span class="nf">writeaoms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Writes ESIpy&#39;s AOMs in AIMAll format.</span>
+
+<span class="sd">        Generates:</span>
+<span class="sd">            - A &#39;_atomicfiles/&#39; directory with all the files created.</span>
+<span class="sd">            - A &#39;.int&#39; file for each atom with its corresponding AOM.</span>
+<span class="sd">            - A &#39;name.files&#39; with a list of the names of the &#39;.int&#39; files.</span>
+<span class="sd">            - A &#39;name.bad&#39; with a standard input for the ESI-3D code.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;mol&#39;</span><span class="p">,</span> <span class="s1">&#39;mf&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;Smo&#39;</span><span class="p">,</span> <span class="s1">&#39;partition&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot; | Missing required attribute &#39;</span><span class="si">{</span><span class="n">attr</span><span class="si">}</span><span class="s2">&#39;. Please define it before calling ESI.writeaoms&quot;</span><span class="p">)</span>
+
+        <span class="n">write_aoms</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mol</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mf</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Smo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rings</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">partition</span><span class="p">)</span>
+        <span class="n">shortpart</span> <span class="o">=</span> <span class="n">format_short_partition</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">partition</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; | Written the AOMs in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">readpath</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">shortpart</span><span class="si">}</span><span class="s2">/&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ESI.calc">
+<a class="viewcode-back" href="../esipy.html#esipy.ESI.calc">[docs]</a>
+    <span class="k">def</span> <span class="nf">calc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Main ESIpy. Calculation of population analysis, localization and delocalization indices and</span>
+<span class="sd">        electronic (and geometric) aromaticity indicators.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">partition</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot; | Only one partition at a time. Partition should be a string, not a list</span><span class="se">\n</span><span class="s2"> | Please consider looping through the partitions before calling the function&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot; | The variable &#39;rings&#39; is mandatory and must be a list with the ring connectivity&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Smo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; | Partition </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">partition</span><span class="si">}</span><span class="s2"> does not have Smo, generating it&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Smo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Smo</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Smo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot; | Could not build the AOMs from the given data&quot;</span><span class="p">)</span>
+
+        <span class="n">aromaticity</span><span class="p">(</span>
+            <span class="n">Smo</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Smo</span><span class="p">,</span>
+            <span class="n">rings</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rings</span><span class="p">,</span>
+            <span class="n">mol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mol</span><span class="p">,</span>
+            <span class="n">mf</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mf</span><span class="p">,</span>
+            <span class="n">partition</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">partition</span><span class="p">,</span>
+            <span class="n">mci</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mci</span><span class="p">,</span>
+            <span class="n">av1245</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">av1245</span><span class="p">,</span>
+            <span class="n">flurefs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">flurefs</span><span class="p">,</span>
+            <span class="n">homarefs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">homarefs</span><span class="p">,</span>
+            <span class="n">homerrefs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">homerrefs</span><span class="p">,</span>
+            <span class="n">geom</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">geom</span><span class="p">,</span>
+            <span class="n">ncores</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ncores</span><span class="p">,</span>
+            <span class="n">molinfo</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">molinfo</span>
+           <span class="p">)</span></div>
+</div>
+
+
+<span class="n">environ</span><span class="p">[</span><span class="s2">&quot;NUMEXPR_NUM_THREADS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;1&quot;</span>
+<span class="n">environ</span><span class="p">[</span><span class="s2">&quot;OMP_NUM_THREADS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;1&quot;</span>
+<span class="n">environ</span><span class="p">[</span><span class="s2">&quot;MKL_NUM_THREADS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;1&quot;</span>
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

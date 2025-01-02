@@ -1,0 +1,337 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>esipy.make_aoms &mdash; ESIpy 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ESIpy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../theory.html">Theoretical background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../esipy.html">ESIpy package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mci_timings.html">MCI TIMINGS</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ESIpy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../esipy.html">esipy</a></li>
+      <li class="breadcrumb-item active">esipy.make_aoms</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for esipy.make_aoms</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">pyscf.lo.orth</span> <span class="kn">import</span> <span class="n">lowdin</span><span class="p">,</span> <span class="n">restore_ao_character</span>
+<span class="kn">from</span> <span class="nn">pyscf.lo</span> <span class="kn">import</span> <span class="n">nao</span><span class="p">,</span> <span class="n">iao</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">esipy.tools</span> <span class="kn">import</span> <span class="n">save_file</span><span class="p">,</span> <span class="n">format_partition</span><span class="p">,</span> <span class="n">get_natorbs</span><span class="p">,</span> <span class="n">build_eta</span>
+
+
+<div class="viewcode-block" id="make_aoms">
+<a class="viewcode-back" href="../../esipy.html#esipy.make_aoms.make_aoms">[docs]</a>
+<span class="k">def</span> <span class="nf">make_aoms</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">mf</span><span class="p">,</span> <span class="n">partition</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the Atomic Overlap Matrices (AOMs) in the Molecular Orbitals basis.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        mol (SCF instance):</span>
+<span class="sd">            PySCF&#39;s Mole class and helper functions to handle parameters and attributes for GTO integrals.</span>
+
+<span class="sd">        mf (SCF instance):</span>
+<span class="sd">            PySCF&#39;s object holds all parameters to control SCF.</span>
+
+<span class="sd">        partition (str):</span>
+<span class="sd">            Specifies the atom-in-molecule partition scheme. Options include &#39;mulliken&#39;, &#39;lowdin&#39;, &#39;meta_lowdin&#39;, &#39;nao&#39;, and &#39;iao&#39;.</span>
+
+<span class="sd">       save (str, optional, default: None):</span>
+<span class="sd">          Sets the name of the binary file **without extension** to be stored in disk. Extension &#39;.aoms&#39; will be used.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">       Smo: list</span>
+<span class="sd">          Contains the atomic overlap matrices.</span>
+<span class="sd">            - For restricted-SD calculations: a list of matrices with the AOMS.</span>
+<span class="sd">            - For unrestricted-SD calculations: a list containing both alpha and beta lists of matrices as [Smo_alpha, Smo_beta].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">partition</span> <span class="o">=</span> <span class="n">format_partition</span><span class="p">(</span><span class="n">partition</span><span class="p">)</span>
+    <span class="c1"># UNRESTRICTED</span>
+    <span class="k">if</span> <span class="p">(</span>
+            <span class="n">mf</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;UHF&quot;</span> <span class="ow">or</span> <span class="n">mf</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;UKS&quot;</span> <span class="ow">or</span> <span class="n">mf</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;SymAdaptedUHF&quot;</span> <span class="ow">or</span> <span class="n">mf</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;SymAdaptedUKS&quot;</span><span class="p">):</span>
+        <span class="c1"># Getting specific information</span>
+        <span class="n">S</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">get_ovlp</span><span class="p">()</span>
+        <span class="n">nocc_alpha</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_occ</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">nocc_beta</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_occ</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">coeff_alpha</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span> <span class="p">:</span> <span class="n">nocc_alpha</span><span class="o">.</span><span class="n">sum</span><span class="p">()]</span>
+        <span class="n">coeff_beta</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">[</span><span class="mi">1</span><span class="p">][:,</span> <span class="p">:</span> <span class="n">nocc_beta</span><span class="o">.</span><span class="n">sum</span><span class="p">()]</span>
+
+        <span class="c1"># Building the Atomic Overlap Matrices</span>
+
+        <span class="n">Smo_alpha</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">Smo_beta</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;lowdin&quot;</span> <span class="ow">or</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;meta_lowdin&quot;</span> <span class="ow">or</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;nao&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;lowdin&quot;</span><span class="p">:</span>
+                <span class="n">U_inv</span> <span class="o">=</span> <span class="n">lowdin</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;meta_lowdin&quot;</span><span class="p">:</span>
+                <span class="n">pre_orth_ao</span> <span class="o">=</span> <span class="n">restore_ao_character</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="s2">&quot;ANO&quot;</span><span class="p">)</span>
+                <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">pre_orth_ao</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">U_inv</span> <span class="o">=</span> <span class="n">nao</span><span class="o">.</span><span class="n">_nao_sub</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">pre_orth_ao</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;nao&quot;</span><span class="p">:</span>
+                <span class="n">U_inv</span> <span class="o">=</span> <span class="n">nao</span><span class="o">.</span><span class="n">nao</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">mf</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+            <span class="n">U</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">U_inv</span><span class="p">)</span>
+
+            <span class="n">eta</span> <span class="o">=</span> <span class="n">build_eta</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">):</span>
+                <span class="n">SCR_alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">coeff_alpha</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">U</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">eta</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                <span class="n">SCR_beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">coeff_beta</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">U</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">eta</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                <span class="n">Smo_alpha</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">SCR_alpha</span><span class="p">,</span> <span class="n">SCR_alpha</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+                <span class="n">Smo_beta</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">SCR_beta</span><span class="p">,</span> <span class="n">SCR_beta</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+
+        <span class="c1"># Special case IAO</span>
+        <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;iao&quot;</span><span class="p">:</span>
+            <span class="n">U_alpha_iao_nonortho</span> <span class="o">=</span> <span class="n">iao</span><span class="o">.</span><span class="n">iao</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">coeff_alpha</span><span class="p">)</span>
+            <span class="n">U_beta_iao_nonortho</span> <span class="o">=</span> <span class="n">iao</span><span class="o">.</span><span class="n">iao</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">coeff_beta</span><span class="p">)</span>
+            <span class="n">U_alpha_inv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">U_alpha_iao_nonortho</span><span class="p">,</span> <span class="n">lowdin</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">U_alpha_iao_nonortho</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">U_alpha_iao_nonortho</span><span class="p">))))</span>
+            <span class="n">U_beta_inv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">U_beta_iao_nonortho</span><span class="p">,</span> <span class="n">lowdin</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">U_beta_iao_nonortho</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">U_beta_iao_nonortho</span><span class="p">))))</span>
+            <span class="n">U_alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">U_alpha_inv</span><span class="p">)</span>
+            <span class="n">U_beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">U_beta_inv</span><span class="p">)</span>
+            <span class="n">pmol</span> <span class="o">=</span> <span class="n">iao</span><span class="o">.</span><span class="n">reference_mol</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+
+            <span class="n">eta</span> <span class="o">=</span> <span class="n">build_eta</span><span class="p">(</span><span class="n">pmol</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pmol</span><span class="o">.</span><span class="n">natm</span><span class="p">):</span>
+                <span class="n">SCR_alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">coeff_alpha</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">U_alpha</span><span class="p">,</span> <span class="n">eta</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                <span class="n">SCR_beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">coeff_beta</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">U_beta</span><span class="p">,</span> <span class="n">eta</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                <span class="n">Smo_alpha</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">SCR_alpha</span><span class="p">,</span> <span class="n">SCR_alpha</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+                <span class="n">Smo_beta</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">SCR_beta</span><span class="p">,</span> <span class="n">SCR_beta</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+
+        <span class="c1"># Special case plain Mulliken</span>
+        <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;mulliken&quot;</span><span class="p">:</span>
+            <span class="n">eta</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">mol</span><span class="o">.</span><span class="n">nao</span><span class="p">,</span> <span class="n">mol</span><span class="o">.</span><span class="n">nao</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">)]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">):</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">aoslice_by_atom</span><span class="p">()[</span><span class="n">i</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">aoslice_by_atom</span><span class="p">()[</span><span class="n">i</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">eta</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">):</span>
+                <span class="n">SCR_alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">coeff_alpha</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">eta</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">coeff_alpha</span><span class="p">))</span>
+                <span class="n">SCR_beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">coeff_beta</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">eta</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">coeff_beta</span><span class="p">))</span>
+                <span class="n">Smo_alpha</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SCR_alpha</span><span class="p">)</span>
+                <span class="n">Smo_beta</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SCR_beta</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NameError</span><span class="p">(</span><span class="s2">&quot;Hilbert-space scheme not available&quot;</span><span class="p">)</span>
+
+        <span class="n">Smo</span> <span class="o">=</span> <span class="p">[</span><span class="n">Smo_alpha</span><span class="p">,</span> <span class="n">Smo_beta</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+            <span class="n">save_file</span><span class="p">(</span><span class="n">Smo</span><span class="p">,</span> <span class="n">save</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">Smo</span>
+
+    <span class="c1"># RESTRICTED</span>
+
+    <span class="k">elif</span> <span class="p">(</span>
+            <span class="n">mf</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;RHF&quot;</span> <span class="ow">or</span> <span class="n">mf</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;RKS&quot;</span> <span class="ow">or</span> <span class="n">mf</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;SymAdaptedRHF&quot;</span> <span class="ow">or</span> <span class="n">mf</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;SymAdaptedRKS&quot;</span><span class="p">):</span>
+        <span class="c1"># Getting specific information</span>
+        <span class="n">S</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">get_ovlp</span><span class="p">()</span>
+        <span class="n">coeff</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">[:,</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_occ</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Building the Atomic Overlap Matrices</span>
+
+        <span class="n">Smo</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;lowdin&quot;</span> <span class="ow">or</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;meta_lowdin&quot;</span> <span class="ow">or</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;nao&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;lowdin&quot;</span><span class="p">:</span>
+                <span class="n">U_inv</span> <span class="o">=</span> <span class="n">lowdin</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;meta_lowdin&quot;</span><span class="p">:</span>
+                <span class="n">pre_orth_ao</span> <span class="o">=</span> <span class="n">restore_ao_character</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="s2">&quot;ANO&quot;</span><span class="p">)</span>
+                <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">pre_orth_ao</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">U_inv</span> <span class="o">=</span> <span class="n">nao</span><span class="o">.</span><span class="n">_nao_sub</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">pre_orth_ao</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;nao&quot;</span><span class="p">:</span>
+                <span class="n">U_inv</span> <span class="o">=</span> <span class="n">nao</span><span class="o">.</span><span class="n">nao</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">mf</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+            <span class="n">U</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">U_inv</span><span class="p">)</span>
+
+            <span class="n">eta</span> <span class="o">=</span> <span class="n">build_eta</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">):</span>
+                <span class="n">SCR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">coeff</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">U</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">eta</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                <span class="n">Smo</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">SCR</span><span class="p">,</span> <span class="n">SCR</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+
+        <span class="c1"># Special case IAO</span>
+        <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;iao&quot;</span><span class="p">:</span>
+            <span class="n">U_iao_nonortho</span> <span class="o">=</span> <span class="n">iao</span><span class="o">.</span><span class="n">iao</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">coeff</span><span class="p">)</span>
+            <span class="n">U_inv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">U_iao_nonortho</span><span class="p">,</span> <span class="n">lowdin</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">U_iao_nonortho</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">U_iao_nonortho</span><span class="p">))))</span>
+            <span class="n">U</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">U_inv</span><span class="p">)</span>
+            <span class="n">pmol</span> <span class="o">=</span> <span class="n">iao</span><span class="o">.</span><span class="n">reference_mol</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+
+            <span class="n">eta</span> <span class="o">=</span> <span class="n">build_eta</span><span class="p">(</span><span class="n">pmol</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pmol</span><span class="o">.</span><span class="n">natm</span><span class="p">):</span>
+                <span class="n">SCR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">coeff</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">eta</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                <span class="n">Smo</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">SCR</span><span class="p">,</span> <span class="n">SCR</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+
+        <span class="c1"># Special case plain Mulliken</span>
+        <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;mulliken&quot;</span><span class="p">:</span>
+            <span class="n">eta</span> <span class="o">=</span> <span class="n">build_eta</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">):</span>
+                <span class="n">SCR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">coeff</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">eta</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">coeff</span><span class="p">))</span>
+                <span class="n">Smo</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SCR</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NameError</span><span class="p">(</span><span class="s2">&quot;Hilbert-space scheme not available&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+            <span class="n">save_file</span><span class="p">(</span><span class="n">Smo</span><span class="p">,</span> <span class="n">save</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">Smo</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">occ</span><span class="p">,</span> <span class="n">coeff</span> <span class="o">=</span> <span class="n">get_natorbs</span><span class="p">(</span><span class="n">mf</span><span class="p">)</span>
+        <span class="n">S</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">intor</span><span class="p">(</span><span class="s2">&quot;int1e_ovlp&quot;</span><span class="p">)</span>
+
+        <span class="n">Smo</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;lowdin&quot;</span> <span class="ow">or</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;meta_lowdin&quot;</span> <span class="ow">or</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;nao&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;lowdin&quot;</span><span class="p">:</span>
+                <span class="n">U_inv</span> <span class="o">=</span> <span class="n">lowdin</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;meta_lowdin&quot;</span><span class="p">:</span>
+                <span class="n">pre_orth_ao</span> <span class="o">=</span> <span class="n">restore_ao_character</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="s2">&quot;ANO&quot;</span><span class="p">)</span>
+                <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">pre_orth_ao</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">U_inv</span> <span class="o">=</span> <span class="n">nao</span><span class="o">.</span><span class="n">_nao_sub</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">pre_orth_ao</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;nao&quot;</span><span class="p">:</span>
+                <span class="n">U_inv</span> <span class="o">=</span> <span class="n">nao</span><span class="o">.</span><span class="n">nao</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">mf</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+            <span class="n">U</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">U_inv</span><span class="p">)</span>
+
+            <span class="n">eta</span> <span class="o">=</span> <span class="n">build_eta</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">):</span>
+                <span class="n">SCR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">coeff</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">U</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">eta</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                <span class="n">Smo</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">SCR</span><span class="p">,</span> <span class="n">SCR</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+
+            <span class="c1"># Special case IAO</span>
+        <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;iao&quot;</span><span class="p">:</span>
+            <span class="n">U_iao_nonortho</span> <span class="o">=</span> <span class="n">iao</span><span class="o">.</span><span class="n">iao</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">coeff</span><span class="p">)</span>
+            <span class="n">U_inv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">U_iao_nonortho</span><span class="p">,</span> <span class="n">lowdin</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">U_iao_nonortho</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">U_iao_nonortho</span><span class="p">))))</span>
+            <span class="n">U</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">U_inv</span><span class="p">)</span>
+            <span class="n">pmol</span> <span class="o">=</span> <span class="n">iao</span><span class="o">.</span><span class="n">reference_mol</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+
+            <span class="n">eta</span> <span class="o">=</span> <span class="n">build_eta</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pmol</span><span class="o">.</span><span class="n">natm</span><span class="p">):</span>
+                <span class="n">SCR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">coeff</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">U</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">eta</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                <span class="n">Smo</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">SCR</span><span class="p">,</span> <span class="n">SCR</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+
+            <span class="c1"># Special case plain Mulliken</span>
+        <span class="k">elif</span> <span class="n">partition</span> <span class="o">==</span> <span class="s2">&quot;mulliken&quot;</span><span class="p">:</span>
+
+            <span class="n">eta</span> <span class="o">=</span> <span class="n">build_eta</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">):</span>
+                <span class="n">SCR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">multi_dot</span><span class="p">((</span><span class="n">coeff</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">eta</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">coeff</span><span class="p">))</span>
+                <span class="n">Smo</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SCR</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NameError</span><span class="p">(</span><span class="s2">&quot;Hilbert-space scheme not available&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+            <span class="n">save_file</span><span class="p">(</span><span class="n">Smo</span><span class="p">,</span> <span class="n">save</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">Smo</span><span class="p">,</span> <span class="n">occ</span><span class="p">]</span></div>
+
+
+
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

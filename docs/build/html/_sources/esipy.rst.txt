@@ -1,4 +1,4 @@
-esipy package
+ESIpy package
 =============
 
 Submodules
@@ -7,15 +7,17 @@ Submodules
 esipy.atomicfiles module
 ------------------------
 
-.. autoclass:: esipy.atomicfiles
+.. automodule:: esipy.atomicfiles
    :members:
    :undoc-members:
    :show-inheritance:
 
+.. autofunction:: esipy.atomicfiles.
+
 esipy.indicators module
 -----------------------
 
-.. autoclass:: esipy.indicators
+.. automodule:: esipy.indicators
    :members:
    :undoc-members:
    :show-inheritance:
@@ -23,7 +25,7 @@ esipy.indicators module
 esipy.make\_aoms module
 -----------------------
 
-.. autoclass:: esipy.make_aoms
+.. automodule:: esipy.make_aoms
    :members:
    :undoc-members:
    :show-inheritance:
@@ -31,7 +33,7 @@ esipy.make\_aoms module
 esipy.no module
 ---------------
 
-.. autoclass:: esipy.no
+.. automodule:: esipy.no
    :members:
    :undoc-members:
    :show-inheritance:
@@ -39,7 +41,7 @@ esipy.no module
 esipy.rest module
 -----------------
 
-.. autoclass:: esipy.rest
+.. automodule:: esipy.rest
    :members:
    :undoc-members:
    :show-inheritance:
@@ -47,7 +49,7 @@ esipy.rest module
 esipy.tools module
 ------------------
 
-.. autoclass:: esipy.tools
+.. automodule:: esipy.tools
    :members:
    :undoc-members:
    :show-inheritance:
@@ -55,7 +57,7 @@ esipy.tools module
 esipy.unrest module
 -------------------
 
-.. autoclass:: esipy.unrest
+.. automodule:: esipy.unrest
    :members:
    :undoc-members:
    :show-inheritance:
@@ -63,7 +65,7 @@ esipy.unrest module
 Module contents
 ---------------
 
-.. autoclass:: esipy
+.. automodule:: esipy
    :members:
    :undoc-members:
    :show-inheritance:
