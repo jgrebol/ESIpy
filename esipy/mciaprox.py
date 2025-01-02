@@ -2,11 +2,24 @@ import numpy as np
 from esipy.tools import mapping
 from esipy.indicators import sequential_mci, multiprocessing_mci
 from math import factorial
+from multiprocessing import Pool
+from functools import partial
+from time import time
 
 def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1):
-    from multiprocessing import Pool
-    from functools import partial
-    from time import time
+    """
+    Truncates and approximates the Multicenter Index (MCI) of a ring.
+    Args:
+        arr: Indices of the atoms in ring connectivity.
+        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
+        partition: String with the name of the partition.
+        mcialg: Integer with the number of the algorithm to use.
+        d: Integer with the maximum distance between vertices.
+        ncores: Integer with the number of cores to use in the multiprocessing.
+
+    Returns:
+        Tuple with the value of the MCI, the number of permutations and the time taken to compute the MCI.
+    """
 
     start = time()
 
@@ -29,24 +42,22 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1):
 
     elif mcialg == 1:
         perms = HamiltonMCIalg1(arr, d)
-        nperms = HamiltonMCIalg1(arr, d).countperms()
+        nperms = perms.countperms()
 
     elif mcialg == 2:
         perms= HamiltonMCIalg2(arr,d)
-        nperms = HamiltonMCIalg2(arr, d).countperms()
+        nperms = perms.countperms()
 
     elif mcialg == 3:
         perms= HamiltonMCIalg3(arr,d)
-        nperms = HamiltonMCIalg3(arr, d).countperms()
+        nperms = perms.countperms()
 
     elif mcialg == 4:
         perms= HamiltonMCIalg4(arr,d)
-        nperms = HamiltonMCIalg4(arr, d).countperms()
+        nperms = perms.countperms()
 
     if ncores == 1:
-        val = 0
-        for p in perms:
-            val += compute_iring(mapping(arr, p), Smo)
+        val = sum(compute_iring(mapping(arr, p), Smo) for p in perms)
         return val, nperms, time() - start
     else:
         pool = Pool(processes=ncores)
@@ -56,20 +67,14 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1):
         if partition == 'mulliken' or partition == "non-symmetric":
             iter = perms
             # We account for twice the value for symmetric AOMs
-            return 0.5 * sum(pool.imap(dumb, iter, chunk_size))
+            result = 0.5 * sum(pool.imap(dumb, iter, chunk_size))
         else:  # Remove reversed permutations
             iter = (x for x in perms if x[1] < x[-1])
-            return sum(pool.imap(dumb, iter, chunk_size))
+            result = sum(pool.imap(dumb, iter, chunk_size))
 
-        with Pool(processes=ncores) as pool:
-            val = sum(pool.map(partial(compute_iring, Smo=Smo), [mapping(arr, p) for p in perms]))
-        return val, nperms, time() - start
-
-def compute_mci(perms, arr, Smo):
-    val = 0
-    for p in perms:
-        val += compute_iring(mapping(arr, p), Smo)
-    return val
+        pool.close()
+        pool.join()
+        return result, nperms, time() - start
 
 def compute_iring(arr, Smo):
     product = np.identity(Smo[0].shape[0])
