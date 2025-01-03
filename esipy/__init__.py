@@ -1201,34 +1201,73 @@ class ESI:
         """
         Computes the Iring (and MCI if specified) using Huckel's approximation.
         """
+        print(' -------------------------------------------------')
+        print(" | Module to compute Huckel's multicenter approximations")
+        print(' -------------------------------------------------')
         for ring_index, ring in enumerate(self.rings):
 
-            print(" ------------------------------")
+            print(' -------------------------------------------------')
             print(f" | Ring {ring_index+1} ({len(ring)}): ", ring)
-            print(" ------------------------------")
-            h_iring = compute_huckel_iring(ring, self.Smo)
-            print(" | The Iring Huckel is:        {:.6f}".format(h_iring))
-            if h_iring < 0:
-                print(" | The Iring**(1/n) Huckel is: {:.6f}".format(-np.abs(h_iring)**(1/len(ring))))
-            else:
-                print(" | The Iring**(1/n) Huckel is: {:.6f}".format(h_iring**(1/len(ring))))
-            if self.mci:
-                from time import time
-                start = time()
-                if self.ncores == 1:
-                    print(" | Using MCI's Huckel approximation single-core algorithm")
-                    h_mci = compute_huckel_sequential_mci(ring, self.Smo)
+            print(' -------------------------------------------------')
+            if wf_type(self.Smo) == "rest" or wf_type(self.Smo) == "no":
+                h_iring = compute_huckel_iring(ring, self.Smo)
+                print(" | The Iring Huckel is:        {:.6f}".format(h_iring))
+                if h_iring < 0:
+                    print(" | The Iring**(1/n) Huckel is: {:.6f}".format(-np.abs(h_iring)**(1/len(ring))))
                 else:
-                    print(f" | Using MCI's Huckel approximation multi-core algorithm for {self.ncores} cores")
-                    h_mci = compute_huckel_multiprocessing_mci(ring, self.Smo, self.ncores, self.partition)
-                t = time() - start
-                print(" | Time for the MCI Huckel calculation: {:.5f} seconds".format(t))
-                print(" | The MCI Huckel is:          {:.6f}".format(h_mci))
-                if h_mci < 0:
-                    print(" | The MCI**(1/n) Huckel is:   {:.6f}".format(-np.abs(h_mci)**(1/len(ring))))
+                    print(" | The Iring**(1/n) Huckel is: {:.6f}".format(h_iring**(1/len(ring))))
+                if self.mci:
+                    print(' -------------------------------------------------')
+                    from time import time
+                    start = time()
+                    if self.ncores == 1:
+                        print(" | Using MCI's Huckel approximation single-core algorithm")
+                        h_mci = compute_huckel_sequential_mci(ring, self.Smo)
+                    else:
+                        print(f" | Using MCI's Huckel approximation multi-core algorithm for {self.ncores} cores")
+                        h_mci = compute_huckel_multiprocessing_mci(ring, self.Smo, self.ncores, self.partition)
+                    t = time() - start
+                    print(" | Time for the MCI Huckel calculation: {:.5f} seconds".format(t))
+                    print(" | The MCI Huckel is:          {:.6f}".format(h_mci))
+                    if h_mci < 0:
+                        print(" | The MCI**(1/n) Huckel is:   {:.6f}".format(-np.abs(h_mci)**(1/len(ring))))
+                    else:
+                        print(" | The MCI**(1/n) Huckel is:   {:.6f}".format(h_mci**(1/len(ring))))
+            elif wf_type(self.Smo) == "unrest":
+                h_iring_a = compute_huckel_iring(ring, self.Smo[0])
+                h_iring_b = compute_huckel_iring(ring, self.Smo[1])
+                h_iring = h_iring_a + h_iring_b
+                print(" | The Iring alpha Huckel is:  {:.6f}".format(h_iring_a))
+                print(" | The Iring beta Huckel is:   {:.6f}".format(h_iring_b))
+                print(" | The Iring total Huckel is:  {:.6f}".format(h_iring))
+                if h_iring < 0:
+                    print(" | The Iring**(1/n) Huckel is: {:.6f}".format(-np.abs(h_iring)**(1/len(ring))))
                 else:
-                    print(" | The MCI**(1/n) Huckel is:   {:.6f}".format(h_mci**(1/len(ring))))
-            print(" ------------------------------")
+                    print(" | The Iring**(1/n) Huckel is: {:.6f}".format(h_iring**(1/len(ring))))
+                if self.mci:
+                    print(' -------------------------------------------------')
+                    from time import time
+                    start = time()
+                    if self.ncores == 1:
+                        print(" | Using MCI's Huckel approximation single-core algorithm")
+                        h_mci_a = compute_huckel_sequential_mci(ring, self.Smo[0], partition=self.partition)
+                        h_mci_b = compute_huckel_sequential_mci(ring, self.Smo[1], partition=self.partition)
+                        h_mci = h_mci_a + h_mci_b
+                    else:
+                        print(f" | Using MCI's Huckel approximation multi-core algorithm for {self.ncores} cores")
+                        h_mci_a = compute_huckel_multiprocessing_mci(ring, self.Smo[0], self.ncores, self.partition)
+                        h_mci_b = compute_huckel_multiprocessing_mci(ring, self.Smo[1], self.ncores, self.partition)
+                        h_mci = h_mci_a + h_mci_b
+                    t = time() - start
+                    print(" | Time for the MCI Huckel calculation: {:.5f} seconds".format(t))
+                    print(" | The MCI alpha Huckel is:          {:.6f}".format(h_mci_a))
+                    print(" | The MCI beta Huckel is:           {:.6f}".format(h_mci_b))
+                    print(" | The MCI total Huckel is:          {:.6f}".format(h_mci))
+                    if h_mci < 0:
+                        print(" | The MCI**(1/n) Huckel is:         {:.6f}".format(-np.abs(h_mci)**(1/len(ring))))
+                    else:
+                        print(" | The MCI**(1/n) Huckel is:         {:.6f}".format(h_mci ** (1 / len(ring))))
+            print(' -------------------------------------------------')
 
     def readaoms(self):
         """
@@ -1266,8 +1305,8 @@ class ESI:
         shortpart = format_short_partition(self.partition)
         print(f" | Written the AOMs in {self.readpath}/{self.name}_{shortpart}/")
 
-
     def mciaprox(self):
+        print(' -------------------------------------------------')
         print(" | Module to compute approximations for the MCI")
         print(' -------------------------------------------------')
         if getattr(self, "partition") is None:

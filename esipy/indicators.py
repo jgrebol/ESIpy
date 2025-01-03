@@ -1,6 +1,7 @@
 import numpy as np
 
-from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_distances, av1245_pairs, mapping
+from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_distances, av1245_pairs, mapping, wf_type
+
 
 ########## Iring ###########
 
@@ -174,21 +175,46 @@ def multiprocessing_mci_no(arr, Smo, ncores, partition):
 
 def compute_huckel_iring(arr, Smo, ref=None):
 
-    if not ref:
-        ref = arr
+    ref = arr if not ref else ref
 
     # ref is the reference ring connectivity
     ref_pairs = [[ref[i], ref[(i + 1) % len(ref)]] for i in range(len(ref))]
 
-    total_di = 1
-    for i in range(len(arr)):
-        arr_pairs = [arr[i], arr[(i + 1) % len(arr)]]
-        di = 2 * find_di(Smo, arr_pairs[0], arr_pairs[1])
-        if arr_pairs in ref_pairs or arr_pairs[::-1] in ref_pairs:
-            # We susbtract 1 to not account for sigma bonds in orto connectivity
-            di = di - 1
-        total_di *= di
-    return total_di
+    wf = wf_type(Smo)
+    if wf == "rest":
+        total_di = 1
+        for i in range(len(arr)):
+            arr_pairs = [arr[i], arr[(i + 1) % len(arr)]]
+            di = 2 * find_di(Smo, arr_pairs[0], arr_pairs[1])
+            if arr_pairs in ref_pairs or arr_pairs[::-1] in ref_pairs:
+                # We susbtract 1 to not account for sigma bonds in orto connectivity
+                di = di - 1
+            total_di *= di
+        return total_di
+    elif wf == "unrest":
+        total_di_a = 1
+        total_di_b = 1
+        for i in range(len(arr)):
+            arr_pairs = [arr[i], arr[(i + 1) % len(arr)]]
+            di_a = find_di(Smo[0], arr_pairs[0], arr_pairs[1])
+            di_b = find_di(Smo[1], arr_pairs[0], arr_pairs[1])
+            if arr_pairs in ref_pairs or arr_pairs[::-1] in ref_pairs:
+                # We susbtract 1 to not account for sigma bonds in orto connectivity
+                di_a = di_a - 0.5
+                di_b = di_b - 0.5
+            total_di_a *= di_a
+            total_di_b *= di_b
+        return [total_di_a, total_di_b]
+    elif wf == "no":
+        total_di = 1
+        for i in range(len(arr)):
+            arr_pairs = [arr[i], arr[(i + 1) % len(arr)]]
+            di = find_di_no(Smo, arr_pairs[0], arr_pairs[1])
+            if arr_pairs in ref_pairs or arr_pairs[::-1] in ref_pairs:
+                # We susbtract 1 to not account for sigma bonds in orto connectivity
+                di = di - 1
+            total_di *= di
+        return total_di
 
 def compute_huckel_sequential_mci(arr, Smo, partition="non-symmetric"):
     from math import factorial
@@ -201,6 +227,19 @@ def compute_huckel_sequential_mci(arr, Smo, partition="non-symmetric"):
     else:  # Remove reversed permutations
         iterable2 = (mapping(arr, x) for x in iterable2 if x[1] < x[-1])
         return sum(compute_huckel_iring(p, Smo, arr) for p in iterable2)
+
+def compute_huckel_sequential_mci(arr, Smo, partition="non-symmetric"):
+    from math import factorial
+    from itertools import permutations, islice
+
+    iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
+    if partition == 'mulliken' or partition == "non-symmetric":
+        # We account for twice the value for symmetric AOMs
+        return 0.5 * sum(compute_huckel_iring(mapping(arr, p), Smo, arr) for p in iterable2)
+    else:  # Remove reversed permutations
+        iterable2 = (mapping(arr, x) for x in iterable2 if x[1] < x[-1])
+        return sum(compute_huckel_iring(p, Smo, arr) for p in iterable2)
+
 
 def compute_huckel_multiprocessing_mci(arr, Smo, ncores, partition="non-symmetric"):
     from multiprocessing import Pool
