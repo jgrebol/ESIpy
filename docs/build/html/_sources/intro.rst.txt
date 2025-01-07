@@ -1,4 +1,4 @@
-Introduction
+ESIpy
 ============
 
 .. image:: ./logoesipy.png
@@ -10,4 +10,5 @@ Hilbert-space partitions using the PySCF module. The program supports both restr
 single-determinant wavefunctions, and correlated wavefunctions from a restricted object (RHF). The atomic partitions
 supported by the program are Mulliken, Löwdin, meta-Löwdin, Natural Atomic Orbitals (NAO), and Intrinsic Atomic Orbitals
 (IAO).
+
 

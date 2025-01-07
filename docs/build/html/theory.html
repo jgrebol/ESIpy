@@ -1,107 +1,59 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Theoretical background &mdash; ESIpy 1.0 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2D2D2D" />
   
-      <script src="_static/jquery.js?v=5d32c60e"></script>
-      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=f2a433a1"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
-      <script src="_static/copybutton.js?v=f281be69"></script>
-      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <script src="_static/js/theme.js"></script>
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="esipy package" href="esipy.html" />
-    <link rel="prev" title="Installation" href="installation.html" /> 
+  <title>ESIpy :: Theoretical background</title>
+  
+
+  <link rel="icon" type="image/png" sizes="32x32" href="_static/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="_static/img/favicon-16x16.png">
+  <link rel="index" title="Index" href="genindex.html"/>
+
+  <link rel="stylesheet" href="_static/css/insegel.css"/>
+  <link rel="stylesheet" href="_static/css/custom.css"/>
+
+  <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+      <script type="text/javascript" src="_static/documentation_options.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="_static/sphinx_highlight.js"></script>
+      <script type="text/javascript" src="_static/clipboard.min.js"></script>
+      <script type="text/javascript" src="_static/copybutton.js"></script>
+      <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  
+
+  <script src="https://email.tl.fortawesome.com/c/eJxNjUEOgyAQAF8jR7Kw6wIHDh7sP1Cw2mgxgmn6-3JsMqc5zEQfE8dkxOY1KKMUOI3ACFKRJpSW2AAp7ontYIaxI6i7XPJVwyeVfCQ550Os3jLrGSNOLgbdAy6s0PBk2TFNjEbsfq31LB0OnX407pJa5v2faRadwSW63mn5KuLyR9j2tgx3zecanl-55R_-jjPs"></script>
+    <link href="_static/style.css" rel="stylesheet" type="text/css">
+
 </head>
 
-<body class="wy-body-for-nav"> 
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
-
+<body>
+  <div id="insegel-container">
+    <header>
+      <div id="logo-container">
           
+          <h1>ESIpy</h1>
           
-          <a href="index.html" class="icon icon-home">
-            ESIpy
-          </a>
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
-</div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Theoretical background</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#hilbert-space-partitioning">Hilbert-space partitioning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#electron-sharing-indices">Electron-Sharing Indices</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#para-delocalization-index-pdi">Para-delocalization index (PDI)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#iring">I<sub>ring</sub></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#multicenter-index-mci">Multicenter index (MCI)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#av1245-and-avmin">AV1245 (and AVmin)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#fluctuation-index-flu">Fluctuation Index (FLU)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#bond-order-alternation-boa">Bond Order Alternation (BOA)</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#geometrical-aromaticity-indicators">Geometrical Aromaticity Indicators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#homa-and-homer">HOMA and HOMER</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#bond-length-alternation-bla">Bond-Length Alternation (BLA)</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="esipy.html">esipy package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
-<li class="toctree-l1"><a class="reference internal" href="mci_timings.html">MCI TIMINGS</a></li>
-</ul>
-
-        </div>
       </div>
-    </nav>
+      <div id="project-container">
+        
+        <h1>Documentation</h1>
+        
+      </div>
+    </header>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">ESIpy</a>
-      </nav>
+    <div id="content-container">
 
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
-  <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Theoretical background</li>
-      <li class="wy-breadcrumbs-aside">
-            <a href="_sources/theory.rst.txt" rel="nofollow"> View page source</a>
-      </li>
-  </ul>
-  <hr/>
-</div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
-             
+      <div id="main-content-container">
+        <div id="main-content" role="main">
+          
   <section id="theoretical-background">
-<h1>Theoretical background<a class="headerlink" href="#theoretical-background" title="Link to this heading"></a></h1>
+<h1>Theoretical background<a class="headerlink" href="#theoretical-background" title="Link to this heading">¶</a></h1>
 <section id="hilbert-space-partitioning">
-<h2>Hilbert-space partitioning<a class="headerlink" href="#hilbert-space-partitioning" title="Link to this heading"></a></h2>
+<h2>Hilbert-space partitioning<a class="headerlink" href="#hilbert-space-partitioning" title="Link to this heading">¶</a></h2>
 <p>In order to obtain information of the atomic contributions in a given chemical system (for instance atomic populations
 and electron sharing indices) it is crucial to define an atom in a molecule (AIM), which can either be real-space
 partition (allocating each point of the 3D space fully or partially to a specific atom) or Hilbert-space partition (
@@ -143,12 +95,12 @@ Orbitals (IAO) approach. In all cases, the mapping from real-space to Hilbert-sp
 \[\mathbf{S}^\text{A,X}=\mathbf{c}^{+}({\mathbf{T}}^{-1})^{+}\mathbf{\eta}^\text{A}\mathbf{T}^{-1}\mathbf{c}.\]</div>
 </section>
 <section id="electron-sharing-indices">
-<h2>Electron-Sharing Indices<a class="headerlink" href="#electron-sharing-indices" title="Link to this heading"></a></h2>
+<h2>Electron-Sharing Indices<a class="headerlink" href="#electron-sharing-indices" title="Link to this heading">¶</a></h2>
 <p>The ESI present in this program rely on the atomic overlap matrices. The following aromaticity indicators will be
 expressed in terms of the ring connectivities <span class="math notranslate nohighlight">\(\mathscr{A}=\{\text{A}_1, \text{A}_2, \cdot\cdot\cdot, \text{A}_n\}\)</span>,
 which represent the indices of the atoms as expressed in the <cite>mol</cite> object.</p>
 <section id="para-delocalization-index-pdi">
-<h3>Para-delocalization index (PDI)<a class="headerlink" href="#para-delocalization-index-pdi" title="Link to this heading"></a></h3>
+<h3>Para-delocalization index (PDI)<a class="headerlink" href="#para-delocalization-index-pdi" title="Link to this heading">¶</a></h3>
 <p>Fulton reported that the delocalization indices in a given aromatic 6-membered ring in the _para_ position were larger
 than that in the _meta_ position. From that idea, Poater and coworkers proposed to average the DIs in the para position
 in a 6-membered ring, so the <strong>para-delocalization index (PDI)</strong> <a class="footnote-reference brackets" href="#id29" id="id10" role="doc-noteref"><span class="fn-bracket">[</span>10<span class="fn-bracket">]</span></a>:</p>
@@ -158,7 +110,7 @@ in a 6-membered ring, so the <strong>para-delocalization index (PDI)</strong> <a
 not be computed for rings of different sizes.</p>
 </section>
 <section id="iring">
-<h3>I<sub>ring</sub><a class="headerlink" href="#iring" title="Link to this heading"></a></h3>
+<h3>I<sub>ring</sub><a class="headerlink" href="#iring" title="Link to this heading">¶</a></h3>
 <p>Giambiagi and coworkers proposed to express an index in terms of the generalized bond order along the ring, the <strong>I:sub:`ring`</strong> <a class="footnote-reference brackets" href="#id30" id="id13" role="doc-noteref"><span class="fn-bracket">[</span>11<span class="fn-bracket">]</span></a>. That is, to account for the delocalization along the ring, following the specified connectivity:</p>
 <div class="math notranslate nohighlight">
 \[\text{I}_{\text{ring}}(\mathscr{A})= 2^{n} \sum_{i_1,i_2\ldots i_n} S_{i_1i_2}^{\text{A}_{1}} S_{i_2i_3}^{\text{A}_{2}} \cdot \cdot \cdot S_{i_ni_1}^{\text{A}_{n}}\]</div>
@@ -166,7 +118,7 @@ not be computed for rings of different sizes.</p>
 aromaticity along the ring.</p>
 </section>
 <section id="multicenter-index-mci">
-<h3>Multicenter index (MCI)<a class="headerlink" href="#multicenter-index-mci" title="Link to this heading"></a></h3>
+<h3>Multicenter index (MCI)<a class="headerlink" href="#multicenter-index-mci" title="Link to this heading">¶</a></h3>
 <p>As an aim to improve the I<sub>ring</sub>, Bultinck and coworkers proposed the <strong>Multicenter Index (MCI)</strong> <a class="footnote-reference brackets" href="#id31" id="id14" role="doc-noteref"><span class="fn-bracket">[</span>12<span class="fn-bracket">]</span></a> by not
 only taking into account the Kekulé structure of the system but rather all the <span class="math notranslate nohighlight">\(n!\)</span> possible ring connectivities
 generated by permuting the position of all atoms in the ring, denoted as <span class="math notranslate nohighlight">\(\mathscr{P}(\mathscr{A})\)</span>:</p>
@@ -177,7 +129,7 @@ the calculation, we do not suggest computing the MCI for rings larger than <span
 for multi-core processes. See :ref:`mci_timings\)</span> for details and timings of the algorithms.</p>
 </section>
 <section id="av1245-and-avmin">
-<h3>AV1245 (and AVmin)<a class="headerlink" href="#av1245-and-avmin" title="Link to this heading"></a></h3>
+<h3>AV1245 (and AVmin)<a class="headerlink" href="#av1245-and-avmin" title="Link to this heading">¶</a></h3>
 <p>When using QTAIM as the atomic partition, the numerical integration error made the multicenter indices in large rings
 non-viable. Matito proposed an index that contained the multicenter character as those of I<sub>ring</sub> and MCI, but
 without the size-extensivity problem. Therefore, he suggested to <em>average all the 4c-MCI values along the ring that keep
@@ -189,7 +141,7 @@ the minimum (absolute) value of all the 4-MR MCI indices that enter the AV1245 e
 indicates more aromaticity in the system, and the index can not be computed for rings smaller than 6 centers.</p>
 </section>
 <section id="fluctuation-index-flu">
-<h3>Fluctuation Index (FLU)<a class="headerlink" href="#fluctuation-index-flu" title="Link to this heading"></a></h3>
+<h3>Fluctuation Index (FLU)<a class="headerlink" href="#fluctuation-index-flu" title="Link to this heading">¶</a></h3>
 <p>The Fluctuation Index (FLU) <a class="footnote-reference brackets" href="#id33" id="id16" role="doc-noteref"><span class="fn-bracket">[</span>14<span class="fn-bracket">]</span></a> measures the resemblance of a series of tabulated <span class="math notranslate nohighlight">\(\delta\)</span> to some typical aromatic
 molecules:</p>
 <div class="math notranslate nohighlight">
@@ -200,7 +152,7 @@ than zero in non-aromatic or antiaromatic molecules, and should not be used to s
 similarity with respect to some molecule.</p>
 </section>
 <section id="bond-order-alternation-boa">
-<h3>Bond Order Alternation (BOA)<a class="headerlink" href="#bond-order-alternation-boa" title="Link to this heading"></a></h3>
+<h3>Bond Order Alternation (BOA)<a class="headerlink" href="#bond-order-alternation-boa" title="Link to this heading">¶</a></h3>
 <p>The Bond Order Alternation (BOA) reflects the alternation of the delocalization indices along a conjugated circuit and
 is built upon the BLA premise (see below in the Geometrical Aromaticity Indicators section):</p>
 <div class="math notranslate nohighlight">
@@ -214,9 +166,9 @@ of <span class="math notranslate nohighlight">\(\delta(A_i, A_{i+1}) - \delta(A_
 </section>
 </section>
 <section id="geometrical-aromaticity-indicators">
-<h2>Geometrical Aromaticity Indicators<a class="headerlink" href="#geometrical-aromaticity-indicators" title="Link to this heading"></a></h2>
+<h2>Geometrical Aromaticity Indicators<a class="headerlink" href="#geometrical-aromaticity-indicators" title="Link to this heading">¶</a></h2>
 <section id="homa-and-homer">
-<h3>HOMA and HOMER<a class="headerlink" href="#homa-and-homer" title="Link to this heading"></a></h3>
+<h3>HOMA and HOMER<a class="headerlink" href="#homa-and-homer" title="Link to this heading">¶</a></h3>
 <p>The Harmonic Oscillator Model of Aromaticity (HOMA) <a class="footnote-reference brackets" href="#id34" id="id17" role="doc-noteref"><span class="fn-bracket">[</span>15<span class="fn-bracket">]</span></a> was defined by Kruszewski and Krygowski and relies only on
 geometrical data.</p>
 <div class="math notranslate nohighlight">
@@ -230,7 +182,7 @@ HOMER aromaticity index is a reparametrization of the HOMA for the T1 state <a c
 using the <cite>homarefs</cite> and <cite>homerrefs</cite> attributes.</p>
 </section>
 <section id="bond-length-alternation-bla">
-<h3>Bond-Length Alternation (BLA)<a class="headerlink" href="#bond-length-alternation-bla" title="Link to this heading"></a></h3>
+<h3>Bond-Length Alternation (BLA)<a class="headerlink" href="#bond-length-alternation-bla" title="Link to this heading">¶</a></h3>
 <p>The Bond-Length Alternation (BLA) index measures the average of the bond lengths of consecutive bonds in the ring</p>
 <div class="math notranslate nohighlight">
 \[\text{BLA}(\mathscr{A}) = \frac{1}{n_1} \sum_{i=1}^{n_1} r_{A_{2i-1},A_{2i}} - \frac{1}{n_2} \sum_{i=1}^{n_2} r_{A_{2i},A_{2i+1}}\]</div>
@@ -245,7 +197,7 @@ they do not match completely.</p>
 </section>
 </section>
 <section id="references">
-<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<h2>References<a class="headerlink" href="#references" title="Link to this heading">¶</a></h2>
 <aside class="footnote-list brackets">
 <aside class="footnote brackets" id="id20" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
@@ -355,34 +307,115 @@ New York, 1994.</p>
 </section>
 
 
-           </div>
-          </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="esipy.html" class="btn btn-neutral float-right" title="esipy package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p>&#169; Copyright 2024, Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador.</p>
-  </div>
-
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
-
-</footer>
         </div>
       </div>
-    </section>
-  </div>
-  <script>
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
+
+      <div id="side-menu-container">
+
+        <div id="search" role="search">
+        <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+            <input type="text" name="q" placeholder="Search..." />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+        </form>
+</div>
+
+        <div id="side-menu" role="navigation">
+
+          
+  
+    
+  
+  
+    <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Theoretical background</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#hilbert-space-partitioning">Hilbert-space partitioning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#electron-sharing-indices">Electron-Sharing Indices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#para-delocalization-index-pdi">Para-delocalization index (PDI)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#iring">I<sub>ring</sub></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multicenter-index-mci">Multicenter index (MCI)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#av1245-and-avmin">AV1245 (and AVmin)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fluctuation-index-flu">Fluctuation Index (FLU)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bond-order-alternation-boa">Bond Order Alternation (BOA)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#geometrical-aromaticity-indicators">Geometrical Aromaticity Indicators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#homa-and-homer">HOMA and HOMER</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bond-length-alternation-bla">Bond-Length Alternation (BLA)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">esipy package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#esipy-atomicfiles-module">esipy.atomicfiles module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#esipy-indicators-module">esipy.indicators module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#esipy-make-aoms-module">esipy.make_aoms module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#esipy-no-module">esipy.no module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#esipy-rest-module">esipy.rest module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#esipy-tools-module">esipy.tools module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#esipy-unrest-module">esipy.unrest module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#module-contents">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="mci_timings.html">MCI TIMINGS</a></li>
+</ul>
+
+  
+
+
+        </div>
+
+        
+
+      </div>
+
+    </div>
+
+<footer>
+    <div id="footer-info">
+        <ul id="build-details">
+            
+                <li class="footer-element">
+                    
+                        <a href="_sources/theory.rst.txt" rel="nofollow"> source</a>
+                    
+                </li>
+            
+
+            
+
+            
+        </ul>
+
+        
+            <div id="copyright">
+                &copy; 2024, Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador
+            </div>
+        
+
+        <div id="credit">
+            created with <a href="http://sphinx-doc.org/">Sphinx</a> and <a href="https://github.com/Autophagy/insegel">Insegel</a>
+
+        </div>
+    </div>
+
+    <a id="menu-toggle" class="fa fa-bars" aria-hidden="true"></a>
+
+    <script type="text/javascript">
+      $("#menu-toggle").click(function() {
+        $("#menu-toggle").toggleClass("toggled");
+        $("#side-menu-container").slideToggle(300);
       });
-  </script> 
+    </script>
+
+</footer> 
+
+</div>
 
 </body>
 </html>

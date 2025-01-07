@@ -1,4 +1,4 @@
-Introduction
+ESIpy
 ============
 
 .. image:: ./logoesipy.png

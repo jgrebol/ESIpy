@@ -1,4 +1,4 @@
-Examples
+Getting started
 ========
 
 In this section we will go through the process of performing all the available calculations using ESIpy's functions

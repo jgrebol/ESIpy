@@ -1,15 +1,13 @@
-from math import factorial
 from os import environ
 
 import numpy as np
-from esipy.mciaprox import aproxmci
 
 from esipy.atomicfiles import write_aoms, read_aoms
 from esipy.indicators import (
-    compute_iring, sequential_mci, multiprocessing_mci, compute_huckel_iring, compute_huckel_sequential_mci,
+    compute_iring, sequential_mci, multiprocessing_mci,
     compute_av1245, compute_pdi, compute_flu, compute_boa, compute_homer, compute_homa, compute_bla,
     compute_iring_no, sequential_mci_no, multiprocessing_mci_no, compute_av1245_no,
-    compute_pdi_no, compute_boa_no, compute_huckel_multiprocessing_mci
+    compute_pdi_no, compute_boa_no
 )
 from esipy.make_aoms import make_aoms
 from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type
@@ -1054,8 +1052,8 @@ class ESI:
     def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf=None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
-                 ncores=1, saveaoms=None, savemolinfo=None, name="calc", readpath='.',
-                 d=1, mcialg=0):
+                 ncores=1, saveaoms=None, savemolinfo=None, name="calc", readpath='.'
+                 ):
         # For usual ESIpy calculations
         self._Smo = Smo
         self.rings = rings
@@ -1078,9 +1076,6 @@ class ESI:
         self.saveaoms = saveaoms
         self.savemolinfo = savemolinfo
         self.readpath = readpath
-        # For the MCI approximations
-        self.d = d
-        self.mcialg = mcialg
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
@@ -1216,39 +1211,6 @@ class ESI:
     def av1245(self, value):
         self._av1245 = value
 
-    def huckel(self):
-        """
-        Computes the Iring (and MCI if specified) using Huckel's approximation.
-        """
-        for ring_index, ring in enumerate(self.rings):
-
-            print(" ------------------------------")
-            print(f" | Ring {ring_index + 1} ({len(ring)}): ", ring)
-            print(" ------------------------------")
-            h_iring = compute_huckel_iring(ring, self.Smo)
-            print(" | The Iring Huckel is:        {:.6f}".format(h_iring))
-            if h_iring < 0:
-                print(" | The Iring**(1/n) Huckel is: {:.6f}".format(-np.abs(h_iring) ** (1 / len(ring))))
-            else:
-                print(" | The Iring**(1/n) Huckel is: {:.6f}".format(h_iring ** (1 / len(ring))))
-            if self.mci:
-                from time import time
-                start = time()
-                if self.ncores == 1:
-                    print(" | Using MCI's Huckel approximation single-core algorithm")
-                    h_mci = compute_huckel_sequential_mci(ring, self.Smo)
-                else:
-                    print(f" | Using MCI's Huckel approximation multi-core algorithm for {self.ncores} cores")
-                    h_mci = compute_huckel_multiprocessing_mci(ring, self.Smo, self.ncores, self.partition)
-                t = time() - start
-                print(" | Time for the MCI Huckel calculation: {:.5f} seconds".format(t))
-                print(" | The MCI Huckel is:          {:.6f}".format(h_mci))
-                if h_mci < 0:
-                    print(" | The MCI**(1/n) Huckel is:   {:.6f}".format(-np.abs(h_mci) ** (1 / len(ring))))
-                else:
-                    print(" | The MCI**(1/n) Huckel is:   {:.6f}".format(h_mci ** (1 / len(ring))))
-            print(" ------------------------------")
-
     def readaoms(self):
         """
         Reads the AOMs from a directory in AIMAll and ESIpy format. Overwrites 'ESI.Smo' variable. By default, it will
@@ -1284,60 +1246,6 @@ class ESI:
         write_aoms(self.mol, self.mf, self.name, self.Smo, self.rings, self.partition)
         shortpart = format_short_partition(self.partition)
         print(f" | Written the AOMs in {self.readpath}/{self.name}_{shortpart}/")
-
-    def mciaprox(self):
-        print(" | Module to compute approximations for the MCI")
-        print(' -------------------------------------------------')
-        if getattr(self, "partition") is None:
-            print(" | No partition specified. Will assume non-symmetric AOMs")
-
-        if self.ncores == 1:
-            print(" | Using MCI's single-core algorithm")
-        else:
-            print(f" | Using MCI's multi-core algorithm for {self.ncores} cores")
-
-        if self.mcialg == 0:
-            print(" | Exact MCI calcualtion")
-        elif self.mcialg == 1:
-            print(f" | Approximate MCI. Algorithm 1.\n | All permutations having a maximum distance of {self.d}")
-        elif self.mcialg == 2:
-            print(f" | Approximate MCI. Algorithm 2.\n | Only permutations having a maximum distance of {self.d}")
-        elif self.mcialg == 3:
-            print(
-                f" | Approximate MCI. Algorithm 3.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any even distance between two vertices")
-        elif self.mcialg == 4:
-            print(
-                f" | Approximate MCI. Algorithm 4.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any odd distance between two vertices")
-        print(' -------------------------------------------------')
-
-        if isinstance(self.rings[0], int):
-            self.rings = [self.rings]
-
-        for ring_index, ring in enumerate(self.rings):
-            print(f" | Ring {ring_index + 1} ({len(ring)}): {ring}")
-            print(' -------------------------------------------------')
-
-            if wf_type(self.Smo) == "rest":
-                val, nperms, t = aproxmci(ring, self.Smo, self.partition, self.mcialg, self.d, self.ncores)
-                val = 2 * val
-            elif wf_type(self.Smo) == "unrest":
-                val_a, nperms, t_a = aproxmci(ring, self.Smo[0], self.partition, self.mcialg, self.d, self.ncores)
-                val_b, _, t_b = aproxmci(ring, self.Smo[1], self.partition, self.mcialg, self.d, self.ncores)
-                val = val_a + val_b
-                t = t_a + t_b
-                nperms = 2 * nperms
-
-            print(f" | Number of permutations:           {nperms:.14g}")
-            print(f" | Number of permutations if exact:  {0.5 * factorial(len(ring) - 1):.14g}")
-
-            print(f" | Time for the MCI calculation:     {t:.5f} seconds")
-            print(f" | MCI(mcialg={self.mcialg}, d={self.d}):               {val:.8f}")
-            if val > 0:
-                print(f" | MCI(mcialg={self.mcialg}, d={self.d})**(1/n):        {val ** (1 / len(ring)):.8f}")
-            else:
-                from numpy import abs
-                print(f" | MCI(mcialg={self.mcialg}, d={self.d})**(1/n):        -{abs(val) ** (1 / len(ring)):.8f}")
-            print(' -------------------------------------------------')
 
     def print(self):
         """
