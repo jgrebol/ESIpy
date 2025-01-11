@@ -133,10 +133,12 @@ def multiprocessing_mci(arr, Smo, ncores, partition):
     iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
     if partition == 'mulliken' or partition == "non-symmetric":
         # We account for twice the value for symmetric AOMs
-        return 0.5 * sum(pool.imap(dumb, iterable2, chunk_size))
+        val = sum(pool.imap(dumb, iterable2, chunk_size))
+        return 0.5 * val
     else:  # Remove reversed permutations
         iterable2 = (x for x in iterable2 if x[1] < x[-1])
-        return sum(pool.imap(dumb, iterable2, chunk_size))
+        val = sum(pool.imap(dumb, iterable2, chunk_size))
+        return val
 
 def multiprocessing_mci_no(arr, Smo, ncores, partition):
     """Computes the MCI from a Natural Orbitals calculation by generating all the permutations
@@ -168,10 +170,12 @@ def multiprocessing_mci_no(arr, Smo, ncores, partition):
     iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
     if partition == "mulliken":
         # We account for twice the value for symmetric AOMs
-        return 0.5 * sum(pool.imap(dumb, iterable2, chunk_size))
+        val = sum(pool.imap(dumb, iterable2, chunk_size))
+        return 0.5 * val
     else:  # Remove reversed permutations
         iterable2 = (x for x in iterable2 if x[1] < x[-1])
-        return sum(pool.imap(dumb, iterable2, chunk_size))
+        val = sum(pool.imap(dumb, iterable2, chunk_size))
+        return val
 
 def compute_huckel_iring(arr, Smo, ref=None):
 
