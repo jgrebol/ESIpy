@@ -21,7 +21,8 @@ release = '1.0'
 
 extensions = ['sphinx.ext.autodoc', 'sphinx_copybutton', 'sphinx.ext.autodoc', 'sphinx.ext.doctest',
               'sphinx.ext.githubpages', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.viewcode',
-              'sphinx.ext.napoleon']
+              'sphinx.ext.napoleon', 'sphinx.ext.autosummary', 'sphinx.ext.autosectionlabel',
+              'autoapi.extension', 'sphinx.ext.autodoc.typehints', 'sphinx_last_updated_by_git']
 
 templates_path = ['_templates']
 exclude_patterns = []
@@ -31,6 +32,8 @@ exclude_patterns = []
 
 html_theme = 'insegel'
 html_static_path = ['_static']
+html_favicon = '_static/favicon.ico'
 
 autodoc_typehints = "description"
 autodoc_class_signature = "separated"
+autoapi_dirs = ['../../esipy']
