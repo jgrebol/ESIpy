@@ -330,3 +330,89 @@ def build_eta(mol):
         end = mol.aoslice_by_atom()[i, -1]
         eta[i][start:end, start:end] = np.eye(end - start)
     return eta
+
+def build_connec(Smo, thres=0.3):
+    if wf_type(Smo) == 'rest':
+        natoms = len(Smo)
+        factor = 2
+    else:
+        natoms = len(Smo[0])
+        factor = 1
+    connectivity_matrix = np.zeros((natoms, natoms))
+
+    for i in range(1, natoms + 1):
+        for j in range(1, natoms + 1):
+            if i != j:
+                if factor * find_di(Smo, i, j) >= thres:
+                    connectivity_matrix[i - 1, j - 1] = 1
+    return connectivity_matrix
+
+def build_connec_no(Smo, thres=0.3):
+    natoms = len(Smo[0])
+    connectivity_matrix = np.zeros((natoms, natoms))
+
+    for i in range(1, natoms + 1):
+        for j in range(1, natoms + 1):
+            if i != j:
+                if find_di_no(Smo, i, j) >= thres:
+                    connectivity_matrix[i - 1, j - 1] = 1
+    return connectivity_matrix
+
+def find_rings(connec, minlen=6, maxlen=6):
+    def dfs(connec, minlen, maxlen, start):
+        stack = [(start, [start])]
+        while stack:
+            (v, path) = stack.pop()
+            if len(path) > maxlen + 1:
+                continue
+            if len(path) >= minlen and connec[path[-1]][path[0]] == 1 and path[1] < path[-1] and path[0] == start:  # Check for circuit formation
+                yield [p + 1 for p in path]
+            for next in range(len(connec[v])):
+                if connec[v][next] == 1 and next not in path:
+                    stack.append((next, path + [next]))
+
+    def is_unique_permutation(path, all_paths):
+        for shift in range(len(path)):
+            rot = np.roll(path, shift).tolist()
+            if rot in all_paths or rot[::-1] in all_paths:
+                return False
+        return True
+
+    all_paths = []
+    starts = find_middle_nodes(connec)
+    if not starts:
+        starts = [0]
+    for start in starts:
+        for path in dfs(connec, minlen, maxlen, start):
+            if is_unique_permutation(path, all_paths):
+                all_paths.append(path)
+    return all_paths
+
+def filter_connec(connec):
+    row_sums = np.sum(connec, axis=1)
+    col_sums = np.sum(connec, axis=0)
+    keep = np.where((row_sums > 1) & (col_sums > 1))[0]
+    connec2 = connec[np.ix_(keep, keep)]
+    return connec2
+
+def is_onering(Smo):
+    if wf_type(Smo) == "rest" or wf_type(Smo) == "unrest":
+        connec = build_connec(Smo)
+    else:
+        connec = build_connec_no(Smo)
+    filt = filter_connec(connec)
+    print(filt)
+    if np.any(np.sum(connec, axis=0) == 2):
+        return True
+    else:
+        return False
+
+def find_middle_nodes(connec2):
+    row_sums = np.sum(connec2, axis=1)
+    col_sums = np.sum(connec2, axis=0)
+    keep = np.where((row_sums > 1) & (col_sums > 1))[0]
+    middle_nodes = []
+    for i in range(len(connec2)):  # Iterate over nodes in the subgraph
+        if np.sum(connec2[i]) > 2:  # Check connections within the subgraph
+            middle_nodes.append(keep[i])  # Get original node index
+    return middle_nodes

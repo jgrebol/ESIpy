@@ -2,7 +2,8 @@ from os import environ
 import numpy as np
 from esipy.make_aoms import make_aoms
 from esipy.atomicfiles import write_aoms, read_aoms
-from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type
+from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type, build_connec, build_connec_no, find_rings
+
 from esipy.indicators import (
     compute_iring, sequential_mci, multiprocessing_mci, compute_huckel_iring, compute_huckel_sequential_mci,
     compute_av1245, compute_pdi, compute_flu, compute_boa, compute_homer, compute_homa, compute_bla,
@@ -1049,7 +1050,7 @@ class ESI:
                  d=1, mcialg=0):
         # For usual ESIpy calculations
         self._Smo = Smo
-        self.rings = rings
+        self._rings = rings
         self.mol = mol
         self.mf = mf
         self.myhf = myhf
@@ -1069,6 +1070,9 @@ class ESI:
         self.saveaoms = saveaoms
         self.savemolinfo = savemolinfo
         self.readpath = readpath
+        self.minlen = 6
+        self.maxlen = 6
+        self.rings_thres = 0.3
         # For the MCI approximations
         self.d = d
         self.mcialg = mcialg
@@ -1106,6 +1110,17 @@ class ESI:
                                                molinfo=self.molinfo, ncores=self.ncores))
         else:
             raise ValueError(" | Could not determine the wavefunction type")
+
+    @property
+    def rings(self):
+        if self._rings == "find":
+            self._rings = find_rings(build_connec(self.Smo, self.rings_thres))
+        print(self._rings)
+        return self._rings
+
+    @rings.setter
+    def rings(self, value):
+        self._rings = value
 
     @property
     def Smo(self):
