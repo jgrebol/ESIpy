@@ -1,5 +1,5 @@
 import numpy as np
-from esipy.tools import mapping, build_connec, build_connec_no, filter_connec, wf_type, find_middle_nodes, is_onering
+from esipy.tools import mapping, build_connec, build_connec_no, filter_connec, wf_type, find_middle_nodes, is_closed
 from esipy.indicators import sequential_mci, multiprocessing_mci
 from math import factorial
 from multiprocessing import Pool
@@ -7,23 +7,9 @@ from functools import partial
 from time import time
 
 def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1):
-    """
-    Truncates and approximates the Multicenter Index (MCI) of a ring.
-    Args:
-        arr: Indices of the atoms in ring connectivity.
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
-        partition: String with the name of the partition.
-        mcialg: Integer with the number of the algorithm to use.
-        d: Integer with the maximum distance between vertices.
-        ncores: Integer with the number of cores to use in the multiprocessing.
-
-    Returns:
-        Tuple with the value of the MCI, the number of permutations and the time taken to compute the MCI.
-    """
-
     start = time()
 
-    onering = is_onering(Smo)
+    closed = is_closed(Smo)
     if mcialg == 0:
         if partition == "mulliken":
             if ncores == 1:
@@ -45,8 +31,8 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1):
         connec = build_connec(Smo)
     else:
         connec = build_connec_no(Smo)
-    print(connec)
-    perms = HamiltonMCI(arr, d, mcialg, connec, onering)
+
+    perms = HamiltonMCI(arr, d, mcialg, connec, closed)
     nperms = perms.countperms()
 
     if ncores == 1:
@@ -64,9 +50,8 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1):
 
         if partition == 'mulliken' or partition == "non-symmetric":
             iter =(mapping(arr, p) for p in perms)
-            # We account for twice the value for symmetric AOMs
             result = 0.5 * sum(pool.imap(dumb, iter, chunk_size))
-        else:  # Remove reversed permutations
+        else:
             iter = (mapping(arr, x) for x in perms if x[1] < x[-1])
             result = sum(pool.imap(dumb, iter, chunk_size))
 
@@ -83,18 +68,16 @@ def compute_iring(arr, Smo):
     return 2 ** (len(arr) - 1) * np.trace(product)
 
 class HamiltonMCI:
-    """
-    HamiltonMCI class with four different algorithms for generating permutations.
-    """
-    def __init__(self, arr, d, alg, connec = False, onering=False):
+    def __init__(self, arr, d, alg, connec=False, closed=False):
         self.arr = arr
         self.d = d
         self.n = len(arr)
         self.alg = alg
+        self.closed = closed
+        self.connec = filter_connec(connec)
+        print(self.connec)
+        self.start = find_middle_nodes(self.connec)
         self.generator = self._select_algorithm()
-        self.onering = onering
-        self.connec = connec
-        print("pollas", self.onering)
 
     def __iter__(self):
         return self
@@ -103,7 +86,7 @@ class HamiltonMCI:
         return next(self.generator)
 
     def _select_algorithm(self):
-        if self.onering:
+        if not self.closed:
             if self.alg == 1:
                 return self._alg1([0])
             elif self.alg == 2:
@@ -115,11 +98,11 @@ class HamiltonMCI:
             else:
                 raise ValueError(" | Invalid algorithm number. Choose between 1 and 4.")
         else:
-            if not self.connec:
+            if not hasattr(self, "connec"):
                 raise ValueError(" | Missing adjacency matrix.")
             if self.alg == 1:
-                print('doing for more than one rings')
-                return self._anilat_alg1([0], self.connec)
+                print(' | Doing for more than one rings')
+                return self._anilat_alg1()
 
     def _alg1(self, path):
         if len(path) == self.n:
@@ -128,7 +111,7 @@ class HamiltonMCI:
                 yield path
 
         for v in range(self.n):
-            if v not in path:
+            if v not in set(path):
                 val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
                 if val <= self.d:
                     yield from self._alg1(path + [v])
@@ -147,7 +130,7 @@ class HamiltonMCI:
                 yield path
 
         for v in range(self.n):
-            if v not in path:
+            if v not in set(path):
                 val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
                 if val <= self.d:
                     yield from self._alg2(path + [v])
@@ -159,34 +142,44 @@ class HamiltonMCI:
                 yield path
 
         for v in range(self.n):
-            if v not in path:
+            if v not in set(path):
                 val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
                 if val <= self.d and val % 2 != 0:
                     yield from self._alg3(path + [v])
 
     def _alg4(self, path):
         if len(path) == self.n:
-            val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
+            val = min(abs(path[0] - path[-[-1]]), self.n - abs(path[0] - path[-1]))
             if val <= self.d and val % 2 == 0 and path[1] < path[-1]:
                 yield path
 
         for v in range(self.n):
-            if v not in path:
+            if v not in set(path):
                 val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
                 if val <= self.d and val % 2 == 0:
                     yield from self._alg4(path + [v])
 
-
-
-    def _anilat_alg1(self, path, connec):
-        if len(path) == self.n:
-            # Check if the last node connects back to the first node
-            if connec[path[-1]][path[0]] == 1:
+    def _anilat_alg1(self):
+        print(self.connec)
+        def dfs(path, visited):
+            print(f"Current Path: {path}")
+            print(f"Visited Nodes: {visited}")
+            if len(path) == len(self.connec) and path[0] in self.connec.get(path[-1], []):
                 yield path
 
-        for v in range(self.n):
-            if v not in path and connec[path[-1]][v] == 1:  # Check for connection
-                yield from self.dfs_anilat(path + [v], connec)
+            for v in self.connec.get(path[-1], []):
+                if not visited[v]:
+                    print(f"Exploring Neighbor: {v}")
+                    visited[v] = True
+                    new_path = path + [v]
+                    yield from dfs(new_path, visited)
+                    visited[v] = False
+
+        for start in range(1, self.n + 1):
+            visited = {node: False for node in self.connec}
+            print(f"############Starting DFS from: {start} ############")
+            visited[start] = True
+            yield from dfs([start], visited)
 
     def countperms(self):
         count = 0

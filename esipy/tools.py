@@ -338,25 +338,28 @@ def build_connec(Smo, thres=0.3):
     else:
         natoms = len(Smo[0])
         factor = 1
-    connectivity_matrix = np.zeros((natoms, natoms))
+    connectivity_dict = {}
 
     for i in range(1, natoms + 1):
         for j in range(1, natoms + 1):
             if i != j:
                 if factor * find_di(Smo, i, j) >= thres:
-                    connectivity_matrix[i - 1, j - 1] = 1
-    return connectivity_matrix
+                    if i not in connectivity_dict:
+                        connectivity_dict[i] = []
+                    connectivity_dict[i].append(j)
+    return connectivity_dict
 
 def build_connec_no(Smo, thres=0.3):
-    natoms = len(Smo[0])
-    connectivity_matrix = np.zeros((natoms, natoms))
+    connectivity_dict = {}
 
-    for i in range(1, natoms + 1):
-        for j in range(1, natoms + 1):
+    for i in range(len(Smo[0])):
+        for j in range(len(Smo[0])):
             if i != j:
                 if find_di_no(Smo, i, j) >= thres:
-                    connectivity_matrix[i - 1, j - 1] = 1
-    return connectivity_matrix
+                    if i not in connectivity_dict:
+                        connectivity_dict[i] = []
+                    connectivity_dict[i].append(j)
+    return connectivity_dict
 
 def find_rings(connec, minlen=6, maxlen=6):
     def dfs(connec, minlen, maxlen, start):
@@ -365,16 +368,16 @@ def find_rings(connec, minlen=6, maxlen=6):
             (v, path) = stack.pop()
             if len(path) > maxlen + 1:
                 continue
-            if len(path) >= minlen and connec[path[-1]][path[0]] == 1 and path[1] < path[-1] and path[0] == start:  # Check for circuit formation
-                yield [p + 1 for p in path]
-            for next in range(len(connec[v])):
-                if connec[v][next] == 1 and next not in path:
+            if len(path) >= minlen and start in connec[path[-1]] and path[1] < path[-1] and path[0] == start:  # Check for circuit formation
+                yield path
+            for next in connec.get(v, []):
+                if next not in path:
                     stack.append((next, path + [next]))
 
-    def is_unique_permutation(path, all_paths):
+    def is_unique_permutation(path, all):
         for shift in range(len(path)):
             rot = np.roll(path, shift).tolist()
-            if rot in all_paths or rot[::-1] in all_paths:
+            if rot in all or rot[::-1] in all:
                 return False
         return True
 
@@ -389,30 +392,24 @@ def find_rings(connec, minlen=6, maxlen=6):
     return all_paths
 
 def filter_connec(connec):
-    row_sums = np.sum(connec, axis=1)
-    col_sums = np.sum(connec, axis=0)
-    keep = np.where((row_sums > 1) & (col_sums > 1))[0]
-    connec2 = connec[np.ix_(keep, keep)]
-    return connec2
+    filtered_connec = {}
+    for key, values in connec.items():
+        if len(values) > 1:
+            filtered_values = [v for v in values if len(connec[v]) > 1]
+            if filtered_values:
+                filtered_connec[key] = filtered_values
+    return filtered_connec
 
-def is_onering(Smo):
+def is_closed(Smo):
     if wf_type(Smo) == "rest" or wf_type(Smo) == "unrest":
         connec = build_connec(Smo)
     else:
         connec = build_connec_no(Smo)
     filt = filter_connec(connec)
-    print(filt)
-    if np.any(np.sum(connec, axis=0) == 2):
+    if any(len(values) == 2 for values in filt.values()):
         return True
     else:
         return False
 
 def find_middle_nodes(connec2):
-    row_sums = np.sum(connec2, axis=1)
-    col_sums = np.sum(connec2, axis=0)
-    keep = np.where((row_sums > 1) & (col_sums > 1))[0]
-    middle_nodes = []
-    for i in range(len(connec2)):  # Iterate over nodes in the subgraph
-        if np.sum(connec2[i]) > 2:  # Check connections within the subgraph
-            middle_nodes.append(keep[i])  # Get original node index
-    return middle_nodes
+    return [key for key, values in connec2.items() if len(values) > 2]

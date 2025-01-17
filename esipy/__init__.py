@@ -1115,7 +1115,6 @@ class ESI:
     def rings(self):
         if self._rings == "find":
             self._rings = find_rings(build_connec(self.Smo, self.rings_thres))
-        print(self._rings)
         return self._rings
 
     @rings.setter
