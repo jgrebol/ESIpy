@@ -6,10 +6,15 @@ from multiprocessing import Pool
 from functools import partial
 from time import time
 
-def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1):
+def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen=6):
     start = time()
 
-    closed = is_closed(Smo)
+    if wf_type(Smo) == "rest" or wf_type(Smo) == "unrest":
+        connec = build_connec(Smo)
+    else:
+        connec = build_connec_no(Smo)
+    connec = filter_connec(connec)
+    closed = is_closed(arr, connec)
     if mcialg == 0:
         if partition == "mulliken":
             if ncores == 1:
@@ -32,7 +37,10 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1):
     else:
         connec = build_connec_no(Smo)
 
-    perms = HamiltonMCI(arr, d, mcialg, connec, closed)
+    perms = HamiltonMCI(arr, d, mcialg, connec, closed, minlen=minlen, maxlen=maxlen)
+    for p in perms:
+        print(p)
+    exit()
     nperms = perms.countperms()
 
     if ncores == 1:
@@ -68,15 +76,19 @@ def compute_iring(arr, Smo):
     return 2 ** (len(arr) - 1) * np.trace(product)
 
 class HamiltonMCI:
-    def __init__(self, arr, d, alg, connec=False, closed=False):
+    def __init__(self, arr, d, alg, connec=False, closed=False, maxlen=None, minlen=None):
+        # User input features
         self.arr = arr
         self.d = d
         self.n = len(arr)
+        self.maxlen = maxlen
+        self.minlen = minlen
         self.alg = alg
+        # Path finding features
         self.closed = closed
         self.connec = filter_connec(connec)
-        print(self.connec)
         self.start = find_middle_nodes(self.connec)
+        # Algorithm selection
         self.generator = self._select_algorithm()
 
     def __iter__(self):
@@ -104,82 +116,76 @@ class HamiltonMCI:
                 print(' | Doing for more than one rings')
                 return self._anilat_alg1()
 
-    def _alg1(self, path):
-        if len(path) == self.n:
-            val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
-            if val <= self.d and path[1] < path[-1]:
-                yield path
+    def _alg1(self):
+        stack = [(0, [0], {0})]
+        while stack:
+            node, path, visited = stack.pop()
+            if len(path) == self.n:
+                val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
+                if val <= self.d and path[1] < path[-1]:
+                    yield path
+            for v in range(self.n):
+                if v not in visited:
+                    val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
+                    if val <= self.d:
+                        stack.append((v, path + [v], visited | {v}))
 
-        for v in range(self.n):
-            if v not in set(path):
-                val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
-                if val <= self.d:
-                    yield from self._alg1(path + [v])
-
-    def _alg2(self, path):
-        if len(path) == self.n:
-            maxval = 0
-            for i in range(self.n - 1):
-                val = min(abs(path[i] - path[i + 1]), self.n - abs(path[i] - path[i + 1]))
+    def _alg2(self):
+        stack = [(0, [0], {0})]
+        while stack:
+            node, path, visited = stack.pop()
+            if len(path) == self.n:
+                maxval = max(
+                    min(abs(path[i] - path[i + 1]), self.n - abs(path[i] - path[i + 1])) for i in range(self.n - 1))
+                val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
                 if val > maxval:
                     maxval = val
-            val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
-            if val > maxval:
-                maxval = val
-            if maxval == self.d and path[1] < path[-1]:
-                yield path
+                if maxval == self.d and path[1] < path[-1]:
+                    yield path
+            for v in range(self.n):
+                if v not in visited:
+                    val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
+                    if val <= self.d:
+                        stack.append((v, path + [v], visited | {v}))
 
-        for v in range(self.n):
-            if v not in set(path):
-                val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
-                if val <= self.d:
-                    yield from self._alg2(path + [v])
+    def _alg3(self):
+        stack = [(0, [0], {0})]
+        while stack:
+            node, path, visited = stack.pop()
+            if len(path) == self.n:
+                val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
+                if val <= self.d and val % 2 != 0 and path[1] < path[-1]:
+                    yield path
+            for v in range(self.n):
+                if v not in visited:
+                    val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
+                    if val <= self.d and val % 2 != 0:
+                        stack.append((v, path + [v], visited | {v}))
 
-    def _alg3(self, path):
-        if len(path) == self.n:
-            val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
-            if val <= self.d and val % 2 != 0 and path[1] < path[-1]:
-                yield path
-
-        for v in range(self.n):
-            if v not in set(path):
-                val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
-                if val <= self.d and val % 2 != 0:
-                    yield from self._alg3(path + [v])
-
-    def _alg4(self, path):
-        if len(path) == self.n:
-            val = min(abs(path[0] - path[-[-1]]), self.n - abs(path[0] - path[-1]))
-            if val <= self.d and val % 2 == 0 and path[1] < path[-1]:
-                yield path
-
-        for v in range(self.n):
-            if v not in set(path):
-                val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
-                if val <= self.d and val % 2 == 0:
-                    yield from self._alg4(path + [v])
+    def _alg4(self):
+        stack = [(0, [0], {0})]
+        while stack:
+            node, path, visited = stack.pop()
+            if len(path) == self.n:
+                val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
+                if val <= self.d and val % 2 == 0 and path[1] < path[-1]:
+                    yield path
+            for v in range(self.n):
+                if v not in visited:
+                    val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
+                    if val <= self.d and val % 2 == 0:
+                        stack.append((v, path + [v], visited | {v}))
 
     def _anilat_alg1(self):
-        print(self.connec)
-        def dfs(path, visited):
-            print(f"Current Path: {path}")
-            print(f"Visited Nodes: {visited}")
-            if len(path) == len(self.connec) and path[0] in self.connec.get(path[-1], []):
-                yield path
 
-            for v in self.connec.get(path[-1], []):
-                if not visited[v]:
-                    print(f"Exploring Neighbor: {v}")
-                    visited[v] = True
-                    new_path = path + [v]
-                    yield from dfs(new_path, visited)
-                    visited[v] = False
-
-        for start in range(1, self.n + 1):
-            visited = {node: False for node in self.connec}
-            print(f"############Starting DFS from: {start} ############")
-            visited[start] = True
-            yield from dfs([start], visited)
+        def dfs(node, path, maxlen, minlen):
+            if len(path) > self.maxlen:
+                return
+            for neighbor in self.connec[node] and len(path) > self.minlen:
+                if neighbor not in path:
+                    new = path + [neighbor]
+                    yield new
+                    yield from dfs(neighbor, new, maxlen, minlen)
 
     def countperms(self):
         count = 0

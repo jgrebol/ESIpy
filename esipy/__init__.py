@@ -1351,11 +1351,11 @@ class ESI:
             print(' -------------------------------------------------')
 
             if wf_type(self.Smo) == "rest":
-                val, nperms, t = aproxmci(ring, self.Smo, self.partition, self.mcialg, self.d, self.ncores)
+                val, nperms, t = aproxmci(ring, self.Smo, self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen)
                 val = 2 * val
             elif wf_type(self.Smo) == "unrest":
-                val_a, nperms, t_a = aproxmci(ring, self.Smo[0], self.partition, self.mcialg, self.d, self.ncores)
-                val_b, _, t_b = aproxmci(ring, self.Smo[1], self.partition, self.mcialg, self.d, self.ncores)
+                val_a, nperms, t_a = aproxmci(ring, self.Smo[0], self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen)
+                val_b, _, t_b = aproxmci(ring, self.Smo[1], self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen)
                 val = val_a + val_b
                 t = t_a + t_b
                 nperms = 2 * nperms

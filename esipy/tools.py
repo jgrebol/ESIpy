@@ -368,7 +368,7 @@ def find_rings(connec, minlen=6, maxlen=6):
             (v, path) = stack.pop()
             if len(path) > maxlen + 1:
                 continue
-            if len(path) >= minlen and start in connec[path[-1]] and path[1] < path[-1] and path[0] == start:  # Check for circuit formation
+            if len(path) >= minlen and start in connec[path[-1]] and path[1] < path[-1] and path[0] == start:
                 yield path
             for next in connec.get(v, []):
                 if next not in path:
@@ -400,16 +400,13 @@ def filter_connec(connec):
                 filtered_connec[key] = filtered_values
     return filtered_connec
 
-def is_closed(Smo):
-    if wf_type(Smo) == "rest" or wf_type(Smo) == "unrest":
-        connec = build_connec(Smo)
-    else:
-        connec = build_connec_no(Smo)
-    filt = filter_connec(connec)
-    if any(len(values) == 2 for values in filt.values()):
-        return True
-    else:
+def is_closed(arr, connec):
+    for i in range(len(arr) - 1):
+        if arr[i + 1] not in connec[arr[i]]:
+            return False
+    if arr[0] not in connec[arr[-1]]:
         return False
+    return True
 
 def find_middle_nodes(connec2):
     return [key for key, values in connec2.items() if len(values) > 2]
