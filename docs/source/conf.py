@@ -33,6 +33,7 @@ exclude_patterns = []
 html_theme = 'insegel'
 html_static_path = ['_static']
 html_favicon = '_static/favicon.ico'
+html_css_files = ["css/custom.css"]
 
 autodoc_typehints = "description"
 autodoc_class_signature = "separated"
