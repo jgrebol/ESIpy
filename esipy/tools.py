@@ -391,6 +391,21 @@ def find_rings(connec, minlen=6, maxlen=6):
                 all_paths.append(path)
     return all_paths
 
+def find_middle_vertices(connec):
+    mid = {node for node, neighbors in connec.items() if len(neighbors) >= 3}
+    groups = {}
+
+    for node in mid:
+        connec_mid = [neighbor for neighbor in connec[node] if neighbor in mid]
+        if connec_mid:
+            groups[node] = connec_mid
+
+    return group
+
+def full_connec(self):
+    return {k: [v for v in self.arr if v != k] for k in self.arr}
+
+
 def filter_connec(connec):
     filtered_connec = {}
     for key, values in connec.items():

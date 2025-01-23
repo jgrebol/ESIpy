@@ -5,6 +5,7 @@ from math import factorial
 from multiprocessing import Pool
 from functools import partial
 from time import time
+from collections import deque
 
 def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen=6):
     start = time()
@@ -49,7 +50,10 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen
             return val, nperms, time() - start
         else:
             perms = (x for x in perms if x[1] < x[-1])
-            val = sum(compute_iring(mapping(arr, p), Smo) for p in perms)
+            if closed:
+                val = sum(compute_iring(p, Smo) for p in perms)
+            else:
+                val = sum(compute_iring(mapping(arr, p), Smo) for p in perms)
             return val, nperms, time() - start
     else:
         pool = Pool(processes=ncores)
@@ -117,7 +121,7 @@ class HamiltonMCI:
                 return self._anilat_alg1()
 
     def _alg1(self):
-        stack = [(0, [0], {0})]
+        stack = deque([(0, [0], {0})])
         while stack:
             node, path, visited = stack.pop()
             if len(path) == self.n:
@@ -131,7 +135,7 @@ class HamiltonMCI:
                         stack.append((v, path + [v], visited | {v}))
 
     def _alg2(self):
-        stack = [(0, [0], {0})]
+        stack = deque([(0, [0], {0})])
         while stack:
             node, path, visited = stack.pop()
             if len(path) == self.n:
@@ -149,7 +153,7 @@ class HamiltonMCI:
                         stack.append((v, path + [v], visited | {v}))
 
     def _alg3(self):
-        stack = [(0, [0], {0})]
+        stack = deque([(0, [0], {0})])
         while stack:
             node, path, visited = stack.pop()
             if len(path) == self.n:
@@ -163,7 +167,7 @@ class HamiltonMCI:
                         stack.append((v, path + [v], visited | {v}))
 
     def _alg4(self):
-        stack = [(0, [0], {0})]
+        stack = deque([(0, [0], {0})])
         while stack:
             node, path, visited = stack.pop()
             if len(path) == self.n:
@@ -177,18 +181,33 @@ class HamiltonMCI:
                         stack.append((v, path + [v], visited | {v}))
 
     def _anilat_alg1(self):
+        stack = deque([(0, [0], {0}, None)])  # Add 'previous_node' to track paths
+        mids = find_middle_nodes(self.connec)
 
-        def dfs(node, path, maxlen, minlen):
-            if len(path) > self.maxlen:
-                return
-            for neighbor in self.connec[node] and len(path) > self.minlen:
-                if neighbor not in path:
-                    new = path + [neighbor]
-                    yield new
-                    yield from dfs(neighbor, new, maxlen, minlen)
+        def explore_branches(node, path, visited, previous_node):
+            branches = []
+            for v in self.connec[node]:
+                if v not in visited and v != previous_node:
+                    branches.append((v, path + [v], visited | {v}, node))
+            return branches
+
+        while stack:
+            node, path, visited, previous_node = stack.pop()
+
+            if len(path) == self.n:
+                val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
+                if val <= self.d and path[1] < path[-1]:
+                    yield path
+
+            if node in mids:  # Check if current node has multiple connections
+                for branch in explore_branches(node, path, visited, previous_node):
+                    stack.append(branch)
+            else:
+                for v in self.connec[node]:
+                    if v not in visited and v != previous_node:  # Avoid backtracking
+                        val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
+                        if val <= self.d:
+                            stack.append((v, path + [v], visited | {v}, node))
 
     def countperms(self):
-        count = 0
-        for _ in self._select_algorithm():
-            count += 1
-        return count
+        return sum(1 for _ in self._select_algorithm())
