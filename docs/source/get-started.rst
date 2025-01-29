@@ -1,11 +1,10 @@
 Getting started
 ========
 
-In this section we will go through the process of performing all the available calculations using ESIpy's functions
-based on the provided examples. The program is intended to be installed locally in computer clusters. To run the code
-from the terminal, generate the Python script or adapt those of this repository and run it as ``python code.py`` or
-``python3 code.py``. To save the output as a file, use ``python code.py > code.esi``. Even though the ``.esi``
-extension is not mandatory, we recommend using it. The test files have been generated from benzene and naphthalene at
+In this section we will go through the process of performing all the available calculations using ESIpy's utilities
+based on the provided examples. To run the code from the terminal, generate the Python script or adapt those of this
+webpage and run it as ``python3 code.py``. To save the output as a file, use ``python3 code.py > code.esi``.
+Even though the ``.esi`` extension is not mandatory, we recommend using it. The test files have been generated from benzene and naphthalene at
 singlet (and triplet) level of theory, and are just set to showcase the capabilities of the code.
 
 Core ESIpy
@@ -14,74 +13,140 @@ Core ESIpy
 ESIpy works on the object `ESI`, which will contain all the information required for the calculation. It is recommended
 to initialize the object with all the data, rather than adding it once the initialization process is finished.
 
-We will go through the list of examples explaining and highlighting some key notes:
+The simplest form of input follows a usual PySCF calculation:
 
-- example01: The `ESI` object is initialized through the `mol` and `mf` objects coming from PySCF. The AOMs and the
-  molecular information are automatically generated and stored in `Smo`. They can be saved by using the `saveaoms` and
-  `savemolinfo` attributes in the initialization process. To print the output of the code, simply use the method
-  `print()`.
+.. code-block::
 
-  .. tip::
-     We strongly recommend using ``meta_lowdin``, ``nao`` and ``iao`` as the atomic partitions as they have shown to
-     be highly basis-set independent and reliable. We introduce the five atomic partitions available at ESIpy in a for-loop
-     scheme, although one partition can be introduced for each calculation. The computation time is the same regardless of
-     the partition employed. As some results may depend on the system and the calculation, we encourage comparing these three
-     partitions to each other to find incongruences.
+    from pyscf import gto, dft
+    import esipy
 
-  .. warning::
-     In PySCF versions downloaded later than 23rd July 2023, there is a bug in the symmetry-average of NAO schemes
-     (issue `#1755 <https://github.com/pyscf/pyscf/issues/1755>`_, bug fixed
-     in `#1803 <https://github.com/pyscf/pyscf/pull/1803>`_).
+    mol = gto.Mole()
+    mol.atom = '''
+    C       -2.989895238      0.000000000      0.822443952
+    C       -2.989895238      1.206457000      0.125895952
+    C       -2.989895238      1.206457000     -1.267200048
+    C       -2.989895238      0.000000000     -1.963748048
+    C       -2.989895238     -1.206457000     -1.267200048
+    C       -2.989895238     -1.206457000      0.125895952
+    H       -2.989895238      0.000000000      1.912474952
+    H       -2.989895238      2.150450000      0.670916952
+    H       -2.989895238      2.150450000     -1.812221048
+    H       -2.989895238      0.000000000     -3.053779048
+    H       -2.989895238     -2.150450000     -1.812221048
+    H       -2.989895238     -2.150450000      0.670916952
+    '''
+    mol.basis = "sto-3g"
+    mol.spin = 0
+    mol.charge = 0
+    mol.verbose = 0
+    mol.build()
 
-  .. warning::
-     In PySCF, the `mol.spin` object represents the number of unpaired electrons. It is not the spin of the molecule. For
-     instance, `mol.spin = 0` is a singlet state.
+    mf = dft.RKS(mol)
+    mf.xc = "B3LYP"
+    mf.kernel()
 
-- example02: With the already generated ``.aoms`` and ``.molinfo`` files, we can perform a fast aromaticity
-  calculation without any re-calculation, which will provide the same information as that coming directly from the
-  single-point.
+    ring = [1, 2, 3, 4, 5, 6]
+    arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition="nao")
+    arom.print()
 
-  .. note::
-     If the ``.molinfo`` file has not been generated, one can still obtain the information from the ``mol`` object
-     without requiring the single-point calculation: just do not include the `mf` object.
+By providing the `mol` and `mf` objects, ESIpy generates the AOMs in the desired partition and computes the indices following
+the ring connectivity in the list `ring`. The program works similarly through unrestricted wavefunctions,
+the output of which provides the indices split into orbital contributions.
 
-- example03: The program will set the AOMs from an unrestricted calculation as ``[Smo_alpha, Smo_beta]``. The indicators
-  are calculated from alpha-alpha and beta-beta contributions.
+.. note::
+    In the following, we will only consider the ESIpy part of the code.
 
-- example04: To provide FLU references to the code, one needs to provide a dictionary, ``flurefs``, with the bond
-  symbols the DI value corresponding to it. If the pattern already exists, it will be updated, and if it does not it
-  will be added to the existing ones. Without the ``mol`` nor the ``.molinfo`` variables, one needs to provide the
-  list connectivity, which is a list containing the symbols in ring connectivity, but only one can be given at a time.
+Dealing with AOMs
+------------
 
-  .. warning::
-     The `partition` variable is mandatory for reference-based indices. The FLU, HOMA and HOMER will not be computed if no
-     partition is specified unless the connectivity and reference has been explicitly specified.
+In order to avoid the single-point calculation, the attributes `saveaoms` and `savemolinfo` will save the AOMs and a dictionary
+containing information about the molecule and calculation into a binary file in disk. Hereafter, these will be accessible
+at any time. It is also recommended to use a for-loop scheme for all the partitions, as the computational time to generate
+the matrices is minimal and independent to the chosen scheme.
 
-- example05: Custom references for the HOMA can be introduced as stated in Ref. 15 of the main README.md. The custom
-  ``r_opt`` and ``alpha`` parameters need to be given in the `homerrefs` attribute.
+.. code-block::
 
-  .. note::
-     The program will check the topology of the AOMs to separate into singlet and triplet calculations. Thus, it will only
-     compute HOMA for singlets and HOMER for triplets.
+    ring = [1, 2, 3, 4, 5, 6]
+    name = "benzene"
+    for part in ["mulliken", "lowdin", "meta_lowdin", "nao", "iao"]:
+        aoms_name = name + '_' + part + '.aoms'
+        molinfo_name = name + '_' + part + '.molinfo'
+        arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, saveaoms=aoms_name, savemolinfo=molinfo_name)
+        arom.print()
 
-- example06: Individual calculation of the indicators can be performed. However, we strongly suggest using `ESI.print()`
-  as the computational time is minimal for indices other than MCI for large rings.
+Additionally, one can generate a directory containing the AOMs in AIMAll format. These files are readable from ESIpy,
+but also from Eduard Matito's ESI-3D code. These are written through the method `writeaoms()`
 
-- example07: Multi-processing is allowed for the calculation of the MCI, primarily in large systems. For more detailed
-  information, please see `ESIpy/MCI_TIMINGS <ESIpy/MCI_TIMINGS>`_.
+.. code-block::
 
-Treating .int files
--------------------
+    arom = esipy.ESI(mol=mol, mf=mf, rings=[1,2,3,4,5,6], partition="nao")
+    arom.writeaoms("benzene_nao.aoms")
 
-- example08: The method `writeaoms()` allows to write the AOMs into a file readable for both ESIpy and ESI-3D programs.
+and read through the method `readaoms()`
 
-- example09: Equally, the AOMs from the ``.int`` files can be loaded into `Smo` objects, through the `readaoms()` method.
-  This function supports reading the AOMs from ESIpy and AIMAll from both restricted and unrestricted single-determinant
-  calculations.
+.. code-block::
+
+    arom = esipy.ESI(rings=[1,2,3,4,5,6], partition="nao")
+    arom.readaoms()
+
+.. warning::
+    By using the `readaoms()` method, the output will be limited as it will not get information about the molecule
 
 Correlated wavefunctions
-------------------------
+------------
 
-- example10: Aromaticity indicators use Fulton's approximation for the aromaticity indicators in correlated
-  wavefunctions. If the `writeaoms()` is requested, it will additionally create a custom ``.wfx`` file with the occupation
-  numbers as input for the ESI-3D program.
+For natural orbitals wavefunctions, an additional diagonalization
+of the first-order reduced density matrix (1-RDM) is carried out, the computational time of which is also very low.
+The single-determinant (RHF) object has to be provided through the `myhf` attribute. Both Fulton's and Mayer's
+approximations are used for the population analysis, but only Fulton's approximation is used for the aromaticity
+calculations.
+
+.. code-block::
+
+    from pyscf import gto, scf, ci, cc, mp, mcscf
+    import esipy
+
+    mol = gto.Mole()
+    mol.atom = '''
+    6        0.000000000      0.000000000      1.393096000
+    6        0.000000000      1.206457000      0.696548000
+    6        0.000000000      1.206457000     -0.696548000
+    6        0.000000000      0.000000000     -1.393096000
+    6        0.000000000     -1.206457000     -0.696548000
+    6        0.000000000     -1.206457000      0.696548000
+    1        0.000000000      0.000000000      2.483127000
+    1        0.000000000      2.150450000      1.241569000
+    1        0.000000000      2.150450000     -1.241569000
+    1        0.000000000      0.000000000     -2.483127000
+    1        0.000000000     -2.150450000     -1.241569000
+    1        0.000000000     -2.150450000      1.241569000
+    '''
+    mol.basis = 'sto-3g'
+    mol.spin = 0
+    mol.charge = 0
+    mol.symmetry = True
+    mol.verbose = 0
+    mol.max_memory = 4000
+    mol.build()
+
+    mf = scf.RHF(mol).run()
+
+    print("Running CCSD calculation...")
+    mf1 = cc.CCSD(mf).run()
+    print("Running CISD calculation...")
+    mf2 = ci.CISD(mf).run()
+    print("Running CASSCF calculation...")
+    mf3 = mcscf.CASSCF(mf, 6, 6).run()
+    print("Running MP2 calculation...")
+    mf4 = mp.MP2(mf).run()
+    ring = [1, 2, 3, 4, 5, 6]
+
+    for part in ["mulliken", "lowdin", "meta_lowdin", "nao", "iao"]:
+        for method in [mf1, mf2, mf3, mf4]:
+            arom = esipy.ESI(mol=mol, mf=method, myhf=mf, rings=ring, partition=part)
+            arom.print()
+
+.. note::
+    The IAOs expand the occupied orbitals in the same rank as the minimal basis. However, the role of valence orbitals
+    is important for the calculation. Therefore, the transformation matrix is computed through the RHF object,
+    thus making the `myhf` attribute needed for these calculations.

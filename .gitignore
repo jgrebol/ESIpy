@@ -12,6 +12,8 @@ tests/*.pyo
 
 build/*
 dist/*
+docs/source/*
+
 .idea/*
 *.egg-info/*
 *.egg

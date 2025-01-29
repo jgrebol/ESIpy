@@ -57,25 +57,29 @@
 <h2>Hilbert-space partitioning<a class="headerlink" href="#hilbert-space-partitioning" title="Link to this heading">¶</a></h2>
 <p>In order to obtain information of the atomic contributions in a given chemical system (for instance atomic populations
 and electron sharing indices) it is crucial to define an atom in a molecule (AIM), which can either be real-space
-partition (allocating each point of the 3D space fully or partially to a specific atom) or Hilbert-space partition (
-separating the atomic basis functions belonging to a certain atom). The ESI-3D code <a class="footnote-reference brackets" href="#id20" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a> developed by Dr. Eduard Matito
-mainly used Bader’s QTAIM <a class="footnote-reference brackets" href="#id21" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a> (real-space scheme) as the AIM for the calculations. However, in this program we propose
-the use of Hilbert-space schemes (Mulliken <a class="footnote-reference brackets" href="#id22" id="id3" role="doc-noteref"><span class="fn-bracket">[</span>3<span class="fn-bracket">]</span></a>, Löwdin <a class="footnote-reference brackets" href="#id23" id="id4" role="doc-noteref"><span class="fn-bracket">[</span>4<span class="fn-bracket">]</span></a>, Meta-Löwdin <a class="footnote-reference brackets" href="#id24" id="id5" role="doc-noteref"><span class="fn-bracket">[</span>5<span class="fn-bracket">]</span></a>, NAO <a class="footnote-reference brackets" href="#id25" id="id6" role="doc-noteref"><span class="fn-bracket">[</span>6<span class="fn-bracket">]</span></a>, and IAO <a class="footnote-reference brackets" href="#id26" id="id7" role="doc-noteref"><span class="fn-bracket">[</span>7<span class="fn-bracket">]</span></a>) available in the PySCF <a class="footnote-reference brackets" href="#id27" id="id8" role="doc-noteref"><span class="fn-bracket">[</span>8<span class="fn-bracket">]</span></a>
+partition (allocating each point of the 3D space fully or partially to a specific atom) or Hilbert-space partition (separating the atomic basis functions belonging to a certain atom). The ESI-3D code <a class="footnote-reference brackets" href="#id29" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a> developed by Dr. Eduard Matito
+mainly used Bader’s Quantum Theory of Atoms in Molecules (QTAIM, real-space scheme) <a class="footnote-reference brackets" href="#id30" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a> as the AIM for the calculations. However, in this program we propose
+the use of Hilbert-space schemes (Mulliken <a class="footnote-reference brackets" href="#id31" id="id3" role="doc-noteref"><span class="fn-bracket">[</span>3<span class="fn-bracket">]</span></a>, Löwdin <a class="footnote-reference brackets" href="#id32" id="id4" role="doc-noteref"><span class="fn-bracket">[</span>4<span class="fn-bracket">]</span></a>, Meta-Löwdin <a class="footnote-reference brackets" href="#id33" id="id5" role="doc-noteref"><span class="fn-bracket">[</span>5<span class="fn-bracket">]</span></a>, NAO <a class="footnote-reference brackets" href="#id34" id="id6" role="doc-noteref"><span class="fn-bracket">[</span>6<span class="fn-bracket">]</span></a>, and IAO <a class="footnote-reference brackets" href="#id35" id="id7" role="doc-noteref"><span class="fn-bracket">[</span>7<span class="fn-bracket">]</span></a>) available in the PySCF <a class="footnote-reference brackets" href="#id36" id="id8" role="doc-noteref"><span class="fn-bracket">[</span>8<span class="fn-bracket">]</span></a>
 framework as the partition of the system. QTAIM relies on numerical integrations, so the unavoidable errors associated
 to them make some of these aromaticity descriptors unviable in large systems. This newer approach, however, does not
-require numerical integration, but rather relies on the separation of the molecule by using their atomic basis
+require numerical integration, but rather relies on the separation of the molecule by using their atom-centered
 functions, leading to an exact partition of the system. The most fundamental magnitude is the <strong>Atomic Overlap Matrix (
 AOM,</strong> <span class="math notranslate nohighlight">\(\mathbf{S}^{\text{A}}\)</span> <strong>) in the Molecular Orbitals (MO,</strong> <span class="math notranslate nohighlight">\(\mathbf{\phi}\)</span> <strong>) basis</strong>, with elements</p>
 <div class="math notranslate nohighlight">
 \[S_{ij}^\text{A}=\int_{\Omega_\text{A}}\phi_i^*(\textbf{r})\phi_j(\textbf{r})\text{d}\textbf{r}.\]</div>
-<p>The average number of electrons in a given atom can be expressed in terms of the AO basis as</p>
+<p>The average number of electrons in a given atom (<span class="math notranslate nohighlight">\(N_\text{A}\)</span>) can be expressed in terms of an Atomic Orbitals (AO, <span class="math notranslate nohighlight">\(\chi\)</span>) basis as</p>
 <div class="math notranslate nohighlight">
 \[N_{\text{A}} = \sum_{\nu\in\text{A}}^\text{M} \sum_\mu^\text{M} P_{\nu\mu}S_{\mu\nu}^\text{AO} = \sum_{\nu\in\text{A}}^\text{M} (PS^\text{AO})_{\nu\nu}\]</div>
-<p>where we can introduce the elements of the P-matrix, <span class="math notranslate nohighlight">\(P_{\nu\mu} = 2 \sum_i ^{nocc} c_{\nu i} c_{i\mu}^+\)</span>, and
-the overlap matrix in the Atomic Orbitals (AO, <span class="math notranslate nohighlight">\(\chi\)</span> )
-basis, <span class="math notranslate nohighlight">\(S_{\mu\nu}^\text{AO}=\int\chi_\mu^{*}(\textbf{r}){\chi_\nu}(\textbf{r})d\textbf{r}\)</span>. In Mulliken’s approach, one
-can obtain information from a specific atom by only taking into account its atomic basis functions.</p>
-<p>Moreover, the Delocalization Index (DI, $delta$), also referred to as Bond Order (BO) <a class="footnote-reference brackets" href="#id28" id="id9" role="doc-noteref"><span class="fn-bracket">[</span>9<span class="fn-bracket">]</span></a>, measures the average number
+<p>where we can introduce the elements of the overlap matrix in an AO basis, <span class="math notranslate nohighlight">\(S_{\mu\nu}^\text{AO}=\int\chi_\mu^{*}(\textbf{r}){\chi_\nu}(\textbf{r})d\textbf{r}\)</span>.
+The elements of the P-matrix, <span class="math notranslate nohighlight">\(P_{\nu\mu} = 2 \sum_i ^{M} c_{\nu i} c_{i\mu}^+\)</span>, showcase the orbital occupancies.
+In the simplest case of a single-determinant wavefunction, it takes 1s in the diagonal in all occupied orbitals (<span class="math notranslate nohighlight">\(\text{M}=nocc\)</span>)and 0s in the rest.
+For multi-determinant wavefunctions, the diagonalization of the P-matrix in the MO representation gives the natural orbital occupancies (<span class="math notranslate nohighlight">\(n_i\)</span>) and the
+transformation matrix to the new basis (<span class="math notranslate nohighlight">\(\Gamma\)</span>), which are not constrained to occupied orbitals anymore, which is performed through a unitary transformation:</p>
+<div class="math notranslate nohighlight">
+\[\phi^{NO} = \Gamma^{+}C^{+}\chi^{\text{AO}}C\;\Gamma = (\Gamma^{'})^+\chi^{\text{AO}}\;\Gamma^{'}\]</div>
+<p>In this sense, <span class="math notranslate nohighlight">\(\Gamma\)</span> is the diagonal representation of the MO basis and <span class="math notranslate nohighlight">\(C\)</span> the transformation matrix from MOs into AOs.</p>
+<p>In Mulliken’s approach, one can obtain information from a specific atom by only taking into account its atomic basis functions.
+Moreover, the Delocalization Index (DI, <span class="math notranslate nohighlight">\(\delta\)</span>), also referred to as Bond Order (BO) <a class="footnote-reference brackets" href="#id37" id="id9" role="doc-noteref"><span class="fn-bracket">[</span>9<span class="fn-bracket">]</span></a>, measures the average number
 of electrons shared between two atoms A and B, as</p>
 <div class="math notranslate nohighlight">
 \[\delta(\text{A,B})=\sum^\text{M}_{\mu\in\text{A}}\sum^\text{M}_{\nu\in\text{B}}(PS^\text{AO})_{\nu\mu}(PS^\text{AO})_{\mu\nu}.\]</div>
@@ -89,7 +93,7 @@ chemists have explored alternative Hilbert-space methods that rely on orthogonal
 unitary transformation of the original AO basis used in calculations. Löwdin first proposed the symmetric
 orthogonalization procedure by using <span class="math notranslate nohighlight">\(T_{\mu\nu}=S_{\mu\nu}^{-1/2}\)</span>. Following his steps, several different approaches
 have been reported to find more robust schemes of basis set orthogonalization, being the ones applied in this article
-the meta-Löwdin, Natural Atomic Orbitals (NAO). Alternatively, Knizia proposed an ingenious scheme to express in an
+the meta-Löwdin and the Natural Atomic Orbitals (NAO). Alternatively, Knizia proposed an ingenious scheme to express in an
 exact number the occupied MOs of a calculation in an orthogonal basis of reduced rank, the so-called Intrinsic Atomic
 Orbitals (IAO) approach. In all cases, the mapping from real-space to Hilbert-space can be performed as follows:</p>
 <div class="math notranslate nohighlight">
@@ -97,53 +101,53 @@ Orbitals (IAO) approach. In all cases, the mapping from real-space to Hilbert-sp
 </section>
 <section id="electron-sharing-indices">
 <h2>Electron-Sharing Indices<a class="headerlink" href="#electron-sharing-indices" title="Link to this heading">¶</a></h2>
-<p>The ESI present in this program rely on the atomic overlap matrices. The following aromaticity indicators will be
+<p>The Eelectron Sharing Indices (<a href="#id10"><span class="problematic" id="id11">**</span></a>ESI <a href="#id12"><span class="problematic" id="id13">**</span></a>) present in this program rely on the atomic overlap matrices. The following aromaticity indicators will be
 expressed in terms of the ring connectivities <span class="math notranslate nohighlight">\(\mathscr{A}=\{\text{A}_1, \text{A}_2, \cdot\cdot\cdot, \text{A}_n\}\)</span>,
 which represent the indices of the atoms as expressed in the <cite>mol</cite> object.</p>
 <section id="para-delocalization-index-pdi">
 <h3>Para-delocalization index (PDI)<a class="headerlink" href="#para-delocalization-index-pdi" title="Link to this heading">¶</a></h3>
 <p>Fulton reported that the delocalization indices in a given aromatic 6-membered ring in the _para_ position were larger
 than that in the _meta_ position. From that idea, Poater and coworkers proposed to average the DIs in the para position
-in a 6-membered ring, so the <strong>para-delocalization index (PDI)</strong> <a class="footnote-reference brackets" href="#id29" id="id10" role="doc-noteref"><span class="fn-bracket">[</span>10<span class="fn-bracket">]</span></a>:</p>
+in a 6-membered ring, so the <strong>Para-Delocalization Index (PDI)</strong> <a class="footnote-reference brackets" href="#id38" id="id14" role="doc-noteref"><span class="fn-bracket">[</span>10<span class="fn-bracket">]</span></a> reads as:</p>
 <div class="math notranslate nohighlight">
 \[\text{PDI}(\mathscr{A}) = \frac{\delta_{\text{A}_1\text{A}_4}+\delta_{\text{A}_2\text{A}_5}+\delta_{\text{A}_3\text{A}_6}}{3},\]</div>
-<p>A larger PDI value indicates a more aromatic character. The index can only be calculated for rings of :math:<a href="#id11"><span class="problematic" id="id12">`</span></a>n`=6, so it will
+<p>A larger PDI value indicates a more aromatic character. The index can only be calculated for rings of :math:<a href="#id15"><span class="problematic" id="id16">`</span></a>n=6 <a href="#id17"><span class="problematic" id="id18">`</span></a>, so it will
 not be computed for rings of different sizes.</p>
 </section>
 <section id="iring">
-<h3>I<sub>ring</sub><a class="headerlink" href="#iring" title="Link to this heading">¶</a></h3>
-<p>Giambiagi and coworkers proposed to express an index in terms of the generalized bond order along the ring, the <strong>I:sub:`ring`</strong> <a class="footnote-reference brackets" href="#id30" id="id13" role="doc-noteref"><span class="fn-bracket">[</span>11<span class="fn-bracket">]</span></a>. That is, to account for the delocalization along the ring, following the specified connectivity:</p>
+<h3>I<sub>ring</sub> <a class="headerlink" href="#iring" title="Link to this heading">¶</a></h3>
+<p>Giambiagi and coworkers proposed to express an index in terms of the generalized bond order along the ring, the <strong>:math:`I :sub:`ring```</strong> <a class="footnote-reference brackets" href="#id39" id="id19" role="doc-noteref"><span class="fn-bracket">[</span>11<span class="fn-bracket">]</span></a>. That is, to account for the delocalization along the ring, following the specified connectivity:</p>
 <div class="math notranslate nohighlight">
 \[\text{I}_{\text{ring}}(\mathscr{A})= 2^{n} \sum_{i_1,i_2\ldots i_n} S_{i_1i_2}^{\text{A}_{1}} S_{i_2i_3}^{\text{A}_{2}} \cdot \cdot \cdot S_{i_ni_1}^{\text{A}_{n}}\]</div>
-<p>This index relies on the multicenter character of a molecule. A larger I<sub>ring</sub> value indicates larger
+<p>This index relies on the multicenter character of a molecule. A larger I:sub:<a href="#id20"><span class="problematic" id="id21">`</span></a>ring <a href="#id22"><span class="problematic" id="id23">`</span></a> value indicates larger
 aromaticity along the ring.</p>
 </section>
 <section id="multicenter-index-mci">
 <h3>Multicenter index (MCI)<a class="headerlink" href="#multicenter-index-mci" title="Link to this heading">¶</a></h3>
-<p>As an aim to improve the I<sub>ring</sub>, Bultinck and coworkers proposed the <strong>Multicenter Index (MCI)</strong> <a class="footnote-reference brackets" href="#id31" id="id14" role="doc-noteref"><span class="fn-bracket">[</span>12<span class="fn-bracket">]</span></a> by not
-only taking into account the Kekulé structure of the system but rather all the <span class="math notranslate nohighlight">\(n!\)</span> possible ring connectivities
-generated by permuting the position of all atoms in the ring, denoted as <span class="math notranslate nohighlight">\(\mathscr{P}(\mathscr{A})\)</span>:</p>
+<p>As an aim to improve the I<sub>ring `, Bultinck and coworkers proposed the **Multicenter Index (MCI)** [12]_ by not
+only taking into account the Kekulé structure of the system but rather all the :math:`n!</sub> possible ring connectivities
+generated by permuting the position of all atoms in the ring. That way, the delocalization is measured throughout the system, rather than along the ring. Denoting the different permutations as <span class="math notranslate nohighlight">\(\mathscr{P}(\mathscr{A})\)</span>:</p>
 <div class="math notranslate nohighlight">
 \[\text{MCI}(\mathscr{A}) = \frac{1}{2n} \sum_{\mathscr{P}(\mathscr{A})} \text{I}_{\text{ring}}(\mathscr{A})\]</div>
 <p>As well as the previous indices, a larger MCI value denotes a more aromatic character. Due to the exponential growth of
-the calculation, we do not suggest computing the MCI for rings larger than <span class="math notranslate nohighlight">\(n`=12 for single-core processes and :math:`n`=14
+the calculation, we do not suggest computing the MCI for rings larger than <span class="math notranslate nohighlight">\(n ` =12 for single-core processes and :math:`n ` =14
 for multi-core processes. See :ref:`mci_timings\)</span> for details and timings of the algorithms.</p>
 </section>
 <section id="av1245-and-avmin">
-<h3>AV1245 (and AVmin)<a class="headerlink" href="#av1245-and-avmin" title="Link to this heading">¶</a></h3>
-<p>When using QTAIM as the atomic partition, the numerical integration error made the multicenter indices in large rings
+<h3>AV1245 and AVmin<a class="headerlink" href="#av1245-and-avmin" title="Link to this heading">¶</a></h3>
+<p>When using real-space schemes as the atomic partition, their inherent numerical integration errors made the multicenter indices in large rings
 non-viable. Matito proposed an index that contained the multicenter character as those of I<sub>ring</sub> and MCI, but
 without the size-extensivity problem. Therefore, he suggested to <em>average all the 4c-MCI values along the ring that keep
-the positional relationship of 1,2,4,5</em>, so designing the new index AV1245 <a class="footnote-reference brackets" href="#id32" id="id15" role="doc-noteref"><span class="fn-bracket">[</span>13<span class="fn-bracket">]</span></a> as follows:</p>
+the positional relationship of 1,2,4,5</em>, so designing the new index AV1245 <a class="footnote-reference brackets" href="#id41" id="id24" role="doc-noteref"><span class="fn-bracket">[</span>13<span class="fn-bracket">]</span></a> as follows:</p>
 <div class="math notranslate nohighlight">
 \[\text{AV1245}(\mathscr{A}) = \frac{1000}{3} \sum_{i=1}^n\text{MCI}(\{\text{A}_i, \text{A}_{i+1}, \text{A}_{i+3}, \text{A}_{i+4}\})\]</div>
 <p>where if <span class="math notranslate nohighlight">\(i&gt;n\)</span> <span class="math notranslate nohighlight">\(\text{A}_i\)</span> should be replaced by <span class="math notranslate nohighlight">\(\text{A}_{i-n}\)</span>. In addition, Matito defined the AVmin index as
-the minimum (absolute) value of all the 4-MR MCI indices that enter the AV1245 expression. A higher AV1245 value
+the minimum (absolute) value of all the 4-MR MCI indices that enter the AV1245 expression. A higher AV1245 and AVmin values
 indicates more aromaticity in the system, and the index can not be computed for rings smaller than 6 centers.</p>
 </section>
 <section id="fluctuation-index-flu">
 <h3>Fluctuation Index (FLU)<a class="headerlink" href="#fluctuation-index-flu" title="Link to this heading">¶</a></h3>
-<p>The Fluctuation Index (FLU) <a class="footnote-reference brackets" href="#id33" id="id16" role="doc-noteref"><span class="fn-bracket">[</span>14<span class="fn-bracket">]</span></a> measures the resemblance of a series of tabulated <span class="math notranslate nohighlight">\(\delta\)</span> to some typical aromatic
+<p>The Fluctuation Index (FLU) <a class="footnote-reference brackets" href="#id42" id="id25" role="doc-noteref"><span class="fn-bracket">[</span>14<span class="fn-bracket">]</span></a> measures the resemblance of a series of tabulated <span class="math notranslate nohighlight">\(\delta\)</span> to some typical aromatic
 molecules:</p>
 <div class="math notranslate nohighlight">
 \[\text{FLU}(\mathscr{A}) = \frac{1}{n} \sum_{i=1}^{n} \left[\left(\frac{V(A_i)}{V(A_{i-1})} \right)^\alpha \frac{\delta(A_i, A_{i-1}) - \delta_{ref}(A_i, A_{i-1})}{\delta_{ref}(A_i, A_{i-1})} \right]^2\]</div>
@@ -170,16 +174,16 @@ of <span class="math notranslate nohighlight">\(\delta(A_i, A_{i+1}) - \delta(A_
 <h2>Geometrical Aromaticity Indicators<a class="headerlink" href="#geometrical-aromaticity-indicators" title="Link to this heading">¶</a></h2>
 <section id="homa-and-homer">
 <h3>HOMA and HOMER<a class="headerlink" href="#homa-and-homer" title="Link to this heading">¶</a></h3>
-<p>The Harmonic Oscillator Model of Aromaticity (HOMA) <a class="footnote-reference brackets" href="#id34" id="id17" role="doc-noteref"><span class="fn-bracket">[</span>15<span class="fn-bracket">]</span></a> was defined by Kruszewski and Krygowski and relies only on
+<p>The Harmonic Oscillator Model of Aromaticity (HOMA) <a class="footnote-reference brackets" href="#id43" id="id26" role="doc-noteref"><span class="fn-bracket">[</span>15<span class="fn-bracket">]</span></a> was defined by Kruszewski and Krygowski and relies only on
 geometrical data.</p>
 <div class="math notranslate nohighlight">
 \[\text{HOMA}(\mathscr{A}) = 1 - \frac{\alpha}{n} \cdot \sum_i^n (R_{opt} - R_{A_i,A_{i+1}})^2 = 1 - \frac{\alpha}{n} \cdot ((R_{opt} - \bar{R})^2 + \sum_i^n (R_{A_i,A_{i+1}} - \bar{R})^2) = 1 - (EN + GEO)\]</div>
-<p>The formula depends on a series of tabulated <span class="math notranslate nohighlight">\(R_{opt}\)</span>, as well as the normalization factor <span class="math notranslate nohighlight">\(\alpha\)</span> for each bond to
+<p>The formula depends on a series of tabulated optimal bon distances, <span class="math notranslate nohighlight">\(R_{opt}\)</span>, as well as the normalization factor <span class="math notranslate nohighlight">\(\alpha\)</span> for each bond to
 make the index 1 for benzene and 0 and negative values for non-aromatic or antiaromatic molecules, which makes it a good
 option for most organic molecules but fails for newer systems. The HOMA index is separated into the EN and GEO subparts,
 which measure the deviation of the interatomic distance into some tabulated numbers and the variance of this interatomic
-distance, respectively, and are close to zero for aromatic molecules. The implemented version of this index is <a class="footnote-reference brackets" href="#id34" id="id18" role="doc-noteref"><span class="fn-bracket">[</span>15<span class="fn-bracket">]</span></a>. The
-HOMER aromaticity index is a reparametrization of the HOMA for the T1 state <a class="footnote-reference brackets" href="#id35" id="id19" role="doc-noteref"><span class="fn-bracket">[</span>16<span class="fn-bracket">]</span></a>. Different parameters can be introduced
+distance, respectively, and are close to zero for aromatic molecules. The implemented version of this index is <a class="footnote-reference brackets" href="#id43" id="id27" role="doc-noteref"><span class="fn-bracket">[</span>15<span class="fn-bracket">]</span></a>. The
+HOMER aromaticity index is a reparametrization of the HOMA for the lowest lying triplet excited state, T1, <a class="footnote-reference brackets" href="#id44" id="id28" role="doc-noteref"><span class="fn-bracket">[</span>16<span class="fn-bracket">]</span></a>. Different parameters can be introduced
 using the <cite>homarefs</cite> and <cite>homerrefs</cite> attributes.</p>
 </section>
 <section id="bond-length-alternation-bla">
@@ -200,18 +204,18 @@ they do not match completely.</p>
 <section id="references">
 <h2>References<a class="headerlink" href="#references" title="Link to this heading">¶</a></h2>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id20" role="doc-footnote">
+<aside class="footnote brackets" id="id29" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
 <ol class="upperalpha simple" start="5">
 <li><p>Matito, in ‘ESI-3D Electron Sharing Indexes Program for 3D Molecular Space Partitioning’, Girona IQC, 2006</p></li>
 </ol>
 </aside>
-<aside class="footnote brackets" id="id21" role="doc-footnote">
+<aside class="footnote brackets" id="id30" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">2</a><span class="fn-bracket">]</span></span>
 <p>R. F. W. Bader, Atoms in molecules: a quantum theory, Clarendon Press; Oxford University Press, Oxford [England]:
 New York, 1994.</p>
 </aside>
-<aside class="footnote brackets" id="id22" role="doc-footnote">
+<aside class="footnote brackets" id="id31" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id3">3</a><span class="fn-bracket">]</span></span>
 <ol class="upperalpha simple" start="18">
 <li><ol class="upperalpha simple" start="19">
@@ -220,11 +224,11 @@ New York, 1994.</p>
 </li>
 </ol>
 </aside>
-<aside class="footnote brackets" id="id23" role="doc-footnote">
+<aside class="footnote brackets" id="id32" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id4">4</a><span class="fn-bracket">]</span></span>
 <p>P.-O. Löwdin, The Journal of Chemical Physics, 1950, 18, 365–375.</p>
 </aside>
-<aside class="footnote brackets" id="id24" role="doc-footnote">
+<aside class="footnote brackets" id="id33" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id5">5</a><span class="fn-bracket">]</span></span>
 <ol class="upperalpha simple">
 <li><ol class="upperalpha simple" start="5">
@@ -233,69 +237,69 @@ New York, 1994.</p>
 </li>
 </ol>
 </aside>
-<aside class="footnote brackets" id="id25" role="doc-footnote">
+<aside class="footnote brackets" id="id34" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id6">6</a><span class="fn-bracket">]</span></span>
 <ol class="upperalpha simple" start="17">
 <li><p>Sun and G. K.-L. Chan, Journal of Chemical Theory and Computation, 2014, 10, 3784–3790.</p></li>
 </ol>
 </aside>
-<aside class="footnote brackets" id="id26" role="doc-footnote">
+<aside class="footnote brackets" id="id35" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id7">7</a><span class="fn-bracket">]</span></span>
 <ol class="upperalpha simple" start="7">
 <li><p>Knizia, Journal of Chemical Theory and Computation, 2013, 9, 4834–4843.</p></li>
 </ol>
 </aside>
-<aside class="footnote brackets" id="id27" role="doc-footnote">
+<aside class="footnote brackets" id="id36" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id8">8</a><span class="fn-bracket">]</span></span>
 <ol class="upperalpha simple" start="17">
 <li><p>Sun et al. The Journal of Chemical Physics, 2020, 153, 024109.</p></li>
 </ol>
 </aside>
-<aside class="footnote brackets" id="id28" role="doc-footnote">
+<aside class="footnote brackets" id="id37" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id9">9</a><span class="fn-bracket">]</span></span>
 <ol class="upperroman simple">
 <li><p>Mayer, Chemical Physics Letters, 1983, 97, 270–274.</p></li>
 </ol>
 </aside>
-<aside class="footnote brackets" id="id29" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id10">10</a><span class="fn-bracket">]</span></span>
+<aside class="footnote brackets" id="id38" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id14">10</a><span class="fn-bracket">]</span></span>
 <ol class="upperalpha simple" start="10">
 <li><p>Poater et al., Chemistry–A European Journal, 2003, 9, 400–406.</p></li>
 </ol>
 </aside>
-<aside class="footnote brackets" id="id30" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id13">11</a><span class="fn-bracket">]</span></span>
+<aside class="footnote brackets" id="id39" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id19">11</a><span class="fn-bracket">]</span></span>
 <ol class="upperalpha simple" start="13">
 <li><p>Giambiagi, M. S. De Giambiagi and K. C. Mundim, Structural Chemistry, 1990, 1, 423–427.</p></li>
 </ol>
 </aside>
-<aside class="footnote brackets" id="id31" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id14">12</a><span class="fn-bracket">]</span></span>
+<aside class="footnote brackets" id="id40" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>12<span class="fn-bracket">]</span></span>
 <ol class="upperalpha simple" start="16">
 <li><p>Bultinck, R. Ponec and S. Van Damme, Journal of Physical Organic Chemistry, 2005, 18, 706–718.</p></li>
 </ol>
 </aside>
-<aside class="footnote brackets" id="id32" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id15">13</a><span class="fn-bracket">]</span></span>
+<aside class="footnote brackets" id="id41" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id24">13</a><span class="fn-bracket">]</span></span>
 <ol class="upperalpha simple" start="5">
 <li><p>Matito, Physical Chemistry Chemical Physics, 2016, 18, 11839–11846.</p></li>
 </ol>
 </aside>
-<aside class="footnote brackets" id="id33" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id16">14</a><span class="fn-bracket">]</span></span>
+<aside class="footnote brackets" id="id42" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id25">14</a><span class="fn-bracket">]</span></span>
 <ol class="upperalpha simple" start="5">
 <li><p>Matito, M.Duran, M.Solà. The Journal of Chemical Physics, 2005, 122, 014109.</p></li>
 </ol>
 </aside>
-<aside class="footnote brackets" id="id34" role="doc-footnote">
+<aside class="footnote brackets" id="id43" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>15<span class="fn-bracket">]</span></span>
-<span class="backrefs">(<a role="doc-backlink" href="#id17">1</a>,<a role="doc-backlink" href="#id18">2</a>)</span>
+<span class="backrefs">(<a role="doc-backlink" href="#id26">1</a>,<a role="doc-backlink" href="#id27">2</a>)</span>
 <ol class="upperalpha simple" start="10">
 <li><p>Kruszewski and T. M. Krygowski. Tetrahedron Lett., 13(36):3839–3842, 1972.</p></li>
 </ol>
 </aside>
-<aside class="footnote brackets" id="id35" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id19">16</a><span class="fn-bracket">]</span></span>
+<aside class="footnote brackets" id="id44" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id28">16</a><span class="fn-bracket">]</span></span>
 <ol class="upperalpha simple" start="5">
 <li><ol class="upperalpha simple" start="13">
 <li><p>Arpa and B. Durbeej. Physical Chemistry Chemical Physics. 2023, 25, 16763-16771.</p></li>
@@ -336,9 +340,9 @@ New York, 1994.</p>
 <li class="toctree-l2"><a class="reference internal" href="#hilbert-space-partitioning">Hilbert-space partitioning</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#electron-sharing-indices">Electron-Sharing Indices</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#para-delocalization-index-pdi">Para-delocalization index (PDI)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#iring">I<sub>ring</sub></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#iring">I<sub>ring</sub> </a></li>
 <li class="toctree-l3"><a class="reference internal" href="#multicenter-index-mci">Multicenter index (MCI)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#av1245-and-avmin">AV1245 (and AVmin)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#av1245-and-avmin">AV1245 and AVmin</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#fluctuation-index-flu">Fluctuation Index (FLU)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#bond-order-alternation-boa">Bond Order Alternation (BOA)</a></li>
 </ul>

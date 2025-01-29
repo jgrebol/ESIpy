@@ -19,7 +19,7 @@ release = '1.0'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx.ext.autodoc', 'sphinx_copybutton', 'sphinx.ext.autodoc', 'sphinx.ext.doctest',
+extensions = ['sphinx.ext.autodoc', 'sphinx_copybutton', 'sphinx.ext.doctest',
               'sphinx.ext.githubpages', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.viewcode',
               'sphinx.ext.napoleon', 'sphinx.ext.autosummary', 'sphinx.ext.autosectionlabel',
               'autoapi.extension', 'sphinx.ext.autodoc.typehints', 'sphinx_last_updated_by_git']

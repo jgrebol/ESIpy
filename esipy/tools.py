@@ -236,7 +236,7 @@ def format_partition(partition):
         String with the standard partition name for ESIpy.
     """
     partition = partition.lower()
-    if partition in ["m", "mul", "mulliken"]:
+    if partition in ["m", "mul", "mull", "mulliken"]:
         return "mulliken"
     elif partition in ["l", "low", "lowdin"]:
         return "lowdin"
