@@ -10,7 +10,6 @@ def readfchk(filename):
     Returns:
         Mole object and MeanField object.
     """
-    from esipy import Mole, MeanField
     mol = Mole(filename)
     mf = MeanField(filename)
     return mol, mf
@@ -109,7 +108,11 @@ class MeanField:
             for num in self.orbital_energies:
                 if num > 0:
                     nocc += 1
-            self.mo_occ = [2] * nocc + [0] * (len(self.orbital_energies) - nocc)
+            print(nocc)
+            self.mo_occ = [2.] * nocc + [0.] * (len(self.orbital_energies) - nocc)
+            self.mo_occ = np.array(self.mo_occ)
+            print(self.mo_occ)
+            exit()
         elif 'U' in self.__class__.__name__:
             wf = 'unrest'
             if 'HF' in self.__class__.__name__:
@@ -130,6 +133,8 @@ class MeanField:
             self.mo_occ = [1] * nocc_alpha + [1] * nocc_beta + [0] * (
                         len(self.alpha_orbital_energies) + len(self.beta_orbital_energies) - nocc_alpha - nocc_beta)
         self.e_tot = read_from_fchk('SCF Energy', self.path)[-1]
+        self.natm = read_from_fchk('Number of atoms', self.path)[-1]
+        self.nbas = read_from_fchk('Number of basis functions', self.path)[-1]
         self.atomic_numbers = [int(i) for i in read_list_from_fchk('Atomic numbers', 'Nuclear charges', self.path)]
         self.atomic_symbols = read_atomic_symbols(self.atomic_numbers)
         if wf == 'rest':
@@ -155,8 +160,11 @@ class MeanField:
 
         self.coords_shell = read_list_from_fchk('Coordinates of each shell', 'Num ILSW', self.path)
 
+    def get_ovlp(self):
+        return build_ovlp(self)
 
-def SS(mol, mf, qns1, qns2, coords1, coords2, exp1, exp2):
+
+def SS(mf, qns1, qns2, coords1, coords2, exp1, exp2):
     '''
     mol = objecte mol llegit
     mf = objecte mf llegit
@@ -208,14 +216,14 @@ def SS(mol, mf, qns1, qns2, coords1, coords2, exp1, exp2):
         return Sij
 
 
-def build_ovlp(mol, mf):
+def build_ovlp(mf):
     numprim = mf.n_prim_shells
     # print('numprim', numprim)
-    nbasis = mol.nbas
+    nbasis = mf.nbas
     # print('nbasis', nbasis)
     mmax = len(mf.n_prim_per_shell)
     # print('mmax', mmax)
-    natoms = mol.natm
+    natoms = mf.natm
     # print('natoms', natoms)
     nlm = get_nlm(mf)
     # print('nlm', np.shape(nlm))
@@ -240,15 +248,13 @@ def build_ovlp(mol, mf):
             scr = 0
             for p in range(int(mf.n_prim_per_shell[i])):
                 print(p)
-                scr += SS(mol, mf, nlm[p], nlm[p], coords[i], coords[j], exps[i], exps[j])
+                scr += SS(mf, nlm[p], nlm[p], coords[i], coords[j], exps[i], exps[j])
                 S[i, j] = scr
 
     print(S)
     return S
 
-
 f = 'bz.fchk'
-
 
 def comb(a, b):
     from math import factorial
@@ -288,50 +294,3 @@ def get_nlm(mf):
         # print('count for nlm', count)
     # print('pollas len nlm', len(nlm))
     return nlm
-
-
-f = 'bz_i8.fchk'
-mol = Mole(f)
-mf = MeanField(f)
-S = build_ovlp(mol, mf)
-print(S)
-print(S.shape)
-exit()
-esi.make_aoms(mol=mol, mf=mf, partition='mulliken')
-esi.aromaticity(mol=mol, mf=mf, partition='mulliken', rings=[1, 2, 3, 4, 5, 6])
-exit()
-
-for f in ['hf.fchk', 'b3lyp.fchk', 'ub3lyp.fchk']:
-    print(f'READING FILE {f.upper()}')
-    mol = Mole(f)
-    print('Now doing from the mol object')
-    print('Basis set: ', mol.basis)
-    print('Spin: ', mol.spin)
-    print('Number of electrons: ', mol.nelec)
-    print('Number of atoms: ', mol.natm)
-    print('Atom coordinates: ', mol.atom_coords())
-
-    mf = MeanField(f)
-    print('Now doing from the mf object')
-    print('Method: ', mf.__class__.__name__)
-    print('Total Energy: ', mf.e_tot)
-    print('Atomic numbers: ', mf.atomic_numbers)
-    print('Atomic symbols: ', mf.atomic_symbols)
-    print('MO coefficients: ', len(mf.mo_coeff))
-    print('Orbital occupancies: ', mf.mo_occ)
-    if mf.__class__.__name__ == "UKS":
-        print('Number of occupied MOs: ', mf.mo_occ.count(1))
-    else:
-        print('Number of occupied MOs: ', mf.mo_occ.count(2))
-    print('Number of contracted shells: ', mf.n_cont_shells)
-    print('Number of primitive shells: ', mf.n_prim_shells)
-    print('Shell types: ', mf.shell_types)
-    print('Number of primitives per shell: ', mf.n_prim_per_shell)
-    print('Shell to atom map: ', mf.shell_to_atom_map)
-    print('Primitive exponents: ', mf.primitive_exps)
-    print('Contraction coefficients: ', mf.contract_coeff)
-    print('P(S=P) Contraction coefficients: ', mf.psp_contract_coeff)
-    print('Coordinates for each shell: ', mf.coords_shell)
-
-# esi.make_aoms(mol=mol, mf=mf, partition='mulliken')
-

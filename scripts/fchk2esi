@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import esipy
+from esipy import ESI
+from esipy.readfchk import readfchk
 import argparse
 import os
 
@@ -42,6 +43,19 @@ def main():
     num_threads = args.ncores
     save = args.save
 
+    if args.partition is None:
+        print(" | No partition specified. Using only robust schemes meta-Lowdin, NAO and IAO")
+        partition = ['meta_lowdin', 'nao', 'iao']
+    elif args.partition == "all" or args.partition == "a":
+        partition = ["mulliken", "lowdin", "meta_lowdin", "nao", "iao"]
+    elif args.partition == "robust" or args.partition == "r":
+        partition = ['meta_lowdin', 'nao', 'iao']
+    else:
+        parts = args.partition.split(',')
+        partition = []
+        for part in parts:
+            partition.append(part)
+
     # Checking if the file exists
     if not os.path.isfile(fchname):
         parser.error(f"Error: The file '{fchname}' does not exist.")
@@ -63,17 +77,16 @@ def main():
 
     molname, filename = os.path.splitext(fchname)
 
-    mol, mf = esipy.readfchk.readfchk(molname + filename)
-    print(mol)
-    print(mf)
+    mol, mf = readfchk(molname + filename)
 
     os.chdir(os.getcwd())
     for part in partition:
         save_name = molname + '_' + part
         print(f' Saving the AOMs in the file: {save_name}.aoms')
-        arom = esipy.ESI(mol=mol, mf=mf, rings=rings, partition=part, saveaoms=save_name + '.aoms', savemolinfo=save_name + '.molinfo')
+        arom = ESI(mol=mol, mf=mf, rings=rings, partition=part, saveaoms=save_name + '.aoms', savemolinfo=save_name + '.molinfo')
         arom.print()
         if args.writeaoms:
             arom.writeaoms()
+
 if __name__ == '__main__':
     main()

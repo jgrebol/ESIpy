@@ -9,6 +9,7 @@ setup(
     author="Joan Grebol, Eduard Matito, Pedro Salvador",
     url="https://github.com/jgrebol/ESIpy",
     packages=["esipy"],
+    scripts=["scripts/fchk2esi"],
     install_requires=[
         'numpy==2.1.3',
         'pyscf==2.7.0',
