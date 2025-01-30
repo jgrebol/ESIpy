@@ -1047,7 +1047,7 @@ class ESI:
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
                  ncores=1, saveaoms=None, savemolinfo=None, name="calc", readpath='.',
-                 d=1, mcialg=0):
+                 d=1, mcialg=0, minlen=6, maxlen=6):
         # For usual ESIpy calculations
         self._Smo = Smo
         self._rings = rings
@@ -1070,8 +1070,8 @@ class ESI:
         self.saveaoms = saveaoms
         self.savemolinfo = savemolinfo
         self.readpath = readpath
-        self.minlen = 6
-        self.maxlen = 6
+        self.minlen = minlen
+        self.maxlen = maxlen
         self.rings_thres = 0.3
         # For the MCI approximations
         self.d = d
@@ -1114,7 +1114,7 @@ class ESI:
     @property
     def rings(self):
         if self._rings == "find":
-            self._rings = find_rings(build_connec(self.Smo, self.rings_thres))
+            self._rings = find_rings(build_connec(self.Smo, self.rings_thres), self.minlen, self.maxlen)
         return self._rings
 
     @rings.setter

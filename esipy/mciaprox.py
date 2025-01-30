@@ -174,33 +174,22 @@ class HamiltonMCI:
         return dfs([0])
 
     def _anilat_alg1(self):
-        stack = deque([(0, [0], {0}, None)])  # Add 'previous_node' to track paths
-        mids = find_middle_nodes(self.connec)
+        def dfs(graph, vis=None):
+           if vis is None:
+              vis = []
+           if not vis:
+              for n in G:
+                  for p in dfs(graph [n]):
+                      yield p
+           else:
+              dests = set(graph[vis[-1]]) - set(vis)
+              if not dests and len(vis) == len(graph):
+                  yield vis
+              for n in dests:
+                  for p in dfs(graph, vis + [n]):
+                      yield p
+        return dfs(self.connec)
 
-        def explore_branches(node, path, visited, previous_node):
-            branches = []
-            for v in self.connec[node]:
-                if v not in visited and v != previous_node:
-                    branches.append((v, path + [v], visited | {v}, node))
-            return branches
-
-        while stack:
-            node, path, visited, previous_node = stack.pop()
-
-            if len(path) == self.n:
-                val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
-                if val <= self.d and path[1] < path[-1]:
-                    yield path
-
-            if node in mids:  # Check if current node has multiple connections
-                for branch in explore_branches(node, path, visited, previous_node):
-                    stack.append(branch)
-            else:
-                for v in self.connec[node]:
-                    if v not in visited and v != previous_node:  # Avoid backtracking
-                        val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
-                        if val <= self.d:
-                            stack.append((v, path + [v], visited | {v}, node))
 
     def countperms(self):
         return sum(1 for _ in self._select_algorithm())
