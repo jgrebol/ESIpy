@@ -1,5 +1,5 @@
 import numpy as np
-from esipy.tools import mapping, build_connec, build_connec_no, filter_connec, wf_type, find_middle_nodes, is_closed
+from esipy.tools import mapping, build_connec, build_connec_no, filter_connec, wf_type, find_middle_nodes, is_closed, full_connec
 from esipy.indicators import sequential_mci, multiprocessing_mci
 from math import factorial
 from multiprocessing import Pool
@@ -174,11 +174,12 @@ class HamiltonMCI:
         return dfs([0])
 
     def _anilat_alg1(self):
+        print("POLLAAAAAAAAAAAAAAS")
         def dfs(graph, vis=None):
            if vis is None:
               vis = []
            if not vis:
-              for n in G:
+              for n in graph:
                   for p in dfs(graph [n]):
                       yield p
            else:
@@ -188,8 +189,7 @@ class HamiltonMCI:
               for n in dests:
                   for p in dfs(graph, vis + [n]):
                       yield p
-        return dfs(self.connec)
-
+        return dfs(full_connec(self.connec))
 
     def countperms(self):
         return sum(1 for _ in self._select_algorithm())

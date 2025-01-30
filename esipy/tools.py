@@ -405,7 +405,6 @@ def find_middle_vertices(connec):
 def full_connec(self):
     return {k: [v for v in self.arr if v != k] for k in self.arr}
 
-
 def filter_connec(connec):
     filtered_connec = {}
     for key, values in connec.items():
