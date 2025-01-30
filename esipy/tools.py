@@ -417,11 +417,9 @@ def filter_connec(connec):
 
 def is_closed(arr, connec):
     for i in range(len(arr) - 1):
-        if arr[i + 1] not in connec[arr[i]]:
-            return False
-    if arr[0] not in connec[arr[-1]]:
-        return False
-    return True
+        if len(connec[arr[i]]) > 3:
+            return True
+    return False
 
 def find_middle_nodes(connec2):
     return [key for key, values in connec2.items() if len(values) > 2]

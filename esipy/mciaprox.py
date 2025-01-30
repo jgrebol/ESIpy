@@ -39,9 +39,6 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen
         connec = build_connec_no(Smo)
 
     perms = HamiltonMCI(arr, d, mcialg, connec, closed, minlen=minlen, maxlen=maxlen)
-    for p in perms:
-        print(p)
-    exit()
     nperms = perms.countperms()
 
     if ncores == 1:
@@ -104,13 +101,13 @@ class HamiltonMCI:
     def _select_algorithm(self):
         if not self.closed:
             if self.alg == 1:
-                return self._alg1([0])
+                return self._alg1()
             elif self.alg == 2:
-                return self._alg2([0])
+                return self._alg2()
             elif self.alg == 3:
-                return self._alg3([0])
+                return self._alg3()
             elif self.alg == 4:
-                return self._alg4([0])
+                return self._alg4()
             else:
                 raise ValueError(" | Invalid algorithm number. Choose between 1 and 4.")
         else:
@@ -121,64 +118,60 @@ class HamiltonMCI:
                 return self._anilat_alg1()
 
     def _alg1(self):
-        stack = deque([(0, [0], {0})])
-        while stack:
-            node, path, visited = stack.pop()
+        def dfs(path):
             if len(path) == self.n:
                 val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
-                if val <= self.d and path[1] < path[-1]:
+                if val <= self.d and path[1] > path[-1]:
                     yield path
             for v in range(self.n):
-                if v not in visited:
+                if v not in path:
                     val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
                     if val <= self.d:
-                        stack.append((v, path + [v], visited | {v}))
+                        yield from dfs(path + [v])
+
+        return dfs([0])
 
     def _alg2(self):
-        stack = deque([(0, [0], {0})])
-        while stack:
-            node, path, visited = stack.pop()
+        def dfs(path):
             if len(path) == self.n:
-                maxval = max(
-                    min(abs(path[i] - path[i + 1]), self.n - abs(path[i] - path[i + 1])) for i in range(self.n - 1))
                 val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
-                if val > maxval:
-                    maxval = val
-                if maxval == self.d and path[1] < path[-1]:
+                if val == self.d and path[1] > path[-1]:
                     yield path
             for v in range(self.n):
-                if v not in visited:
+                if v not in path:
                     val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
-                    if val <= self.d:
-                        stack.append((v, path + [v], visited | {v}))
+                    if val == self.d:
+                        yield from dfs(path + [v])
+
+        return dfs([0])
 
     def _alg3(self):
-        stack = deque([(0, [0], {0})])
-        while stack:
-            node, path, visited = stack.pop()
+        def dfs(path):
             if len(path) == self.n:
                 val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
-                if val <= self.d and val % 2 != 0 and path[1] < path[-1]:
+                if val <= self.d and path[1] > path[-1] and val % 2 != 0:
                     yield path
             for v in range(self.n):
-                if v not in visited:
+                if v not in path:
                     val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
                     if val <= self.d and val % 2 != 0:
-                        stack.append((v, path + [v], visited | {v}))
+                        yield from dfs(path + [v])
+
+        return dfs([0])
 
     def _alg4(self):
-        stack = deque([(0, [0], {0})])
-        while stack:
-            node, path, visited = stack.pop()
+        def dfs(path):
             if len(path) == self.n:
                 val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
-                if val <= self.d and val % 2 == 0 and path[1] < path[-1]:
+                if val <= self.d and path[1] > path[-1] and val % 2 == 0:
                     yield path
             for v in range(self.n):
-                if v not in visited:
+                if v not in path:
                     val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
                     if val <= self.d and val % 2 == 0:
-                        stack.append((v, path + [v], visited | {v}))
+                        yield from dfs(path + [v])
+
+        return dfs([0])
 
     def _anilat_alg1(self):
         stack = deque([(0, [0], {0}, None)])  # Add 'previous_node' to track paths
