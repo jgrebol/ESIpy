@@ -7,7 +7,7 @@ partitions using the PySCF module.
 
 .. toctree::
    :onlytitle:
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    Introduction <intro>
