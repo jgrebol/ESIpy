@@ -4,3 +4,4 @@ sphinx-autoapi
 sphinx-last-updated-by-git
 sphinxcontrib-bibtex
 sphinx-favicon
+insegel
