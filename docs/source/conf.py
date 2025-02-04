@@ -36,7 +36,6 @@ extensions = ['sphinx.ext.autodoc', 'sphinx_copybutton', 'sphinx.ext.doctest',
 templates_path = ["_templates"]
 exclude_patterns = []
 pygments_style = "sphinx"
-bibtex_bibfiles = ["references.bib"]
 mathjax_path="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
 master_doc = "index"
 
@@ -45,6 +44,7 @@ master_doc = "index"
 
 html_theme = "insegel"
 html_static_path = ["_static"]
+bibtex_bibfiles = ["references.bib"]
 html_css_files = ["custom.css"]
 html_style = "css/custom.css"
 html_logo = "logoesipy.png"
