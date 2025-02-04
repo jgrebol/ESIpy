@@ -1,10 +1,10 @@
 numpy
 scipy
 pyscf
-sphinx
 sphinx-copybutton
+napoleon
+sphinx.ext.autosummary
 autoapi
 sphinx-last-updated-by-git
 sphinxcontrib-bibtex
-sphinx-mathjax
 sphinx-favicon
