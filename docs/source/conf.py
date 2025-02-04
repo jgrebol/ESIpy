@@ -45,10 +45,10 @@ master_doc = "index"
 
 html_theme = "insegel"
 html_static_path = ["_static"]
-bibtex_bibfiles = ["references.bib"]
 html_css_files = ["custom.css"]
 html_logo = "logoesipy.png"
-html_title = "hola"
+html_title = "ESIpy"
+bibtex_bibfiles = ["references.bib"]
 
 favicons = [
     "favicon-16x16.png",
