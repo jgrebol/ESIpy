@@ -11,6 +11,10 @@ a:hover:not(.headerlink) {
   text-color: #00CCAD;
 }
 
+#project-container h1 {
+  display: none;
+}
+
 /* b, strong {
   color: var(--hover-color);
 } */
