@@ -10,7 +10,7 @@ build:
   tools:
     python: "3.13"
   commands:
-    pwd
+    - pwd
 
 formats:
     - pdf
