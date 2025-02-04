@@ -16,7 +16,8 @@ formats:
     - pdf
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
-  configuration: docs/conf.py
+  configuration: /home/docs/checkouts/readthedocs.org/user_builds/esipython/checkouts/latest/docs/conf.py
+
 
 # Optionally, but recommended,
 # declare the Python requirements required to build your documentation
