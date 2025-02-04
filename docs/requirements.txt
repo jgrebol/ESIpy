@@ -1,6 +1,6 @@
 sphinx-copybutton
 sphinxcontrib-napoleon
-autoapi
+sphinx-autoapi
 sphinx-last-updated-by-git
 sphinxcontrib-bibtex
 sphinx-favicon
