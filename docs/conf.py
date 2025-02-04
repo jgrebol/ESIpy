@@ -36,7 +36,7 @@ mathjax_path="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-M
 
 html_theme = 'insegel'
 html_static_path = ['_static']
-html_favicon = 'docs/_static/favicon.ico'
+html_favicon = '_static/favicon.ico'
 html_css_files = ["css/custom.css"]
 html_logo = "logoesipy.png"
 html_title = "ESIpy"
