@@ -13,8 +13,8 @@ tests/*.pyo
 build/
 dist/
 docs/build/
-docs/_static/
-docs/_templates/
+docs/static/
+docs/templates/
 
 .idea/*
 *.egg-info/*
