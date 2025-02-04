@@ -11,8 +11,9 @@ a:hover:not(.headerlink) {
   text-color: #00CCAD;
 }
 
-#project-container h1 {
+#project-container {
 width: 100%;
+text-align: right;
 }
 
 /* b, strong {
