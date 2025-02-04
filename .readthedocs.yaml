@@ -2,7 +2,7 @@
 # See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
 
 # Required
-version: 2
+version: 1
 
 # Set the OS, Python version, and other tools you might need
 build:
@@ -10,6 +10,8 @@ build:
   tools:
     python: "3.13"
 
+formats:
+    - pdf
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
   configuration: docs/conf.py
