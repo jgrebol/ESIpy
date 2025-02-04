@@ -9,7 +9,7 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('./'))
+sys.path.insert(0, os.path.abspath('../'))
 
 project = 'ESIpy'
 copyright = '2024, Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador'
@@ -37,7 +37,7 @@ master_doc = "index"
 
 html_theme = "insegel"
 html_static_path = ["_static"]
-html_css_files = ["_static/css/custom.css"]
+html_css_files = ["css/custom.css"]
 html_logo = "logoesipy.png"
 html_title = "ESIpy"
 
