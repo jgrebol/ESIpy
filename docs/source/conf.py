@@ -25,19 +25,19 @@ extensions = ['sphinx.ext.autodoc', 'sphinx_copybutton', 'sphinx.ext.doctest',
               'autoapi.extension', 'sphinx.ext.autodoc.typehints', 'sphinx_last_updated_by_git',
               'sphinxcontrib.bibtex', 'sphinx.ext.mathjax', 'sphinx.ext.autosectionlabel', 'sphinx_favicon']
 
-templates_path = ['_templates']
+templates_path = ["_templates"]
 exclude_patterns = []
-pygments_style = 'sphinx'
-bibtex_bibfiles = ['references.bib']
+pygments_style = "sphinx"
+bibtex_bibfiles = ["references.bib"]
 mathjax_path="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
-master_doc = 'index'
+master_doc = "index"
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'insegel'
+html_theme = "insegel"
 html_static_path = ["_static"]
-html_css_files = ["css/custom.css"]
+html_css_files = ["_static/css/custom.css"]
 html_logo = "logoesipy.png"
 html_title = "ESIpy"
 
@@ -49,4 +49,4 @@ favicons = [
 
 autodoc_typehints = "description"
 autodoc_class_signature = "separated"
-autoapi_dirs = ['../../esipy']
+autoapi_dirs = ["../../esipy"]
