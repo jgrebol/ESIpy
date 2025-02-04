@@ -3,12 +3,13 @@
 pushd %~dp0
 
 REM Command file for Sphinx documentation
+cd
 
 if "%SPHINXBUILD%" == "" (
 	set SPHINXBUILD=sphinx-build
 )
-set SOURCEDIR=docs
-set BUILDDIR=docs/build
+set SOURCEDIR = .
+set BUILDDIR = build
 
 %SPHINXBUILD% >NUL 2>NUL
 if errorlevel 9009 (
