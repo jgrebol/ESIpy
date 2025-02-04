@@ -48,7 +48,7 @@ html_static_path = ["_static"]
 bibtex_bibfiles = ["references.bib"]
 html_css_files = ["custom.css"]
 html_logo = "logoesipy.png"
-html_title = "ESIpy"
+html_title = "hola"
 
 favicons = [
     "favicon-16x16.png",
