@@ -1,13 +1,12 @@
 :root {
-  --hover-color: #009982;
+  --main-color: #009982;
 }
 
 #main-content {
 font-family:}
 
-/* Custom CSS for hover underline color */
 a:hover:not(.headerlink) {
-  border-bottom: 2px solid var(--hover-color);
+  border-bottom: 2px solid var(--main-color);
   text-color: #00CCAD;
 }
 
@@ -16,22 +15,16 @@ width: 90%;
 text-align: right;
 }
 
-/* b, strong {
-  color: var(--hover-color);
-} */
-
 li.toctree-l1 > a:hover, li.toctree-l2 > a:hover, li.toctree-l3 > a:hover {
   text-underline-color: #E0F7F4
 }
 
-/* Side menu specific hover effect */
 #side-menu-container li.toctree-l1 > a:hover,
 #side-menu-container li.toctree-l2 > a:hover,
 #side-menu-container li.toctree-l3 > a:hover {
   color: #E0F7F4;
 }
 
-/* Main content specific hover effect with a lighter color */
 #main-content-container li.toctree-l1 > a:hover,
 #main-content-container li.toctree-l2 > a:hover,
 #main-content-container li.toctree-l3 > a:hover {
@@ -43,17 +36,15 @@ text-align: justify;
 }
 
 header #logo-container {
-  width: 150%; /* Or 100% if you want it to fill the parent */
+  width: 150%;
   height: 100px;
   padding-left: 0em;
 }
 
 #logo-container img {
-  /* Remove float */
-  max-width: 150%; /* Prevent image from overflowing */
-  max-height: 150%; /* Prevent image from overflowing */
-  /* Maintain aspect ratio and center if necessary: */
-  object-fit: cover; /* or cover if you want it to fill */
+  max-width: 150%;
+  max-height: 150%;
+  object-fit: cover;
 }
 
 img.align-center {
@@ -90,19 +81,19 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 {
 font-weight: 500;
-border-bottom: 4px solid var(--hover-color);
+border-bottom: 4px solid var(--main-color);
 }
 
 h2 {
 font-weight: 450;
-border-bottom: 2.5px solid var(--hover-color);
+border-bottom: 2.5px solid var(--main-color);
 }
 
 h3 {
 font-weight: 300;}
 
 h3, h4, h5, h6 {
-  border-bottom: 1px solid var(--hover-color);
+  border-bottom: 1px solid var(--main-color);
 }
 
 #side-menu-container {
