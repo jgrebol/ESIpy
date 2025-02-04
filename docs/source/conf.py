@@ -9,7 +9,7 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
 
 project = 'ESIpy'
 copyright = '2024, Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador'
@@ -49,4 +49,4 @@ favicons = [
 
 autodoc_typehints = "description"
 autodoc_class_signature = "separated"
-autoapi_dirs = ['../esipy']
+autoapi_dirs = ['../../esipy']
