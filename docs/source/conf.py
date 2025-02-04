@@ -9,7 +9,6 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath("../"))
 sys.path.insert(0, os.path.abspath("./"))
 
 def setup(app):
@@ -46,7 +45,6 @@ html_theme = "insegel"
 html_static_path = ["_static"]
 bibtex_bibfiles = ["references.bib"]
 html_css_files = ["custom.css"]
-html_style = "css/custom.css"
 html_logo = "logoesipy.png"
 html_title = "ESIpy"
 
