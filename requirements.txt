@@ -1,8 +1,8 @@
 numpy
 scipy
 pyscf
-sphinx_copybutton
-napoleon
+sphinx-copybutton
+sphinxcontrib-napoleon
 sphinx.ext.autosummary
 autoapi
 sphinx-last-updated-by-git
