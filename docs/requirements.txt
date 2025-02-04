@@ -1,5 +1,5 @@
 sphinx-copybutton
-napoleon
+sphinxcontrib-napoleon
 sphinx.ext.autosummary
 autoapi
 sphinx-last-updated-by-git
