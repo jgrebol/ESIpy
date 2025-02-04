@@ -45,7 +45,7 @@ master_doc = "index"
 
 html_theme = "insegel"
 html_static_path = ["_static"]
-html_css_files = ["css/custom.css"]
+html_css_files = ["custom.css"]
 html_style = "css/custom.css"
 html_logo = "logoesipy.png"
 html_title = "ESIpy"
