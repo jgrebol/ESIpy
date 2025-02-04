@@ -12,7 +12,7 @@ a:hover:not(.headerlink) {
 }
 
 #project-container h1 {
-  display: none;
+width: 100%;
 }
 
 /* b, strong {

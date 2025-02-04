@@ -1,5 +1,5 @@
 ESIpy
-============
+=====
 
 The ESIpy program is aimed at the calculation of population analysis and aromaticity indicators from different
 Hilbert-space partitions using the PySCF module. The program supports both restricted and unrestricted calculations for

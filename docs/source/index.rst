@@ -1,8 +1,5 @@
 .. |I_ring| replace:: I\ :math:`_{\text{ring}}`
 
-ESIpy
-=====
-
 .. image:: ./logoesipy.png
    :alt: ESIpy Logo
    :align: center
