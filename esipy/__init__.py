@@ -57,8 +57,8 @@ class IndicatorsRest:
         """
         Compute the Iring value.
 
-        Returns:
-            float: The Iring value.
+        :returns: The Iring value
+            :rtype: float
         """
         return 2 * compute_iring(self._rings, self._Smo)
 
@@ -67,8 +67,8 @@ class IndicatorsRest:
         """
         Compute the MCI value.
 
-        Returns:
-            float: The MCI value.
+        :returns: The MCI value
+        :rtype: float
         """
         if not hasattr(self, '_done_mci'):
             if self._ncores == 1:
@@ -81,8 +81,8 @@ class IndicatorsRest:
         """
         Compute the AV1245, AVmin and the list of the 4c-MCIs.
 
-        Returns:
-            tuple: List containing the AV1245, AVmin and the list of the 4c-MCIs.
+        :returns: Tuple containing the AV1245, AVmin and the list of the 4c-MCIs.
+        :rtype: tuple
         """
         if not hasattr(self, '_done_av'):
             self._done_av = compute_av1245(self._rings, self._Smo, self._partition)
@@ -93,8 +93,8 @@ class IndicatorsRest:
         """
         Get the AV1245 value.
 
-        Returns:
-            float: The AV1245 value.
+        :returns: The AV1245 value.
+        :rtype: float
         """
         return 2 * self._av()[0]
 
@@ -103,8 +103,8 @@ class IndicatorsRest:
         """
         Get the AVmin value.
 
-        Returns:
-            float: The AVmin value.
+        :returns: The AVmin value.
+        :rtype: float
         """
         return 2 * self._av()[1]
 
@@ -113,8 +113,8 @@ class IndicatorsRest:
         """
         Get the list of 4c-MCIs that form the AV1245.
 
-        Returns:
-            numpy.ndarray: The list of 4c-MCIs that form the AV1245.
+        :returns: The list of 4c-MCIs that form the AV1245.
+        :rtype: numpy.ndarray
         """
         return 2 * np.array(self._av()[2], dtype=object)
 
@@ -122,8 +122,8 @@ class IndicatorsRest:
         """
         Compute the PDI.
 
-        Returns:
-            tuple: The PDI value.
+        :returns: The PDI value.
+        :rtype: float
         """
         if not hasattr(self, '_done_pdi'):
             self._done_pdi = compute_pdi(self._rings, self._Smo)
@@ -134,8 +134,8 @@ class IndicatorsRest:
         """
         Get the PDI value.
 
-        Returns:
-            float: The PDI value.
+        :returns: The PDI value.
+        :rtype: float
         """
         return 2 * self._pdi()[0]
 
@@ -144,8 +144,8 @@ class IndicatorsRest:
         """
         Get the list of the DIs (1-4, 2-5, 3-6).
 
-        Returns:
-            numpy.ndarray: The list of the DI values that form PDI.
+        :returns: The list of the DI values that form PDI.
+        :rtype: numpy.ndarray
         """
         return 2 * np.array(self._pdi()[1], dtype=object)
 
@@ -154,8 +154,8 @@ class IndicatorsRest:
         """
         Compute the FLU value.
 
-        Returns:
-            float: The FLU value.
+        :returns: The FLU value.
+        :rtype: float
         """
         return compute_flu(self._rings, self._molinfo, self._Smo, self._flurefs, self._partition)
 
@@ -163,8 +163,8 @@ class IndicatorsRest:
         """
         Compute the BOA and BOA_c values.
 
-        Returns:
-            tuple: The BOA and BOA_c values.
+        :returns: The BOA and BOA_c values.
+        :rtype: tuple
         """
         if not hasattr(self, '_done_boa'):
             self._done_boa = compute_boa(self._rings, self._Smo)
@@ -175,8 +175,8 @@ class IndicatorsRest:
         """
         Get the BOA value.
 
-        Returns:
-            float: The BOA value.
+        :returns: The BOA value.
+        :rtype: float
         """
         return 2 * self._boa()[0]
 
@@ -185,8 +185,8 @@ class IndicatorsRest:
         """
         Get the BOA_c value.
 
-        Returns:
-            float: The BOA_c value.
+        :returns: The BOA_c value.
+        :rtype: float
         """
         return 2 * self._boa()[1]
 
@@ -195,8 +195,8 @@ class IndicatorsRest:
         """
         Compute the HOMER value.
 
-        Returns:
-            float: The HOMER value.
+        :returns: The HOMER value.
+        :rtype: float
         """
         if self._geom is None or self._homerrefs is None or self._connectivity is None:
             return None
@@ -207,8 +207,8 @@ class IndicatorsRest:
         """
         Compute the HOMA and the EN and GEO components.
 
-        Returns:
-            tuple: The HOMA, EN and GEO values.
+        :returns: The HOMA, EN and GEO values.
+        :rtype: tuple
         """
         if not hasattr(self, '_done_homa'):
             self._done_homa = compute_homa(self._rings, self._molinfo, self._homarefs)
@@ -219,8 +219,8 @@ class IndicatorsRest:
         """
         Get the HOMA value.
 
-        Returns:
-            float: The HOMA value.
+        :returns: The HOMA value.
+        :rtype: float
         """
         if self._homa() is None:
             return None
@@ -231,8 +231,8 @@ class IndicatorsRest:
         """
         Get the EN value.
 
-        Returns:
-            float: The EN value.
+        :returns: The EN value.
+        :rtype: float
         """
         return self._homa()[1]
 
@@ -241,8 +241,8 @@ class IndicatorsRest:
         """
         Get the GEO value.
 
-        Returns:
-            float: The GEO value.
+        :returns: The GEO value.
+        :rtype: float
         """
         return self._homa()[2]
 
@@ -250,8 +250,8 @@ class IndicatorsRest:
         """
         Compute the BLA and BLA_c values.
 
-        Returns:
-            tuple: The BLA and BLA_c values.
+        :returns: The BLA and BLA_c values.
+        :rtype: tuple
         """
         if not hasattr(self, '_done_bla'):
             self._done_bla = compute_bla(self._rings, self._molinfo)
@@ -262,8 +262,8 @@ class IndicatorsRest:
         """
         Get the BLA value.
 
-        Returns:
-            float: The BLA value.
+        :returns: The BLA value.
+        :rtype: float
         """
         return self._bla()[0]
 
@@ -272,8 +272,8 @@ class IndicatorsRest:
         """
         Get the BLA_c value.
 
-        Returns:
-            float: The BLA_c value.
+        :returns: The BLA_c value.
+        :rtype: float
         """
         return self._bla()[1]
 
@@ -282,8 +282,8 @@ class IndicatorsRest:
         """
         Get the HOMER value.
 
-        Returns:
-            float: The HOMER value.
+        :returns: The HOMER value.
+        :rtype: float
         """
         return compute_homer(self._rings, self._molinfo, self._homerrefs)
 
@@ -332,8 +332,8 @@ class IndicatorsUnrest:
         """
         Compute the Iring and their alpha and beta components.
 
-        Returns:
-            tuple: The Iring, Iring_alpha and Iring_beta.
+        :returns: The Iring, Iring_alpha and Iring_beta.
+        :rtype: tuple
         """
         if not hasattr(self, '_done_irings'):
             self._done_irings = (
@@ -347,8 +347,8 @@ class IndicatorsUnrest:
         """
         Get the Iring value.
 
-        Returns:
-            float: The Iring value.
+        :returns: The Iring value.
+        :rtype: float
         """
         return self._irings()[0] + self._irings()[1]
 
@@ -357,8 +357,8 @@ class IndicatorsUnrest:
         """
         Get the Iring_alpha value.
 
-        Returns:
-            float: The Iring_alpha value.
+        :returns: The Iring_alpha value.
+        :rtype: float
         """
         return self._irings()[0]
 
@@ -367,8 +367,8 @@ class IndicatorsUnrest:
         """
         Get the Iring_beta value.
 
-        Returns:
-            float: The Iring_beta value.
+        :returns: The Iring_beta value.
+        :rtype: float
         """
         return self._irings()[1]
 
@@ -377,8 +377,8 @@ class IndicatorsUnrest:
         Compute the MCI values for alpha and beta components. Different algorithms are used depending on
             the number of cores.
 
-        Returns:
-            tuple: The MCI values for alpha and beta components.
+        :returns: The MCI values for alpha and beta components.
+        :rtype: tuple
         """
         if not hasattr(self, '_done_mcis'):
             if self._ncores == 1:
@@ -397,8 +397,8 @@ class IndicatorsUnrest:
         """
         Get the MCI value.
 
-        Returns:
-            float: The MCI value.
+        :returns: The MCI value.
+        :rtype: float
         """
         return self._mcis()[0] + self._mcis()[1]
 
@@ -407,8 +407,8 @@ class IndicatorsUnrest:
         """
         Get the MCI_alpha value.
 
-        Returns:
-            float: The MCI_alpha value.
+        :returns: The MCI_alpha value.
+        :rtype: float
         """
         return self._mcis()[0]
 
@@ -417,8 +417,8 @@ class IndicatorsUnrest:
         """
         Get the MCI_beta value.
 
-        Returns:
-            float: The MCI_beta value.
+        :returns: The MCI_beta value.
+        :rtype: float
         """
         return self._mcis()[1]
 
@@ -426,8 +426,8 @@ class IndicatorsUnrest:
         """
         Compute the AV1245, AVmin and the list of the 4c-MCIs for alpha and beta components.
 
-        Returns:
-            tuple: The AV1245, AVmin and the list of the 4c-MCIs for alpha and beta components.
+        :returns: The AV1245, AVmin and the list of the 4c-MCIs for alpha and beta components.
+        :rtype: tuple
         """
         if not hasattr(self, '_done_avs'):
             self._done_avs = (
@@ -440,8 +440,9 @@ class IndicatorsUnrest:
     def av1245(self):
         """
         Get the AV1245 value.
-        Returns:
-            float: The AV1245 value.
+
+        :returns: The AV1245 value.
+        :rtype: float
         """
         return self._avs()[0][0] + self._avs()[1][0]
 
@@ -449,8 +450,9 @@ class IndicatorsUnrest:
     def av1245_alpha(self):
         """
         Get the AV1245_alpha value.
-        Returns:
-            float: The AV1245_alpha value.
+
+        :returns: The AV1245_alpha value.
+        :rtype: float
         """
         return self._avs()[0][0]
 
@@ -458,8 +460,9 @@ class IndicatorsUnrest:
     def av1245_beta(self):
         """
         Get the AV1245_beta value.
-        Returns:
-            float: The AV1245_beta value.
+
+        :returns: The AV1245_beta value.
+        :rtype: float
         """
         return self._avs()[1][0]
 
@@ -467,8 +470,9 @@ class IndicatorsUnrest:
     def avmin(self):
         """
         Get the AVmin value.
-        Returns:
-            float: The AVmin value.
+
+        :returns: The AVmin value.
+        :rtype: float
         """
         return min(list(self.av1245_list), key=abs)
 
@@ -476,8 +480,9 @@ class IndicatorsUnrest:
     def avmin_alpha(self):
         """
         Get the AVmin_alpha value.
-        Returns:
-            float: The AVmin_alpha value.
+
+        :returns: The AVmin_alpha value.
+        :rtype: float
         """
         return min(self.av1245_list_alpha, key=abs)
 
@@ -485,8 +490,9 @@ class IndicatorsUnrest:
     def avmin_beta(self):
         """
         Get the AVmin_beta value.
-        Returns:
-            float: The AVmin_beta value.
+
+        :returns: The AVmin_beta value.
+        :rtype: float
         """
         return min(self.av1245_list_beta, key=abs)
 
@@ -494,8 +500,9 @@ class IndicatorsUnrest:
     def av1245_list(self):
         """
         Get the list of 4c-MCIs that form the AV1245.
-        Returns:
-            numpy.ndarray: The list of 4c-MCIs that form the AV1245.
+
+        :returns: The list of 4c-MCIs that form the AV1245.
+        :rtype: numpy.ndarray
         """
         return np.add(self.av1245_list_alpha, self.av1245_list_beta)
 
@@ -503,8 +510,9 @@ class IndicatorsUnrest:
     def av1245_list_alpha(self):
         """
         Get the list of 4c-MCIs that form the AV1245_alpha.
-        Returns:
-            numpy.ndarray: The list of 4c-MCIs that form the AV1245_alpha.
+
+        :returns: The list of 4c-MCIs that form the AV1245_alpha.
+        :rtype: numpy.ndarray
         """
         return self._avs()[0][2]
 
@@ -512,16 +520,18 @@ class IndicatorsUnrest:
     def av1245_list_beta(self):
         """
         Get the list of 4c-MCIs that form the AV1245_beta.
-        Returns:
-            numpy.ndarray: The list of 4c-MCIs that form the AV1245_beta.
+
+        :returns: The list of 4c-MCIs that form the AV1245_beta.
+        :rtype: numpy.ndarray
         """
         return self._avs()[1][2]
 
     def _pdis(self):
         """
         Compute the PDI values for alpha and beta components.
-        Returns:
-            tuple: The PDI values for alpha and beta components.
+
+        :returns: The PDI values for alpha and beta components.
+        :rtype: tuple
         """
         if not hasattr(self, '_done_pdis'):
             self._done_pdis = (
@@ -534,8 +544,9 @@ class IndicatorsUnrest:
     def pdi(self):
         """
         Get the PDI value.
-        Returns:
-            float: The PDI value.
+
+        :returns: The PDI value.
+        :rtype: float
         """
         return self._pdis()[0][0] + self._pdis()[1][0]
 
@@ -543,8 +554,9 @@ class IndicatorsUnrest:
     def pdi_alpha(self):
         """
         Get the PDI_alpha value.
-        Returns:
-            float: The PDI_alpha value.
+
+        :returns: The PDI_alpha value.
+        :rtype: float
         """
         return self._pdis()[0][0]
 
@@ -552,8 +564,9 @@ class IndicatorsUnrest:
     def pdi_beta(self):
         """
         Get the PDI_beta value.
-        Returns:
-            float: The PDI_beta value.
+
+        :returns: The PDI_beta value.
+        :rtype: float
         """
         return self._pdis()[1][0]
 
@@ -561,8 +574,9 @@ class IndicatorsUnrest:
     def pdi_list(self):
         """
         Get the list of the DIs (1-4, 2-5, 3-6).
-        Returns:
-            numpy.ndarray: The list of the DI values that form PDI.
+
+        :returns: The list of the DI values that form PDI.
+        :rtype: numpy.ndarray
         """
         return self._pdis()[0][1] + self._pdis()[1][1]
 
@@ -570,8 +584,9 @@ class IndicatorsUnrest:
     def pdi_list_alpha(self):
         """
         Get the list of the alpha component of the DIs (1-4, 2-5, 3-6).
-        Returns:
-            numpy.ndarray: The list of the alpha component of the DI values that form PDI.
+
+        :returns: The list of the alpha component of the DI values that form PDI.
+        :rtype: numpy.ndarray
         """
         return self._pdis()[0][1]
 
@@ -579,16 +594,18 @@ class IndicatorsUnrest:
     def pdi_list_beta(self):
         """
         Get the list of the beta component of the DIs (1-4, 2-5, 3-6).
-        Returns:
-            numpy.ndarray: The list of the beta component of the DI values that form PDI.
+
+        :returns: The list of the beta component of the DI values that form PDI.
+        :rtype: numpy.ndarray
         """
         return self._pdis()[1][1]
 
     def _flus(self):
         """
         Compute the FLU values for alpha and beta components.
-        Returns:
-            tuple: The FLU values for alpha and beta components.
+
+        :returns: The FLU values for alpha and beta components.
+        :rtype: tuple
         """
         if not hasattr(self, '_done_flus'):
             self._done_flus = (
@@ -601,8 +618,9 @@ class IndicatorsUnrest:
     def flu(self):
         """
         Get the FLU value.
-        Returns:
-            float: The FLU value.
+
+        :returns: The FLU value.
+        :rtype: float
         """
         if self._flus()[0] is None:
             return None
@@ -612,8 +630,9 @@ class IndicatorsUnrest:
     def flu_alpha(self):
         """
         Get the FLU_alpha value.
-        Returns:
-            float: The FLU_alpha value.
+
+        :returns: The FLU_alpha value.
+        :rtype: float
         """
         return self._flus()[0]
 
@@ -621,16 +640,18 @@ class IndicatorsUnrest:
     def flu_beta(self):
         """
         Get the FLU_beta value.
-        Returns:
-            float: The FLU_beta value.
+
+        :returns: The FLU_beta value.
+        :rtype: float
         """
         return self._flus()[1]
 
     def _boas(self):
         """
         Compute the BOA and BOA_c values for alpha and beta components.
-        Returns:
-            tuple: The BOA and BOA_c values for alpha and beta components.
+
+        :returns: The BOA and BOA_c values for alpha and beta components.
+        :rtype: tuple
         """
         if not hasattr(self, '_done_boas'):
             self._done_boas = (
@@ -643,8 +664,9 @@ class IndicatorsUnrest:
     def boa(self):
         """
         Get the BOA value.
-        Returns:
-            float: The BOA value.
+
+        :returns: The BOA value.
+        :rtype: float
         """
         return self._boas()[0][0] + self._boas()[1][0]
 
@@ -652,8 +674,9 @@ class IndicatorsUnrest:
     def boa_alpha(self):
         """
         Get the BOA_alpha value.
-        Returns:
-            float: The BOA_alpha value.
+
+        :returns: The BOA_alpha value.
+        :rtype: float
         """
         return self._boas()[0][0]
 
@@ -661,8 +684,9 @@ class IndicatorsUnrest:
     def boa_beta(self):
         """
         Get the BOA_beta value.
-        Returns:
-            float: The BOA_beta value
+
+        :returns: The BOA_beta value
+        :rtype: float
         """
         return self._boas()[1][0]
 
@@ -670,8 +694,9 @@ class IndicatorsUnrest:
     def boa_c(self):
         """
         Get the BOA_c value.
-        Returns:
-            float: The BOA_c value.
+
+        :returns: The BOA_c value.
+        :rtype: float
         """
         return self._boas()[0][1] + self._boas()[1][1]
 
@@ -679,8 +704,9 @@ class IndicatorsUnrest:
     def boa_c_alpha(self):
         """
         Get the BOA_c_alpha value.
-        Returns:
-            float: The BOA_c_alpha value.
+
+        :returns: The BOA_c_alpha value.
+        :rtype: float
         """
         return self._boas()[0][1]
 
@@ -688,16 +714,18 @@ class IndicatorsUnrest:
     def boa_c_beta(self):
         """
         Get the BOA_c_beta value.
-        Returns:
-            float: The BOA_c_beta value.
+
+        :returns: The BOA_c_beta value.
+        :rtype: float
         """
         return self._boas()[1][1]
 
     def _homas(self):
         """
         Compute the HOMA and the EN and GEO components.
-        Returns:
-            tuple: The HOMA, EN and GEO values.
+
+        :returns: The HOMA, EN and GEO values.
+        :rtype: tuple
         """
         if not hasattr(self, '_done_homas'):
             self._done_homas = compute_homa(self._rings, self._molinfo, self._homarefs)
@@ -707,8 +735,9 @@ class IndicatorsUnrest:
     def homa(self):
         """
         Get the HOMA value.
-        Returns:
-            float: The HOMA value.
+
+        :returns: The HOMA value.
+        :rtype: float
         """
         if self._homas() is None:
             return None
@@ -718,8 +747,9 @@ class IndicatorsUnrest:
     def en(self):
         """
         Get the EN value.
-        Returns:
-            float: The EN value.
+
+        :returns: The EN value.
+        :rtype: float
         """
         return self._homas()[1]
 
@@ -727,8 +757,9 @@ class IndicatorsUnrest:
     def geo(self):
         """
         Get the GEO value.
-        Returns:
-            float: The GEO value.
+
+        :returns: The GEO value.
+        :rtype: float
         """
         return self._homas()[2]
 
@@ -736,16 +767,18 @@ class IndicatorsUnrest:
     def homer(self):
         """
         Get the HOMER value.
-        Returns:
-            float: The HOMER value.
+
+        :returns: The HOMER value.
+        :rtype: float
         """
         return compute_homer(self._rings, self._molinfo, self._homerrefs)
 
     def _blas(self):
         """
         Compute the BLA and BLA_c values.
-        Returns:
-            tuple: The BLA and BLA_c values.
+
+        :returns: The BLA and BLA_c values.
+        :rtype: tuple
         """
         if not hasattr(self, '_done_blas'):
             self._done_blas = compute_bla(self._rings, self._molinfo)
@@ -755,8 +788,9 @@ class IndicatorsUnrest:
     def bla(self):
         """
         Get the BLA value.
-        Returns:
-            float: The BLA value.
+
+        :returns: The BLA value.
+        :rtype: float
         """
         return self._blas()[0]
 
@@ -764,8 +798,9 @@ class IndicatorsUnrest:
     def bla_c(self):
         """
         Get the BLA_c value.
-        Returns:
-            float: The BLA_c value.
+
+        :returns: The BLA_c value.
+        :rtype: float
         """
         return self._blas()[1]
 
@@ -815,8 +850,9 @@ class IndicatorsNatorb:
     def iring(self):
         """
         Compute the Iring value.
-        Returns:
-            float: The Iring value.
+
+        :returns: The Iring value.
+        :rtype: float
         """
         return compute_iring_no(self._rings, self._Smo)
 
@@ -824,8 +860,9 @@ class IndicatorsNatorb:
     def mci(self):
         """
         Compute the MCI value.
-        Returns:
-            float: The MCI value.
+
+        :returns: The MCI value.
+        :rtype: float
         """
         if not hasattr(self, '_done_mci'):
             if self._ncores == 1:
@@ -837,8 +874,9 @@ class IndicatorsNatorb:
     def _av_no(self):
         """
         Compute the AV1245, AVmin and the list of the 4c-MCIs.
-        Returns:
-            tuple: List containing the AV1245, AVmin and the list of the 4c-MCIs.
+
+        :returns: List containing the AV1245, AVmin and the list of the 4c-MCIs.
+        :rtype: list
         """
         if not hasattr(self, '_done_av_no'):
             self._done_av_no = compute_av1245_no(self._rings, self._Smo, self._partition)
@@ -848,8 +886,9 @@ class IndicatorsNatorb:
     def av1245(self):
         """
         Get the AV1245 value.
-        Returns:
-            float: The AV1245 value
+
+        :returns: The AV1245 value
+        :rtype: float
         """
         return self._av_no()[0]
 
@@ -857,8 +896,9 @@ class IndicatorsNatorb:
     def avmin(self):
         """
         Get the AVmin value.
-        Returns:
-            float: The AVmin value.
+
+        :returns: The AVmin value.
+        :rtype: float
         """
         return self._av_no()[1]
 
@@ -866,16 +906,18 @@ class IndicatorsNatorb:
     def av1245_list(self):
         """
         Get the list of 4c-MCIs that form the AV1245.
-        Returns:
-            numpy.ndarray: The list of 4c-MCIs that form the AV1245.
+
+        :returns: The list of 4c-MCIs that form the AV1245.
+        :rtype: numpy.ndarray
         """
         return self._av_no()[2]
 
     def _pdi_no(self):
         """
         Compute the PDI.
-        Returns:
-            tuple: The PDI value.
+
+        :returns: The PDI value.
+        :rtype: float
         """
         if not hasattr(self, '_done_pdi_no'):
             self._done_pdi_no = compute_pdi_no(self._rings, self._Smo)
@@ -885,8 +927,9 @@ class IndicatorsNatorb:
     def pdi(self):
         """
         Get the PDI value.
-        Returns:
-            float: The PDI value.
+
+        :returns: The PDI value.
+        :rtype: float
         """
         return self._pdi_no()[0]
 
@@ -894,8 +937,9 @@ class IndicatorsNatorb:
     def pdi_list(self):
         """
         Get the list of the DIs (1-4, 2-5, 3-6).
-        Returns:
-            numpy.ndarray: The list of the DI values that form PDI.
+
+        :returns: The list of the DI values that form PDI.
+        :rtype: numpy.ndarray
         """
         return self._pdi_no()[1]
 
@@ -903,16 +947,18 @@ class IndicatorsNatorb:
     def flu(self):
         """
         Compute the FLU value.
-        Returns:
-            float: The FLU value.
+
+        :returns: The FLU value.
+        :rtype: float
         """
         return compute_flu(self._rings, self._mol, self._Smo, self._flurefs, self._connectivity, self._partition)
 
     def _boa_no(self):
         """
         Compute the BOA and BOA_c values.
-        Returns:
-            tuple: The BOA and BOA_c values.
+
+        :returns: The BOA and BOA_c values.
+        :rtype: tuple
         """
         if not hasattr(self, '_done_boa_no'):
             self._done_boa_no = compute_boa_no(self._rings, self._Smo)
@@ -922,8 +968,9 @@ class IndicatorsNatorb:
     def boa(self):
         """
         Get the BOA value.
-        Returns:
-            float: The BOA value.
+
+        :returns: The BOA value.
+        :rtype: float
         """
         return self._boa_no()[0]
 
@@ -931,8 +978,9 @@ class IndicatorsNatorb:
     def boa_c(self):
         """
         Get the BOA_c value.
-        Returns:
-            float: The BOA_c value.
+
+        :returns: The BOA_c value.
+        :rtype: float
         """
         return self._boa_no()[1]
 
@@ -940,8 +988,9 @@ class IndicatorsNatorb:
     def homer(self):
         """
         Compute the HOMER value.
-        Returns:
-            float: The HOMER value.
+
+        :returns: The HOMER value.
+        :rtype: float
         """
         if self._geom is None or self._homerrefs is None or self._connectivity is None:
             return None
@@ -951,8 +1000,9 @@ class IndicatorsNatorb:
     def _homas(self):
         """
         Compute the HOMA and the EN and GEO components.
-        Returns:
-            tuple: The HOMA, EN and GEO values.
+
+        :returns: The HOMA, EN and GEO values.
+        :rtype: tuple
         """
         if not hasattr(self, '_done_homas'):
             self._done_homas = compute_homa(self._rings, self._molinfo, self._homarefs)
@@ -962,8 +1012,9 @@ class IndicatorsNatorb:
     def homa(self):
         """
         Get the HOMA value.
-        Returns:
-            float: The HOMA value.
+
+        :returns: The HOMA value.
+        :rtype: float
         """
         if self._homas() is None:
             return None
@@ -973,8 +1024,9 @@ class IndicatorsNatorb:
     def en(self):
         """
         Get the EN value.
-        Returns:
-            float: The EN value.
+
+        :returns: The EN value.
+        :rtype: float
         """
         return self._homas()[1]
 
@@ -982,16 +1034,18 @@ class IndicatorsNatorb:
     def geo(self):
         """
         Get the GEO value.
-        Returns:
-            float: The GEO value.
+
+        :returns: The GEO value.
+        :rtype: float
         """
         return self._homas()[2]
 
     def _blas(self):
         """
         Compute the BLA and BLA_c values.
-        Returns:
-            tuple: The BLA and BLA_c values.
+
+        :returns: The BLA and BLA_c values.
+        :rtype: tuple
         """
         if not hasattr(self, '_done_blas'):
             self._done_blas = compute_bla(self._rings, self._molinfo)
@@ -1001,8 +1055,9 @@ class IndicatorsNatorb:
     def bla(self):
         """
         Get the BLA value.
-        Returns:
-            float: The BLA value.
+
+        :returns: The BLA value.
+        :rtype: float
         """
         return self._blas()[0]
 
@@ -1010,8 +1065,9 @@ class IndicatorsNatorb:
     def bla_c(self):
         """
         Get the BLA_c value.
-        Returns:
-            float: The BLA_c value.
+
+        :returns: The BLA_c value.
+        :rtype: float
         """
         return self._blas()[1]
 
@@ -1124,10 +1180,12 @@ class ESI:
     def Smo(self):
         """
         Get the Atomic Overlap Matrices (AOMs) in the MO basis. If not provided, it will compute them. If set as
-        a string, it will read the AOMs from the directory . Can be saved in a file with the `saveaoms` attribute.
-        Returns:
-            list: The AOMs in the MO basis
+        a string, it will read the AOMs from the directory. Can be saved in a file with the `saveaoms` attribute.
+
+        :returns: The AOMs in the MO basis.
+        :rtype: list
         """
+
         if isinstance(self._Smo, str):
             return load_file(self._Smo)
         if self.readpath != '.':
@@ -1149,9 +1207,11 @@ class ESI:
         """
         Get the information about the molecule and calculation. If not provided, it will compute it. If set as a string,
         it will read the information from the directory. Can be saved in a file with the `savemolinfo` attribute.
-        Returns:
-            dict: Information about the molecule and calculation
+
+        :returns: Information about the molecule and calculation.
+        :rtype: dict
         """
+
         if isinstance(self._molinfo, str):
             return load_file(self._molinfo)
         if self._molinfo is None:
@@ -1165,9 +1225,11 @@ class ESI:
         """
         Get the partition scheme for the Hilbert-space. Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao'.
         Some variations of these names are also available.
-        Returns:
-            str: The partition scheme for the Hilbert-space calculation.
+
+        :returns: The partition scheme for the Hilbert-space calculation.
+        :rtype: str
         """
+
         if isinstance(self._partition, str):
             return format_partition(self._partition)
         raise ValueError(
@@ -1177,8 +1239,9 @@ class ESI:
     def mci(self):
         """
         Whether to compute the MCI. If not provided, it will compute it if the number of rings is less than 12.
-        Returns:
-            boolean: Whether to compute the MCI.
+
+        :returns: Whether to compute the MCI.
+        :rtype: boolean
         """
         if self._mci is not None:
             return self._mci
@@ -1196,8 +1259,9 @@ class ESI:
     def av1245(self):
         """
         Whether to compute the AV1245. If not provided, it will compute it if the number of rings is greater than 9.
-        Returns:
-            boolean: Whether to compute the AV1245.
+
+        :returns: Whether to compute the AV1245.
+        :rtype: boolean
         """
         if self._av1245 is not None:
             return self._av1245
@@ -1216,9 +1280,10 @@ class ESI:
         Reads the AOMs from a directory in AIMAll and ESIpy format. Overwrites 'ESI.Smo' variable. By default, it will
         read the AOMs from the working directory. If the 'readpath' attribute is set, it will read from that directory.
 
-        Returns:
-            The AOMs in the MO basis, overwriting the Smo variable.
+        :returns: The AOMs in the MO basis, overwriting the Smo variable.
+        :rtype: list
         """
+
         if self.name == "calc":
             print(" | No 'name' specified. Will use 'calc'")
         if self.readpath is None:
@@ -1238,6 +1303,7 @@ class ESI:
             - A 'name.bad' with a standard input for the ESI-3D code.
             - For Natural Orbitals, a 'name.wfx' with the occupancies for the ESI-3D code.
         """
+
         for attr in ['mol', 'mf', 'name', 'Smo', 'partition']:
             if getattr(self, attr, None) is None:
                 raise AttributeError(

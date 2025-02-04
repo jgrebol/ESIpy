@@ -1,3 +1,5 @@
+.. |I_ring| replace:: I\ :math:`_{\text{ring}}`
+
 Theoretical background
 =======================
 
@@ -6,9 +8,10 @@ Hilbert-space partitioning
 
 In order to obtain information of the atomic contributions in a given chemical system (for instance atomic populations
 and electron sharing indices) it is crucial to define an atom in a molecule (AIM), which can either be real-space
-partition (allocating each point of the 3D space fully or partially to a specific atom) or Hilbert-space partition (separating the atomic basis functions belonging to a certain atom). The ESI-3D code [1]_ developed by Dr. Eduard Matito
-mainly used Bader's Quantum Theory of Atoms in Molecules (QTAIM, real-space scheme) [2]_ as the AIM for the calculations. However, in this program we propose
-the use of Hilbert-space schemes (Mulliken [3]_, Löwdin [4]_, Meta-Löwdin [5]_, NAO [6]_, and IAO [7]_) available in the PySCF [8]_
+partition (allocating each point of the 3D space fully or partially to a specific atom) or Hilbert-space partition (separating the atomic basis functions belonging to a certain atom).
+The ESI-3D code :cite:`matito:2006esi` developed by Dr. Eduard Matito
+mainly used Bader's Quantum Theory of Atoms in Molecules (QTAIM, real-space scheme) :cite:`bader:95qtaim` as the AIM for the calculations. However, in this program we propose
+the use of Hilbert-space schemes (Mulliken :cite:`mulliken:55population`, Löwdin :cite:`lowdin:50ortho`, Meta-Löwdin :cite:`sun:14metalow`, NAO :cite:`reed:85nao`, and IAO :cite:`knizia:13iao`) available in the PySCF :cite:`sun:18wires,sun:20jcp,sun:18cms,sun:15jcc`
 framework as the partition of the system. QTAIM relies on numerical integrations, so the unavoidable errors associated
 to them make some of these aromaticity descriptors unviable in large systems. This newer approach, however, does not
 require numerical integration, but rather relies on the separation of the molecule by using their atom-centered
@@ -27,7 +30,7 @@ The average number of electrons in a given atom (:math:`N_\text{A}`) can be expr
 
 where we can introduce the elements of the overlap matrix in an AO basis, :math:`S_{\mu\nu}^\text{AO}=\int\chi_\mu^{*}(\textbf{r}){\chi_\nu}(\textbf{r})d\textbf{r}`.
 The elements of the P-matrix, :math:`P_{\nu\mu} = 2 \sum_i ^{M} c_{\nu i} c_{i\mu}^+`, showcase the orbital occupancies.
-In the simplest case of a single-determinant wavefunction, it takes 1s in the diagonal in all occupied orbitals (:math:`\text{M}=nocc`)and 0s in the rest.
+In the simplest case of a single-determinant wavefunction, it takes 1s in the diagonal in all occupied orbitals (:math:`\text{M}=nocc`) and 0s in the rest.
 For multi-determinant wavefunctions, the diagonalization of the P-matrix in the MO representation gives the natural orbital occupancies (:math:`n_i`) and the
 transformation matrix to the new basis (:math:`\Gamma`), which are not constrained to occupied orbitals anymore, by performing a unitary transformation:
 
@@ -38,7 +41,7 @@ transformation matrix to the new basis (:math:`\Gamma`), which are not constrain
 In this sense, :math:`\Gamma` is the diagonal representation of the MO basis and :math:`C` the transformation matrix from MOs into AOs.
 
 In the simplest case of a single-determinant wavefunction, Mulliken's approach lets us obtain information from a specific atom by only taking into account its atomic basis functions.
-Moreover, the Delocalization Index (DI, :math:`\delta`), also referred to as Bond Order (BO) [9]_, measures the average number
+Moreover, the Delocalization Index (DI, :math:`\delta`), also referred to as Bond Order (BO) :cite:`mayer:83bo`, measures the average number
 of electrons shared between two atoms A and B, as
 
 .. math::
@@ -47,7 +50,7 @@ of electrons shared between two atoms A and B, as
 
 In order to mimic the expression of the AOM as that of QTAIM, one can introduce a new auxiliary
 matrix, :math:`\mathbf{\eta}^{\text{A}}`, which is a bock-truncated unit matrix with all elements being zero
-except :math:`\eta_{\mu\mu}^\text{A}=1`. Hence, the general expression for Mulliken's approach is the following:
+except :math:`\eta_{\mu\mu}^\text{A}=1` for :math:`\mu\in\text{A}`. Hence, the general expression for Mulliken's approach is the following:
 
 .. math::
 
@@ -69,40 +72,39 @@ Orbitals (IAO) approach. In all cases, the mapping from real-space to Hilbert-sp
 Electron-Sharing Indices
 ------------------------
 
-The Eelectron Sharing Indices (**ESI **) present in this program rely on the atomic overlap matrices. The following aromaticity indicators will be
-expressed in terms of the ring connectivities :math:`\mathscr{A}=\{\text{A}_1, \text{A}_2, \cdot\cdot\cdot, \text{A}_n\}`,
-which represent the indices of the atoms as expressed in the `mol` object.
+The Electron Sharing Indices (**ESI**) present in this program rely on the atomic overlap matrices. The following aromaticity indicators will be
+expressed in the set of connected atoms in ring connectivity :math:`\mathscr{A}=\{\text{A}_1, \text{A}_2, \cdot\cdot\cdot, \text{A}_n\}`.
 
 Para-delocalization index (PDI)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Fulton reported that the delocalization indices in a given aromatic 6-membered ring in the _para_ position were larger
-than that in the _meta_ position. From that idea, Poater and coworkers proposed to average the DIs in the para position
-in a 6-membered ring, so the **Para-Delocalization Index (PDI)** [10]_ reads as:
+Fulton :cite:`fulton:93jpc` reported that the delocalization indices in a given aromatic 6-membered ring in the *para* position were larger
+than that in the *meta* position. From that idea, Poater and coworkers proposed to average the DIs in the *para* position
+in a 6-membered ring, so the **Para-Delocalization Index (PDI)** :cite:`poater:03cej` reads as:
 
 .. math::
 
    \text{PDI}(\mathscr{A}) = \frac{\delta_{\text{A}_1\text{A}_4}+\delta_{\text{A}_2\text{A}_5}+\delta_{\text{A}_3\text{A}_6}}{3},
 
-A larger PDI value indicates a more aromatic character. The index can only be calculated for rings of :math:`n=6 `, so it will
+A larger PDI value indicates a more aromatic character. The index can only be calculated for rings of :math:`n=6`, so it will
 not be computed for rings of different sizes.
 
-I\ :sub:`ring` \
-~~~~~~~~~~~~~~
+Iring
+~~~~~
 
-Giambiagi and coworkers proposed to express an index in terms of the generalized bond order along the ring, the **:math:`I :sub:`ring```** [11]_. That is, to account for the delocalization along the ring, following the specified connectivity:
+Giambiagi and coworkers proposed to express an index in terms of the generalized bond order along the ring, the :math:`\textbf{I}_{\textbf{ring}}` :cite:`giambiagi:2000iring`. That is, to account for the delocalization along the ring, following the specified connectivity:
 
 .. math::
 
    \text{I}_{\text{ring}}(\mathscr{A})= 2^{n} \sum_{i_1,i_2\ldots i_n} S_{i_1i_2}^{\text{A}_{1}} S_{i_2i_3}^{\text{A}_{2}} \cdot \cdot \cdot S_{i_ni_1}^{\text{A}_{n}}
 
-This index relies on the multicenter character of a molecule. A larger I\ :sub:`ring `\  value indicates larger
+This index relies on the multicenter character of a molecule. A larger I\ :math:`_{\text{ring}}` value indicates larger
 aromaticity along the ring.
 
 Multicenter index (MCI)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-As an aim to improve the I\ :sub:`ring `, Bultinck and coworkers proposed the **Multicenter Index (MCI)** [12]_ by not
+As an aim to improve the I\ :math:`_{\text{ring}}`, Bultinck and coworkers proposed the **Multicenter Index (MCI)** :cite:`bultinck:2005mci` by not
 only taking into account the Kekulé structure of the system but rather all the :math:`n!` possible ring connectivities
 generated by permuting the position of all atoms in the ring. That way, the delocalization is measured throughout the system, rather than along the ring. Denoting the different permutations as :math:`\mathscr{P}(\mathscr{A})`:
 
@@ -111,16 +113,16 @@ generated by permuting the position of all atoms in the ring. That way, the delo
    \text{MCI}(\mathscr{A}) = \frac{1}{2n} \sum_{\mathscr{P}(\mathscr{A})} \text{I}_{\text{ring}}(\mathscr{A})
 
 As well as the previous indices, a larger MCI value denotes a more aromatic character. Due to the exponential growth of
-the calculation, we do not suggest computing the MCI for rings larger than :math:`n ` =12 for single-core processes and :math:`n ` =14
-for multi-core processes. See :ref:`mci_timings` for details and timings of the algorithms.
+the calculation, we do not suggest computing the MCI for rings larger than :math:`n=12` for single-core processes and :math:`n=14`
+for multi-core processes. See :doc:`mci-timings` for details and timings of the algorithms.
 
 AV1245 and AVmin
 ~~~~~~~~~~~~~~~~~~
 
 When using real-space schemes as the atomic partition, their inherent numerical integration errors made the multicenter indices in large rings
-non-viable. Matito proposed an index that contained the multicenter character as those of I\ :sub:`ring` and MCI, but
+non-viable. Matito proposed an index that contained the multicenter character as those of I\ :math:`_{\text{ring}}` and MCI, but
 without the size-extensivity problem. Therefore, he suggested to *average all the 4c-MCI values along the ring that keep
-the positional relationship of 1,2,4,5*, so designing the new index AV1245 [13]_ as follows:
+the positional relationship of 1,2,4,5*, so designing the new index AV1245 :cite:`matito:2016av` as follows:
 
 .. math::
 
@@ -133,7 +135,7 @@ indicates more aromaticity in the system, and the index can not be computed for 
 Fluctuation Index (FLU)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The Fluctuation Index (FLU) [14]_ measures the resemblance of a series of tabulated :math:`\delta` to some typical aromatic
+The Fluctuation Index (FLU) :cite:`matito:05jcp` measures the resemblance of a series of tabulated :math:`\delta` to some typical aromatic
 molecules:
 
 .. math::
@@ -149,14 +151,14 @@ Bond Order Alternation (BOA)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The Bond Order Alternation (BOA) reflects the alternation of the delocalization indices along a conjugated circuit and
-is built upon the BLA premise (see below in the Geometrical Aromaticity Indicators section):
+is built upon the BLA premise (see below in the :ref:`Geometrical Indicators` section):
 
 .. math::
 
    \text{BOA}(\mathscr{A}) = \frac{1}{n_1} \sum_{i=1}^{n_1} \delta(A_{2i-1},A_{2i}) - \frac{1}{n_2} \sum_{i=1}^{n_2} \delta(A_{2i},A_{2i+1})
 
 where :math:`n_1 = \lfloor (n+1)/2 \rfloor` and :math:`n_2 = \lfloor n/2 \rfloor`, being :math:`\lfloor x \rfloor` the
-floor function of :math:`x` returning the largest integer less or equal than :math`x`. As well as for the BLA index, for odd-centered closed
+floor function of :math:`x` returning the largest integer less or equal than :math:`x`. As well as for the BLA index, for odd-centered closed
 circuits this index may fail, so instead the :math:`\text{BOA}_c` index should be used as the comparison
 of :math:`\delta(A_i, A_{i+1}) - \delta(A_{i+1}, A_{i+2})`:
 
@@ -164,13 +166,13 @@ of :math:`\delta(A_i, A_{i+1}) - \delta(A_{i+1}, A_{i+2})`:
 
    \text{BOA}_c(\mathscr{A}) = \frac{1}{N} \sum_{i=1}^{N} \left| \delta(A_{i},A_{i+1}) - \delta(A_{i+1},A_{i+2}) \right|
 
-Geometrical Aromaticity Indicators
+Geometrical Indicators
 ----------------------------------
 
 HOMA and HOMER
 ~~~~~~~~~~~~~~
 
-The Harmonic Oscillator Model of Aromaticity (HOMA) [15]_ was defined by Kruszewski and Krygowski and relies only on
+The Harmonic Oscillator Model of Aromaticity (HOMA) :cite:`kruszewski:72tl` was defined by Kruszewski and Krygowski and relies only on
 geometrical data.
 
 .. math::
@@ -181,8 +183,8 @@ The formula depends on a series of tabulated optimal bon distances, :math:`R_{op
 make the index 1 for benzene and 0 and negative values for non-aromatic or antiaromatic molecules, which makes it a good
 option for most organic molecules but fails for newer systems. The HOMA index is separated into the EN and GEO subparts,
 which measure the deviation of the interatomic distance into some tabulated numbers and the variance of this interatomic
-distance, respectively, and are close to zero for aromatic molecules. The implemented version of this index is [15]_. The
-HOMER aromaticity index is a reparametrization of the HOMA for the lowest lying triplet excited state, T1, [16]_. Different parameters can be introduced
+distance, respectively, and are close to zero for aromatic molecules. The implemented version of this index is :cite:`kruszewski:72tl`. The
+HOMER aromaticity index is a reparametrization of the HOMA for the lowest lying triplet excited state, T1 :cite:`arpa:23homer`. Different parameters can be introduced
 using the `homarefs` and `homerrefs` attributes.
 
 Bond-Length Alternation (BLA)
@@ -209,20 +211,5 @@ they do not match completely.
 References
 ----------
 
-.. [1] E. Matito, in ‘ESI-3D Electron Sharing Indexes Program for 3D Molecular Space Partitioning’, Girona IQC, 2006
-.. [2] R. F. W. Bader, Atoms in molecules: a quantum theory, Clarendon Press; Oxford University Press, Oxford [England]:
-   New York, 1994.
-.. [3] R. S. Mulliken, The Journal of Chemical Physics, 1955, 23, 1833–1840.
-.. [4] P.-O. Löwdin, The Journal of Chemical Physics, 1950, 18, 365–375.
-.. [5] A. E. Reed, R. B. Weinstock and F. Weinhold, The Journal of Chemical Physics, 1985, 83, 735–746.
-.. [6] Q. Sun and G. K.-L. Chan, Journal of Chemical Theory and Computation, 2014, 10, 3784–3790.
-.. [7] G. Knizia, Journal of Chemical Theory and Computation, 2013, 9, 4834–4843.
-.. [8] Q. Sun et al. The Journal of Chemical Physics, 2020, 153, 024109.
-.. [9] I. Mayer, Chemical Physics Letters, 1983, 97, 270–274.
-.. [10] J. Poater et al., Chemistry–A European Journal, 2003, 9, 400–406.
-.. [11] M. Giambiagi, M. S. De Giambiagi and K. C. Mundim, Structural Chemistry, 1990, 1, 423–427.
-.. [12] P. Bultinck, R. Ponec and S. Van Damme, Journal of Physical Organic Chemistry, 2005, 18, 706–718.
-.. [13] E. Matito, Physical Chemistry Chemical Physics, 2016, 18, 11839–11846.
-.. [14] E. Matito, M.Duran, M.Solà. The Journal of Chemical Physics, 2005, 122, 014109.
-.. [15] J. Kruszewski and T. M. Krygowski. Tetrahedron Lett., 13(36):3839–3842, 1972.
-.. [16] E. M. Arpa and B. Durbeej. Physical Chemistry Chemical Physics. 2023, 25, 16763-16771.
+.. bibliography:: references.bib
+   :cited:

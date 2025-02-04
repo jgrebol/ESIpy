@@ -9,11 +9,12 @@ from esipy.tools import wf_type, format_short_partition
 def read_aoms(path='.'):
     """
     Reads the AOMs from ESIpy's writeaoms() method or from an AIMAll calculation.
-    Args:
-        path: Path of the directory of the files.
 
-    Returns:
-        The AOMs in ESIpy format stored in 'ESI.aom'.
+    :param path: Path of the directory of the files.
+    :type path: str
+
+    :returns: The AOMs in ESIpy format stored in 'ESI.aom'.
+    :rtype: list
     """
     aom = []
     aom_alpha, aom_beta = [], []
@@ -86,27 +87,29 @@ def read_aoms(path='.'):
 
 def write_aoms(mol, mf, name, aom, ring=None, partition=None):
     """
-    Writes the input for the ESI-3D code from the AOMs.
-    Parameters:
-        mol: PySCF instance
-            Molecule object from PySCF.
-        mf: PySCF instance
-            Calculation object from PySCF.
-        name: str
-            Name of the calculation.
-        aom: concatenated list
-            Atomic Overlap Matrices (AOMs) in the MO basis.
-        ring: list of int
-            Connectivity of the atoms in the ring. Can be more than one ring as a list of lists.
-        partition: str
-            Partition scheme for the AOMs. Options are "mulliken", "lowdin", "meta_lowdin", "nao", "iao".
+        Writes the input for the ESI-3D code from the AOMs.
 
-    Generates:
+    :param mol: Molecule object from PySCF.
+    :type mol: PySCF instance
+    :param mf: Calculation object from PySCF.
+    :type mf: PySCF instance
+    :param name: Name of the calculation.
+    :type name: str
+    :param aom: Concatenated list of Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list
+    :param ring: Connectivity of the atoms in the ring. Can be more than one ring as a list of lists.
+    :type ring: list of int, optional
+    :param partition: Partition scheme for the AOMs. Options are "mulliken", "lowdin", "meta_lowdin", "nao", "iao".
+    :type partition: str, optional
+
+    :returns: None
+
+    :generates:
         - A '_atomicfiles/' directory with all the files created.
         - A '.int' file for each atom with its corresponding AOM.
-        - A 'name.files' with a list of the names of the '.int' files.
-        - A 'name.bad' with a standard input for the ESI-3D code.
-        - For Natural Orbitals, a 'name.wfx' with the occupancies for the ESI-3D code.
+        - A 'name.files' file with a list of the names of the '.int' files.
+        - A 'name.bad' file with a standard input for the ESI-3D code.
+        - For Natural Orbitals, a 'name.wfx' file with the occupancies for the ESI-3D code.
     """
 
     if isinstance(aom, str):

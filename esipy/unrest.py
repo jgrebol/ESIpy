@@ -6,9 +6,11 @@ from esipy.tools import format_partition, find_multiplicity
 def info_unrest(aom, molinfo):
     """
     Prints the information of the calculation for unrestricted wavefunctions.
-    Args:
-        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-        molinfo: Contains the information of the molecule and the calculation.
+
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :param molinfo: Contains the information of the molecule and the calculation.
+    :type molinfo: dict
     """
 
     partition = format_partition(molinfo["partition"])
@@ -39,10 +41,13 @@ def info_unrest(aom, molinfo):
 
 
 def deloc_unrest(aom, molinfo):
-    """Population analysis, localization and delocalization indices for unrestriced, single-determinant calculations.
-    Args:
-        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-        molinfo: Contains the information of the molecule and the calculation.
+    """
+    Population analysis, localization and delocalization indices for unrestricted, single-determinant calculations.
+
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :param molinfo: Contains the information of the molecule and the calculation.
+    :type molinfo: dict
     """
 
     symbols = molinfo["symbols"]
@@ -113,18 +118,28 @@ def arom_unrest(aom, rings, molinfo, indicators, mci=False, av1245=False, partit
     """
     Outputs the aromaticity indices for unrestricted, single-determinant wavefunctions.
 
-    Args:
-        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-        rings: List containing the atoms in the ring.
-        molinfo: Contains the information of the molecule and the calculation.
-        indicators: Class containing the aromaticity indicators.
-        mci: If True, the MCI will be calculated.
-        av1245: If True, the AV1245 will be calculated.
-        partition: The atomic partition used in the calculation.
-        flurefs: Dictionary with custom references for the FLU.
-        homarefs: Dictionary with custom references for the HOMA.
-        homerrefs: Dictionary with custom references for the HOMER.
-        ncores: Number of cores to use in the MCI calculation. By default, 1.
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :param rings: List containing the atoms in the ring.
+    :type rings: list of lists
+    :param molinfo: Contains the information of the molecule and the calculation.
+    :type molinfo: dict
+    :param indicators: Class containing the aromaticity indicators.
+    :type indicators: class
+    :param mci: If True, the MCI will be calculated.
+    :type mci: bool, optional
+    :param av1245: If True, the AV1245 will be calculated.
+    :type av1245: bool, optional
+    :param partition: The atomic partition used in the calculation.
+    :type partition: str, optional
+    :param flurefs: Dictionary with custom references for the FLU.
+    :type flurefs: dict, optional
+    :param homarefs: Dictionary with custom references for the HOMA.
+    :type homarefs: dict, optional
+    :param homerrefs: Dictionary with custom references for the HOMER.
+    :type homerrefs: dict, optional
+    :param ncores: Number of cores to use in the MCI calculation. By default, 1.
+    :type ncores: int, optional
     """
 
     print(" ----------------------------------------------------------------------")

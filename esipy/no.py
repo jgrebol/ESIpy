@@ -4,12 +4,13 @@ from esipy.tools import format_partition
 
 
 def info_no(aom, molinfo):
-    """Prints the initial information for Natural Orbitals calculations.
-    Args:
-        aom: list of matrices or string
-            Atomic Overlap Matrices (AOMs) in the MO basis.
-        molinfo: dictionary
-            Contains the information about the molecule and the calculation.
+    """
+    Prints the initial information for correlated wavefunctions.
+
+    :param aom: Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices or str
+    :param molinfo: Contains the information about the molecule and the calculation.
+    :type molinfo: dict
     """
 
     aom, occ = aom
@@ -38,12 +39,13 @@ def info_no(aom, molinfo):
 
 
 def deloc_no(aom, molinfo):
-    """Population analysis, localization and delocalization indices for Natural Orbitals calculations.
-    Args:
-        aom: list of matrices
-            Atomic Overlap Matrices (AOMs) in the MO basis.
-        molinfo: dictionary
-            Contains the information about the molecule and the calculation.
+    """
+    Population analysis, localization and delocalization indices for correlated wavefunctions.
+
+    :param aom: Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices or str
+    :param molinfo: Contains the information about the molecule and the calculation.
+    :type molinfo: dict
     """
 
     aom, occ = aom
@@ -101,31 +103,30 @@ def deloc_no(aom, molinfo):
 
 
 def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None, flurefs=None, homarefs=None,
-            homerrefs=None,
-            ncores=1):
+            homerrefs=None, ncores=1):
     """
     Output for the aromaticity indices for Natural Orbitals calculations. Will use Fulton's approximation.
-    Args:
-        rings: list of lists
-            Contains the indices of the atoms in the rings.
-        molinfo: dictionary
-            Contains the information about the molecule and the calculation.
-        indicators: class
-            Contains the aromaticity indicators.
-        mci: boolean
-            If True, the MCI is computed.
-        av1245: boolean
-            If True, the AV1245 is computed.
-        partition: string
-            Contains the name of the partition.
-        flurefs: dictionary
-            Contains the custom references for the FLU aromaticity index.
-        homarefs: dictionary
-            Contains the custom references for the HOMA aromaticity index.
-        homerrefs: dictionary
-            Contains the custom references for the HOMER aromaticity index.
-        ncores: integer
-            Number of cores to use in the MCI calculation. By default, 1.
+
+    :param rings: Contains the indices of the atoms in the rings.
+    :type rings: list of lists
+    :param molinfo: Contains the information about the molecule and the calculation.
+    :type molinfo: dict
+    :param indicators: Contains the aromaticity indicators.
+    :type indicators: class
+    :param mci: If True, the MCI is computed.
+    :type mci: bool, optional
+    :param av1245: If True, the AV1245 is computed.
+    :type av1245: bool, optional
+    :param partition: Contains the name of the partition.
+    :type partition: str, optional
+    :param flurefs: Contains the custom references for the FLU aromaticity index.
+    :type flurefs: dict, optional
+    :param homarefs: Contains the custom references for the HOMA aromaticity index.
+    :type homarefs: dict, optional
+    :param homerrefs: Contains the custom references for the HOMER aromaticity index.
+    :type homerrefs: dict, optional
+    :param ncores: Number of cores to use in the MCI calculation. By default, 1.
+    :type ncores: int, optional
     """
 
     print(" | Fulton index used for the calculation of aromaticity indicators     ")

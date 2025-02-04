@@ -1,7 +1,8 @@
 MCI TIMINGS
 ===========
 
-.. caution::
+.. warning::
+
    This page is under construction, and thus the results should not be taken as a direct reference.
 
 The ESIpy code provides an improved algorithm for the generation of permutations in the MCI calculation.

@@ -12,7 +12,9 @@ tests/*.pyo
 
 build/*
 dist/*
-docs/source/*
+docs/build/*
+docs/source/_static/*
+docs/source/_templates/*
 
 .idea/*
 *.egg-info/*

@@ -6,9 +6,11 @@ from esipy.tools import format_partition
 def info_rest(aom, molinfo):
     """
     Print the information of the molecule and the calculation.
-    Args:
-        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-        molinfo: Information about the molecule and the calculation.
+
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :param molinfo: Information about the molecule and the calculation.
+    :type molinfo: dict
     """
     partition = format_partition(molinfo["partition"])
 
@@ -36,10 +38,13 @@ def info_rest(aom, molinfo):
 
 
 def deloc_rest(aom, molinfo):
-    """Population analysis, localization and delocalization indices for restricted, single-determinant calculations.
-    Args:
-        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-        molinfo: Information about the molecule and the calculation.
+    """
+    Population analysis, localization and delocalization indices for restricted, single-determinant calculations.
+
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :param molinfo: Information about the molecule and the calculation.
+    :type molinfo: dict
     """
 
     # Checking where to read the atomic symbols from
@@ -91,16 +96,25 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
               ncores=1):
     """
     Output for the aromaticity indices for restricted, single-determinant calculations.
-    Args:
-        rings: List of the atoms in the rings.
-        molinfo: Information about the molecule and the calculation.
-        indicators: Class containing the indicators for each ring.
-        mci: Boolean to compute the MCI.
-        av1245: Boolean to compute the AV1245.
-        flurefs: Dictionary with custom references for the FLU.
-        homarefs: Dictionary with custom references for the HOMA.
-        homerrefs: Dictionary with custom references for the HOMER.
-        ncores: Number of cores to use for the MCI calculation. By default, 1.
+
+    :param rings: List of the atoms in the rings.
+    :type rings: list of lists
+    :param molinfo: Information about the molecule and the calculation.
+    :type molinfo: dict
+    :param indicators: Class containing the indicators for each ring.
+    :type indicators: class
+    :param mci: Boolean to compute the MCI.
+    :type mci: bool, optional
+    :param av1245: Boolean to compute the AV1245.
+    :type av1245: bool, optional
+    :param flurefs: Dictionary with custom references for the FLU.
+    :type flurefs: dict, optional
+    :param homarefs: Dictionary with custom references for the HOMA.
+    :type homarefs: dict, optional
+    :param homerrefs: Dictionary with custom references for the HOMER.
+    :type homerrefs: dict, optional
+    :param ncores: Number of cores to use for the MCI calculation. By default, 1.
+    :type ncores: int, optional
     """
 
     print(" ----------------------------------------------------------------------")

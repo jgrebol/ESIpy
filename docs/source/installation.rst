@@ -4,6 +4,7 @@ Installation
 ESIpy can be installed through different methods. In all cases, it is recommended to create a conda environment:
 
 .. code-block:: bash
+
     conda create --name esipy python=3.8
     conda activate esipy
 
@@ -15,12 +16,6 @@ ESIpy can be installed via pip:
 .. code-block:: bash
 
     pip install esipython
-
-To install PySCF, follow the official guidelines from `PySCF's installation guide <https://pyscf.org/install.html>`_:
-
-.. code-block:: bash
-
-    pip install --prefer-binary pyscf
 
 Installing from source
 ----------------------
