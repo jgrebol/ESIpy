@@ -15,6 +15,10 @@ sys.path.insert(0, os.path.abspath('./'))
 def setup(app):
     app.add_css_file('css/custom.css')
 
+html_context = {
+    'css_files': ['_static/css/custom.css'],
+}
+
 project = 'ESIpy'
 copyright = '2024, Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador'
 author = 'Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador'
