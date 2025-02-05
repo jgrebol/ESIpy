@@ -1,5 +1,5 @@
 Getting started
-========
+===============
 
 In this section we will go through the process of performing all the available calculations using ESIpy's utilities
 based on the provided examples. To run the code from the terminal, generate the Python script or adapt those of this
@@ -57,7 +57,7 @@ the output of which provides the indices split into orbital contributions.
     In the following, we will only consider the ESIpy part of the code.
 
 Dealing with AOMs
-------------
+-----------------
 
 In order to avoid the single-point calculation, the attributes `saveaoms` and `savemolinfo` will save the AOMs and a dictionary
 containing information about the molecule and calculation into a binary file in disk. Hereafter, these will be accessible
@@ -94,7 +94,7 @@ and read through the method `readaoms()`
     By using the `readaoms()` method, the output will be limited as it will not get information about the molecule
 
 Correlated wavefunctions
-------------
+------------------------
 
 For natural orbitals wavefunctions, an additional diagonalization
 of the first-order reduced density matrix (1-RDM) is carried out, the computational time of which is also very low.
