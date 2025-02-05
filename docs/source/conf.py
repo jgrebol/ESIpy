@@ -49,7 +49,7 @@ html_css_files = ["custom.css"]
 html_logo = "logoesipy.png"
 html_title = "ESIpy"
 bibtex_bibfiles = ["_static/references.bib"]
-bibtex_encoding = 'utf-16'
+bibtex_encoding = 'latin'
 
 favicons = [
     "favicon-16x16.png",
