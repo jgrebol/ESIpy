@@ -213,4 +213,4 @@ References
 
 .. bibliography:: _static/references.bib
    :cited:
-    :style: unsrt
+   :style: unsrt
