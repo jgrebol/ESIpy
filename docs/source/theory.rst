@@ -211,5 +211,6 @@ they do not match completely.
 References
 ----------
 
-.. bibliography:: references.bib
+.. bibliography:: _static/references.bib
    :cited:
+    :style: unsrt
