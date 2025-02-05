@@ -30,7 +30,7 @@ The average number of electrons in a given atom (:math:`N_\text{A}`) can be expr
 
 where we can introduce the elements of the overlap matrix in an AO basis, :math:`S_{\mu\nu}^\text{AO}=\int\chi_\mu^{*}(\textbf{r}){\chi_\nu}(\textbf{r})d\textbf{r}`.
 The elements of the P-matrix, :math:`P_{\nu\mu} = 2 \sum_i ^{M} c_{\nu i} c_{i\mu}^+`, showcase the orbital occupancies.
-In the simplest case of a single-determinant wavefunction, it takes 1s in the diagonal in all occupied orbitals (:math:`\text{M}=nocc`) and 0s in the rest.
+In the simplest case of a single-determinant wavefunction, it s a unit matrix over all occupiedfor :math:`\text{M}>nocc` and 0s in the rest.
 For multi-determinant wavefunctions, the diagonalization of the P-matrix in the MO representation gives the natural orbital occupancies (:math:`n_i`) and the
 transformation matrix to the new basis (:math:`\Gamma`), which are not constrained to occupied orbitals anymore, by performing a unitary transformation:
 
@@ -38,7 +38,7 @@ transformation matrix to the new basis (:math:`\Gamma`), which are not constrain
 
     \phi^{NO} = \Gamma^{+}C^{+}\chi^{\text{AO}}C\;\Gamma = (\Gamma^{'})^+\chi^{\text{AO}}\;\Gamma^{'}
 
-In this sense, :math:`\Gamma` is the diagonal representation of the MO basis and :math:`C` the transformation matrix from MOs into AOs.
+In this sense, :math:`\Gamma` is the diagonal representation of the MO basis, :math:`C` the transformation matrix from MOs into AOs, and :math:`\Gamma^{'} = C\Gamma` the transformation matrix from AOs into NOs.
 
 In the simplest case of a single-determinant wavefunction, Mulliken's approach lets us obtain information from a specific atom by only taking into account its atomic basis functions.
 Moreover, the Delocalization Index (DI, :math:`\delta`), also referred to as Bond Order (BO) :cite:`mayer:83bo`, measures the average number
