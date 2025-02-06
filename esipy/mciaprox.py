@@ -1,11 +1,10 @@
 import numpy as np
-from esipy.tools import mapping, build_connec, build_connec_no, filter_connec, wf_type, find_middle_nodes, is_closed, full_connec
+from esipy.tools import mapping, build_connec, build_connec_no, filter_connec, wf_type, find_middle_nodes, is_closed, find_node_distances
 from esipy.indicators import sequential_mci, multiprocessing_mci
 from math import factorial
 from multiprocessing import Pool
 from functools import partial
 from time import time
-from collections import deque
 
 def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen=6):
     start = time()
@@ -14,8 +13,10 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen
         connec = build_connec(Smo)
     else:
         connec = build_connec_no(Smo)
+
     connec = filter_connec(connec)
     closed = is_closed(arr, connec)
+
     if mcialg == 0:
         if partition == "mulliken":
             if ncores == 1:
@@ -43,14 +44,12 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen
 
     if ncores == 1:
         if partition == 'mulliken' or partition == "non-symmetric":
+            perms =(mapping(arr, p) for p in perms)
             val = 0.5 * sum(compute_iring(p, Smo) for p in perms)
             return val, nperms, time() - start
         else:
-            perms = (x for x in perms if x[1] < x[-1])
-            if closed:
-                val = sum(compute_iring(p, Smo) for p in perms)
-            else:
-                val = sum(compute_iring(mapping(arr, p), Smo) for p in perms)
+            perms =(mapping(arr, p) for p in perms if p[1] > p[-1])
+            val = sum(compute_iring(p, Smo) for p in perms)
             return val, nperms, time() - start
     else:
         pool = Pool(processes=ncores)
@@ -61,7 +60,7 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen
             iter =(mapping(arr, p) for p in perms)
             result = 0.5 * sum(pool.imap(dumb, iter, chunk_size))
         else:
-            iter = (mapping(arr, x) for x in perms if x[1] < x[-1])
+            iter = (mapping(arr, x) for x in perms if x[1] > x[-1])
             result = sum(pool.imap(dumb, iter, chunk_size))
 
         pool.close()
@@ -89,6 +88,7 @@ class HamiltonMCI:
         self.closed = closed
         self.connec = filter_connec(connec)
         self.start = find_middle_nodes(self.connec)
+        self.distances = find_node_distances(self.connec)
         # Algorithm selection
         self.generator = self._select_algorithm()
 
@@ -114,8 +114,15 @@ class HamiltonMCI:
             if not hasattr(self, "connec"):
                 raise ValueError(" | Missing adjacency matrix.")
             if self.alg == 1:
-                print(' | Doing for more than one rings')
                 return self._anilat_alg1()
+            elif self.alg == 2:
+                return self._anilat_alg2()
+            elif self.alg == 3:
+                return self._anilat_alg3()
+            elif self.alg == 4:
+                return self._anilat_alg4()
+            else:
+                raise ValueError(" | Invalid algorithm number. Choose between 1 and 4.")
 
     def _alg1(self):
         def dfs(path):
@@ -174,22 +181,64 @@ class HamiltonMCI:
         return dfs([0])
 
     def _anilat_alg1(self):
-        print("POLLAAAAAAAAAAAAAAS")
-        def dfs(graph, vis=None):
-           if vis is None:
-              vis = []
-           if not vis:
-              for n in graph:
-                  for p in dfs(graph [n]):
-                      yield p
-           else:
-              dests = set(graph[vis[-1]]) - set(vis)
-              if not dests and len(vis) == len(graph):
-                  yield vis
-              for n in dests:
-                  for p in dfs(graph, vis + [n]):
-                      yield p
-        return dfs(full_connec(self.connec))
+        r = self.arr
+        def dfs(path):
+            if len(path) == self.n:
+                val = self.distances[r[path[0]]][r[path[-1]]]
+                if val <= self.d and path[1] > path[-1]:
+                    yield path
+            for v in range(self.n):
+                if v not in path:
+                    val = self.distances[r[v]][r[path[-1]]]
+                    if val <= self.d:
+                        yield from dfs(path + [v])
+
+        return dfs([0])
+
+    def _anilat_alg2(self):
+        r = self.arr
+        def dfs(path):
+            if len(path) == self.n:
+                val = self.distances[r[path[0]]][r[path[-1]]]
+                if val == self.d and path[1] > path[-1]:
+                    yield path
+            for v in range(self.n):
+                if v not in path:
+                    val = self.distances[r[v]][r[path[-1]]]
+                    if val == self.d:
+                        yield from dfs(path + [v])
+
+        return dfs([0])
+
+    def _anilat_alg3(self):
+        r = self.arr
+        def dfs(path):
+            if len(path) == self.n:
+                val = self.distances[r[path[0]]][r[path[-1]]]
+                if val <= self.d and path[1] > path[-1] and val % 2 != 0:
+                    yield path
+            for v in range(self.n):
+                if v not in path:
+                    val = self.distances[r[v]][r[path[-1]]]
+                    if val <= self.d and val % 2 != 0:
+                        yield from dfs(path + [v])
+
+        return dfs([0])
+
+    def _anilat_alg4(self):
+        r = self.arr
+        def dfs(path):
+            if len(path) == self.n:
+                val = self.distances[r[path[0]]][r[path[-1]]]
+                if val <= self.d and path[1] > path[-1] and val % 2 == 0:
+                    yield path
+            for v in range(self.n):
+                if v not in path:
+                    val = self.distances[r[v]][r[path[-1]]]
+                    if val <= self.d and val % 2 == 0:
+                        yield from dfs(path + [v])
+
+        return dfs([0])
 
     def countperms(self):
         return sum(1 for _ in self._select_algorithm())

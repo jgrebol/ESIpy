@@ -1,5 +1,6 @@
 import pickle
 from functools import reduce
+from collections import deque, defaultdict
 
 import numpy as np
 from os import environ
@@ -416,9 +417,29 @@ def filter_connec(connec):
 
 def is_closed(arr, connec):
     for i in range(len(arr) - 1):
-        if len(connec[arr[i]]) > 3:
+        if len([x for x in connec[arr[i]] if x in arr]) >= 3:
             return True
     return False
 
 def find_middle_nodes(connec2):
     return [key for key, values in connec2.items() if len(values) > 2]
+
+def find_node_distances(graph):
+   distances = defaultdict(dict)
+
+   for start_node in graph:
+       queue = deque([(start_node, 0)])
+       visited = set()
+
+       while queue:
+           current_node, current_distance = queue.popleft()
+
+           if current_node not in visited:
+               visited.add(current_node)
+               distances[start_node][current_node] = current_distance
+
+               for neighbor in graph[current_node]:
+                   if neighbor not in visited:
+                       queue.append((neighbor, current_distance + 1))
+
+   return distances
