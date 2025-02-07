@@ -85,7 +85,7 @@ class HamiltonMCI:
         self.minlen = minlen
         self.alg = alg
         # Path finding features
-        self.closed = closed
+        self.closed = True # pollas
         self.connec = filter_connec(connec)
         self.start = find_middle_nodes(self.connec)
         self.distances = find_node_distances(self.connec)
@@ -113,6 +113,7 @@ class HamiltonMCI:
         else:
             if not hasattr(self, "connec"):
                 raise ValueError(" | Missing adjacency matrix.")
+            print(" | Using adjacency matrix.")
             if self.alg == 1:
                 return self._anilat_alg1()
             elif self.alg == 2:
@@ -199,13 +200,13 @@ class HamiltonMCI:
         r = self.arr
         def dfs(path):
             if len(path) == self.n:
-                val = self.distances[r[path[0]]][r[path[-1]]]
-                if val == self.d and path[1] > path[-1]:
+                maxval = max(self.distances[r[path[i]]][r[path[i + 1]]] for i in range(len(path) - 1))
+                if maxval == self.d and path[1] > path[-1]:
                     yield path
             for v in range(self.n):
                 if v not in path:
                     val = self.distances[r[v]][r[path[-1]]]
-                    if val == self.d:
+                    if val <= self.d:
                         yield from dfs(path + [v])
 
         return dfs([0])
