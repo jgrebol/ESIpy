@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.special import factorial2
 from math import factorial
 
 def readfchk(filename):
@@ -46,7 +45,6 @@ def read_contract_coeff(path):
     return l
 
 def read_list_from_fchk(start, end, path):
-    print(f'Reading from {start} to {end}')
     l = []
     with open(path, 'r') as f:
         found = False
@@ -110,7 +108,7 @@ class MeanField:
                 if num > 0:
                     nocc += 1
             self.mo_occ = [2.] * nocc + [0.] * (len(self.orbital_energies) - nocc)
-            self.mo_occ = np.array(self.mo_occ)
+            self.mo_occ = int(sum(np.array(self.mo_occ)))
         elif 'U' in self.__class__.__name__:
             wf = 'unrest'
             if 'HF' in self.__class__.__name__:
@@ -136,14 +134,16 @@ class MeanField:
         self.numprim = int(read_from_fchk('Number of primitive shells', self.path)[-1])
         self.atomic_numbers = [int(i) for i in read_list_from_fchk('Atomic numbers', 'Nuclear charges', self.path)]
         self.atomic_symbols = read_atomic_symbols(self.atomic_numbers)
+        # Number of contracted shells
+        self.ncshell = int(read_from_fchk('Number of contracted shells', self.path)[-1])
         if wf == 'rest':
-            self.mo_coeff = read_list_from_fchk('Alpha MO coefficients', 'Orthonormal basis', self.path)
+            self.mo_coeff = list(read_list_from_fchk('Alpha MO coefficients', 'Orthonormal basis', self.path))
+            #self.numprim = int(self.numprim / 2)
+            self.ncshell = int(self.ncshell / 2)
         elif wf == 'unrest':
             self.mo_coeff_alpha = read_list_from_fchk('Alpha MO coefficients', 'Beta MO coefficients', self.path)
             self.mo_coeff_beta = read_list_from_fchk('Beta MO coefficients', 'Orthonormal basis', self.path)
             self.mo_coeff = [self.mo_coeff_alpha, self.mo_coeff_beta]
-        # Number of contracted shells
-        self.ncshell = int(read_from_fchk('Number of contracted shells', self.path)[-1])
         # Number of primitive shells
         self.npshell = read_from_fchk('Number of primitive shells', self.path)[-1]
         # 0=s, 1=p, -1=sp, 2=6d, -2=5d, 3=10f, -3=7f
@@ -183,8 +183,8 @@ def mult(shell_type):
 def process_basis(mf):
     numprim, nbasis = 0, 0
     for i in range(mf.ncshell):
-        if mf.mssh[i] < -1:
-            numprim += abs(mf.mssh[i]) * mf.mnsh[i]
+        if mf.mssh[i] <= -1:
+            numprim += mult(abs(mf.mssh[i])) * mf.mnsh[i]
         else:
             numprim += mult(mf.mssh[i]) * mf.mnsh[i]
         nbasis += mult(mf.mssh[i])
@@ -225,13 +225,14 @@ def process_basis(mf):
         jcount += 1
 
     nlm, iptoat = get_nlm(mf)
+    numprim = numprim
 
     xnorm = np.zeros(numprim)
 
     for i in range(numprim):
-        nn = nlm[i][0]
-        ll = nlm[i][1]
-        mm = nlm[i][2]
+        nn = nlm[i, 0]
+        ll = nlm[i, 1]
+        mm = nlm[i, 2]
         fnn = factorial(nn) / factorial(2 * nn)
         fll = factorial(ll) / factorial(2 * ll)
         fmm = factorial(mm) / factorial(2 * mm)
@@ -260,8 +261,8 @@ def process_basis(mf):
         npb = 0
         for j in range(numprim):
             if abs(coefpb[j, i]) > 1.0e-10:
+                nprimbas[npb, i] = j + 1
                 npb += 1
-                nprimbas[npb, i] = j
 
     # Updating the mf object
     mf.numprim = numprim
@@ -293,7 +294,7 @@ def build_ovlp(mf):
     s = np.zeros((nbasis, nbasis))
 
     for ia in range(numprim):
-        for ib in range(ia + 1):
+        for ib in range(ia):
             sp[ia, ib] = 0.0
             AminusB = coord[iptoat[ia]] - coord[iptoat[ib]]
             for ixyz in range(3):
@@ -341,70 +342,67 @@ def build_ovlp(mf):
             while nprimbas[k, i] != 0:
                 l = 0
                 while nprimbas[l, j] != 0:
-                    s[i, j] += coefpb[nprimbas[k, i] - 1, i] * coefpb[nprimbas[l, j] - 1, j] * sp[nprimbas[k, i] - 1, nprimbas[l, j] - 1]
+                    s[i, j] += coefpb[nprimbas[k, i]-1, i] * coefpb[nprimbas[l, j]-1, j] * sp[nprimbas[k, i]-1, nprimbas[l, j]-1]
                     l += 1
                 k += 1
             if i != j:
                 s[j, i] = s[i, j]
 
-    return s
+    return np.array(s)
 
 def get_nlm(mf):
     ncshell = mf.ncshell
     mssh = mf.mssh
     mnsh = mf.mnsh
     iatsh = mf.iatsh
+    numprim = mf.numprim
 
-    nlm = []
-    iptoat = []
+    nlm = np.zeros((numprim, 3), dtype=int)
+    iptoat = np.zeros(numprim, dtype=int)
     icount = 0
 
-    # Making the orbital types integers, not floats
     for i in range(ncshell):
-        if mssh[i] == 0: # S-type orbitals
+        if mssh[i] == 0:  # S-type orbitals
             for j in range(mnsh[i]):
-                iptoat.append(iatsh[i])
-            icount += 1
-        elif mssh[i] == 1: # P-type orbitals
+                iptoat[icount] = iatsh[i]
+                icount += 1
+        elif mssh[i] == 1:  # P-type orbitals
             for j in range(mnsh[i]):
-                nlm.extend([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-                iptoat.extend([iatsh[i]] * 3)
-            icount += 3
-        elif mssh[i] == -1: # SP-type orbitals
+                nlm[icount:icount + 3] = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+                iptoat[icount:icount + 3] = iatsh[i]
+                icount += 3
+        elif mssh[i] == -1:  # SP-type orbitals
             for j in range(mnsh[i]):
-                nlm.extend([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-                iptoat.extend([iatsh[i]] * 4)
-            icount += 4
-        elif abs(mssh[i]) == 2: # D-type orbitals
+                nlm[icount:icount + 4] = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]]
+                iptoat[icount:icount + 4] = iatsh[i]
+                icount += 4
+        elif abs(mssh[i]) == 2:  # D-type orbitals
             for j in range(mnsh[i]):
-                nlm.extend([[2, 0, 0], [0, 2, 0], [0, 0, 2], [1, 1, 0], [1, 0, 1], [0, 1, 1]])
-                iptoat.extend([iatsh[i]] * 6)
-            icount += 6
-        elif abs(mssh[i]) == 3: # F-type orbitals
+                nlm[icount:icount + 6] = [[2, 0, 0], [0, 2, 0], [0, 0, 2], [1, 1, 0], [1, 0, 1], [0, 1, 1]]
+                iptoat[icount:icount + 6] = iatsh[i]
+                icount += 6
+        elif abs(mssh[i]) == 3:  # F-type orbitals
             for j in range(mnsh[i]):
-                nlm.extend([
+                nlm[icount:icount + 10] = [
                     [3, 0, 0], [0, 3, 0], [0, 0, 3], [1, 2, 0], [2, 1, 0], [2, 0, 1],
                     [1, 0, 2], [0, 1, 2], [0, 2, 1], [1, 1, 1]
-                ])
-                iptoat.extend([iatsh[i]] * 10)
-            icount += 10
-        elif abs(mssh[i]) == 4: # G-type orbitals
+                ]
+                iptoat[icount:icount + 10] = iatsh[i]
+                icount += 10
+        elif abs(mssh[i]) == 4:  # G-type orbitals
             for j in range(mnsh[i]):
-                nlm.extend([
+                nlm[icount:icount + 15] = [
                     [0, 0, 4], [0, 1, 3], [0, 2, 2], [0, 3, 1], [0, 4, 0], [1, 0, 3],
                     [1, 1, 2], [1, 2, 1], [1, 3, 0], [2, 0, 2], [2, 1, 1], [2, 2, 0],
                     [3, 0, 1], [3, 1, 0], [4, 0, 0]
-                ])
-                iptoat.extend([iatsh[i]] * 15)
-            icount += 15
+                ]
+                iptoat[icount:icount + 15] = iatsh[i]
+                icount += 15
         else:
             raise ValueError('Angular momentum not implemented')
 
-    print(len(nlm))
-    print(ncshell)
-    print(mf.numprim)
-    exit()
-    return nlm, np.array(iptoat)
+
+    return np.array(nlm), np.array(iptoat)
 
 def prim_orb_mapping(mf):
     numprim = 0
@@ -422,7 +420,7 @@ def prim_orb_mapping(mf):
             if mssh[i] >= -1:
                 for k in range(mult(mssh[i])):
                     numprim += 1
-                    coefpb[numprim-1, nbasis+k] = coefp[numprim-1] * xnorm[numprim-1]
+                    coefpb[numprim - 1, nbasis+k] = coefp[numprim - 1] * xnorm[numprim - 1]
                     iptob_cartesian[numprim-1] = nbasis + k
             elif mssh[i] == -2:  # Mapping for pure 5d
                 coefpb[numprim, nbasis] = coefp[numprim] * xnorm[numprim] * (-0.5)
@@ -484,7 +482,4 @@ def prim_orb_mapping(mf):
                 numprim += mult(abs(mssh[i]))
         nbasis += mult(mssh[i])
 
-    print("Total number of primitive gaussians:", numprim)
-    print("Total number of basis functions:", nbasis)
-    exit()
     return coefpb, iptob_cartesian
