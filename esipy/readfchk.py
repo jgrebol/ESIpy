@@ -280,7 +280,6 @@ def process_basis(mf):
 
 def build_ovlp(mf):
     tol = 1.0e-8
-
     numprim = len(mf.expsh)
     nbasis = mf.nbasis
     coord = mf.coord
