@@ -27,6 +27,7 @@ jobs:
       - name: Run tests
         run: |
           python -m unittest discover -s tests
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -39,6 +40,10 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.10.16
+
+      - name: Clean dist directory
+        run: |
+          rm -rf dist
 
       - name: Build package
         run: |
