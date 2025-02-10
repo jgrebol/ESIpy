@@ -1,5 +1,4 @@
 from os import environ
-
 import numpy as np
 
 environ["NUMEXPR_NUM_THREADS"] = "1"

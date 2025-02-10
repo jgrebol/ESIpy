@@ -1,4 +1,4 @@
-numpy
-scipy
-pyscf
+numpy==2.1.3
+scipy==1.14.1
+pyscf==2.7.0
 sphinx
