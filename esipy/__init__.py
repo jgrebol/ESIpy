@@ -12,8 +12,6 @@ from esipy.indicators import (
 from esipy.make_aoms import make_aoms
 from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type
 
-from esipy import IndicatorsRest, IndicatorsUnrest, IndicatorsNatorb, ESI
-
 
 class IndicatorsRest:
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None,
