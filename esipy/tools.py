@@ -1,14 +1,5 @@
-import pickle
-from functools import reduce
-from collections import deque, defaultdict
-
 import numpy as np
-from os import environ
-
-environ["NUMEXPR_NUM_THREADS"] = "1"
-environ["OMP_NUM_THREADS"] = "1"
-environ["MKL_NUM_THREADS"] = "1"
-
+from collections import deque, defaultdict
 
 def wf_type(Smo):
     """
@@ -375,7 +366,7 @@ def find_rings(connec, minlen=6, maxlen=6):
                 if next not in path:
                     stack.append((next, path + [next]))
 
-    def is_unique_permutation(path, all):
+    def unique(path, all):
         for shift in range(len(path)):
             rot = np.roll(path, shift).tolist()
             if rot in all or rot[::-1] in all:
@@ -388,23 +379,9 @@ def find_rings(connec, minlen=6, maxlen=6):
         starts = [0]
     for start in starts:
         for path in dfs(connec, minlen, maxlen, start):
-            if is_unique_permutation(path, all_paths):
+            if unique(path, all_paths):
                 all_paths.append(path)
     return all_paths
-
-def find_middle_vertices(connec):
-    mid = {node for node, neighbors in connec.items() if len(neighbors) >= 3}
-    groups = {}
-
-    for node in mid:
-        connec_mid = [neighbor for neighbor in connec[node] if neighbor in mid]
-        if connec_mid:
-            groups[node] = connec_mid
-
-    return group
-
-def full_connec(self):
-    return {k: [v for v in self.arr if v != k] for k in self.arr}
 
 def filter_connec(connec):
     filtered_connec = {}

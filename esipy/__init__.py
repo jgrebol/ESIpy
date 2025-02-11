@@ -2,7 +2,8 @@ from os import environ
 import numpy as np
 from esipy.make_aoms import make_aoms
 from esipy.atomicfiles import write_aoms, read_aoms
-from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type, build_connec, build_connec_no, find_rings
+from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type, build_connec, \
+    build_connec_no, find_rings, is_closed
 
 from esipy.indicators import (
     compute_iring, sequential_mci, multiprocessing_mci, compute_huckel_iring, compute_huckel_sequential_mci,
@@ -1323,6 +1324,7 @@ class ESI:
         print(' -------------------------------------------------')
         print(" | Module to compute approximations for the MCI")
         print(' -------------------------------------------------')
+
         if getattr(self, "partition") is None:
             print(" | No partition specified. Will assume non-symmetric AOMs")
 
@@ -1349,6 +1351,10 @@ class ESI:
         for ring_index, ring in enumerate(self.rings):
             print(f" | Ring {ring_index+1} ({len(ring)}): {ring}")
             print(' -------------------------------------------------')
+            if not is_closed(ring, build_connec(self.Smo, self.rings_thres)):
+                print(" | Anneeled ring. Computing with BFS algorithm")
+            else:
+                print(" | Single ring. Computing with standard algorithm")
 
             if wf_type(self.Smo) == "rest":
                 val, nperms, t = aproxmci(ring, self.Smo, self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen)

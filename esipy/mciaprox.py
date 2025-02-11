@@ -48,7 +48,7 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen
             val = 0.5 * sum(compute_iring(p, Smo) for p in perms)
             return val, nperms, time() - start
         else:
-            perms =(mapping(arr, p) for p in perms if p[1] > p[-1])
+            perms =(mapping(arr, p) for p in perms if p[1] < p[-1])
             val = sum(compute_iring(p, Smo) for p in perms)
             return val, nperms, time() - start
     else:
@@ -60,7 +60,7 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen
             iter =(mapping(arr, p) for p in perms)
             result = 0.5 * sum(pool.imap(dumb, iter, chunk_size))
         else:
-            iter = (mapping(arr, x) for x in perms if x[1] > x[-1])
+            iter = (mapping(arr, x) for x in perms if x[1] < x[-1])
             result = sum(pool.imap(dumb, iter, chunk_size))
 
         pool.close()
@@ -85,7 +85,8 @@ class HamiltonMCI:
         self.minlen = minlen
         self.alg = alg
         # Path finding features
-        self.closed = True # pollas
+        #self.closed = True # pollas
+        self.closed = closed
         self.connec = filter_connec(connec)
         self.start = find_middle_nodes(self.connec)
         self.distances = find_node_distances(self.connec)
@@ -113,7 +114,6 @@ class HamiltonMCI:
         else:
             if not hasattr(self, "connec"):
                 raise ValueError(" | Missing adjacency matrix.")
-            print(" | Using adjacency matrix.")
             if self.alg == 1:
                 return self._anilat_alg1()
             elif self.alg == 2:
@@ -129,7 +129,7 @@ class HamiltonMCI:
         def dfs(path):
             if len(path) == self.n:
                 val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
-                if val <= self.d and path[1] > path[-1]:
+                if val <= self.d and path[1] < path[-1]:
                     yield path
             for v in range(self.n):
                 if v not in path:
@@ -142,13 +142,20 @@ class HamiltonMCI:
     def _alg2(self):
         def dfs(path):
             if len(path) == self.n:
+                maxval = 0
+                for i in range(self.n - 1):
+                    val = min(abs(path[i] - path[i + 1]), self.n - abs(path[i] - path[i + 1]))
+                    if val > maxval:
+                        maxval = val
                 val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
-                if val == self.d and path[1] > path[-1]:
+                if val > maxval:
+                    maxval = val
+                if maxval == self.d and path[1] < path[-1]:
                     yield path
             for v in range(self.n):
                 if v not in path:
                     val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
-                    if val == self.d:
+                    if val <= self.d:
                         yield from dfs(path + [v])
 
         return dfs([0])
@@ -157,7 +164,7 @@ class HamiltonMCI:
         def dfs(path):
             if len(path) == self.n:
                 val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
-                if val <= self.d and path[1] > path[-1] and val % 2 != 0:
+                if val <= self.d and path[1] < path[-1] and val % 2 != 0:
                     yield path
             for v in range(self.n):
                 if v not in path:
@@ -171,7 +178,7 @@ class HamiltonMCI:
         def dfs(path):
             if len(path) == self.n:
                 val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
-                if val <= self.d and path[1] > path[-1] and val % 2 == 0:
+                if val <= self.d and path[1] < path[-1] and val % 2 == 0:
                     yield path
             for v in range(self.n):
                 if v not in path:
@@ -186,7 +193,7 @@ class HamiltonMCI:
         def dfs(path):
             if len(path) == self.n:
                 val = self.distances[r[path[0]]][r[path[-1]]]
-                if val <= self.d and path[1] > path[-1]:
+                if val <= self.d and path[1] < path[-1]:
                     yield path
             for v in range(self.n):
                 if v not in path:
@@ -200,8 +207,15 @@ class HamiltonMCI:
         r = self.arr
         def dfs(path):
             if len(path) == self.n:
-                maxval = max(self.distances[r[path[i]]][r[path[i + 1]]] for i in range(len(path) - 1))
-                if maxval == self.d and path[1] > path[-1]:
+                maxval = 0
+                for i in range(self.n - 1):
+                    val = self.distances[r[path[i]]][r[path[i + 1]]]
+                    if val > maxval:
+                        maxval = val
+                val = self.distances[r[path[0]]][r[path[-1]]]
+                if val > maxval:
+                    maxval = val
+                if maxval == self.d and path[1] < path[-1]:
                     yield path
             for v in range(self.n):
                 if v not in path:
@@ -216,7 +230,7 @@ class HamiltonMCI:
         def dfs(path):
             if len(path) == self.n:
                 val = self.distances[r[path[0]]][r[path[-1]]]
-                if val <= self.d and path[1] > path[-1] and val % 2 != 0:
+                if val <= self.d and path[1] < path[-1] and val % 2 != 0:
                     yield path
             for v in range(self.n):
                 if v not in path:
@@ -231,7 +245,7 @@ class HamiltonMCI:
         def dfs(path):
             if len(path) == self.n:
                 val = self.distances[r[path[0]]][r[path[-1]]]
-                if val <= self.d and path[1] > path[-1] and val % 2 == 0:
+                if val <= self.d and path[1] < path[-1] and val % 2 == 0:
                     yield path
             for v in range(self.n):
                 if v not in path:
