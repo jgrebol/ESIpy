@@ -85,7 +85,6 @@ class HamiltonMCI:
         self.minlen = minlen
         self.alg = alg
         # Path finding features
-        #self.closed = True # pollas
         self.closed = closed
         self.connec = filter_connec(connec)
         self.start = find_middle_nodes(self.connec)
