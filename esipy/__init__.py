@@ -1108,7 +1108,7 @@ class ESI:
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
-                 ncores=1, saveaoms=None, savemolinfo=None, name="calc", readpath='.'
+                 ncores=1, saveaoms=None, savemolinfo=None, name="calc", readpath='.', read=False
                  ):
         # For usual ESIpy calculations
         self._aom = aom
@@ -1132,6 +1132,7 @@ class ESI:
         self.saveaoms = saveaoms
         self.savemolinfo = savemolinfo
         self.readpath = readpath
+        self.read = read
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
@@ -1188,7 +1189,7 @@ class ESI:
 
         if isinstance(self._aom, str):
             return load_file(self._aom)
-        if self.readpath != '.':
+        if self.read == True:
             return self.readaoms()
         if self._aom is None:
             if isinstance(self.partition, list):

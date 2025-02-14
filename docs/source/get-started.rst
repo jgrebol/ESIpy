@@ -82,11 +82,11 @@ but also from Eduard Matito's ESI-3D code. These are written through the method 
     arom = esipy.ESI(mol=mol, mf=mf, rings=[1,2,3,4,5,6], partition="nao")
     arom.writeaoms("benzene_nao.aoms")
 
-and read through the method `readaoms()`
+and read through the method `readaoms()` by previously specifying the `read=True` attribute
 
 .. code-block:: python
 
-    arom = esipy.ESI(rings=[1,2,3,4,5,6], partition="nao")
+    arom = esipy.ESI(rings=[1,2,3,4,5,6], partition="nao", read=True)
     arom.readaoms()
     arom.print()
 
