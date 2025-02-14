@@ -71,10 +71,12 @@ def sequential_mci(arr, Smo, partition):
     iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
     if partition == 'mulliken' or partition == "non-symmetric":
         # We account for twice the value for symmetric AOMs
-        return 0.5 * sum(compute_iring(p, Smo) for p in iterable2)
+        val = 0.5 * sum(compute_iring(p, Smo) for p in iterable2)
+        return val
     else:  # Remove reversed permutations
         iterable2 = (x for x in iterable2 if x[1] < x[-1])
-        return sum(compute_iring(p, Smo) for p in iterable2)
+        val =  sum(compute_iring(p, Smo) for p in iterable2)
+        return val
 
 def sequential_mci_no(arr, Smo, partition):
     """Computes the MCI sequentially for a Natural Orbitals calculation by computing the Iring
@@ -98,10 +100,12 @@ def sequential_mci_no(arr, Smo, partition):
     iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
     if partition == 'mulliken' or partition == "non-symmetric":
         # We account for twice the value for symmetric AOMs
-        return 0.5 * sum(compute_iring_no(p, Smo) for p in iterable2)
+        val = 0.5 * sum(compute_iring_no(p, Smo) for p in iterable2)
+        return val
     else:  # Remove reversed permutations
         iterable2 = (x for x in iterable2 if x[1] < x[-1])
-        return sum(compute_iring_no(p, Smo) for p in iterable2)
+        val = sum(compute_iring_no(p, Smo) for p in iterable2)
+        return val
 
 def multiprocessing_mci(arr, Smo, ncores, partition):
     """Computes the MCI by generating all the permutations
@@ -243,7 +247,6 @@ def compute_huckel_sequential_mci(arr, Smo, partition="non-symmetric"):
     else:  # Remove reversed permutations
         iterable2 = (mapping(arr, x) for x in iterable2 if x[1] < x[-1])
         return sum(compute_huckel_iring(p, Smo, arr) for p in iterable2)
-
 
 def compute_huckel_multiprocessing_mci(arr, Smo, ncores, partition="non-symmetric"):
     from multiprocessing import Pool

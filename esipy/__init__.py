@@ -1047,7 +1047,7 @@ class ESI:
     def __init__(self, Smo=None, rings=None, mol=None, mf=None, myhf = None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
-                 ncores=1, saveaoms=None, savemolinfo=None, name="calc", readpath='.',
+                 ncores=1, saveaoms=None, savemolinfo=None, name="calc", read=False, readpath='.',
                  d=1, mcialg=0, minlen=6, maxlen=6):
         # For usual ESIpy calculations
         self._Smo = Smo
@@ -1066,6 +1066,7 @@ class ESI:
         self.connectivity = connectivity
         self.geom = geom
         # For other tools
+        self.read = read
         self.name = name
         self.ncores = ncores
         self.saveaoms = saveaoms
@@ -1132,7 +1133,7 @@ class ESI:
         """
         if isinstance(self._Smo, str):
             return load_file(self._Smo)
-        if self.readpath != '.':
+        if self.readpath != '.' or self.read == True:
             return self.readaoms()
         if self._Smo is None:
             if isinstance(self.partition, list):

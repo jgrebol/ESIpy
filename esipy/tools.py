@@ -330,28 +330,28 @@ def build_connec(Smo, thres=0.3):
     else:
         natoms = len(Smo[0])
         factor = 1
-    connectivity_dict = {}
+    connec_dict = {}
 
     for i in range(1, natoms + 1):
         for j in range(1, natoms + 1):
             if i != j:
                 if factor * find_di(Smo, i, j) >= thres:
-                    if i not in connectivity_dict:
-                        connectivity_dict[i] = []
-                    connectivity_dict[i].append(j)
-    return connectivity_dict
+                    if i not in connec_dict:
+                        connec_dict[i] = []
+                    connec_dict[i].append(j)
+    return connec_dict
 
 def build_connec_no(Smo, thres=0.3):
-    connectivity_dict = {}
+    connec_dict = {}
 
     for i in range(len(Smo[0])):
         for j in range(len(Smo[0])):
             if i != j:
                 if find_di_no(Smo, i, j) >= thres:
-                    if i not in connectivity_dict:
-                        connectivity_dict[i] = []
-                    connectivity_dict[i].append(j)
-    return connectivity_dict
+                    if i not in connec_dict:
+                        connec_dict[i] = []
+                    connec_dict[i].append(j)
+    return connec_dict
 
 def find_rings(connec, minlen=6, maxlen=6):
     def dfs(connec, minlen, maxlen, start):
@@ -387,9 +387,9 @@ def filter_connec(connec):
     filtered_connec = {}
     for key, values in connec.items():
         if len(values) > 1:
-            filtered_values = [v for v in values if len(connec[v]) > 1]
-            if filtered_values:
-                filtered_connec[key] = filtered_values
+            filtered_vals = [v for v in values if len(connec[v]) > 1]
+            if filtered_vals:
+                filtered_connec[key] = filtered_vals
     return filtered_connec
 
 def is_closed(arr, connec):
@@ -399,24 +399,24 @@ def is_closed(arr, connec):
     return False
 
 def find_middle_nodes(connec2):
-    return [key for key, values in connec2.items() if len(values) > 2]
+    return [key for key, vals in connec2.items() if len(vals) > 2]
 
 def find_node_distances(graph):
    distances = defaultdict(dict)
 
-   for start_node in graph:
+   for start in graph:
        queue = deque([(start_node, 0)])
        visited = set()
 
        while queue:
-           current_node, current_distance = queue.popleft()
+           current_node, current_dist = queue.popleft()
 
            if current_node not in visited:
                visited.add(current_node)
-               distances[start_node][current_node] = current_distance
+               distances[start][current_node] = current_dist
 
                for neighbor in graph[current_node]:
                    if neighbor not in visited:
-                       queue.append((neighbor, current_distance + 1))
+                       queue.append((neighbor, current_dist + 1))
 
    return distances
