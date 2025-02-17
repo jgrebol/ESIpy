@@ -28,6 +28,18 @@ ESIpy can be installed through:
 pip install esipython
 ```
 
+The latest stable version can be obtained through:
+
+```
+pip upgrade esipython
+```
+
+The latest non-stable version available on Github can be obtained through:
+
+```
+pip install --upgrade git+https://github.com/jgrebol/ESIpy.git
+```
+
 For a detailed explanation on how to run the code and how to customize it, please see the [documentation](esipython.readthedocs.io).
 
 ## Getting started
