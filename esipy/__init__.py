@@ -277,16 +277,6 @@ class IndicatorsRest:
         """
         return self._bla()[1]
 
-    @property
-    def homer(self):
-        """
-        Get the HOMER value.
-
-        :returns: The HOMER value.
-        :rtype: float
-        """
-        return compute_homer(self._rings, self._molinfo, self._homerrefs)
-
 
 class IndicatorsUnrest:
     """
@@ -1233,8 +1223,7 @@ class ESI:
 
         if isinstance(self._partition, str):
             return format_partition(self._partition)
-        raise ValueError(
-            " | Partition could not be processed. Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao'")
+        raise ValueError(" | Partition could not be processed. Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao'")
 
     @property
     def mci(self):
@@ -1323,14 +1312,6 @@ class ESI:
         if self.molinfo is None or len(self.molinfo) == 1:
             if self.mol is None:
                 raise ValueError(" | Missing 'mol' and/or 'molinfo'. Can not compute")
-        if "symbols" not in self.molinfo:
-            self.molinfo.update({"symbols": symbols})
-        if "basisset" not in self.molinfo:
-            if isinstance(self.molinfo["basisset"], dict):
-                basisset = "Different basis sets"
-            else:
-                basisset = molinfo["basisset"]
-            self.molinfo.update({"basisset": basisset})
         if "calctype" not in self.molinfo:
             self.molinfo.update({"calctype": "Not specified"})
         if "xc" not in self.molinfo:

@@ -26,7 +26,11 @@ def info_unrest(aom, molinfo):
     if "dft" in molinfo["method"] and molinfo["xc"] is not None:
         print(" | Functional:              ", molinfo["xc"])
 
-    print(" | Basis set:               ", molinfo["basisset"].upper())
+    if isinstance(molinfo["basisset"], dict):
+        for key in molinfo["basisset"]:
+            print(" | Basis set for {:>2}:         {}".format(key, molinfo["basisset"][key].upper()))
+    elif isinstance(molinfo["basisset"], str):
+        print(" | Basis set:               ", molinfo["basisset"].upper())
     if isinstance(molinfo["energy"], str):
         print(" | Total energy:          {}".format(molinfo["energy"]))
     else:
