@@ -78,9 +78,6 @@ def main():
     molname, filename = os.path.splitext(fchname)
 
     mol, mf = readfchk(molname + filename)
-    print(mf.get_ovlp())
-    #print(sum(mf.get_ovlp()))
-    exit()
 
     os.chdir(os.getcwd())
     for part in partition:

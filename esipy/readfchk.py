@@ -11,7 +11,7 @@ def readfchk(filename):
         Mole object and MeanField object.
     """
     mol = Mole(filename)
-    mf = MeanField(filename)
+    mf = MeanField(filename, mol)
     return mol, mf
 
 def read_from_fchk(to_read, path):
@@ -82,10 +82,53 @@ class Mole:
         self.basis = read_level_theory(self.path)[-1]
         self.nalpha = int(read_from_fchk('Number of alpha electrons', self.path)[-1])
         self.nbeta = int(read_from_fchk('Number of beta electrons', self.path)[-1])
+        self.charge = int(read_from_fchk('Charge', self.path)[-1])
         self.spin = int(self.nalpha) - int(self.nbeta)
         self.nelec = int(read_from_fchk('Number of electrons', self.path)[-1])
         self.natoms = int(read_from_fchk('Number of atoms', self.path)[-1])
+        self.natm = self.natoms
         self.nbasis = int(read_from_fchk('Number of basis functions', self.path)[-1])
+        self.nbas = self.nbasis
+        self.nao = self.nbasis
+        self.atomic_numbers = [int(i) for i in read_list_from_fchk('Atomic numbers', 'Nuclear charges', self.path)]
+        self.atomic_symbols = read_atomic_symbols(self.atomic_numbers)
+        self.iatsh = read_list_from_fchk('Shell to atom map', 'Primitive exponents', self.path)
+        self.iatsh = [int(i) for i in self.iatsh]
+        self.mssh = read_list_from_fchk('Shell types', 'Number of primitives per shell', self.path)
+        self.mssh = [int(i) for i in self.mssh]
+        self.dcart = read_from_fchk("Pure/Cartesian d shells", self.path)[-1]
+        self.fcart = read_from_fchk("Pure/Cartesian f shells", self.path)[-1]
+        if self.dcart is False and self.fcart is False:
+            self.cart = False
+        else:
+            self.cart = True
+
+    def atom_symbol(self, pos):
+        return self.atomic_symbols[pos]
+
+    def aoslice_by_atom(self):
+
+        counts = [0] * (max(self.iatsh) + 1)
+        for value in self.iatsh:
+            counts[value] += 1
+        counts = counts[1:]
+
+        start_shell = 0
+        aoslices = []
+
+        result = []
+        index = 0
+        for count in counts:
+            sums = sum(mult(self.mssh[index + i]) for i in range(count))
+            result.append(sums)
+            index += count
+
+        for s in result:
+            stop_shell = start_shell + s
+            aoslices.append(np.array((0, 0, start_shell, stop_shell)))
+            start_shell = stop_shell
+
+        return np.array(aoslices)
 
     def atom_coords(self):
         coords = read_list_from_fchk('Current cartesian coordinates', 'Number of symbols', self.path)
@@ -93,8 +136,9 @@ class Mole:
 
 
 class MeanField:
-    def __init__(self, path):
+    def __init__(self, path, mol):
         self.path = path
+        self.mol = mol
         self.__class__.__name__ = read_level_theory(self.path)[-2]
         if 'R' in self.__class__.__name__:
             wf = 'rest'
@@ -107,8 +151,7 @@ class MeanField:
             for num in self.orbital_energies:
                 if num > 0:
                     nocc += 1
-            self.mo_occ = [2.] * nocc + [0.] * (len(self.orbital_energies) - nocc)
-            self.mo_occ = int(sum(np.array(self.mo_occ)))
+            self.mo_occ = np.array([2.] * (int(self.mol.nalpha + self.mol.nbeta) // 2) + [0.] * (len(self.orbital_energies) - (int(self.mol.nalpha+self.mol.nbeta) // 2)))
         elif 'U' in self.__class__.__name__:
             wf = 'unrest'
             if 'HF' in self.__class__.__name__:
@@ -138,7 +181,7 @@ class MeanField:
         self.ncshell = int(read_from_fchk('Number of contracted shells', self.path)[-1])
         if wf == 'rest':
             self.mo_coeff = list(read_list_from_fchk('Alpha MO coefficients', 'Orthonormal basis', self.path))
-            #self.numprim = int(self.numprim / 2)
+            self.mo_coeff = np.array(self.mo_coeff).reshape(int(np.sqrt(len(self.mo_coeff))), -1)            #self.numprim = int(self.numprim / 2)
             self.ncshell = int(self.ncshell / 2)
         elif wf == 'unrest':
             self.mo_coeff_alpha = read_list_from_fchk('Alpha MO coefficients', 'Beta MO coefficients', self.path)
@@ -155,6 +198,7 @@ class MeanField:
         self.mnsh = [int(i) for i in self.mnsh]
         # Shell to atom map
         self.iatsh = read_list_from_fchk('Shell to atom map', 'Primitive exponents', self.path)
+        self.iatsh = [int(i) for i in self.iatsh]
         # Primitive exponents
         self.expsh = read_list_from_fchk('Primitive exponents', 'Contraction coefficients', self.path)
         # Current cartesian coordinates
@@ -169,9 +213,21 @@ class MeanField:
                 self.c1 = read_list_from_fchk('Contraction coefficients', 'Coordinates of each shell', self.path)
 
     def get_ovlp(self):
-        process_basis(self)
-        return build_ovlp(self)
+        from pyscf import gto
 
+        mol = self.mol
+
+        mol_pyscf = gto.M(
+            atom=[(mol.atomic_symbols[i], mol.atom_coords()[i]) for i in range(mol.natoms)],
+            basis=mol.basis,
+            spin=mol.spin,
+            charge=0,
+            cart=mol.cart,
+        )
+        mol_pyscf.build()
+
+        ovlp = mol_pyscf.intor("int1e_ovlp")
+        return np.array(ovlp)
 
 def mult(shell_type):
     mult_dict = { #s=1, p=2, d=3, f=4, g=5, sp=-1
