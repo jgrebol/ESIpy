@@ -15,8 +15,8 @@ the use of Hilbert-space schemes (Mulliken :cite:`mulliken:55population`, Löwdi
 framework as the partition of the system. QTAIM relies on numerical integrations, so the unavoidable errors associated
 to them make some of these aromaticity descriptors unviable in large systems. This newer approach, however, does not
 require numerical integration, but rather relies on the separation of the molecule by using their atom-centered
-functions, leading to an exact partition of the system. The following formulas will be expressed for single-determinant,
-closed-shell wavefunctions. The most fundamental magnitude is the **Atomic Overlap Matrix (
+functions, leading to an exact partition of the system. The following formulas will be expressed for **single-determinant,
+closed-shell wavefunctions**. The most fundamental magnitude is the **Atomic Overlap Matrix (
 AOM,** :math:`\mathbf{S}^{\text{A}}` **) in the Molecular Orbitals (MO,** :math:`\mathbf{\phi}` **) basis**, with elements
 
 .. math::

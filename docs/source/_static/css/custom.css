@@ -1,5 +1,5 @@
 :root {
-  --main-color: #009982;
+  --main-color: #18997D;
 }
 
 #main-content {
@@ -39,12 +39,14 @@ header #logo-container {
   width: 150%;
   height: 100px;
   padding-left: 0em;
+  text-decoration: none;
 }
 
 #logo-container img {
   max-width: 150%;
   max-height: 150%;
   object-fit: cover;
+  text-decoration: none;
 }
 
 img.align-center {
@@ -101,12 +103,14 @@ h3, h4, h5, h6 {
   width: 370px;
   margin-right: .25em;
   position: relative;
-  background-color: #126F61;
+  background-color: #18997D;
   height: auto;
+  max-height: 140vh;
 }
 
 #side-menu {
-margin-top: .2em}
+margin-top: .2em,
+text-color: #0A1A1A;}
 
 #search input[type=text] {
   width: 100%;
@@ -141,18 +145,18 @@ margin-top: .2em}
 }
 
 .caption {
-  font-size: 1.2em;
+  font-size: 1.5em;
   font-weight: 500;
 }
 
-#codecell0 {
+#codecell0, #codecell1, #codecell2{
   margin-top: 2px;
   margin-bottom: 2px;
   height: auto;
   width: auto;
   justify-content: flex-start;
   align-items: center;
-  round-border: 15px;
+  border-radius: 10px;
 }
 
 div.highlight {
@@ -206,7 +210,8 @@ button.copybtn svg {
 
 .admonition.note {
   background-color: #aecdc8;
-  border-left: 4px solid #00B69B;
+  border-left: 4px solid var(--main-color);
+  font-size: .9em;
   padding: 1em;
   margin: 1em 0;
 }
@@ -215,6 +220,7 @@ button.copybtn svg {
   background-color: #d3b9ae;
   border-left: 4px solid #B73700;
   text-color: #B73700;
+  font-size: .9em;
   padding: 1em;
   margin: 1em 0;
 }
@@ -230,4 +236,8 @@ button.copybtn svg {
 .admonition-title {
   font-size: 1.2em;
   font-weight: bold;
+}
+
+#copyright {
+  font-size: 0.8em; /* Adjust the size as needed */
 }
