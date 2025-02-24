@@ -31,7 +31,7 @@ The average number of electrons in a given atom (:math:`N_\text{A}`) can be expr
 
 where we can introduce the elements of the overlap matrix in an AO basis, :math:`S_{\mu\nu}^\text{AO}=\int\chi_\mu^{*}(\textbf{r}){\chi_\nu}(\textbf{r})d\textbf{r}`.
 The elements of the P-matrix, :math:`P_{\nu\mu} = 2 \sum_i ^{M} c_{\nu i} c_{i\mu}^+`, showcase the orbital occupancies.
-In the simplest case of a single-determinant wavefunction, it s a unit matrix over all occupiedfor :math:`\text{M}>nocc` and 0s in the rest.
+In the simplest case of a single-determinant wavefunction, it s a unit matrix over all occupied for :math:`\text{M}>nocc` and 0s in the rest.
 For multi-determinant wavefunctions, the diagonalization of the P-matrix in the MO representation gives the natural orbital occupancies (:math:`n_i`) and the
 transformation matrix to the new basis (:math:`\Gamma`), which are not constrained to occupied orbitals anymore, by performing a unitary transformation:
 

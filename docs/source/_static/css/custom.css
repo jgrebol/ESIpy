@@ -108,6 +108,10 @@ h3, h4, h5, h6 {
   max-height: 140vh;
 }
 
+a.reference.internal .xref.py.py-mod.docutils.literal.notranslate {
+  background: none;
+}
+
 #side-menu {
 margin-top: .2em,
 text-color: #0A1A1A;}

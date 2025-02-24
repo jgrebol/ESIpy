@@ -6,6 +6,8 @@ single-determinant wavefunctions, and correlated wavefunctions from a restricted
 supported by the program are Mulliken, Löwdin, meta-Löwdin, Natural Atomic Orbitals (NAO), and Intrinsic Atomic Orbita (
 IAO).
 
+The on-line documentation can be found [here](https://esipython.readthedocs.io/en/latest/).
+
 ## Citation
 
 All the calculations performed for the creation and implementation of this program have been conducted in the following
