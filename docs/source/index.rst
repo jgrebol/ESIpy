@@ -7,7 +7,7 @@
 Program aimed at the calculation of population analysis and aromaticity indicators from different Hilbert-space
 partitions using the PySCF module.
 
-This program has been developed by Joan Grèbol-Tomàs, Eduard Matito and Pedro Salvador.
+This program has been developed by Joan Grèbol-Tomàs under the supervision of Eduard Matito and Pedro Salvador.
 
 .. toctree::
    :maxdepth: 2

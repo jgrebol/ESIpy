@@ -15,12 +15,13 @@ the use of Hilbert-space schemes (Mulliken :cite:`mulliken:55population`, Löwdi
 framework as the partition of the system. QTAIM relies on numerical integrations, so the unavoidable errors associated
 to them make some of these aromaticity descriptors unviable in large systems. This newer approach, however, does not
 require numerical integration, but rather relies on the separation of the molecule by using their atom-centered
-functions, leading to an exact partition of the system. The most fundamental magnitude is the **Atomic Overlap Matrix (
+functions, leading to an exact partition of the system. The following formulas will be expressed for single-determinant,
+closed-shell wavefunctions. The most fundamental magnitude is the **Atomic Overlap Matrix (
 AOM,** :math:`\mathbf{S}^{\text{A}}` **) in the Molecular Orbitals (MO,** :math:`\mathbf{\phi}` **) basis**, with elements
 
 .. math::
 
-   S_{ij}^\text{A}=\int_{\Omega_\text{A}}\phi_i^*(\textbf{r})\phi_j(\textbf{r})\text{d}\textbf{r}.
+   S_{ij}^\text{A}=\int_{\text{A}}\phi_i^*(\textbf{r})\phi_j(\textbf{r})\text{d}\textbf{r}.
 
 The average number of electrons in a given atom (:math:`N_\text{A}`) can be expressed in terms of an Atomic Orbitals (AO, :math:`\chi`) basis as
 
@@ -135,15 +136,16 @@ indicates more aromaticity in the system, and the index can not be computed for 
 Fluctuation Index (FLU)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The Fluctuation Index (FLU) :cite:`matito:05jcp` measures the resemblance of a series of tabulated :math:`\delta` to some typical aromatic
+The Fluctuation Index (FLU) :cite:`matito:05jcp` measures the resemblance of a series of reference :math:`\delta` to some typical aromatic
 molecules:
 
 .. math::
 
    \text{FLU}(\mathscr{A}) = \frac{1}{n} \sum_{i=1}^{n} \left[\left(\frac{V(A_i)}{V(A_{i-1})} \right)^\alpha \frac{\delta(A_i, A_{i-1}) - \delta_{ref}(A_i, A_{i-1})}{\delta_{ref}(A_i, A_{i-1})} \right]^2
 
-Where one can separate it into two parts: the polarizability of the bond and the comparison to some tabulated :math:`\delta` (
-for instance, the "CC", "CN", "BN", "NN" and "CS" bonds). The index is close to zero for aromatic molecules and greater
+Where one can separate it into two parts: the polarizability of the bond and the comparison to some reference :math:`\delta` (
+for instance, the "CC", "CN", "BN", "NN" and "CS" bonds). :math:`\alpha` is a simple function to make sure the first term is always
+greater or equal to 1. The index is close to zero for aromatic molecules and greater
 than zero in non-aromatic or antiaromatic molecules, and should not be used to study reactivity as they measure the
 similarity with respect to some molecule.
 
@@ -177,9 +179,9 @@ geometrical data.
 
 .. math::
 
-   \text{HOMA}(\mathscr{A}) = 1 - \frac{\alpha}{n} \cdot \sum_i^n (R_{opt} - R_{A_i,A_{i+1}})^2 = 1 - \frac{\alpha}{n} \cdot ((R_{opt} - \bar{R})^2 + \sum_i^n (R_{A_i,A_{i+1}} - \bar{R})^2) = 1 - (EN + GEO)
+   \text{HOMA}(\mathscr{A}) = 1 - 257.7\frac{1}{n} \cdot \sum_i^n (R_{opt} - R_{A_i,A_{i+1}})^2 = 1 - 257.7\frac{1}{n} \cdot ((R_{opt} - \bar{R})^2 + \sum_i^n (R_{A_i,A_{i+1}} - \bar{R})^2) = 1 - (EN + GEO)
 
-The formula depends on a series of tabulated optimal bon distances, :math:`R_{opt}`, as well as the normalization factor :math:`\alpha` for each bond to
+The formula depends on a series of tabulated optimal bond distances, :math:`R_{opt}`, as well as the normalization factor :math:`\alpha` for each bond to
 make the index 1 for benzene and 0 and negative values for non-aromatic or antiaromatic molecules, which makes it a good
 option for most organic molecules but fails for newer systems. The HOMA index is separated into the EN and GEO subparts,
 which measure the deviation of the interatomic distance into some tabulated numbers and the variance of this interatomic

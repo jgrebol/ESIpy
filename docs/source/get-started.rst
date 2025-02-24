@@ -98,8 +98,8 @@ Correlated wavefunctions
 
 For natural orbitals wavefunctions, an additional diagonalization
 of the first-order reduced density matrix (1-RDM) is carried out, the computational time of which is also very low.
-The single-determinant (RHF) object has to be provided through the `myhf` attribute. Both Fulton's and Mayer's
-approximations are used for the population analysis, but only Fulton's approximation is used for the aromaticity
+The single-determinant (RHF) object has to be provided through the `myhf` attribute. Population analyses use both Fulton's approach
+and the 2-RDM approximation in terms of natural occupations, but only Fulton's approach is used for the aromaticity
 calculations.
 
 .. code-block:: python
