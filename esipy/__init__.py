@@ -1278,8 +1278,11 @@ class ESI:
             print(" | No 'name' specified. Will use 'calc'")
         if self.readpath is None:
             print(" | No path specified in 'ESI.readpath'. Will assume working directory")
-        self._aom = read_aoms(path=self.readpath)
-        print(f" | Read the AOMs from {self.readpath}/{self.name}.aoms")
+
+        abs_path = os.path.abspath(self.readpath)
+
+        self._aom = read_aoms(path=abs_path)
+        print(f" | Read the AOMs from {abs_path}/{self.name}.aoms")
         return self._aom
 
     def writeaoms(self, file):
