@@ -1279,7 +1279,8 @@ class ESI:
         if self.readpath is None:
             print(" | No path specified in 'ESI.readpath'. Will assume working directory")
 
-        abs_path = os.path.abspath(self.readpath)
+        from os.path import abspath
+        abs_path = abspath(self.readpath)
 
         self._aom = read_aoms(path=abs_path)
         print(f" | Read the AOMs from {abs_path}/{self.name}.aoms")
