@@ -16,10 +16,10 @@ scientific paper:
 **Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador, Chem. Eur. J. 2024, 30, e202401282.**
 
 Also, find it on-line [here](https://chemistry-europe.onlinelibrary.wiley.com/doi/10.1002/chem.202401282?af=R). If you
-are publishing the results obtained from ESIpy remember to cite the program. The code is licensed under the GNU GPLv3.
-See the [LICENSE](LICENSE) file for details. See the [examples/README.md](examples/README.md) file for details on how to
+are publishing the results obtained from ESIpy, remember to cite the program. The code is licensed under the GNU GPLv3.
+See the [LICENSE](LICENSE) file for details. See the on-line documentation for details on how to
 use the program. If you encounter any bugs, please feel free to report them on
-the [Issues page](https://github.com/jgrebol/ESIpy/issues), or send a mail
+the [Issues page](https://github.com/jgrebol/ESIpy/issues), or send an email
 to [joan.grebol@dipc.org](mailto:joan.grebol@dipc.org).
 
 ## Installation
@@ -85,10 +85,10 @@ The simplest form of input follows a usual PySCF calculation
     arom.print()
 ```
 
-In order to avoid the single-point calculation, the attributes `saveaoms` and `savemolinfo` will save the AOMs and a dictionary
+To avoid the single-point calculation, the attributes `saveaoms` and `savemolinfo` will save the AOMs and a dictionary
 containing information about the molecule and calculation into a binary file in disk. Hereafter, these will be accessible
 at any time. It is also recommended to use a for-loop scheme for all the partitions, as the computational time to generate
-the matrices is minimal and independent to the chosen scheme.
+the matrices is minimal and independent of the chosen scheme.
 
 ```python
     ring = [1, 2, 3, 4, 5, 6]
@@ -101,11 +101,11 @@ the matrices is minimal and independent to the chosen scheme.
 ```
 
 Additionally, one can generate a directory containing the AOMs in AIMAll format. These files are readable from ESIpy,
-but also from Eduard Matito's ESI-3D code. These are written through the method `writeaoms()`
+but also from Eduard Matito's ESI-3D code. These are written through the method `writeaoms()`:
 
 ```python
     arom = esipy.ESI(mol=mol, mf=mf, rings=[1,2,3,4,5,6], partition="nao")
-    arom.writeaoms("benzene_nao.aoms")
+    arom.writeaoms("benzene_nao")
 ```
 
 ## Further work
@@ -115,4 +115,5 @@ but also from Eduard Matito's ESI-3D code. These are written through the method 
 - Calculation of aromaticity indicators from defined fragments.
 - Split the calculation into orbital contributions.
 - Algorithm to automatically find the rings inside a system.
+- Adaptation of some indicators to non-closed circuits (e.g., linear chains).
 

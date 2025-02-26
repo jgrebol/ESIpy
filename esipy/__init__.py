@@ -1282,7 +1282,7 @@ class ESI:
         print(f" | Read the AOMs from {self.readpath}/{self.name}.aoms")
         return self._aom
 
-    def writeaoms(self):
+    def writeaoms(self, file):
         """
         Writes ESIpy's AOMs in AIMAll format in the working directory.
 
@@ -1294,14 +1294,13 @@ class ESI:
             - For Natural Orbitals, a 'name.wfx' with the occupancies for the ESI-3D code.
         """
 
-        for attr in ['mol', 'mf', 'name', 'aom', 'partition']:
+        for attr in ['mol', 'mf', 'aom', 'partition']:
             if getattr(self, attr, None) is None:
                 raise AttributeError(
                     f" | Missing required attribute '{attr}'. Please define it before calling ESI.writeaoms")
 
-        write_aoms(self.mol, self.mf, self.name, self.aom, self.rings, self.partition)
-        shortpart = format_short_partition(self.partition)
-        print(f" | Written the AOMs in {self.readpath}/{self.name}_{shortpart}/")
+        write_aoms(self.mol, self.mf, file, self.aom, self.rings, self.partition)
+        print(f" | Written the AOMs in {self.readpath}/{file}/")
 
     def print(self):
         """
