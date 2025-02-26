@@ -11,7 +11,7 @@ setup(
     packages=["esipy"],
     install_requires=[
         "numpy<=1.23.3", # Earliest version supported via pip
-        "pyscf<=2.3",
+        "pyscf<=2.4",
         "sphinx"
     ],
 )
