@@ -1,8 +1,8 @@
 from setuptools import setup
 
 setup(
-    name="ESIpython",
-    version="1.0.2",
+    name="esipython",
+    version="1.0.3",
     description="Calculation of electronic aromaticity indicators",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
