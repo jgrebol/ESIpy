@@ -55,7 +55,7 @@ class ESItest(unittest.TestCase):
         esitest_wmul.writeaoms(name + "_mul")
 
         #esitest_rnao = esipy.ESI(read=True, molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name,
-                           readpath=name + '_nao')
+        #                   readpath=name + '_nao')
         #esitest_rnao.readaoms()
         #esitest_rnao.print()
         #esitest_rmul = esipy.ESI(read=True, molinfo=name + "_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
@@ -71,7 +71,7 @@ class ESItest(unittest.TestCase):
                                  savemolinfo=name + "_mul.molinfo")
         esitest_wmul.writeaoms(name + "_mul")
         #esitest_rnao = esipy.ESI(read=True, molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name,
-                           readpath=name + "_nao")
+        #                   readpath=name + "_nao")
         #esitest_rnao.readaoms()
         #esitest_rnao.print()
         #esitest_rmul = esipy.ESI(read=True, molinfo=name + "_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
