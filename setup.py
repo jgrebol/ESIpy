@@ -10,8 +10,8 @@ setup(
     url="https://github.com/jgrebol/ESIpy",
     packages=["esipy"],
     install_requires=[
-        'numpy==2.1.3',
-        'pyscf==2.7.0',
-        'scipy==1.14.1'
+        "numpy<=1.23.3", # Earliest version supported via pip
+        "pyscf<=2.3",
+        "sphinx"
     ],
 )

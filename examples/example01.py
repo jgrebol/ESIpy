@@ -38,4 +38,4 @@ for part in ["m", "lowdin", "meta_lowdin", "nao", "iao"]:
     arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, saveaoms=aoms_name, savemolinfo=molinfo_name,
                      name=name, mci=False, av1245=True)
     arom.print()
-    arom.writeaoms()
+    arom.writeaoms(name + '_' + part)
