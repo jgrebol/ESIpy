@@ -11,11 +11,17 @@ ESIpy can be installed through different methods. In all cases, it is recommende
 Installing via pip
 ------------------
 
-ESIpy can be installed via pip:
+The latest stable version can be installed via pip:
 
 .. code-block:: bash
 
     pip install esipython
+
+The latest non-stable version available on Github can be obtained through:
+
+.. code-block:: bash
+
+    pip install git+https://github.com/jgrebol/ESIpy.git
 
 Installing from source
 ----------------------

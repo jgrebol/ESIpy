@@ -99,7 +99,7 @@ Correlated wavefunctions
 
 For natural orbitals wavefunctions, an additional diagonalization
 of the first-order reduced density matrix (1-RDM) is carried out, the computational time of which is also very low.
-The single-determinant (RHF) object has to be provided through the `myhf` attribute. Population analyses use both Fulton's approach
+The single-determinant (RHF or UHF) object has to be provided through the `myhf` attribute. Population analyses use both Fulton's approach
 and the 2-RDM approximation in terms of natural occupations, but only Fulton's approach is used for the aromaticity
 calculations.
 
@@ -149,6 +149,7 @@ calculations.
             arom.print()
 
 .. note::
-    The IAOs expand the occupied orbitals in the same rank as the minimal basis. However, the role of valence orbitals
+    The IAOs expand the occupied orbitals in the same rank as the minimal basis, but the role of valence orbitals
     is important for the calculation. Therefore, the transformation matrix is computed through the RHF object,
-    thus making the `myhf` attribute needed for these calculations.
+    thus making the `myhf` attribute needed for these calculations. However, it is recommended to use other robust schemes
+    for multi-determinant wave functions.

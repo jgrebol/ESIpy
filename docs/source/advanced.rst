@@ -94,7 +94,7 @@ Individual indices
 Even though we strongly suggest using the keyword `ESI.print()` to compute all the indices at once, the user can also
 access the individual indices through the `ESI.indicators` attribute. If there is only one ring, the indicators still
 need to be accessible through the `ESI.indicators[0]` attribute. In more than one rings, the indices will be stored in
-`ESI.indicators[0]`, `ESI.indicators[1]`, etc. The AV1245 for the first ring can be accessed through:
+`ESI.indicators[0]`, `ESI.indicators[1]`, and so on. For instance, the AV1245 for the first ring can be accessed through:
 
 .. code-block::
 
