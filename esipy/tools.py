@@ -323,19 +323,30 @@ def build_eta(mol):
         eta[i][start:end, start:end] = np.eye(end - start)
     return eta
 
-def build_connec(Smo, thres=0.3):
-    if wf_type(Smo) == 'rest':
-        natoms = len(Smo)
-        factor = 2
-    else:
-        natoms = len(Smo[0])
-        factor = 1
+def build_connec_rest(Smo, thres=0.3):
+    natoms = len(Smo)
     connec_dict = {}
 
     for i in range(1, natoms + 1):
         for j in range(1, natoms + 1):
             if i != j:
-                if factor * find_di(Smo, i, j) >= thres:
+                if 2 * find_di(Smo, i, j) >= thres:
+                    if i not in connec_dict:
+                        connec_dict[i] = []
+                    connec_dict[i].append(j)
+    return connec_dict
+
+def build_connec_unrest(Smo, thres=0.3):
+    natoms = len(Smo[0])
+    connec_dict = {}
+
+    for i in range(1, natoms + 1):
+        for j in range(1, natoms + 1):
+            if i != j:
+                di_alpha = find_di(Smo[0], i, j)
+                di_beta = find_di(Smo[1], i, j)
+                di = di_alpha + di_beta
+                if di >= thres:
                     if i not in connec_dict:
                         connec_dict[i] = []
                     connec_dict[i].append(j)
@@ -405,7 +416,7 @@ def find_node_distances(graph):
    distances = defaultdict(dict)
 
    for start in graph:
-       queue = deque([(start_node, 0)])
+       queue = deque([(start, 0)])
        visited = set()
 
        while queue:

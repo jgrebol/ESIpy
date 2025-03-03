@@ -2,8 +2,8 @@ from os import environ
 import numpy as np
 from esipy.make_aoms import make_aoms
 from esipy.atomicfiles import write_aoms, read_aoms
-from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type, build_connec, \
-    build_connec_no, find_rings, is_closed
+from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type, build_connec_rest, \
+    build_connec_unrest, build_connec_no, find_rings, is_closed
 
 from esipy.indicators import (
     compute_iring, sequential_mci, multiprocessing_mci, compute_huckel_iring, compute_huckel_sequential_mci,
@@ -1352,17 +1352,24 @@ class ESI:
         for ring_index, ring in enumerate(self.rings):
             print(f" | Ring {ring_index+1} ({len(ring)}): {ring}")
             print(' -------------------------------------------------')
-            if not is_closed(ring, build_connec(self.Smo, self.rings_thres)):
+            wf = wf_type(self.Smo)
+            if wf == "rest":
+                connec = build_connec_rest(self.Smo, self.rings_thres)
+            elif wf == "unrest":
+                connec = build_connec_unrest(self.Smo, self.rings_thres)
+            elif wf == "no":
+                connec = build_connec_no(self.Smo, self.rings_thres)
+            if is_closed(ring, connec):
                 print(" | Anneeled ring. Computing with BFS algorithm")
             else:
                 print(" | Single ring. Computing with standard algorithm")
 
             if wf_type(self.Smo) == "rest":
-                val, nperms, t = aproxmci(ring, self.Smo, self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen)
+                val, nperms, t = aproxmci(ring, self.Smo, self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen, self.rings_thres)
                 val = 2 * val
             elif wf_type(self.Smo) == "unrest":
-                val_a, nperms, t_a = aproxmci(ring, self.Smo[0], self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen)
-                val_b, _, t_b = aproxmci(ring, self.Smo[1], self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen)
+                val_a, nperms, t_a = aproxmci(ring, self.Smo[0], self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen, self.rings_thres)
+                val_b, _, t_b = aproxmci(ring, self.Smo[1], self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen, self.rings_thres)
                 val = val_a + val_b
                 t = t_a + t_b
                 nperms = 2 * nperms

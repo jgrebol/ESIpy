@@ -1,18 +1,20 @@
 import numpy as np
-from esipy.tools import mapping, build_connec, build_connec_no, filter_connec, wf_type, find_middle_nodes, is_closed, find_node_distances
+from esipy.tools import mapping, build_connec_rest, build_connec_unrest, build_connec_no, filter_connec, wf_type, find_middle_nodes, is_closed, find_node_distances
 from esipy.indicators import sequential_mci, multiprocessing_mci
 from math import factorial
 from multiprocessing import Pool
 from functools import partial
 from time import time
 
-def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen=6):
+def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen=6, rings_thres = 0.3):
     start = time()
 
-    if wf_type(Smo) == "rest" or wf_type(Smo) == "unrest":
-        connec = build_connec(Smo)
+    if wf_type(Smo) == "rest":
+        connec = build_connec_rest(Smo, rings_thres)
+    elif wf_type(Smo) == "unrest":
+        connec = build_connec_unrest(Smo, rings_thres)
     else:
-        connec = build_connec_no(Smo)
+        connec = build_connec_no(Smo, rings_thres)
 
     connec = filter_connec(connec)
     closed = is_closed(arr, connec)
@@ -34,10 +36,12 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen
         t = time() - start
         return val, nperms, t
 
-    if wf_type(Smo) == 'rest' or wf_type(Smo) == 'unrest':
-        connec = build_connec(Smo)
+    if wf_type(Smo) == 'rest':
+        connec = build_connec_rest(Smo, rings_thres)
+    elif wf_type(Smo) == 'unrest':
+        connec = build_connec_unrest(Smo, rings_thres)
     else:
-        connec = build_connec_no(Smo)
+        connec = build_connec_no(Smo, rings_thres)
 
     perms = HamiltonMCI(arr, d, mcialg, connec, closed, minlen=minlen, maxlen=maxlen)
     nperms = perms.countperms()
@@ -177,12 +181,12 @@ class HamiltonMCI:
         def dfs(path):
             if len(path) == self.n:
                 val = min(abs(path[0] - path[-1]), self.n - abs(path[0] - path[-1]))
-                if val <= self.d and path[1] < path[-1] and val % 2 == 0:
+                if val <= self.d and path[1] < path[-1] and (val % 2 == 0 or val == 1):
                     yield path
             for v in range(self.n):
                 if v not in path:
                     val = min(abs(v - path[-1]), self.n - abs(v - path[-1]))
-                    if val <= self.d and val % 2 == 0:
+                    if val <= self.d and (val % 2 == 0 or val == 1):
                         yield from dfs(path + [v])
 
         return dfs([0])
