@@ -1048,7 +1048,7 @@ class ESI:
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
                  ncores=1, saveaoms=None, savemolinfo=None, name="calc", read=False, readpath='.',
-                 d=1, mcialg=0, minlen=6, maxlen=6):
+                 d=1, mcialg=0, minlen=6, maxlen=6, closed=False):
         # For usual ESIpy calculations
         self._Smo = Smo
         self._rings = rings
@@ -1078,6 +1078,7 @@ class ESI:
         # For the MCI approximations
         self.d = d
         self.mcialg = mcialg
+        self.closed = closed
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
@@ -1116,7 +1117,15 @@ class ESI:
     @property
     def rings(self):
         if self._rings == "find":
-            self._rings = find_rings(build_connec(self.Smo, self.rings_thres), self.minlen, self.maxlen)
+            wf = wf_type(self.Smo)
+            if wf == "rest":
+                self._rings = find_rings(build_connec_rest(self.Smo, self.rings_thres), self.minlen, self.maxlen)
+            elif wf == "unrest":
+                self._rings = find_rings(build_connec_unrest(self.Smo, self.rings_thres), self.minlen, self.maxlen)
+            elif wf == "no":
+                self._rings = find_rings(build_connec_no(self.Smo, self.rings_thres), self.minlen, self.maxlen)
+        if self._rings == []:
+            raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
         return self._rings
 
     @rings.setter
@@ -1341,9 +1350,9 @@ class ESI:
         elif self.mcialg == 2:
             print(f" | Approximate MCI. Algorithm 2.\n | Only permutations having a maximum distance of {self.d}")
         elif self.mcialg == 3:
-            print(f" | Approximate MCI. Algorithm 3.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any even distance between two vertices")
+            print(f" | Approximate MCI. Algorithm 3.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any EVEN distance between two vertices")
         elif self.mcialg == 4:
-            print(f" | Approximate MCI. Algorithm 4.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any odd distance between two vertices")
+            print(f" | Approximate MCI. Algorithm 4.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any ODD distance between two vertices")
         print(' -------------------------------------------------')
 
         if isinstance(self.rings[0], int):
@@ -1359,17 +1368,17 @@ class ESI:
                 connec = build_connec_unrest(self.Smo, self.rings_thres)
             elif wf == "no":
                 connec = build_connec_no(self.Smo, self.rings_thres)
-            if is_closed(ring, connec):
+            if is_closed(ring, connec) or self.closed == True:
                 print(" | Anneeled ring. Computing with BFS algorithm")
             else:
                 print(" | Single ring. Computing with standard algorithm")
 
             if wf_type(self.Smo) == "rest":
-                val, nperms, t = aproxmci(ring, self.Smo, self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen, self.rings_thres)
+                val, nperms, t = aproxmci(ring, self.Smo, self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen, self.rings_thres, self.closed)
                 val = 2 * val
             elif wf_type(self.Smo) == "unrest":
-                val_a, nperms, t_a = aproxmci(ring, self.Smo[0], self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen, self.rings_thres)
-                val_b, _, t_b = aproxmci(ring, self.Smo[1], self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen, self.rings_thres)
+                val_a, nperms, t_a = aproxmci(ring, self.Smo[0], self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen, self.rings_thres, self.closed)
+                val_b, _, t_b = aproxmci(ring, self.Smo[1], self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen, self.rings_thres, self.closed)
                 val = val_a + val_b
                 t = t_a + t_b
                 nperms = 2 * nperms

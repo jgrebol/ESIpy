@@ -6,7 +6,7 @@ from multiprocessing import Pool
 from functools import partial
 from time import time
 
-def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen=6, rings_thres = 0.3):
+def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen=6, rings_thres = 0.3, closed = None):
     start = time()
 
     if wf_type(Smo) == "rest":
@@ -17,7 +17,8 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen
         connec = build_connec_no(Smo, rings_thres)
 
     connec = filter_connec(connec)
-    closed = is_closed(arr, connec)
+    if not closed:
+        closed = is_closed(arr, connec)
 
     if mcialg == 0:
         if partition == "mulliken":

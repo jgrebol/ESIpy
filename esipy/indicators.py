@@ -24,7 +24,6 @@ def compute_iring(arr, Smo):
     for i in arr:
         product = np.dot(product, Smo[i - 1])
     iring = 2 ** (len(arr) - 1) * np.trace(product)
-    print("Ring", arr, "Iring", iring)
 
     return iring
 
@@ -69,7 +68,6 @@ def sequential_mci(arr, Smo, partition):
     from math import factorial
     from itertools import permutations, islice
 
-    print("Starting")
     iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
     if partition == 'mulliken' or partition == "non-symmetric":
         # We account for twice the value for symmetric AOMs
