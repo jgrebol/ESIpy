@@ -369,7 +369,7 @@ def find_rings(connec, minlen=6, maxlen=6):
         stack = [(start, [start])]
         while stack:
             (v, path) = stack.pop()
-            if len(path) > maxlen + 1:
+            if len(path) > maxlen:
                 continue
             if len(path) >= minlen and start in connec[path[-1]] and path[1] < path[-1] and path[0] == start:
                 yield path
