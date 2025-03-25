@@ -92,8 +92,10 @@ class HamiltonMCI:
         # Path finding features
         self.closed = closed
         self.connec = filter_connec(connec)
+        print("Connectivity dict", self.connec)
         self.start = find_middle_nodes(self.connec)
         self.distances = find_node_distances(self.connec)
+        print("Distances", self.distances)
         # Algorithm selection
         self.generator = self._select_algorithm()
 
