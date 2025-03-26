@@ -1,13 +1,11 @@
-import esipy.indicators as ind
-from esipy.rest import deloc_rest
-from esipy.unrest import deloc_unrest
-from esipy import ESI
 from pyscf import gto, dft
+
+from esipy import ESI
 
 molname = 'example06_restricted'
 
-mol=gto.Mole()
-mol.atom='''
+mol = gto.Mole()
+mol.atom = '''
  C                     0.       -1.39633   0.
  C                    -1.20926  -0.69816   0.
  C                     1.20926  -0.69816   0.
@@ -33,7 +31,7 @@ mf = dft.RKS(mol)
 mf.xc = 'B3LYP'
 mf.kernel()
 
-ring = [7,3,1,2,6,10]
+ring = [7, 3, 1, 2, 6, 10]
 partition = 'nao'
 
 esi = ESI(mol=mol, mf=mf, partition=partition, rings=ring)
@@ -86,8 +84,8 @@ print('The BLA_c is', bla_c)
 
 molname = 'example06_unrestricted'
 
-mol=gto.Mole()
-mol.atom='''
+mol = gto.Mole()
+mol.atom = '''
 6        1.719993497      0.000000000     -0.797854839
 6        1.719993497      1.207953000     -1.560011839
 6        1.719993497     -1.207953000     -1.560011839

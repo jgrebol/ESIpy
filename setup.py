@@ -1,8 +1,8 @@
 from setuptools import setup
 
 setup(
-    name="ESIpython",
-    version="1.0",
+    name="esipython",
+    version="1.0.3",
     description="Calculation of electronic aromaticity indicators",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
@@ -10,8 +10,8 @@ setup(
     url="https://github.com/jgrebol/ESIpy",
     packages=["esipy"],
     install_requires=[
-        'numpy<=1.23.3',
-        'pyscf<=2.4',
-        'sphinx'
+        "numpy<=1.23.3", # Earliest version supported via pip
+        "pyscf<=2.4",
+        "sphinx"
     ],
 )

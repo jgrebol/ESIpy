@@ -1,20 +1,23 @@
 import numpy as np
+
 from esipy.tools import format_partition
 
-def info_no(Smo, molinfo):
-    """Prints the initial information for Natural Orbitals calculations.
-    Args:
-        Smo: list of matrices or string
-            Atomic Overlap Matrices (AOMs) in the MO basis.
-        molinfo: dictionary
-            Contains the information about the molecule and the calculation.
+
+def info_no(aom, molinfo):
+    """
+    Prints the initial information for correlated wavefunctions.
+
+    :param aom: Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices or str
+    :param molinfo: Contains the information about the molecule and the calculation.
+    :type molinfo: dict
     """
 
-    Smo, occ = Smo
+    aom, occ = aom
     partition = format_partition(molinfo["partition"])
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
-    print(" | Number of Atoms:          {}".format(len(Smo)))
-    print(" | Occ. Mol. Orbitals:       {}".format(np.shape(Smo[0])[0]))
+    print(" | Number of Atoms:          {}".format(len(aom)))
+    print(" | Occ. Mol. Orbitals:       {}".format(np.shape(aom[0])[0]))
     print(" | Wavefunction type:        Natural Orbitals")
     print(" | Atomic partition:         {}".format(partition.upper() if partition else "Not specified"))
     print(" ------------------------------------------- ")
@@ -24,26 +27,32 @@ def info_no(Smo, molinfo):
     if "dft" in molinfo["method"] and molinfo["xc"] is not None:
         print(" | Functional:              ", molinfo["xc"])
 
-    print(" | Basis set:               ", molinfo["basisset"].upper())
+    if isinstance(molinfo["basisset"], dict):
+        for key in molinfo["basisset"]:
+            print(" | Basis set for {:>2}:         {}".format(key, molinfo["basisset"][key].upper()))
+    elif isinstance(molinfo["basisset"], str):
+        print(" | Basis set:               ", molinfo["basisset"].upper())
     if isinstance(molinfo["energy"], str):
         print(" | Total energy:          {}".format(molinfo["energy"]))
     else:
-        print(" | Total energy:          {:>13f}".format(molinfo["energy"]))
+        print(" | Total energy:             {:<13f}".format(molinfo["energy"]))
     print(" ------------------------------------------- ")
-    trace = np.sum([np.trace(matrix) for matrix in Smo])
+    trace = np.sum([np.trace(matrix) for matrix in aom])
     print(" | Tr(Enter):    {:.13f}".format(trace))
     print(" ------------------------------------------- ")
 
-def deloc_no(Smo, molinfo):
-    """Population analysis, localization and delocalization indices for Natural Orbitals calculations.
-    Args:
-        Smo: list of matrices
-            Atomic Overlap Matrices (AOMs) in the MO basis.
-        molinfo: dictionary
-            Contains the information about the molecule and the calculation.
+
+def deloc_no(aom, molinfo):
+    """
+    Population analysis, localization and delocalization indices for correlated wavefunctions.
+
+    :param aom: Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices or str
+    :param molinfo: Contains the information about the molecule and the calculation.
+    :type molinfo: dict
     """
 
-    Smo, occ = Smo
+    aom, occ = aom
     symbols = molinfo["symbols"]
 
     # Getting the LIs and DIs
@@ -53,73 +62,75 @@ def deloc_no(Smo, molinfo):
     print(" | Atom     N(Sij)    dlocF     dlocX      locF      locX ")
     print(" ---------------------------------------------------------- ")
 
-    for i in range(len(Smo)):
-        lif = np.trace(np.linalg.multi_dot((occ**(1/2), Smo[i], occ**(1/2), Smo[i])))
-        lix = 0.5 * np.trace(np.linalg.multi_dot((occ, Smo[i], occ, Smo[i])))
+    for i in range(len(aom)):
+        lif = np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i], occ ** (1 / 2), aom[i])))
+        lix = 0.5 * np.trace(np.linalg.multi_dot((occ, aom[i], occ, aom[i])))
         lifs.append(lif)
         lixs.append(lix)
-        N.append(np.trace(np.dot(occ, Smo[i])))
+        N.append(np.trace(np.dot(occ, aom[i])))
 
         dlocF = 0
         dlocX = 0
-        for j in range(len(Smo)):
+        for j in range(len(aom)):
             if i != j:
-                dif = np.trace(np.linalg.multi_dot((occ**(1/2), Smo[i], occ**(1/2), Smo[j])))
-                dix = 0.5 * np.trace(np.linalg.multi_dot((occ, Smo[i], occ, Smo[j])))
+                dif = np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i], occ ** (1 / 2), aom[j])))
+                dix = 0.5 * np.trace(np.linalg.multi_dot((occ, aom[i], occ, aom[j])))
                 dlocF += dif
                 dlocX += dix
                 difs.append(dif)
                 dixs.append(dix)
 
-        print(" | {} {:>2d}   {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}".format(
-            symbols[i], i + 1, N[i], dlocF, dlocX, lif, lix))
+        print(" | {:>2} {:>2d}  {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}".format(
+            symbols[i], i + 1, N[i], N[i] - lif, dlocX, lif, lix))
     print(" ---------------------------------------------------------- ")
     print(" | TOT:   {:>8.4f}  {:>8.4f}  {:>8.4f}  {:>8.4f}  {:>8.4f}".format(
-        sum(N), sum(difs), sum(dixs), sum(lifs), sum(lixs)))
+        sum(N), sum(N) - sum(lifs), sum(dixs), sum(lifs), sum(lixs)))
     print(" ---------------------------------------------------------- ")
 
     print(" ---------------------------------- ")
     print(" |    Pair       DI(F)     DI(X) ")
     print(" ---------------------------------- ")
-    for i in range(len(Smo)):
-        for j in range(i, len(Smo)):
+    for i in range(len(aom)):
+        for j in range(i, len(aom)):
             if i == j:
-                print(" | {} {:>2}-{} {:>2}  {:>8.4f}  {:>8.4f}".format(
-                        symbols[i], i + 1, symbols[j], j + 1, lifs[i], lixs[i]))
+                print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
+                    symbols[i], i + 1, symbols[j], j + 1, lifs[i], lixs[i]))
             else:
-                print(" | {} {:>2}-{} {:>2}  {:>8.4f}  {:>8.4f}".format(
-            symbols[i], i + 1, symbols[j], j + 1, 2 * difs[i * len(Smo) + j - (i + 1)], 2 * dixs[i * len(Smo) + j - (i + 1)]))
+                print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
+                    symbols[i], i + 1, symbols[j], j + 1, 2 * difs[i * len(aom) + j - (i + 1)],
+                                2 * dixs[i * len(aom) + j - (i + 1)]))
     print(" ---------------------------------- ")
-    print(" |   TOT:      {:>8.4f}  {:>8.4f}  ".format(np.sum(difs) + np.sum(lifs), np.sum(dixs) + np.sum(lixs)))
-    print(" |   LOC:      {:>8.4f}  {:>8.4f} ".format(np.sum(lifs), np.sum(lixs)))
-    print(" | DELOC:      {:>8.4f}  {:>8.4f} ".format(np.sum(difs), np.sum(dixs)))
+    print(" |   TOT:     {:>8.4f}  {:>8.4f}  ".format(np.sum(difs) + np.sum(lifs), np.sum(dixs) + np.sum(lixs)))
+    print(" |   LOC:     {:>8.4f}  {:>8.4f} ".format(np.sum(lifs), np.sum(lixs)))
+    print(" | DELOC:     {:>8.4f}  {:>8.4f} ".format(np.sum(difs), np.sum(dixs)))
     print(" ---------------------------------- ")
 
-def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None, flurefs=None, homarefs=None, homerrefs=None,
-              ncores=1):
+
+def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None, flurefs=None, homarefs=None,
+            homerrefs=None, ncores=1):
     """
     Output for the aromaticity indices for Natural Orbitals calculations. Will use Fulton's approximation.
-    Args:
-        rings: list of lists
-            Contains the indices of the atoms in the rings.
-        molinfo: dictionary
-            Contains the information about the molecule and the calculation.
-        indicators: class
-            Contains the aromaticity indicators.
-        mci: boolean
-            If True, the MCI is computed.
-        av1245: boolean
-            If True, the AV1245 is computed.
-        partition: string
-            Contains the name of the partition.
-        flurefs: dictionary
-            Contains the custom references for the FLU aromaticity index.
-        homarefs: dictionary
-            Contains the custom references for the HOMA aromaticity index.
-        homerrefs: dictionary
-            Contains the custom references for the HOMER aromaticity index.
-        ncores: integer
-            Number of cores to use in the MCI calculation. By default, 1.
+
+    :param rings: Contains the indices of the atoms in the rings.
+    :type rings: list of lists
+    :param molinfo: Contains the information about the molecule and the calculation.
+    :type molinfo: dict
+    :param indicators: Contains the aromaticity indicators.
+    :type indicators: class
+    :param mci: If True, the MCI is computed.
+    :type mci: bool, optional
+    :param av1245: If True, the AV1245 is computed.
+    :type av1245: bool, optional
+    :param partition: Contains the name of the partition.
+    :type partition: str, optional
+    :param flurefs: Contains the custom references for the FLU aromaticity index.
+    :type flurefs: dict, optional
+    :param homarefs: Contains the custom references for the HOMA aromaticity index.
+    :type homarefs: dict, optional
+    :param homerrefs: Contains the custom references for the HOMER aromaticity index.
+    :type homerrefs: dict, optional
+    :param ncores: Number of cores to use in the MCI calculation. By default, 1.
+    :type ncores: int, optional
     """
 
     print(" | Fulton index used for the calculation of aromaticity indicators     ")
@@ -264,4 +275,3 @@ def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None,
             else:
                 print(" | MCI**(1/n)   {} =  {:>6f}".format(ring_index + 1, mci_total ** (1 / len(ring))))
             print(" ---------------------------------------------------------------------- ")
-

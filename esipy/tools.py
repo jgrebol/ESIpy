@@ -1,77 +1,76 @@
 import numpy as np
 from collections import deque, defaultdict
 
-def wf_type(Smo):
+def wf_type(aom):
     """
     Checks the topology of the AOMs to obtain the type of wavefunction.
-    Args:
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
 
-    Returns:
-        A string with the type of wave function ('rest', 'unrest' or 'no').
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :returns: A string with the type of wave function ('rest', 'unrest' or 'no').
+    :rtype: str
     """
-    if isinstance(Smo[0][0][0], float):
+    if isinstance(aom[0][0][0], float):
         return "rest"
-    elif isinstance(Smo[1][0][0], float):
+    elif isinstance(aom[1][0][0], float):
         return "no"
-    elif isinstance(Smo[1][0][0][0], float):
+    elif isinstance(aom[1][0][0][0], float):
         return "unrest"
     else:
         raise NameError("Could not find the type of wave function from the AOMs")
 
 
-def find_multiplicity(Smo):
+def find_multiplicity(aom):
     """
     Checks the topology of the AOMs to get the difference between alpha and beta electrons.
 
-    Arguments:
-       Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
-
-    Returns:
-       A string with the multiplicity of the calculations.
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :returns: A string with the multiplicity of the calculations.
+    :rtype: str
     """
 
-    if len(Smo[0][0]) == len(Smo[1][0]):
+    if len(aom[0][0]) == len(aom[1][0]):
         return "singlet"
-    elif len(Smo[0][0]) == (len(Smo[1][0]) + 1):
+    elif len(aom[0][0]) == (len(aom[1][0]) + 1):
         return "doublet"
-    elif len(Smo[0][0]) == (len(Smo[1][0]) + 2):
+    elif len(aom[0][0]) == (len(aom[1][0]) + 2):
         return "triplet"
-    elif len(Smo[0][0]) == (len(Smo[1][0]) + 3):
+    elif len(aom[0][0]) == (len(aom[1][0]) + 3):
         return "quadruplet"
-    elif len(Smo[0][0]) == (len(Smo[1][0]) + 4):
+    elif len(aom[0][0]) == (len(aom[1][0]) + 4):
         return "quintuplet"
     else:
         return None
 
+
 def load_file(file):
-    """Loads the data from a file using Pickle.
-
-    Args:
-       file: string
-          Contains the name or the path containing the variable.
-
-    Returns:
-       file:
-          The file loaded.
     """
+    Loads a variable from a file.
+
+    :param file: Contains the name or the path containing the variable.
+    :type file: str
+    :returns: The file loaded.
+    :rtype: object
+    """
+
     from pickle import load
     with open(file, "rb") as f:
-        return load(f)
+        file = load(f)
+    return file
+
 
 def save_file(file, save):
-    """Loads the variable into a file.
-
-    Args:
-         file:
-             Contains the variable to be stored.
-         Smo: string
-            Contains the name or the path containing the AOMs.
-
-    Returns:
-       Smo: list of matrices
-          The AOMs required for the ESIpy code.
     """
+    Saves a variable to a file.
+
+    :param file: The variable to be stored.
+    :type file: object
+    :param save: The name or the path where the variable will be saved.
+    :type save: str
+    :returns: None
+    """
+
     from pickle import dump
     with open(save, "wb") as f:
         dump(file, f)
@@ -80,13 +79,13 @@ def save_file(file, save):
 def find_distances(arr, geom):
     """
     Collects the distance between the atoms in ring connectivity.
-    Args:
-        arr: Indices of the atoms in ring connectivity.
-        mol: PySCF's 'mol' object. Units must be in Angstroms, which is the default PySCF option.
-        geom: Geometry of the molecule as in mol.atom_coords().
 
-    Returns:
-        List containing the distances in of the members of the ring in Bohrs.
+    :param arr: Indices of the atoms in ring connectivity.
+    :type arr: list of int
+    :param geom: Geometry of the molecule as in mol.atom_coords().
+    :type geom: numpy.ndarray
+    :returns: List containing the distances of the members of the ring in Bohrs.
+    :rtype: list of float
     """
     distances = []
     for i in range(len(arr)):
@@ -96,99 +95,115 @@ def find_distances(arr, geom):
     return distances
 
 
-def find_dis(arr, Smo):
+def find_dis(arr, aom):
     """
     Collects the DIs between the atoms in ring connectivity.
-    Args:
-        arr: Indices of the atoms in ring connectivity.
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
 
-    Returns:
-        List containing the DIs in of the members of the ring
+    :param arr: Indices of the atoms in ring connectivity.
+    :type arr: list of int
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :returns: List containing the DIs of the members of the ring.
+    :rtype: list of float
     """
-    return [4 * np.trace(np.dot(Smo[arr[i] - 1], Smo[arr[(i + 1) % len(arr)] - 1])) for i in range(len(arr))]
+
+    return [4 * np.trace(np.dot(aom[arr[i] - 1], aom[arr[(i + 1) % len(arr)] - 1])) for i in range(len(arr))]
 
 
-def find_di(Smo, i, j):
+def find_di(aom, i, j):
     """
     Collects the DI between two atoms.
-    Args:
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
-        i: Index of the first atom.
-        j: Index of the second atom.
 
-    Returns:
-        DI between the atoms i and j.
-
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :param i: Index of the first atom.
+    :type i: int
+    :param j: Index of the second atom.
+    :type j: int
+    :returns: DI between the atoms i and j.
+    :rtype: float
     """
-    return 2 * np.trace(np.dot(Smo[i - 1], Smo[j - 1]))
+
+    return 2 * np.trace(np.dot(aom[i - 1], aom[j - 1]))
 
 
-def find_di_no(Smo, i, j):
+def find_di_no(aom, i, j):
     """
-    Collects the DI between two atoms for Natural Orbitals calcualtion.
-    Args:
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
-        i: Index of the first atom.
-        j: Index of the second atom.
+    Collects the DI between two atoms for correlated wavefunctions.
 
-    Returns:
-        DI between the atoms i and j.
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :param i: Index of the first atom.
+    :type i: int
+    :param j: Index of the second atom.
+    :type j: int
+    :returns: DI between the atoms i and j.
+    :rtype: float
     """
-    return np.trace(np.linalg.multi_dot((Smo[1], Smo[0][i - 1], Smo[1], Smo[0][j - 1])))
+
+    return np.trace(np.linalg.multi_dot((aom[1], aom[0][i - 1], aom[1], aom[0][j - 1])))
 
 
-def find_lis(arr, Smo):
+def find_lis(arr, aom):
     """
     Collects the LIs between the atoms in ring connectivity.
-    Args:
-        arr: Indices of the atoms in ring connectivity.
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
 
-    Returns:
-        List containing the LIs in of the members of the ring
+    :param arr: Indices of the atoms in ring connectivity.
+    :type arr: list of int
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :returns: List containing the DIs of the members of the ring.
+    :rtype: list of float
     """
-    return [2 * np.trace(np.dot(Smo[arr[i] - 1], Smo[arr[i] - 1])) for i in range(len(arr))]
+
+    return [2 * np.trace(np.dot(aom[arr[i] - 1], aom[arr[i] - 1])) for i in range(len(arr))]
 
 
-def find_ns(arr, Smo):
+def find_ns(arr, aom):
     """
     Collects the atomic populations of all the atoms in the ring.
-    Args:
-        arr: Indices of the atoms in ring connectivity.
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
 
-    Returns:
-        List containing the atomic populations of the members of the ring.
+    :param arr: Indices of the atoms in ring connectivity.
+    :type arr: list of int
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :returns: List containing the atomic populations of the members of the ring.
+    :rtype: list of float
     """
-    return [2 * np.trace(Smo[arr[i] - 1]) for i in range(len(arr))]
+
+    return [2 * np.trace(aom[arr[i] - 1]) for i in range(len(arr))]
 
 
 def av1245_pairs(arr):
     """
     Collects the series of atoms that fulfill the 1-2-4-5 relationship for the AV1245 calculation.
-    Args:
-        arr: Indices of the atoms in ring connectivity.
 
-    Returns:
-        List containing the series of atoms that fulfill the 1-2-4-5 relationship
+    :param arr: Indices of the atoms in ring connectivity.
+    :type arr: list of int
+    :returns: List containing the series of atoms that fulfill the 1-2-4-5 relationship.
+    :rtype: list of tuple
     """
+
     return [(arr[i % len(arr)], arr[(i + 1) % len(arr)], arr[(i + 3) % len(arr)], arr[(i + 4) % len(arr)])
             for i in range(len(arr))]
 
 
 def mol_info(mol=None, mf=None, save=None, partition=None):
-    """Obtains information from the molecule and the calculation
-    to complement the main code function without requiring the 'mol'
-    and 'mf' objects.
-    Args:
-        mol: PySCF Mole object.
-        mf: PySCF SCF object.
-        save: String with the name of the file to save the information.
-        partition: String with the name of the partition.
-    Returns:
-        Dictionary with the information of the molecule and the calculation.
     """
+    Obtains information from the molecule and the calculation to complement the main code function without requiring the 'mol' and 'mf' objects.
+
+    :param mol: PySCF Mole object.
+    :type mol: pyscf.gto.Mole
+    :param mf: PySCF SCF object.
+    :type mf: pyscf.scf.hf.SCF
+    :param save: String with the name of the file to save the information.
+    :type save: str
+    :param partition: String with the name of the partition.
+    :type partition: str
+    :returns: Dictionary with the information of the molecule and the calculation.
+    :rtype: dict
+    """
+
     info = {}
     info.update({"partition": partition})
     if mol:
@@ -219,15 +234,16 @@ def mol_info(mol=None, mf=None, save=None, partition=None):
 
 def format_partition(partition):
     """
-    Filters the 'partition' attribute for flexibility
-    Args:
-        partition: String with the name of the partition.
+    Filters the 'partition' attribute for flexibility.
 
-    Returns:
-        String with the standard partition name for ESIpy.
+    :param partition: String with the name of the partition.
+    :type partition: str
+    :returns: String with the standard partition name for ESIpy.
+    :rtype: str
     """
+
     partition = partition.lower()
-    if partition in ["m", "mul", "mulliken"]:
+    if partition in ["m", "mul", "mull", "mulliken"]:
         return "mulliken"
     elif partition in ["l", "low", "lowdin"]:
         return "lowdin"
@@ -245,12 +261,13 @@ def format_partition(partition):
 def format_short_partition(partition):
     """
     Filters the short version of the 'partition' attribute.
-    Args:
-        partition: String with the name of the partition.
 
-    Returns:
-        String with the short version of the partition scheme.
+    :param partition: String with the name of the partition.
+    :type partition: str
+    :returns: String with the short version of the partition scheme.
+    :rtype: str
     """
+
     partition = partition.lower()
     if partition == "mulliken":
         return "mul"
@@ -267,12 +284,13 @@ def format_short_partition(partition):
 def mapping(arr, perm):
     """
     Maps the elements of a list according to a permutation.
-    Args:
-        arr: List of elements.
-        perm: Permutation of the elements.
 
-    Returns:
-        List of elements corresponding to a given permutation.
+    :param arr: List of elements.
+    :type arr: list
+    :param perm: Permutation of the elements.
+    :type perm: list of int
+    :returns: List of elements corresponding to a given permutation.
+    :rtype: list
     """
     return [arr[i] for i in perm]
 
@@ -280,13 +298,15 @@ def mapping(arr, perm):
 def get_natorbs(mf, S):
     """
     Obtains the natural orbitals from the SCF calculation.
-    Args:
-        mf: PySCF SCF object.
-        S: Overlap matrix in an AO basis.
 
-    Returns:
-        List containing the occupancies and the Natural Orbitals.
+    :param mf: PySCF SCF object.
+    :type mf: pyscf.scf.hf.SCF
+    :param S: Overlap matrix in an AO basis.
+    :type S: numpy.ndarray
+    :returns: List containing the occupancies and the Natural Orbitals.
+    :rtype: tuple of (numpy.ndarray, numpy.ndarray)
     """
+
     from scipy.linalg import eigh
     import numpy as np
     rdm1 = mf.make_rdm1(ao_repr=True)  # In AO basis
@@ -308,15 +328,15 @@ def get_natorbs(mf, S):
 
 def build_eta(mol):
     """
-    Builds the eta matrices for the partitioning. They consist on a block-truncated matrix with all elements being
+    Builds the eta matrices for the partitioning. They consist of a block-truncated matrix with all elements being
     zero except for the diagonal elements corresponding to the basis functions of a given atom, which are set to one.
-    Args:
-        mol: PySCF Mole object.
 
-    Returns:
-        List containing the eta matrices for each atom.
+    :param mol: PySCF Mole object.
+    :type mol: pyscf.gto.Mole
+    :returns: List containing the eta matrices for each atom.
+    :rtype: list of numpy.ndarray
     """
-    eta = [np.zeros((mol.nao, mol.nao)) for i in range(mol.natm)]
+    eta = [np.zeros((mol.nao, mol.nao)) for _ in range(mol.natm)]
     for i in range(mol.natm):
         start = mol.aoslice_by_atom()[i, -2]
         end = mol.aoslice_by_atom()[i, -1]

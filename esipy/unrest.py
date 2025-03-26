@@ -1,18 +1,22 @@
 import numpy as np
+
 from esipy.tools import format_partition, find_multiplicity
 
-def info_unrest(Smo, molinfo):
+
+def info_unrest(aom, molinfo):
     """
     Prints the information of the calculation for unrestricted wavefunctions.
-    Args:
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
-        molinfo: Contains the information of the molecule and the calculation.
+
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :param molinfo: Contains the information of the molecule and the calculation.
+    :type molinfo: dict
     """
 
     partition = format_partition(molinfo["partition"])
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
-    print(" | Number of Atoms:          {}".format(len(Smo[0])))
-    print(" | Occ. Mol. Orbitals:       {}({})".format(np.shape(Smo[0][0])[0], np.shape(Smo[1][0])[0]))
+    print(" | Number of Atoms:          {}".format(len(aom[0])))
+    print(" | Occ. Mol. Orbitals:       {}({})".format(np.shape(aom[0][0])[0], np.shape(aom[1][0])[0]))
     print(" | Wavefunction type:        Unrestricted")
     print(" | Atomic partition:         {}".format(partition.upper() if partition else "Not specified"))
     print(" ------------------------------------------- ")
@@ -22,24 +26,32 @@ def info_unrest(Smo, molinfo):
     if "dft" in molinfo["method"] and molinfo["xc"] is not None:
         print(" | Functional:              ", molinfo["xc"])
 
-    print(" | Basis set:               ", molinfo["basisset"].upper())
+    if isinstance(molinfo["basisset"], dict):
+        for key in molinfo["basisset"]:
+            print(" | Basis set for {:>2}:         {}".format(key, molinfo["basisset"][key].upper()))
+    elif isinstance(molinfo["basisset"], str):
+        print(" | Basis set:               ", molinfo["basisset"].upper())
     if isinstance(molinfo["energy"], str):
         print(" | Total energy:          {}".format(molinfo["energy"]))
     else:
-        print(" | Total energy:          {:>13f}".format(molinfo["energy"]))
+        print(" | Total energy:             {:<13f}".format(molinfo["energy"]))
     print(" ------------------------------------------- ")
-    trace_a = np.sum([np.trace(matrix) for matrix in Smo[0]])
-    trace_b = np.sum([np.trace(matrix) for matrix in Smo[1]])
+    trace_a = np.sum([np.trace(matrix) for matrix in aom[0]])
+    trace_b = np.sum([np.trace(matrix) for matrix in aom[1]])
     print(" | Tr(alpha):    {:.13f}".format(trace_a))
     print(" | Tr(beta) :    {:.13f}".format(trace_b))
     print(" | Tr(Enter):    {:.13f}".format(trace_a + trace_b))
     print(" ------------------------------------------- ")
 
-def deloc_unrest(Smo, molinfo):
-    """Population analysis, localization and delocalization indices for unrestriced, single-determinant calculations.
-    Args:
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
-        molinfo: Contains the information of the molecule and the calculation.
+
+def deloc_unrest(aom, molinfo):
+    """
+    Population analysis, localization and delocalization indices for unrestricted, single-determinant calculations.
+
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :param molinfo: Contains the information of the molecule and the calculation.
+    :type molinfo: dict
     """
 
     symbols = molinfo["symbols"]
@@ -49,77 +61,89 @@ def deloc_unrest(Smo, molinfo):
     lis_alpha, lis_beta = [], []
     Nij_alpha, Nij_beta = [], []
 
-    for i in range(len(Smo[0])):
-        li_alpha = np.trace(np.dot(Smo[0][i], Smo[0][i]))
-        li_beta = np.trace(np.dot(Smo[1][i], Smo[1][i]))
+    for i in range(len(aom[0])):
+        li_alpha = np.trace(np.dot(aom[0][i], aom[0][i]))
+        li_beta = np.trace(np.dot(aom[1][i], aom[1][i]))
         lis_alpha.append(li_alpha)
         lis_beta.append(li_beta)
-        Nij_alpha.append(np.trace(Smo[0][i]))
-        Nij_beta.append(np.trace(Smo[1][i]))
+        Nij_alpha.append(np.trace(aom[0][i]))
+        Nij_beta.append(np.trace(aom[1][i]))
 
-        for j in range(i + 1, len(Smo[0])):
-            diaa = 2 * np.trace(np.dot(Smo[0][i], Smo[0][j]))
-            dibb = 2 * np.trace(np.dot(Smo[1][i], Smo[1][j]))
+        for j in range(i + 1, len(aom[0])):
+            diaa = 2 * np.trace(np.dot(aom[0][i], aom[0][j]))
+            dibb = 2 * np.trace(np.dot(aom[1][i], aom[1][j]))
             dis_alpha.append(diaa)
             dis_beta.append(dibb)
 
     print(" ------------------------------------------------------------------- ")
-    print(" |  Atom     N(Sij)      Na(Sij)     Nb(Sij)     dloc_a     dloc_b  ")
+    print(" |  Atom     N(Sij)    Na(Sij)   Nb(Sij)    dloc_a    dloc_b  ")
     print(" ------------------------------------------------------------------- ")
 
-    for i in range(len(Smo[0])):
-        print(" | {} {:>2d}   {:10.6f}  {:10.6f}  {:10.6f}   {:8.4f}   {:8.4f} ".format(
+    for i in range(len(aom[0])):
+        print(" | {:>2}{:>2d}    {:8.4f}  {:8.4f}  {:8.4f}   {:8.4f}   {:8.4f} ".format(
             symbols[i], i + 1, Nij_alpha[i] + Nij_beta[i], Nij_alpha[i], Nij_beta[i], Nij_alpha[i] - lis_alpha[i],
                         Nij_beta[i] - lis_beta[i]))
     print(" ------------------------------------------------------------------- ")
-    print(" | TOT:   {:10.6f}  {:10.6f}  {:10.6f}   {:8.4f}   {:8.4f}".format(
+    print(" | TOT:    {:8.4f}  {:8.4f}  {:8.4f}   {:8.4f}   {:8.4f}".format(
         sum(Nij_alpha) + sum(Nij_beta), sum(Nij_alpha), sum(Nij_beta), sum(Nij_alpha) - sum(lis_alpha),
         sum(Nij_beta) - sum(lis_beta)))
     print(" ------------------------------------------------------------------- ")
     print(" ------------------------------------------- ")
-    print(" |    Pair         DI       DIaa      DIbb ")
+    print(" |    Pair        DI       DIaa      DIbb ")
     print(" ------------------------------------------- ")
 
     for i in range(len(symbols)):
         for j in range(i, len(symbols)):
             if i == j:
-                print(" | {} {:>2}-{} {:>2}   {:8.4f}  {:8.4f}  {:8.4f}".format(
-            symbols[i], str(i + 1).center(2), symbols[j],
+                print(" | {:>2}{:>2}-{:>2}{:>2}  {:8.4f}  {:8.4f}  {:8.4f}".format(
+                    symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), lis_alpha[i] + lis_beta[i], lis_alpha[i], lis_beta[i]))
             else:
-                dia = 2 * np.trace(np.dot(Smo[0][i], Smo[0][j]))
-                dib = 2 * np.trace(np.dot(Smo[1][i], Smo[1][j]))
+                dia = 2 * np.trace(np.dot(aom[0][i], aom[0][j]))
+                dib = 2 * np.trace(np.dot(aom[1][i], aom[1][j]))
                 ditot = dia + dib
-                print(" | {} {:>2}-{} {:>2}   {:8.4f}  {:8.4f}  {:8.4f}".format(
-            symbols[i], str(i + 1).center(2), symbols[j],
+                print(" | {:>2}{:>2}-{:>2}{:>2}  {:8.4f}  {:8.4f}  {:8.4f}".format(
+                    symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), ditot, dia, dib))
     print(" ------------------------------------------- ")
-    print(" |    TOT:    {:>9.4f} {:>9.4f} {:>9.4f} ".format(
+    print(" |    TOT:   {:>9.4f} {:>9.4f} {:>9.4f} ".format(
         sum(dis_alpha) + sum(dis_beta) + sum(lis_alpha) + sum(lis_beta), sum(dis_alpha) + sum(lis_alpha),
         sum(dis_beta) + sum(lis_beta)))
-    print(" |    LOC:    {:>9.4f} {:>9.4f} {:>9.4f} ".format(
+    print(" |    LOC:   {:>9.4f} {:>9.4f} {:>9.4f} ".format(
         sum(lis_alpha) + sum(lis_beta), sum(lis_alpha), sum(lis_beta)))
-    print(" |  DELOC:    {:>9.4f} {:>9.4f} {:>9.4f} ".format(
+    print(" |  DELOC:   {:>9.4f} {:>9.4f} {:>9.4f} ".format(
         sum(dis_alpha) + sum(dis_beta), sum(dis_alpha), sum(dis_beta)))
     print(" ------------------------------------------- ")
 
-def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, partition=None, flurefs=None, homarefs=None, homerrefs=None,
-              ncores=1):
+
+def arom_unrest(aom, rings, molinfo, indicators, mci=False, av1245=False, partition=None, flurefs=None, homarefs=None,
+                homerrefs=None,
+                ncores=1):
     """
     Outputs the aromaticity indices for unrestricted, single-determinant wavefunctions.
 
-    Args:
-        Smo: The Atomic Overlap Matrices (AOMs) in the MO basis.
-        rings: List containing the atoms in the ring.
-        molinfo: Contains the information of the molecule and the calculation.
-        indicators: Class containing the aromaticity indicators.
-        mci: If True, the MCI will be calculated.
-        av1245: If True, the AV1245 will be calculated.
-        partition: The atomic partition used in the calculation.
-        flurefs: Dictionary with custom references for the FLU.
-        homarefs: Dictionary with custom references for the HOMA.
-        homerrefs: Dictionary with custom references for the HOMER.
-        ncores: Number of cores to use in the MCI calculation. By default, 1.
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :param rings: List containing the atoms in the ring.
+    :type rings: list of lists
+    :param molinfo: Contains the information of the molecule and the calculation.
+    :type molinfo: dict
+    :param indicators: Class containing the aromaticity indicators.
+    :type indicators: class
+    :param mci: If True, the MCI will be calculated.
+    :type mci: bool, optional
+    :param av1245: If True, the AV1245 will be calculated.
+    :type av1245: bool, optional
+    :param partition: The atomic partition used in the calculation.
+    :type partition: str, optional
+    :param flurefs: Dictionary with custom references for the FLU.
+    :type flurefs: dict, optional
+    :param homarefs: Dictionary with custom references for the HOMA.
+    :type homarefs: dict, optional
+    :param homerrefs: Dictionary with custom references for the HOMER.
+    :type homerrefs: dict, optional
+    :param ncores: Number of cores to use in the MCI calculation. By default, 1.
+    :type ncores: int, optional
     """
 
     print(" ----------------------------------------------------------------------")
@@ -172,7 +196,7 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, partit
             print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, homa))
             print(" ----------------------------------------------------------------------")
 
-            if find_multiplicity(Smo) == "triplet":
+            if find_multiplicity(aom) == "triplet":
                 print(" | Triplet AOMs. Computing HOMER")
                 if homerrefs is not None:
                     print(" | Using HOMER references provided by the user")
@@ -265,8 +289,10 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, partit
                         str(ring[(j + 3) % len(ring)]).rjust(2), symbols[(ring[(j + 3) % len(ring)] - 1)],
                         str(ring[(j + 4) % len(ring)]).rjust(2), symbols[(ring[(j + 4) % len(ring)] - 1)],
                         av1245_list_alpha[(ring[j] - 1) % len(ring)]))
-                print(" |   AV1245_alpha {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].av1245_alpha))
-                print(" |    AVmin_alpha {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].avmin_alpha))
+                print(" |   AV1245_alpha {} =             {:>9.4f}".format(ring_index + 1,
+                                                                           indicators[ring_index].av1245_alpha))
+                print(" |    AVmin_alpha {} =             {:>9.4f}".format(ring_index + 1,
+                                                                           indicators[ring_index].avmin_alpha))
 
                 print(" |")
                 print(" | *** AV1245_BETA ***")
@@ -278,8 +304,10 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, partit
                         str(ring[(j + 3) % len(ring)]).rjust(2), symbols[(ring[(j + 3) % len(ring)] - 1)],
                         str(ring[(j + 4) % len(ring)]).rjust(2), symbols[(ring[(j + 4) % len(ring)] - 1)],
                         av1245_list_beta[(ring[j] - 1) % len(ring)]))
-                print(" |   AV1245_beta  {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].av1245_beta))
-                print(" |    AVmin_beta  {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].avmin_beta))
+                print(" |   AV1245_beta  {} =             {:>9.4f}".format(ring_index + 1,
+                                                                           indicators[ring_index].av1245_beta))
+                print(" |    AVmin_beta  {} =             {:>9.4f}".format(ring_index + 1,
+                                                                           indicators[ring_index].avmin_beta))
                 print(" | ")
                 print(" | *** AV1245_TOTAL ***")
                 for j in range(len(ring)):
@@ -289,8 +317,10 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, partit
                         str(ring[(j + 3) % len(ring)]).rjust(2), symbols[(ring[(j + 3) % len(ring)] - 1)],
                         str(ring[(j + 4) % len(ring)]).rjust(2), symbols[(ring[(j + 4) % len(ring)] - 1)],
                         av1245_list[(ring[j] - 1) % len(ring)]))
-                print(" |   AV1245       {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].av1245))
-                print(" |    AVmin       {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].avmin))
+                print(
+                    " |   AV1245       {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].av1245))
+                print(
+                    " |    AVmin       {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].avmin))
                 print(" ---------------------------------------------------------------------- ")
 
         iring_alpha = indicators[ring_index].iring_alpha
@@ -348,4 +378,3 @@ def arom_unrest(Smo, rings, molinfo, indicators, mci=False, av1245=False, partit
                 print(" | MCI**(1/n)   {} =  {:>6f}".format(ring_index + 1, mci_total ** (1 / len(ring))))
 
             print(" ---------------------------------------------------------------------- ")
-

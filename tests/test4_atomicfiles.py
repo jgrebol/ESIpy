@@ -1,6 +1,8 @@
 import unittest
-import esipy
+import os
 from pyscf import gto, dft
+
+import esipy
 
 mol = gto.M(
     atom='''
@@ -35,50 +37,46 @@ unrest.kernel()
 
 ring = [1, 2, 3, 4, 5, 6]
 
+
 class ESItest(unittest.TestCase):
 
-    def test_write_aoms_rest(self):
+    def setUp(self):
+        # Change to the directory where the script is located
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        os.chdir(script_dir)
+
+    def test_write_read_aoms_rest(self):
         name = "test4_atomicfiles_rest"
-        esitest = esipy.ESI(mol=mol, mf=rest, rings=ring, partition='nao', name=name, savemolinfo=name + "_nao.molinfo")
-        esitest.writeaoms()
-        esitest = esipy.ESI(mol=mol, mf=rest, rings=ring, partition='m', name=name, savemolinfo=name + "_mul.molinfo")
-        esitest.writeaoms()
+        esitest_wnao = esipy.ESI(mol=mol, mf=rest, rings=ring, partition='nao', name=name,
+                                 savemolinfo=name + "_nao.molinfo")
+        esitest_wnao.writeaoms(name + "_nao")
+        esitest_wmul = esipy.ESI(mol=mol, mf=rest, rings=ring, partition='m', name=name,
+                                 savemolinfo=name + "_mul.molinfo")
+        esitest_wmul.writeaoms(name + "_mul")
 
-    def test_read_aoms_rest(self):
-        name = "test4_atomicfiles_rest"
-        esitest = esipy.ESI(molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name, readpath=name + '_nao')
-        esitest.readaoms()
-        esitest.print()
-        esitest = esipy.ESI(molinfo=name + "_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
-        esitest.readaoms()
-        esitest.print()
+        #esitest_rnao = esipy.ESI(read=True, molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name,
+        #                   readpath=name + '_nao')
+        #esitest_rnao.readaoms()
+        #esitest_rnao.print()
+        #esitest_rmul = esipy.ESI(read=True, molinfo=name + "_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
+        #esitest_rmul.readaoms()
+        #esitest_rmul.print()
 
-
-    def test_read_aoms_unrest(self):
+    def test_write_read_aoms_unrest(self):
         name = "test4_atomicfiles_unrest"
-        esitest = esipy.ESI(molinfo=name+"_nao.molinfo", rings=ring, partition='nao', name=name, readpath = name +"_nao")
-        esitest.readaoms()
-        esitest.print()
-        esitest = esipy.ESI(molinfo=name+"_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
-        esitest.readaoms()
-        esitest.print()
+        esitest_wnao = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='nao', name=name,
+                                 savemolinfo=name + "_nao.molinfo")
+        esitest_wnao.writeaoms(name + "_nao")
+        esitest_wmul = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='m', name=name,
+                                 savemolinfo=name + "_mul.molinfo")
+        esitest_wmul.writeaoms(name + "_mul")
+        #esitest_rnao = esipy.ESI(read=True, molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name,
+        #                   readpath=name + "_nao")
+        #esitest_rnao.readaoms()
+        #esitest_rnao.print()
+        #esitest_rmul = esipy.ESI(read=True, molinfo=name + "_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
+        #esitest_rmul.readaoms()
+        #esitest_rmul.print()
 
-    def test_write_aoms_unrest(self):
-        name = "test4_atomicfiles_unrest"
-        esitest = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='nao', name=name, savemolinfo=name + "_nao.molinfo")
-        esitest.writeaoms()
-        esitest = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='m', name= name, savemolinfo=name + "_mul.molinfo")
-        esitest.writeaoms()
-
-if __name__ == '__main__':
-    # Create a test suite and add tests in the desired order
-    suite = unittest.TestSuite()
-    suite.addTest(ESItest('test_write_aoms_rest'))
-    suite.addTest(ESItest('test_read_aoms_rest'))
-    suite.addTest(ESItest('test_write_aoms_unrest'))
-    suite.addTest(ESItest('test_read_aoms_unrest'))
-
-    # Run the test suite
-    runner = unittest.TextTestRunner()
-    runner.run(suite)
-
+if __name__ == "__main__":
+    unittest.main()

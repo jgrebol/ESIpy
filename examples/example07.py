@@ -1,10 +1,11 @@
-import esipy
 from pyscf import gto, dft
+
+import esipy
 
 molname = 'example07'
 
-mol=gto.Mole()
-mol.atom='''
+mol = gto.Mole()
+mol.atom = '''
 6       -2.668401126      1.246700000     -3.249227265
 6       -2.668401126      2.437400000     -3.944227265
 6       -2.668401126      2.437400000     -5.363027265
@@ -36,9 +37,9 @@ mf = dft.RKS(mol)
 mf.xc = 'B3LYP'
 mf.kernel()
 
-ring = [[1,2,3,4,10,9],[5,6,7,8,9,10],[1,2,3,4,10,5,6,7,8,9]]
+ring = [[1, 2, 3, 4, 10, 9], [5, 6, 7, 8, 9, 10], [1, 2, 3, 4, 10, 5, 6, 7, 8, 9]]
 partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
 
 for part in partition:
-    for cores in [1,2,4,8]:
+    for cores in [1, 2, 4, 8]:
         esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, ncores=cores).print()

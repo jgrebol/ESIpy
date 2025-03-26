@@ -1,0 +1,7 @@
+sphinx-copybutton
+sphinxcontrib-napoleon
+sphinx-autoapi
+sphinx-last-updated-by-git
+sphinxcontrib-bibtex
+sphinx-favicon
+insegel
