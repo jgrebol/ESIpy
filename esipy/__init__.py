@@ -1444,7 +1444,7 @@ class ESI:
             elif wf == "no":
                 connec = build_connec_no(self.aom, self.rings_thres)
             if mcialg != 0 and (is_fused(ring, connec) or self.fused == True):
-                print(" | Anneeled ring. Computing with BFS algorithm")
+                print(" | Fused ring. Computing with BFS algorithm")
             else:
                 print(" | Single ring. Computing with standard algorithm")
 
