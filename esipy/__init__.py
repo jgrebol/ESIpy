@@ -4,7 +4,7 @@ import numpy as np
 
 from esipy.atomicfiles import write_aoms, read_aoms
 from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type, build_connec_rest, \
-    build_connec_unrest, build_connec_no, find_rings, is_closed
+    build_connec_unrest, build_connec_no, find_rings, is_fused
 
 from esipy.indicators import (
     compute_iring, sequential_mci, multiprocessing_mci,
@@ -1106,7 +1106,7 @@ class ESI:
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
                  ncores=1, saveaoms=None, savemolinfo=None, name="calc", read=False, readpath='.',
-                 d=1, mcialg=0, minlen=6, maxlen=10, closed=False):
+                 d=1, mcialg=0, minlen=6, maxlen=10, rings_thres = 0.25, fused=False):
         # For usual ESIpy calculations
         self._aom = aom
         self.rings = rings
@@ -1132,11 +1132,9 @@ class ESI:
         self.readpath = readpath
         self.minlen = minlen
         self.maxlen = maxlen
-        self.rings_thres = 0.3
+        self.rings_thres = rings_thres
         # For the MCI approximations
-        self.d = d
-        self.mcialg = mcialg
-        self.closed = closed
+        self.fused = fused
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
@@ -1184,13 +1182,13 @@ class ESI:
     @property
     def rings(self):
         if self._rings == "find":
-            wf = wf_type(self.Smo)
+            wf = wf_type(self.aom)
             if wf == "rest":
-                self._rings = find_rings(build_connec_rest(self.Smo, self.rings_thres), self.minlen, self.maxlen)
+                self._rings = find_rings(build_connec_rest(self.aom, self.rings_thres), self.minlen, self.maxlen)
             elif wf == "unrest":
-                self._rings = find_rings(build_connec_unrest(self.Smo, self.rings_thres), self.minlen, self.maxlen)
+                self._rings = find_rings(build_connec_unrest(self.aom, self.rings_thres), self.minlen, self.maxlen)
             elif wf == "no":
-                self._rings = find_rings(build_connec_no(self.Smo, self.rings_thres), self.minlen, self.maxlen)
+                self._rings = find_rings(build_connec_no(self.aom, self.rings_thres), self.minlen, self.maxlen)
         if self._rings == []:
             raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
         return self._rings
@@ -1309,8 +1307,8 @@ class ESI:
             print(' -------------------------------------------------')
             print(f" | Ring {ring_index+1} ({len(ring)}): ", ring)
             print(' -------------------------------------------------')
-            if wf_type(self.Smo) == "rest" or wf_type(self.Smo) == "no":
-                h_iring = compute_huckel_iring(ring, self.Smo)
+            if wf_type(self.aom) == "rest" or wf_type(self.aom) == "no":
+                h_iring = compute_huckel_iring(ring, self.aom)
                 print(" | The Iring Huckel is:        {:.6f}".format(h_iring))
                 if h_iring < 0:
                     print(" | The Iring**(1/n) Huckel is: {:.6f}".format(-np.abs(h_iring)**(1/len(ring))))
@@ -1322,10 +1320,10 @@ class ESI:
                     start = time()
                     if self.ncores == 1:
                         print(" | Using MCI's Huckel approximation single-core algorithm")
-                        h_mci = compute_huckel_sequential_mci(ring, self.Smo)
+                        h_mci = compute_huckel_sequential_mci(ring, self.aom)
                     else:
                         print(f" | Using MCI's Huckel approximation multi-core algorithm for {self.ncores} cores")
-                        h_mci = compute_huckel_multiprocessing_mci(ring, self.Smo, self.ncores, self.partition)
+                        h_mci = compute_huckel_multiprocessing_mci(ring, self.aom, self.ncores, self.partition)
                     t = time() - start
                     print(" | Time for the MCI Huckel calculation: {:.5f} seconds".format(t))
                     print(" | The MCI Huckel is:          {:.6f}".format(h_mci))
@@ -1333,9 +1331,9 @@ class ESI:
                         print(" | The MCI**(1/n) Huckel is:   {:.6f}".format(-np.abs(h_mci)**(1/len(ring))))
                     else:
                         print(" | The MCI**(1/n) Huckel is:   {:.6f}".format(h_mci**(1/len(ring))))
-            elif wf_type(self.Smo) == "unrest":
-                h_iring_a = compute_huckel_iring(ring, self.Smo[0])
-                h_iring_b = compute_huckel_iring(ring, self.Smo[1])
+            elif wf_type(self.aom) == "unrest":
+                h_iring_a = compute_huckel_iring(ring, self.aom[0])
+                h_iring_b = compute_huckel_iring(ring, self.aom[1])
                 h_iring = h_iring_a + h_iring_b
                 print(" | The Iring alpha Huckel is:  {:.6f}".format(h_iring_a))
                 print(" | The Iring beta Huckel is:   {:.6f}".format(h_iring_b))
@@ -1350,13 +1348,13 @@ class ESI:
                     start = time()
                     if self.ncores == 1:
                         print(" | Using MCI's Huckel approximation single-core algorithm")
-                        h_mci_a = compute_huckel_sequential_mci(ring, self.Smo[0], partition=self.partition)
-                        h_mci_b = compute_huckel_sequential_mci(ring, self.Smo[1], partition=self.partition)
+                        h_mci_a = compute_huckel_sequential_mci(ring, self.aom[0], partition=self.partition)
+                        h_mci_b = compute_huckel_sequential_mci(ring, self.aom[1], partition=self.partition)
                         h_mci = h_mci_a + h_mci_b
                     else:
                         print(f" | Using MCI's Huckel approximation multi-core algorithm for {self.ncores} cores")
-                        h_mci_a = compute_huckel_multiprocessing_mci(ring, self.Smo[0], self.ncores, self.partition)
-                        h_mci_b = compute_huckel_multiprocessing_mci(ring, self.Smo[1], self.ncores, self.partition)
+                        h_mci_a = compute_huckel_multiprocessing_mci(ring, self.aom[0], self.ncores, self.partition)
+                        h_mci_b = compute_huckel_multiprocessing_mci(ring, self.aom[1], self.ncores, self.partition)
                         h_mci = h_mci_a + h_mci_b
                     t = time() - start
                     print(" | Time for the MCI Huckel calculation: {:.5f} seconds".format(t))
@@ -1407,7 +1405,7 @@ class ESI:
         write_aoms(self.mol, self.mf, file, self.aom, self.rings, self.partition)
         print(f" | Written the AOMs in {self.readpath}/{file}/")
 
-    def mciaprox(self):
+    def mciaprox(self, mcialg=0, d=1):
         print(' -------------------------------------------------')
         print(" | Module to compute approximations for the MCI")
         print(' -------------------------------------------------')
@@ -1420,16 +1418,16 @@ class ESI:
         else:
             print(f" | Using MCI's multi-core algorithm for {self.ncores} cores")
 
-        if self.mcialg == 0:
+        if mcialg == 0:
             print(" | Exact MCI calcualtion")
-        elif self.mcialg == 1:
-            print(f" | Approximate MCI. Algorithm 1.\n | All permutations having a maximum distance of {self.d}")
-        elif self.mcialg == 2:
-            print(f" | Approximate MCI. Algorithm 2.\n | Only permutations having a maximum distance of {self.d}")
-        elif self.mcialg == 3:
-            print(f" | Approximate MCI. Algorithm 3.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any EVEN distance between two vertices")
-        elif self.mcialg == 4:
-            print(f" | Approximate MCI. Algorithm 4.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any ODD distance between two vertices")
+        elif mcialg == 1:
+            print(f" | Approximate MCI. Algorithm 1.\n | All permutations having a maximum distance of {d}")
+        elif mcialg == 2:
+            print(f" | Approximate MCI. Algorithm 2.\n | Only permutations having a maximum distance of {d}")
+        elif mcialg == 3:
+            print(f" | Approximate MCI. Algorithm 3.\n | Only permutations having a maximum distance of {d}\n | and excluding any EVEN distance between two vertices")
+        elif mcialg == 4:
+            print(f" | Approximate MCI. Algorithm 4.\n | Only permutations having a maximum distance of {d}\n | and excluding any ODD distance between two vertices")
         print(' -------------------------------------------------')
 
         if isinstance(self.rings[0], int):
@@ -1438,38 +1436,37 @@ class ESI:
         for ring_index, ring in enumerate(self.rings):
             print(f" | Ring {ring_index+1} ({len(ring)}): {ring}")
             print(' -------------------------------------------------')
-            wf = wf_type(self.Smo)
+            wf = wf_type(self.aom)
             if wf == "rest":
-                connec = build_connec_rest(self.Smo, self.rings_thres)
+                connec = build_connec_rest(self.aom, self.rings_thres)
             elif wf == "unrest":
-                connec = build_connec_unrest(self.Smo, self.rings_thres)
+                connec = build_connec_unrest(self.aom, self.rings_thres)
             elif wf == "no":
-                connec = build_connec_no(self.Smo, self.rings_thres)
-            if is_closed(ring, connec) or self.closed == True:
+                connec = build_connec_no(self.aom, self.rings_thres)
+            if mcialg != 0 and (is_fused(ring, connec) or self.fused == True):
                 print(" | Anneeled ring. Computing with BFS algorithm")
             else:
                 print(" | Single ring. Computing with standard algorithm")
 
-            if wf_type(self.Smo) == "rest":
-                val, nperms, t = aproxmci(ring, self.Smo, self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen, self.rings_thres, self.closed)
+            if wf_type(self.aom) == "rest":
+                val, nperms, t = aproxmci(ring, self.aom, self.partition, mcialg, d, self.ncores, self.minlen, self.maxlen, self.rings_thres, self.fused)
                 val = 2 * val
-            elif wf_type(self.Smo) == "unrest":
-                val_a, nperms, t_a = aproxmci(ring, self.Smo[0], self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen, self.rings_thres, self.closed)
-                val_b, _, t_b = aproxmci(ring, self.Smo[1], self.partition, self.mcialg, self.d, self.ncores, self.minlen, self.maxlen, self.rings_thres, self.closed)
+            elif wf_type(self.aom) == "unrest":
+                val_a, nperms, t_a = aproxmci(ring, self.aom[0], self.partition, mcialg, d, self.ncores, self.minlen, self.maxlen, self.rings_thres, self.fused)
+                val_b, _, t_b = aproxmci(ring, self.aom[1], self.partition, mcialg, d, self.ncores, self.minlen, self.maxlen, self.rings_thres, self.fused)
                 val = val_a + val_b
                 t = t_a + t_b
                 nperms = 2 * nperms
 
             print(f" | Number of permutations:           {nperms:.14g}")
-            print(f" | Number of permutations if exact:  {0.5 * factorial(len(ring)-1):.14g}")
 
             print(f" | Time for the MCI calculation:     {t:.5f} seconds")
-            print(f" | MCI(mcialg={self.mcialg}, d={self.d}):               {val:.8f}")
+            print(f" | MCI(mcialg={mcialg}, d={d}):               {val:.8f}")
             if val > 0:
-                print(f" | MCI(mcialg={self.mcialg}, d={self.d})**(1/n):        {val ** (1/len(ring)):.8f}")
+                print(f" | MCI(mcialg={mcialg}, d={d})**(1/n):        {val ** (1/len(ring)):.8f}")
             else:
                 from numpy import abs
-                print(f" | MCI(mcialg={self.mcialg}, d={self.d})**(1/n):        -{abs(val) ** (1 / len(ring)):.8f}")
+                print(f" | MCI(mcialg={mcialg}, d={d})**(1/n):        -{abs(val) ** (1 / len(ring)):.8f}")
             print(' -------------------------------------------------')
 
     def print(self):

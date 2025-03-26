@@ -1,12 +1,12 @@
 import numpy as np
-from esipy.tools import mapping, build_connec_rest, build_connec_unrest, build_connec_no, filter_connec, wf_type, find_middle_nodes, is_closed, find_node_distances
+from esipy.tools import mapping, build_connec_rest, build_connec_unrest, build_connec_no, filter_connec, wf_type, find_middle_nodes, is_fused, find_node_distances
 from esipy.indicators import sequential_mci, multiprocessing_mci
 from math import factorial
 from multiprocessing import Pool
 from functools import partial
 from time import time
 
-def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen=6, rings_thres = 0.3, closed = None):
+def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen=6, rings_thres = 0.3, fused = None):
     start = time()
 
     if wf_type(Smo) == "rest":
@@ -17,8 +17,8 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen
         connec = build_connec_no(Smo, rings_thres)
 
     connec = filter_connec(connec)
-    if not closed:
-        closed = is_closed(arr, connec)
+    if not fused:
+        fused = is_fused(arr, connec)
 
     if mcialg == 0:
         if partition == "mulliken":
@@ -44,7 +44,7 @@ def aproxmci(arr, Smo, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen
     else:
         connec = build_connec_no(Smo, rings_thres)
 
-    perms = HamiltonMCI(arr, d, mcialg, connec, closed, minlen=minlen, maxlen=maxlen)
+    perms = HamiltonMCI(arr, d, mcialg, connec, fused, minlen=minlen, maxlen=maxlen)
     nperms = perms.countperms()
 
     if ncores == 1:
@@ -81,7 +81,7 @@ def compute_iring(arr, Smo):
     return 2 ** (len(arr) - 1) * np.trace(product)
 
 class HamiltonMCI:
-    def __init__(self, arr, d, alg, connec=False, closed=False, maxlen=None, minlen=None):
+    def __init__(self, arr, d, alg, connec=False, fused=False, maxlen=None, minlen=None):
         # User input features
         self.arr = arr
         self.d = d
@@ -90,12 +90,10 @@ class HamiltonMCI:
         self.minlen = minlen
         self.alg = alg
         # Path finding features
-        self.closed = closed
+        self.fused = fused
         self.connec = filter_connec(connec)
-        print("Connectivity dict", self.connec)
         self.start = find_middle_nodes(self.connec)
         self.distances = find_node_distances(self.connec)
-        print("Distances", self.distances)
         # Algorithm selection
         self.generator = self._select_algorithm()
 
@@ -106,7 +104,7 @@ class HamiltonMCI:
         return next(self.generator)
 
     def _select_algorithm(self):
-        if not self.closed:
+        if not self.fused:
             if self.alg == 1:
                 return self._alg1()
             elif self.alg == 2:

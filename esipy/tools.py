@@ -423,7 +423,7 @@ def filter_connec(connec):
                 filtered_connec[key] = filtered_vals
     return filtered_connec
 
-def is_closed(arr, connec):
+def is_fused(arr, connec):
     for i in range(len(arr) - 1):
         if len([x for x in connec[arr[i]] if x in arr]) >= 3:
             return True
