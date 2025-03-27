@@ -211,7 +211,7 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
     if isinstance(ring[0], int):
         ring = [ring]
     for r in ring:
-        if len(r) < 12:
+        if len(r) < 10:
             domci = True
 
     # Single-determinant input file
