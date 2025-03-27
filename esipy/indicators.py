@@ -201,19 +201,17 @@ def compute_huckel_iring(arr, Smo, ref=None):
             total_di *= di
         return total_di
     elif wf == "unrest":
-        total_di_a = 1
-        total_di_b = 1
+        total_di = 1
         for i in range(len(arr)):
             arr_pairs = [arr[i], arr[(i + 1) % len(arr)]]
             di_a = find_di(Smo[0], arr_pairs[0], arr_pairs[1])
             di_b = find_di(Smo[1], arr_pairs[0], arr_pairs[1])
+            diab = np.dot(Smo[0][arr_pairs[0] - 1], Smo[1][arr_pairs[1] - 1])
             if arr_pairs in ref_pairs or arr_pairs[::-1] in ref_pairs:
                 # We susbtract 1 to not account for sigma bonds in orto connectivity
-                di_a = di_a - 0.5
-                di_b = di_b - 0.5
-            total_di_a *= di_a
-            total_di_b *= di_b
-        return [total_di_a, total_di_b]
+                di = di_a + di_b - 2 * diab
+            total_di *= di
+        return total_di
     elif wf == "no":
         total_di = 1
         for i in range(len(arr)):
@@ -225,53 +223,29 @@ def compute_huckel_iring(arr, Smo, ref=None):
             total_di *= di
         return total_di
 
-def compute_huckel_sequential_mci(arr, Smo, partition="non-symmetric"):
-    from math import factorial
-    from itertools import permutations, islice
+def compute_huckel_mci(arr, Smo):
+    wf = wf_type(Smo)
+    total_mci_huckel = 1
+    if wf == "rest":
+        for i in arr:
+            for j in arr:
+                di = find_di(Smo, i, j) - 1
+                total_mci_huckel *= di
+    elif wf == "unrest":
+        for i in arr:
+            for j in arr:
+                di_a = find_di(Smo[0], i, j)
+                di_b = find_di(Smo[1], i, j)
+                diab = np.dot(Smo[0][i - 1], Smo[1][j - 1])
+                di = di_a + di_b - 2 * diab
+                total_mci_huckel *= di
+    elif wf == "no":
+        for i in arr:
+            for j in arr:
+                di = find_di_no(Smo, i, j) - 1
+                total_mci_huckel *= di
+    return total_mci_huckel
 
-    iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
-    if partition == 'mulliken' or partition == "non-symmetric":
-        # We account for twice the value for symmetric AOMs
-        val = 0.5 * sum(compute_huckel_iring(mapping(arr, p), Smo, arr) for p in iterable2)
-        return val
-    else:  # Remove reversed permutations
-        iterable2 = (mapping(arr, x) for x in iterable2 if x[1] < x[-1])
-        val = sum(compute_huckel_iring(p, Smo, arr) for p in iterable2)
-        return val
-
-def compute_huckel_sequential_mci(arr, Smo, partition="non-symmetric"):
-    from math import factorial
-    from itertools import permutations, islice
-
-    iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
-    if partition == 'mulliken' or partition == "non-symmetric":
-        # We account for twice the value for symmetric AOMs
-        val = 0.5 * sum(compute_huckel_iring(mapping(arr, p), Smo, arr) for p in iterable2)
-        return val
-    else:  # Remove reversed permutations
-        iterable2 = (mapping(arr, x) for x in iterable2 if x[1] < x[-1])
-        val = sum(compute_huckel_iring(p, Smo, arr) for p in iterable2)
-        return val
-
-def compute_huckel_multiprocessing_mci(arr, Smo, ncores, partition="non-symmetric"):
-    from multiprocessing import Pool
-    from math import factorial
-    from functools import partial
-    from itertools import permutations, islice
-
-    pool = Pool(processes=ncores)
-    dumb = partial(compute_huckel_iring, Smo=Smo, ref=arr)
-    chunk_size = 50000
-
-    iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
-    if partition == 'mulliken' or partition == "non-symmetric":
-        # We account for twice the value for symmetric AOMs
-        val = 0.5 * sum(pool.imap(dumb, iterable2, chunk_size))
-        return val
-    else:  # Remove reversed permutations
-        iterable2 = (x for x in iterable2 if x[1] < x[-1])
-        val = sum(pool.imap(dumb, iterable2, chunk_size))
-        return val
 
 ########### AV1245 ###########
 
