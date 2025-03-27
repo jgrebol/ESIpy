@@ -1,6 +1,7 @@
 import numpy as np
 from math import factorial
 
+
 def readfchk(filename):
     """
     Reads the information from a fchk file.

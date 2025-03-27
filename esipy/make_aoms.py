@@ -4,6 +4,7 @@ from pyscf.lo.orth import lowdin, restore_ao_character
 
 from esipy.tools import save_file, format_partition, get_natorbs, build_eta
 
+np.set_printoptions(threshold=np.inf, linewidth=200, precision=6, suppress=True)
 
 def make_aoms(mol, mf, partition, myhf=None, save=None):
     """Build the Atomic Overlap Matrices (AOMs) in the Molecular Orbitals basis. If using Natural Orbitals,
@@ -145,11 +146,11 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         # Special case plain Mulliken
         elif partition == "mulliken":
             eta = build_eta(mol)
-            print(coeff)
-            exit()
 
             for i in range(mol.natm):
                 SCR = np.linalg.multi_dot((coeff.T, S, eta[i], coeff))
+                print(coeff)
+                exit()
                 aom.append(SCR)
 
         else:
