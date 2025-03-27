@@ -25,6 +25,14 @@ def read_level_theory(path):
         next(f)
         return next(f).split()
 
+def is_cart(path):
+    with open(path, 'r') as file:
+        lines = file.readlines()
+        if len(lines) >= 10:
+            return '6d' in lines[9]
+        else:
+            return False
+
 def read_contract_coeff(path):
     l = []
     with open(path, 'r') as f:
@@ -86,6 +94,7 @@ class Mole:
         self.spin = int(self.nalpha) - int(self.nbeta)
         self.nelec = int(read_from_fchk('Number of electrons', self.path)[-1])
         self.natoms = int(read_from_fchk('Number of atoms', self.path)[-1])
+        self.charge = int(read_from_fchk('Charge', self.path)[-1])
         self.natm = self.natoms
         self.nbasis = int(read_from_fchk('Number of basis functions', self.path)[-1])
         self.nbas = self.nbasis
@@ -98,10 +107,7 @@ class Mole:
         self.mssh = [int(i) for i in self.mssh]
         self.dcart = read_from_fchk("Pure/Cartesian d shells", self.path)[-1]
         self.fcart = read_from_fchk("Pure/Cartesian f shells", self.path)[-1]
-        if self.dcart is False and self.fcart is False:
-            self.cart = False
-        else:
-            self.cart = True
+        self.cart = is_cart(path)
 
     def atom_symbol(self, pos):
         return self.atomic_symbols[pos]
@@ -181,12 +187,12 @@ class MeanField:
         self.ncshell = int(read_from_fchk('Number of contracted shells', self.path)[-1])
         if wf == 'rest':
             self.mo_coeff = list(read_list_from_fchk('Alpha MO coefficients', 'Orthonormal basis', self.path))
-            self.mo_coeff = np.array(self.mo_coeff).reshape(int(np.sqrt(len(self.mo_coeff))), -1)            #self.numprim = int(self.numprim / 2)
+            self.mo_coeff = np.array(self.mo_coeff).reshape(int(np.sqrt(len(self.mo_coeff))), -1).T
             self.ncshell = int(self.ncshell / 2)
         elif wf == 'unrest':
             self.mo_coeff_alpha = read_list_from_fchk('Alpha MO coefficients', 'Beta MO coefficients', self.path)
             self.mo_coeff_beta = read_list_from_fchk('Beta MO coefficients', 'Orthonormal basis', self.path)
-            self.mo_coeff = [self.mo_coeff_alpha, self.mo_coeff_beta]
+            self.mo_coeff = [self.mo_coeff_alpha.T, self.mo_coeff_beta.T]
         # Number of primitive shells
         self.npshell = read_from_fchk('Number of primitive shells', self.path)[-1]
         # 0=s, 1=p, -1=sp, 2=6d, -2=5d, 3=10f, -3=7f
@@ -221,7 +227,7 @@ class MeanField:
             atom=[(mol.atomic_symbols[i], mol.atom_coords()[i]) for i in range(mol.natoms)],
             basis=mol.basis,
             spin=mol.spin,
-            charge=0,
+            charge=mol.charge,
             cart=mol.cart,
         )
         mol_pyscf.build()

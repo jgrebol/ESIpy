@@ -40,8 +40,9 @@ def main():
     fchname = args.fchname
     mci = args.mci
     av1245 = args.av1245
-    num_threads = args.ncores
+    ncores = args.ncores
     save = args.save
+    writeaoms = args.write_aoms
 
     if args.partition is None:
         print(" | No partition specified. Using only robust schemes meta-Lowdin, NAO and IAO")
@@ -71,7 +72,7 @@ def main():
         print(f" Partition(s): {partition}")
         print(f" MCI: {mci}")
         print(f" AV1245: {av1245}")
-        print(f" Number of Threads: {num_threads}")
+        print(f" Number of Cores: {ncores}")
         print(f" Write molinfo file(s): {molinfo}")
         print(f" Save file(s): {save}")
 
@@ -85,7 +86,7 @@ def main():
         print(f' Saving the AOMs in the file: {save_name}.aoms')
         arom = ESI(mol=mol, mf=mf, rings=rings, partition=part, saveaoms=save_name + '.aoms', savemolinfo=save_name + '.molinfo')
         arom.print()
-        if args.writeaoms:
+        if writeaoms:
             arom.writeaoms()
 
 if __name__ == '__main__':

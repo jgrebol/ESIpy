@@ -145,6 +145,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         # Special case plain Mulliken
         elif partition == "mulliken":
             eta = build_eta(mol)
+            print(coeff)
+            exit()
 
             for i in range(mol.natm):
                 SCR = np.linalg.multi_dot((coeff.T, S, eta[i], coeff))
