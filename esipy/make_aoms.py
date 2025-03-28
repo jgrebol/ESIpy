@@ -149,8 +149,6 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
             for i in range(mol.natm):
                 SCR = np.linalg.multi_dot((coeff.T, S, eta[i], coeff))
-                print(coeff)
-                exit()
                 aom.append(SCR)
 
         else:

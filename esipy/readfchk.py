@@ -220,6 +220,10 @@ class MeanField:
                 self.c1 = read_list_from_fchk('Contraction coefficients', 'Coordinates of each shell', self.path)
 
     def get_ovlp(self):
+        process_basis(self)
+        ovlp = build_ovlp(self)
+        print(np.shape(ovlp))
+        return ovlp
         from pyscf import gto
 
         mol = self.mol
@@ -244,19 +248,16 @@ def mult(shell_type):
     return mult_dict.get(shell_type, 0)
 
 def process_basis(mf):
-    numprim, nbasis = 0, 0
-    for i in range(mf.ncshell):
-        if mf.mssh[i] <= -1:
-            numprim += mult(abs(mf.mssh[i])) * mf.mnsh[i]
-        else:
-            numprim += mult(mf.mssh[i]) * mf.mnsh[i]
-        nbasis += mult(mf.mssh[i])
+    nbasis = mf.nbasis
+    numprim = mf.numprim
 
     # Basis to atom map
-    ihold = []
+    ihold = [0] * nbasis
+    ii = 0
     for i in range(mf.ncshell):
         for k in range(mult(mf.mssh[i])):
-            ihold.append(mf.iatsh[i])
+            ii += 1
+            ihold[ii - 1] = mf.iatsh[i]
 
     # Setting basis set limits for Mulliken
     llim = [1]
@@ -351,6 +352,14 @@ def build_ovlp(mf):
     expp = mf.expsh
     coefpb = mf.coefpb
     nprimbas = mf.nprimbas
+    print("Numprim:", numprim)
+    print("Nbasis:", nbasis)
+    print("Ip to at:", iptoat)
+    print("NLm:", np.shape(nlm))
+    print("Expp:", np.shape(expp))
+    print("Coefpb:", np.shape(coefpb))
+    print("Nprimbas:", np.shape(nprimbas))
+    exit()
 
     sp = np.zeros((numprim, numprim))
     s = np.zeros((nbasis, nbasis))
