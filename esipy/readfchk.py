@@ -94,8 +94,8 @@ class Mole:
         self.charge = int(read_from_fchk('Charge', self.path)[-1])
         self.spin = int(self.nalpha) - int(self.nbeta)
         self.nelec = int(read_from_fchk('Number of electrons', self.path)[-1])
-        self.natoms = int(read_from_fchk('Number of atoms', self.path)[-1])
         self.charge = int(read_from_fchk('Charge', self.path)[-1])
+        self.natoms = int(read_from_fchk('Number of atoms', self.path)[-1])
         self.natm = self.natoms
         self.nbasis = int(read_from_fchk('Number of basis functions', self.path)[-1])
         self.nbas = self.nbasis
@@ -136,6 +136,7 @@ class Mole:
             start_shell = stop_shell
 
         return np.array(aoslices)
+
 
     def atom_coords(self):
         coords = read_list_from_fchk('Current cartesian coordinates', 'Number of symbols', self.path)
@@ -189,7 +190,6 @@ class MeanField:
         if wf == 'rest':
             self.mo_coeff = list(read_list_from_fchk('Alpha MO coefficients', 'Orthonormal basis', self.path))
             self.mo_coeff = np.array(self.mo_coeff).reshape(int(np.sqrt(len(self.mo_coeff))), -1).T
-            self.ncshell = int(self.ncshell / 2)
         elif wf == 'unrest':
             self.mo_coeff_alpha = read_list_from_fchk('Alpha MO coefficients', 'Beta MO coefficients', self.path)
             self.mo_coeff_beta = read_list_from_fchk('Beta MO coefficients', 'Orthonormal basis', self.path)
@@ -222,7 +222,6 @@ class MeanField:
     def get_ovlp(self):
         process_basis(self)
         ovlp = build_ovlp(self)
-        print(np.shape(ovlp))
         return ovlp
         from pyscf import gto
 
@@ -248,8 +247,14 @@ def mult(shell_type):
     return mult_dict.get(shell_type, 0)
 
 def process_basis(mf):
-    nbasis = mf.nbasis
-    numprim = mf.numprim
+
+    numprim, nbasis = 0, 0
+    for i in range(mf.ncshell):
+        if mf.mssh[i] < -1:
+            numprim += mult(abs(mf.mssh[i])) * mf.mnsh[i]
+        else:
+            numprim += mult(mf.mssh[i]) * mf.mnsh[i]
+        nbasis += mult(mf.mssh[i])
 
     # Basis to atom map
     ihold = [0] * nbasis
@@ -262,14 +267,16 @@ def process_basis(mf):
     # Setting basis set limits for Mulliken
     llim = [1]
     iulim = [0] * mf.natoms
-    iat = 0
+    iat = 1
 
     for i in range(nbasis):
-        if ihold[i] != iat:
-            iulim[iat - 1] = i
+        if ihold[i] == iat:
+            if iat - 1 < len(iulim):
+                iulim[iat - 1] = i
             llim.append(i + 1)
             iat += 1
-    iulim[iat - 1] = mf.nbasis
+    if iat - 1 < len(iulim):
+        iulim[iat - 1] = nbasis
 
     icount, jcount = 0, 0
     expp, coefp = [0] * numprim, [0] * numprim
@@ -285,11 +292,10 @@ def process_basis(mf):
                     coefp[icount] = mf.c2[jcount]
                 else:
                     coefp[icount] = mf.c1[jcount]
-            icount += 1
-        jcount += 1
+                icount += 1
+            jcount += 1
 
     nlm, iptoat = get_nlm(mf)
-    numprim = numprim
 
     xnorm = np.zeros(numprim)
 
@@ -341,70 +347,62 @@ def process_basis(mf):
     mf.iptob_cartesian = iptob_cartesian
     mf.mmax = mmax
     mf.nprimbas = nprimbas
+    mf.expp = expp
 
 def build_ovlp(mf):
     tol = 1.0e-8
-    numprim = len(mf.expsh)
+    numprim = mf.numprim
     nbasis = mf.nbasis
     coord = mf.coord
     iptoat = mf.iptoat
     nlm = mf.nlm
-    expp = mf.expsh
+    expp = mf.expp
     coefpb = mf.coefpb
     nprimbas = mf.nprimbas
-    print("Numprim:", numprim)
-    print("Nbasis:", nbasis)
-    print("Ip to at:", iptoat)
-    print("NLm:", np.shape(nlm))
-    print("Expp:", np.shape(expp))
-    print("Coefpb:", np.shape(coefpb))
-    print("Nprimbas:", np.shape(nprimbas))
-    exit()
 
     sp = np.zeros((numprim, numprim))
     s = np.zeros((nbasis, nbasis))
 
     for ia in range(numprim):
-        for ib in range(ia):
+        for ib in range(ia+1):
             sp[ia, ib] = 0.0
-            AminusB = coord[iptoat[ia]] - coord[iptoat[ib]]
+            AminusB = coord[iptoat[ia]-1] - coord[iptoat[ib]-1]
             for ixyz in range(3):
                 ii = (nlm[ia, ixyz] + nlm[ib, ixyz]) % 2
                 if abs(AminusB[ixyz]) < tol and ii != 0:
                     break
-            else:
-                gamma_p = expp[ia] + expp[ib]
-                eta_p = (expp[ia] * expp[ib]) / gamma_p
-                do_ov = np.pi ** (3.0 / 2.0) / gamma_p ** (3.0 / 2.0)
-                for ixyz in range(3):
-                    do_ov *= factorial(nlm[ia, ixyz]) * factorial(nlm[ib, ixyz]) / (2.0 ** (nlm[ia, ixyz] + nlm[ib, ixyz]))
-                    if abs(AminusB[ixyz]) > tol:
-                        do_ov *= np.exp(-eta_p * AminusB[ixyz] ** 2.0)
-                    sum_i = 0.0
-                    for i1 in range(nlm[ia, ixyz] // 2 + 1):
-                        j1 = nlm[ia, ixyz] - 2 * i1
-                        for i2 in range(nlm[ib, ixyz] // 2 + 1):
-                            j2 = nlm[ib, ixyz] - 2 * i2
-                            j = j1 + j2
-                            facij = factorial(i1) * factorial(j1) * factorial(i2) * factorial(j2) * expp[ia] ** (nlm[ia, ixyz] - i1) * expp[ib] ** (nlm[ib, ixyz] - i2)
-                            sum_r = 0.0
-                            if abs(AminusB[ixyz]) > tol:
-                                for ir in range(j // 2 + 1):
-                                    xfac = eta_p ** (j - ir) * (2.0 * AminusB[ixyz]) ** (j - 2 * ir) / (factorial(ir) * factorial(j - 2 * ir))
-                                    if ir % 2 != 0:
-                                        xfac = -xfac
-                                    sum_r += xfac
-                            elif j % 2 == 0:
-                                sum_r = eta_p ** (j // 2) / factorial(j // 2)
-                                if (j // 2) % 2 != 0:
-                                    sum_r = -sum_r
-                            if j1 % 2 != 0:
+            gamma_p = expp[ia] + expp[ib]
+            eta_p = (expp[ia] * expp[ib]) / gamma_p
+            do_ov = np.pi ** (3.0 / 2.0) / gamma_p ** (3.0 / 2.0)
+            for ixyz in range(3):
+                do_ov *= factorial(nlm[ia, ixyz]) * factorial(nlm[ib, ixyz]) / (2.0 ** (nlm[ia, ixyz] + nlm[ib, ixyz]))
+                if abs(AminusB[ixyz]) > tol:
+                    do_ov *= np.exp(-eta_p * AminusB[ixyz] ** 2.0)
+                sum_i = 0.0
+                for i1 in range(nlm[ia, ixyz] // 2 + 1):
+                    j1 = nlm[ia, ixyz] - 2 * i1
+                    for i2 in range(nlm[ib, ixyz] // 2 + 1):
+                        j2 = nlm[ib, ixyz] - 2 * i2
+                        j = j1 + j2
+                        facij = factorial(i1) * factorial(j1) * factorial(i2) * factorial(j2) * expp[ia] ** (nlm[ia, ixyz] - i1) * expp[ib] ** (nlm[ib, ixyz] - i2)
+                        sum_r = 0.0
+                        if abs(AminusB[ixyz]) > tol:
+                            for ir in range(j // 2 + 1):
+                                xfac = eta_p ** (j - ir) * (2.0 * AminusB[ixyz]) ** (j - 2 * ir) / (factorial(ir) * factorial(j - 2 * ir))
+                                if ir % 2 != 0:
+                                    xfac = -xfac
+                                sum_r += xfac
+                        elif j % 2 == 0:
+                            sum_r = eta_p ** (j // 2) / factorial(j // 2)
+                            if (j // 2) % 2 != 0:
                                 sum_r = -sum_r
-                            sum_i += sum_r * factorial(j) / facij
-                    do_ov *= sum_i
-                sp[ia, ib] = do_ov
-                if ia != ib:
-                    sp[ib, ia] = sp[ia, ib]
+                        if j1 % 2 != 0:
+                            sum_r = -sum_r
+                        sum_i += sum_r * factorial(j) / facij
+                do_ov *= sum_i
+            sp[ia, ib] = do_ov
+            if ia != ib:
+                sp[ib, ia] = sp[ia, ib]
 
     for i in range(nbasis):
         for j in range(i + 1):
@@ -421,57 +419,57 @@ def build_ovlp(mf):
 
     return np.array(s)
 
+
 def get_nlm(mf):
     ncshell = mf.ncshell
     mssh = mf.mssh
     mnsh = mf.mnsh
     iatsh = mf.iatsh
-    numprim = mf.numprim
 
-    nlm = np.zeros((numprim, 3), dtype=int)
-    iptoat = np.zeros(numprim, dtype=int)
+    nlm = []
+    iptoat = []
     icount = 0
 
     for i in range(ncshell):
         if mssh[i] == 0:  # S-type orbitals
             for j in range(mnsh[i]):
-                iptoat[icount] = iatsh[i]
+                iptoat.append(iatsh[i])
+                nlm.append([0, 0, 0])
                 icount += 1
         elif mssh[i] == 1:  # P-type orbitals
             for j in range(mnsh[i]):
-                nlm[icount:icount + 3] = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-                iptoat[icount:icount + 3] = iatsh[i]
+                nlm.extend([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+                iptoat.extend([iatsh[i]] * 3)
                 icount += 3
         elif mssh[i] == -1:  # SP-type orbitals
             for j in range(mnsh[i]):
-                nlm[icount:icount + 4] = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]]
-                iptoat[icount:icount + 4] = iatsh[i]
+                nlm.extend([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]])
+                iptoat.extend([iatsh[i]] * 4)
                 icount += 4
         elif abs(mssh[i]) == 2:  # D-type orbitals
             for j in range(mnsh[i]):
-                nlm[icount:icount + 6] = [[2, 0, 0], [0, 2, 0], [0, 0, 2], [1, 1, 0], [1, 0, 1], [0, 1, 1]]
-                iptoat[icount:icount + 6] = iatsh[i]
+                nlm.extend([[2, 0, 0], [0, 2, 0], [0, 0, 2], [1, 1, 0], [1, 0, 1], [0, 1, 1]])
+                iptoat.extend([iatsh[i]] * 6)
                 icount += 6
         elif abs(mssh[i]) == 3:  # F-type orbitals
             for j in range(mnsh[i]):
-                nlm[icount:icount + 10] = [
+                nlm.extend([
                     [3, 0, 0], [0, 3, 0], [0, 0, 3], [1, 2, 0], [2, 1, 0], [2, 0, 1],
                     [1, 0, 2], [0, 1, 2], [0, 2, 1], [1, 1, 1]
-                ]
-                iptoat[icount:icount + 10] = iatsh[i]
+                ])
+                iptoat.extend([iatsh[i]] * 10)
                 icount += 10
         elif abs(mssh[i]) == 4:  # G-type orbitals
             for j in range(mnsh[i]):
-                nlm[icount:icount + 15] = [
+                nlm.extend([
                     [0, 0, 4], [0, 1, 3], [0, 2, 2], [0, 3, 1], [0, 4, 0], [1, 0, 3],
                     [1, 1, 2], [1, 2, 1], [1, 3, 0], [2, 0, 2], [2, 1, 1], [2, 2, 0],
                     [3, 0, 1], [3, 1, 0], [4, 0, 0]
-                ]
-                iptoat[icount:icount + 15] = iatsh[i]
+                ])
+                iptoat.extend([iatsh[i]] * 15)
                 icount += 15
         else:
             raise ValueError('Angular momentum not implemented')
-
 
     return np.array(nlm), np.array(iptoat)
 
