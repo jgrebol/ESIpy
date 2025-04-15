@@ -1,6 +1,5 @@
 import numpy as np
-from math import factorial
-
+from scipy.special import factorial
 
 def readfchk(filename):
     """
@@ -26,14 +25,6 @@ def read_level_theory(path):
         next(f)
         return next(f).split()
 
-def is_cart(path):
-    with open(path, 'r') as file:
-        lines = file.readlines()
-        if len(lines) >= 10:
-            return '6d' in lines[9]
-        else:
-            return False
-
 def read_contract_coeff(path):
     l = []
     with open(path, 'r') as f:
@@ -52,6 +43,7 @@ def read_contract_coeff(path):
                         else:
                             break
     return l
+
 
 def read_list_from_fchk(start, end, path):
     l = []
@@ -85,6 +77,24 @@ def read_atomic_symbols(z):
 
     return [z_to_symbol[int(i)] for i in z]
 
+
+def degens(l, cart_flag):
+    """Return the number of contracted functions for a given angular momentum l.
+
+    Args:
+        l (int): Angular momentum quantum number.
+        cart_flag (bool): If True, assume Cartesian functions; otherwise pure spherical.
+
+    Returns:
+        int: Number of contracted functions.
+    """
+    if cart_flag:
+        return (l + 1) * (l + 2) // 2  # Cartesian: 1 (s), 3 (p), 6 (d), etc.
+    else:
+        return 2 * l + 1  # Spherical: 1 (s), 3 (p), 5 (d), etc.
+
+
+
 class Mole:
     def __init__(self, path):
         self.path = path
@@ -98,55 +108,133 @@ class Mole:
         self.natoms = int(read_from_fchk('Number of atoms', self.path)[-1])
         self.natm = self.natoms
         self.nbasis = int(read_from_fchk('Number of basis functions', self.path)[-1])
-        self.nbas = self.nbasis
         self.nao = self.nbasis
         self.atomic_numbers = [int(i) for i in read_list_from_fchk('Atomic numbers', 'Nuclear charges', self.path)]
         self.atomic_symbols = read_atomic_symbols(self.atomic_numbers)
-        self.iatsh = read_list_from_fchk('Shell to atom map', 'Primitive exponents', self.path)
-        self.iatsh = [int(i) for i in self.iatsh]
-        self.mssh = read_list_from_fchk('Shell types', 'Number of primitives per shell', self.path)
-        self.mssh = [int(i) for i in self.mssh]
         self.dcart = read_from_fchk("Pure/Cartesian d shells", self.path)[-1]
         self.fcart = read_from_fchk("Pure/Cartesian f shells", self.path)[-1]
-        self.cart = is_cart(path)
+        self.cart = self.dcart == 0 or self.fcart == 0
+        self.verbose = 0
+        self.mf = MeanField(path, self)
+        self.iatsh = self.mf.iatsh
+        self.mssh = self.mf.mssh
+        self.mnsh = self.mf.mnsh
+        self.expsh = self.mf.expsh
+        self.c1 = self.mf.c1
+        self.c2 = self.mf.c2 if hasattr(self.mf, 'c2') and self.mf.c2 is not None else None
+        self.ncshell = self.mf.ncshell
+
+        from pyscf import gto
+
+        pyscf_mol = gto.M(
+            atom=[(self.atomic_symbols[i], self.atom_coords()[i]) for i in range(self.natoms)],
+            basis=self.basis,
+            spin=self.spin,
+            charge=self.charge,
+            cart=self.cart,
+        )
+        pyscf_mol.build()
+
+        self.copy = pyscf_mol
+        #self._bas = build_bas(self)
+        self._bas = pyscf_mol._bas
+        self._basis = pyscf_mol._basis
+        self._atm = pyscf_mol._atm
+        self._env = pyscf_mol._env
+        self._add_suffix = pyscf_mol._add_suffix
+        self.nbas = len(self._bas)
 
     def atom_symbol(self, pos):
         return self.atomic_symbols[pos]
 
-    def aoslice_by_atom(self):
-
-        counts = [0] * (max(self.iatsh) + 1)
-        for value in self.iatsh:
-            counts[value] += 1
-        counts = counts[1:]
-
-        start_shell = 0
-        aoslices = []
-
-        result = []
-        index = 0
-        for count in counts:
-            sums = sum(mult(self.mssh[index + i]) for i in range(count))
-            result.append(sums)
-            index += count
-
-        for s in result:
-            stop_shell = start_shell + s
-            aoslices.append(np.array((0, 0, start_shell, stop_shell)))
-            start_shell = stop_shell
-
-        return np.array(aoslices)
-
+    def aoslice_by_atom(self, ao_loc=None):
+        return self.copy.aoslice_by_atom()
+    #def aoslice_by_atom(self, ao_loc=None): # For NAO subroutine purpose
+#
+#        counts = [0] * (max(self.iatsh) + 1)
+#        for value in self.iatsh:
+#            counts[value] += 1
+#        counts = counts[1:]
+#
+#        start_shell = 0
+#        aoslices = []
+#
+#        result = []
+#        index = 0
+#        for count in counts:
+#            sums = sum(mult(self.mssh[index + i]) for i in range(count))
+#            result.append(sums)
+#            index += count
+#
+#        for s in result:
+#            stop_shell = start_shell + s
+#            aoslices.append(np.array((0, 0, start_shell, stop_shell)))
+#            start_shell = stop_shell
+#
+#        return np.array(aoslices)
 
     def atom_coords(self):
         coords = read_list_from_fchk('Current cartesian coordinates', 'Number of symbols', self.path)
         return np.array(coords).reshape(int(self.natoms), 3)
 
+    def intor_symmetric(self,str):
+        if str == 'int1e_ovlp':
+            process_basis(self.mf)
+            ovlp = build_ovlp(self.mf)
+            return ovlp
+        else:
+            raise ValueError("Invalid integral type: {}".format(str))
+
+    def atom_nelec_core(self, atm_id):
+        '''Number of core electrons for pseudo potential.'''
+        nuclear_charges = read_list_from_fchk('Nuclear charges', 'Current cartesian coordinates', self.path)
+        core_electrons = [self.atomic_numbers[i] - int(nuclear_charges[i]) for i in range(self.natoms)]
+        return core_electrons[atm_id]
+
+    def ao_loc_nr(self):
+        return self.copy.ao_loc_nr()
+
+    def nao_nr(self):
+        '''Number of basis functions.
+        '''
+        if self.cart:
+            l = self._bas[:, 1]
+            return int(((l + 1) * (l + 2) // 2 * self._bas[:, 3]).sum())
+        else:
+            return int(((self._bas[:,1]*2+1) * self._bas[:,3]).sum())
+
+    def bas_atom(self, atm_id):
+        '''Atom id for each basis function.
+        '''
+        return int(self._bas[atm_id, 0])
+
+    def bas_angular(self, atm_id):
+        '''Angular momentum for each basis function.
+        '''
+        return int(self._bas[atm_id, 1])
+
+    def bas_nctr(self, atm_id):
+        '''Number of contracted functions for each basis function.
+        '''
+        return int(self._bas[atm_id, 3])
+
+    def atom_pure_symbol(self, atm_id):
+        '''Atom symbol for each basis function.
+        '''
+        return self.copy.atom_pure_symbol(atm_id)
+
+    def has_ecp(self):
+        '''Check if the molecule has ECP.
+        '''
+        nuclear_charges = read_list_from_fchk('Nuclear charges', 'Current cartesian coordinates', self.path)
+        nuclear_charges = [int(charge) for charge in nuclear_charges]
+        return nuclear_charges != self.atomic_numbers
 
 class MeanField:
     def __init__(self, path, mol):
         self.path = path
         self.mol = mol
+        self.nalpha = self.mol.nalpha
         self.__class__.__name__ = read_level_theory(self.path)[-2]
         if 'R' in self.__class__.__name__:
             wf = 'rest'
@@ -185,11 +273,14 @@ class MeanField:
         self.numprim = int(read_from_fchk('Number of primitive shells', self.path)[-1])
         self.atomic_numbers = [int(i) for i in read_list_from_fchk('Atomic numbers', 'Nuclear charges', self.path)]
         self.atomic_symbols = read_atomic_symbols(self.atomic_numbers)
+        self.numao = int(read_from_fchk('Number of basis functions', self.path)[-1])
+        self.nummo = int(read_from_fchk('Number of independent functions', self.path)[-1])
         # Number of contracted shells
         self.ncshell = int(read_from_fchk('Number of contracted shells', self.path)[-1])
+
         if wf == 'rest':
             self.mo_coeff = list(read_list_from_fchk('Alpha MO coefficients', 'Orthonormal basis', self.path))
-            self.mo_coeff = np.array(self.mo_coeff).reshape(int(np.sqrt(len(self.mo_coeff))), -1).T
+            self.mo_coeff = np.array(self.mo_coeff).reshape(self.nummo, self.numao).T
         elif wf == 'unrest':
             self.mo_coeff_alpha = read_list_from_fchk('Alpha MO coefficients', 'Beta MO coefficients', self.path)
             self.mo_coeff_beta = read_list_from_fchk('Beta MO coefficients', 'Orthonormal basis', self.path)
@@ -219,25 +310,28 @@ class MeanField:
             else:
                 self.c1 = read_list_from_fchk('Contraction coefficients', 'Coordinates of each shell', self.path)
 
+    def make_rdm1(self):
+        """Computes density matrix."""
+        if len(np.shape(self.mo_coeff)) == 2:  # RHF/RKS
+            # Ensure mo_occ is correctly sized and used for slicing
+            occupied_indices = np.where(self.mo_occ > 0)[0]
+            mo_occ_coeffs = self.mo_coeff[:, occupied_indices]
+            return np.dot(mo_occ_coeffs, mo_occ_coeffs.T) * 2
+        elif len(np.shape(self.mo_coeff)) == 3:  # UHF/UKS
+            # Temporarily closed, come back later :)
+            return None
+            occupied_indices_a = np.where(self.mo_occ[0] > 0)[0]
+            occupied_indices_b = np.where(self.mo_occ[1] > 0)[0]
+            mo_a_occ = self.mo_coeff[0][:, occupied_indices_a]
+            mo_b_occ = self.mo_coeff[1][:, occupied_indices_b]
+            rdm1_a = np.dot(mo_a_occ, mo_a_occ.T)
+            rdm1_b = np.dot(mo_b_occ, mo_b_occ.T)
+            return np.array([rdm1_a, rdm1_b])
+
     def get_ovlp(self):
         process_basis(self)
         ovlp = build_ovlp(self)
         return ovlp
-        from pyscf import gto
-
-        mol = self.mol
-
-        mol_pyscf = gto.M(
-            atom=[(mol.atomic_symbols[i], mol.atom_coords()[i]) for i in range(mol.natoms)],
-            basis=mol.basis,
-            spin=mol.spin,
-            charge=mol.charge,
-            cart=mol.cart,
-        )
-        mol_pyscf.build()
-
-        ovlp = mol_pyscf.intor("int1e_ovlp")
-        return np.array(ovlp)
 
 def mult(shell_type):
     mult_dict = { #s=1, p=2, d=3, f=4, g=5, sp=-1
@@ -350,11 +444,155 @@ def process_basis(mf):
     mf.expp = expp
 
 def build_ovlp(mf):
+    """
+    Calculates the overlap matrix using partial NumPy vectorization.
+    This is the most efficient pure Python/NumPy approach without Numba/PySCF.
+
+    Args:
+        mf: An object containing molecular information:
+            numprim (int): Number of primitive Gaussian functions.
+            nbasis (int): Number of basis functions.
+            coord (array-like): Atomic coordinates, shape (num_atoms, 3).
+            iptoat (array-like): Mapping from primitive index (1-based) to atom index.
+            nlm (array-like): Angular momentum numbers (lx, ly, lz) for each primitive, shape (numprim, 3).
+            expp (array-like): Exponents for each primitive, shape (numprim,).
+            coefpb (array-like): Contraction coefficients, ASSUMED shape (numprim, nbasis).
+            # nprimbas: Not used if coefpb is the C matrix.
+
+    Returns:
+        np.ndarray: The overlap matrix S, shape (nbasis, nbasis).
+    """
     tol = 1.0e-8
     numprim = mf.numprim
     nbasis = mf.nbasis
-    coord = mf.coord
-    iptoat = mf.iptoat
+
+    coord = np.asarray(mf.coord)
+    iptoat = np.asarray(mf.iptoat) - 1 # 0-based
+    nlm = np.asarray(mf.nlm)
+    expp = np.asarray(mf.expp)
+    coefpb = np.asarray(mf.coefpb)
+
+    # --- Part 1: Calculate Primitive Overlaps (sp) ---
+
+    # 1. Vectorized calculation of pairwise distances and exponents
+    coords_p = coord[iptoat]
+    AminusB_xyz = coords_p[:, None, :] - coords_p[None, :, :] # Shape (numprim, numprim, 3)
+    AminusB2_xyz = AminusB_xyz**2
+
+    expp_ia = expp[:, None]
+    expp_ib = expp[None, :]
+    gamma_p = expp_ia + expp_ib
+    # Add epsilon if concerned about division by zero, though unlikely for positive exponents
+    # gamma_p = gamma_p + 1e-30
+    eta_p = (expp_ia * expp_ib) / gamma_p
+
+    sp_base = (np.pi / gamma_p)**(1.5) # Base overlap factor
+
+    # 2. Loop for the complex angular momentum part (Python loops remain here)
+    sp = np.zeros((numprim, numprim))
+    idx_ia, idx_ib = np.triu_indices(numprim) # Efficiently get upper triangle indices
+
+    for ia, ib in zip(idx_ia, idx_ib):
+        # Extract pre-calculated values for this pair
+        AmB = AminusB_xyz[ia, ib]
+        AmB2 = AminusB2_xyz[ia, ib]
+        etap_val = eta_p[ia, ib]
+        exp_ia_val = expp[ia]
+        exp_ib_val = expp[ib]
+        nlm_ia = nlm[ia]
+        nlm_ib = nlm[ib]
+
+        # --- Check for zero overlap (Original logic) ---
+        skip = False
+        for ixyz in range(3):
+            if abs(AmB[ixyz]) < tol and (nlm_ia[ixyz] + nlm_ib[ixyz]) % 2 != 0:
+                skip = True
+                break
+        if skip:
+            # sp[ia, ib] remains 0.0
+            continue
+        # --- End Check ---
+
+        # --- Calculate angular factor product (Innermost loops) ---
+        angular_factor_product = 1.0
+        for ixyz in range(3): # Loop x, y, z
+            l1 = nlm_ia[ixyz]
+            l2 = nlm_ib[ixyz]
+            AmB_ax = AmB[ixyz]
+
+            # Use scipy's factorial (or your own if scipy not available)
+            term_xyz = factorial(l1) * factorial(l2) / (2.0**(l1 + l2))
+
+            if abs(AmB_ax) > tol:
+                term_xyz *= np.exp(-etap_val * AmB2[ixyz])
+
+            # --- sum_i calculation (Original loop structure) ---
+            sum_i = 0.0
+            for i1 in range(l1 // 2 + 1):
+                j1 = l1 - 2 * i1
+                for i2 in range(l2 // 2 + 1):
+                    j2 = l2 - 2 * i2
+                    j = j1 + j2
+
+                    # --- sum_r calculation (Original loop structure & logic) ---
+                    sum_r = 0.0
+                    if abs(AmB_ax) > tol:
+                        for ir in range(j // 2 + 1):
+                            fac_ir = factorial(ir)
+                            fac_j_2ir = factorial(j - 2 * ir)
+                            if fac_ir == 0 or fac_j_2ir == 0: continue # Avoid division by zero
+                            den = fac_ir * fac_j_2ir
+
+                            num = (2.0 * AmB_ax)**float(j - 2 * ir)
+                            xfac = etap_val**float(j - ir) * num / den
+
+                            if ir % 2 != 0: xfac = -xfac
+                            sum_r += xfac
+                    elif j % 2 == 0:
+                        k_idx = j // 2
+                        fac_k = factorial(k_idx)
+                        if fac_k == 0: continue
+                        sum_r = etap_val**float(k_idx) / fac_k
+                        if k_idx % 2 != 0: sum_r = -sum_r
+                    # --- End sum_r ---
+
+                    if j1 % 2 != 0: sum_r_signed = -sum_r
+                    else: sum_r_signed = sum_r
+
+                    fac_i1 = factorial(i1); fac_j1 = factorial(j1)
+                    fac_i2 = factorial(i2); fac_j2 = factorial(j2)
+                    fac_j = factorial(j)
+                    facij_denom_part = (fac_i1 * fac_j1 * fac_i2 * fac_j2)
+                    exp_pow_part = exp_ia_val**float(l1 - i1) * exp_ib_val**float(l2 - i2)
+                    facij_orig = facij_denom_part * exp_pow_part
+
+                    if facij_orig != 0:
+                        sum_i += sum_r_signed * float(fac_j) / facij_orig
+            # --- End sum_i ---
+            angular_factor_product *= sum_i * term_xyz
+        # --- End angular factor product ---
+
+        # Assign value to sp matrix (upper triangle)
+        sp[ia, ib] = sp_base[ia, ib] * angular_factor_product
+
+    # 3. Fill lower triangle for symmetry
+    sp = sp + sp.T - np.diag(np.diag(sp))
+
+
+    # --- Part 2: Vectorized Contraction ---
+    # Replace the slow nested 'while' loops with matrix multiplication
+    # Assumes coefpb IS the contraction matrix C (numprim, nbasis)
+    # s = C^T @ sp @ C
+    s = coefpb.T @ sp @ coefpb
+
+    return s
+
+def build_ovlp2(mf):
+    tol = 1.0e-8
+    numprim = mf.numprim
+    nbasis = mf.nbasis
+    coord = np.array(mf.coord)
+    iptoat = np.array(mf.iptoat)
     nlm = mf.nlm
     expp = mf.expp
     coefpb = mf.coefpb
