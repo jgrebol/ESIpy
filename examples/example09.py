@@ -1,12 +1,12 @@
 import esipy
 
-ring = [7, 3, 1, 2, 6, 10]
-partition = 'nao'
-molinfo = 'example08_nao.molinfo'
-path = 'example08_nao/'
+ring = [1, 2, 3, 4, 5, 6]
+partition = 'metalow'
+path = '../joan/bzqtaim_atomicfiles'
+#path = '../joan/bz_metalow'
 
 # By default, will search for ".int" in the working directory
-arom = esipy.ESI(read=True, readpath=path, molinfo=molinfo, partition=partition, rings=ring, mci=True, av1245=True)
+arom = esipy.ESI(read=True, readpath=path, partition=partition, rings=ring, mci=True, av1245=True)
 arom.readaoms()
 # Now the variable arom.aom contains the AOMs in the ./example08_nao/ directory
 arom.print()

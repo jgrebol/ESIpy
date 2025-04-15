@@ -30,7 +30,7 @@ mf.xc = 'B3LYPg'
 mf.kernel()
 
 ring = [7, 3, 1, 2, 6, 10]
-partition = 'nao'
+partition = 'ml'
 name = 'example08'
 molinfo_name = name + '_' + partition + '.molinfo'
 aoms_name = name + '_' + partition + '.aoms'

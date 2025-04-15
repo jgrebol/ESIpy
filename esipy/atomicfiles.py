@@ -30,6 +30,7 @@ def read_aoms(path='.'):
     ordered = sorted(ints, key=lambda x: int(re.search(r'\d+', x).group()))
 
     for intfile in ordered:
+        print("Reading file: ", intfile)
         intfile_path = os.path.join(path, intfile)
         with open(intfile_path, 'r') as f:
             mat_lines = []
@@ -344,3 +345,59 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
             f.write("</Molecular Orbital Energies>\n")
 
             f.close()
+
+import os
+
+def read_molinfo(path):
+    """
+    Reads all *.int files from a directory and builds the molinfo dictionary.
+
+    :param path: Path to the directory containing *.int files.
+    :type path: str
+
+    :returns: A dictionary containing molecular information.
+    :rtype: dict
+    """
+    molinfo = {
+        "method": "Not specified",
+        "basisset": "Not specified",
+        "geom": None,
+        "partition": "qtaim",
+    }
+
+    symbs, atm_nums = [], []
+    found_energy = False
+    ints = [intfile for intfile in os.listdir(path) if
+            intfile.endswith('.int') and os.path.isfile(os.path.join(path, intfile))]
+    int_files = sorted(ints, key=lambda x: int(re.search(r'\d+', x).group()))
+
+    if not int_files:
+        raise FileNotFoundError(f"No *.int files found in the directory '{path}'.")
+
+    for int_file in int_files:
+        with open(os.path.join(path, int_file), "r") as file:
+            lines = file.readlines()
+        if "AIMInt" in lines[0]:
+            molinfo["partition"] = "qtaim"
+        elif "ESIpy" in lines[0]:
+            molinfo["partition"] = lines[1].split()[1].strip()
+
+        for line in lines:
+            if "Integration is" in line or "INTEGRATION IS" in line:
+                parts = re.findall(r'[A-Za-z]+|\d+', line.split()[-1].strip())
+                symbs.append(parts[-2])
+                atm_nums.append(parts[-1])
+            if "Restricted, closed-shell" in line or "Restricted Closed-Shell":
+                molinfo["calctype"] = "RHF"
+            if "Unrestricted" in line:
+                molinfo["calctype"] = "UHF"
+
+            if "The molecular energy from the wf" in line or "ENERGY" in line and not found_energy:
+                molinfo["energy"] = float(line.split()[-1])
+                found_energy = True
+    molinfo["symbols"] = symbs
+    molinfo["atom_numbers"] = atm_nums
+    print(molinfo["atom_numbers"])
+    print(molinfo["symbols"])
+
+    return molinfo

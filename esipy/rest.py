@@ -172,8 +172,12 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
             print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homer))
         print(" ----------------------------------------------------------------------")
 
-        print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].bla))
-        print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].bla_c))
+        bla, bla_c = indicators[ring_index].bla
+        if bla is None:
+            pass
+        else:
+            print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].bla))
+            print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].bla_c))
 
         flu = indicators[ring_index].flu
         if flu is None:

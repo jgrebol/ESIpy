@@ -294,7 +294,6 @@ def compute_pdi_no(arr, aom):
     else:
         return None
 
-
 ########### FLU ###########
 
 # Calculation of the FLU (Restricted and Unrestricted)
@@ -578,6 +577,9 @@ def compute_bla(arr, molinfo):
     :returns: Contains the BLA and the BLA\_c indices, respectively.
     :rtype: tuple
     """
+
+    if molinfo["geom"] is None:
+        return None
 
     distances = find_distances(arr, molinfo["geom"])
 

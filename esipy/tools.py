@@ -232,6 +232,8 @@ def mol_info(mol=None, mf=None, save=None, partition=None):
         else:
             info.update({"xc": "None"})
 
+    print(info["symbols"])
+    exit()
     if save:
         save_file(info, save)
 
@@ -260,6 +262,8 @@ def format_partition(partition):
         return "nao"
     elif partition in ["i", "iao", "intrinsic", "intr"]:
         return "iao"
+    elif partition in ["q", "qt", "qtaim", "quant", "quantum"]:
+        return "qtaim"
     else:
         raise NameError(" | Invalid partition scheme")
 

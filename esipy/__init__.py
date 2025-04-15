@@ -2,7 +2,7 @@ from os import environ
 
 import numpy as np
 
-from esipy.atomicfiles import write_aoms, read_aoms
+from esipy.atomicfiles import write_aoms, read_aoms, read_molinfo
 from esipy.indicators import (
     compute_iring, sequential_mci, multiprocessing_mci,
     compute_av1245, compute_pdi, compute_flu, compute_boa, compute_homer, compute_homa, compute_bla,
@@ -211,6 +211,8 @@ class IndicatorsRest:
         :rtype: tuple
         """
         if not hasattr(self, '_done_homa'):
+            if self._molinfo["geom"] is None:
+                return None
             self._done_homa = compute_homa(self._rings, self._molinfo, self._homarefs)
         return self._done_homa
 
@@ -265,6 +267,8 @@ class IndicatorsRest:
         :returns: The BLA value.
         :rtype: float
         """
+        if self._bla() is None:
+            return [None, None]
         return self._bla()[0]
 
     @property
@@ -275,6 +279,8 @@ class IndicatorsRest:
         :returns: The BLA_c value.
         :rtype: float
         """
+        if self._bla() is None:
+            return [None, None]
         return self._bla()[1]
 
 
@@ -1280,7 +1286,8 @@ class ESI:
             print(" | No path specified in 'ESI.readpath'. Will assume working directory")
 
         self._aom = read_aoms(path=self.readpath)
-        print(f" | Read the AOMs from {self.readpath}/{self.name}.aoms")
+        self._molinfo = read_molinfo(path=self.readpath)
+        print(f" | Read the AOMs from {self.readpath}/")
         return self._aom
 
     def writeaoms(self, file):
