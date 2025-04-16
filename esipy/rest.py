@@ -172,7 +172,7 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
             print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homer))
         print(" ----------------------------------------------------------------------")
 
-        if not molinfo["geom"]:
+        if molinfo["geom"] is not None:
             pass
         else:
             bla = indicators[ring_index].bla
