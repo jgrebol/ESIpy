@@ -205,9 +205,16 @@ def arom_unrest(aom, rings, molinfo, indicators, mci=False, av1245=False, partit
 
                 print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homer))
 
-        print(" ----------------------------------------------------------------------")
-        print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].bla))
-        print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].bla_c))
+        if not molinfo["geom"]:
+            pass
+        else:
+            bla = indicators[ring_index].bla
+            if bla is None:
+                pass
+            else:
+                bla_c = indicators[ring_index].bla_c
+                print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, bla))
+                print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, bla_c))
         print(" ----------------------------------------------------------------------")
         flu = indicators[ring_index].flu
         if flu is None:

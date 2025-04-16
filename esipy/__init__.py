@@ -257,7 +257,7 @@ class IndicatorsRest:
         """
         if not hasattr(self, '_done_bla'):
             self._done_bla = compute_bla(self._rings, self._molinfo)
-        return self._done_bla
+        return list(self._done_bla)
 
     @property
     def bla(self):

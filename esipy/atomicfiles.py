@@ -84,6 +84,8 @@ def read_aoms(path='.'):
         return aom
     elif 'Unrestricted' in calcinfo:
         return [aom_alpha, aom_beta]
+    else:
+        raise ValueError("ESIpy can not read AOMs from correlated wavefunctions YET")
 
 
 ########### WRITING THE INPUT FOR THE ESI-3D CODE FROM THE AOMS ###########

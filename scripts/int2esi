@@ -56,7 +56,6 @@ def main():
     if args.verbose:
         print(" Verbose Mode Enabled:")
         print(f" Path: {args.path}")
-        print(f" Number of Rings (--num-rings): {args.num_rings}")
         for i, ring in enumerate(rings, 1):
             print(f" Ring {i}: {ring}")
         print(f" MCI: {mci}")
