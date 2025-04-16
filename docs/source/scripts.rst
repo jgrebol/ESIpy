@@ -10,9 +10,9 @@ AOM2ESI
 
 The general format of the command is:
 
-```bash
+.. code-block:: bash
 
-aom2esi <path>/<name> [options]
+    aom2esi <path>/<name> [options]
 
 where <path> is the path to the .aom and .molinfo files and <name> is the name of the files without extension.
 That is, for bz_iao.aoms files the input would take the form ``aom2esi bz_iao``. The options for the script are:
@@ -26,15 +26,15 @@ That is, for bz_iao.aoms files the input would take the form ``aom2esi bz_iao``.
 
 An example input to read the AOMs from `bz_iao.aoms` would be:
 
-```bash
+.. code-block:: bash
 
-aom2esi bz_iao -r 1 2 3 4 5 6
+    aom2esi bz_iao -r 1 2 3 4 5 6
 
 and for a molecule with multiple rings, for example naphthalene:
 
-```bash
+.. code-block:: bash
 
-aom2esi naphthalene_meta_lowdin -r 1 2 3 4 5 6, 7 8 9 10 11 12, 1 2 3 4 5 7 8 9 10 6
+    aom2esi naphthalene_meta_lowdin -r 1 2 3 4 5 6, 7 8 9 10 11 12, 1 2 3 4 5 7 8 9 10 6
 
 
 INT2ESI
