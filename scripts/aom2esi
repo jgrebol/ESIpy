@@ -42,8 +42,6 @@ def main():
 
     # Construct the full path based on the script's directory
     path = os.path.join(os.getcwd(), args.name)
-    if not os.path.isdir(path):
-        parser.error(f"Error: The path '{path}' does not exist or is not a directory.")
 
     # Assigning argument values to variables
     mci = True if args.mci else None
