@@ -376,13 +376,10 @@ def read_molinfo(path):
     if not int_files:
         raise FileNotFoundError(f"No *.int files found in the directory '{path}'.")
 
+    molinfo["partition"] = get_partition(path, int_files[0])
     for int_file in int_files:
         with open(os.path.join(path, int_file), "r") as file:
             lines = file.readlines()
-        if "AIMInt" in lines[0]:
-            molinfo["partition"] = "qtaim"
-        elif "ESIpy" in lines[0]:
-            molinfo["partition"] = lines[1].split()[1].strip()
 
         for line in lines:
             if "Integration is" in line or "INTEGRATION IS" in line:
@@ -401,3 +398,19 @@ def read_molinfo(path):
     molinfo["atom_numbers"] = atm_nums
 
     return molinfo
+
+def get_partition(path, int_file):
+    """
+    Extracts the partition type from the given file.
+
+    :param path: Directory path containing the file.
+    :param int_file: File name to read.
+    :return: Partition type as a string.
+    """
+    with open(os.path.join(path, int_file), "r") as file:
+        lines = file.readlines()
+    if "AIMInt" in lines[0]:
+        return "qtaim"
+    elif "ESIpy" in lines[0]:
+        return lines[1].split()[1].strip()
+    return None

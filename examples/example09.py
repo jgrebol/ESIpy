@@ -1,7 +1,7 @@
 import esipy
 
 ring = [1, 2, 3, 4, 5, 6]
-partition = 'metalow'
+partition = 'qtaim'
 path = '../joan/bzqtaim_atomicfiles'
 #path = '../joan/bz_metalow'
 

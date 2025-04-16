@@ -282,7 +282,7 @@ def format_short_partition(partition):
         return "low"
     elif partition == "meta_lowdin":
         return "metalow"
-    elif partition == "nao" or partition == "iao":
+    elif partition == "nao" or partition == "iao" or partition == "qtaim":
         return partition
     else:
         raise NameError(" | Invalid partition scheme")
