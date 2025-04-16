@@ -21,9 +21,12 @@ def read_aoms(path='.'):
     start_string = 'The Atomic Overlap Matrix'
     mul = False
 
-    path = os.path.join(os.getcwd(), path)
-    if not os.path.exists(path):
-        raise ValueError(f"The provided path '{path}' does not exist.")
+    working_dir = os.getcwd()
+
+    if path == '.':
+        path = working_dir
+    else:
+        path = os.path.join(working_dir, path)
 
     ints = [intfile for intfile in os.listdir(path) if
             intfile.endswith('.int') and os.path.isfile(os.path.join(path, intfile))]
