@@ -205,7 +205,7 @@ def arom_unrest(aom, rings, molinfo, indicators, mci=False, av1245=False, partit
 
                 print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homer))
 
-        if not molinfo["geom"]:
+        if molinfo["geom"] is None:
             pass
         else:
             bla = indicators[ring_index].bla
