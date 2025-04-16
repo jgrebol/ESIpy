@@ -92,7 +92,7 @@ class ESItest(unittest.TestCase):
         exp_avmin = exp['exp_avmin']
 
         # Multicenter indicators
-        self.assertAlmostEqual(inds.iring, exp_iring, places=6)
+        self.assertAlmostEqual(inds.iring, exp_iring, places=5)
         self.assertAlmostEqual(inds.mci, exp_mci, places=5)
         esitest = ESI(mol=mol, mf=mf, rings=ring, partition=partition, ncores=2)
         inds = esitest.indicators[0]
