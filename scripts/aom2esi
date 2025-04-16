@@ -42,7 +42,11 @@ def main():
 
     # Construct the full path based on the script's directory
     working_dir = os.getcwd()
-    path = os.path.join(os.getcwd(), args.name)
+
+    if args.name == '.':
+        path = working_dir
+    else:
+        path = os.path.join(working_dir, args.name)
 
     # Assigning argument values to variables
     mci = True if args.mci else None
