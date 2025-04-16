@@ -5,10 +5,13 @@ import argparse
 import os
 
 def main():
+    # Get the directory where the script is located
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
     # First we define each parser
     parser = argparse.ArgumentParser()
     parser.add_argument('name', default='.', help='Name (without extension) of the AOMs')
-    parser.add_argument('-r', '--rings', nargs='+', help='Rings. For more than one ring, separate using a colon (e.g., "-r 1 2 3 4 5 6, 7 8 9 10 11 12")')
+    parser.add_argument('-r', '--rings', nargs='+', help='Rings. For more than one ring, separate using a comma (e.g., "-r 1 2 3 4 5 6, 7 8 9 10 11 12")')
     parser.add_argument('-mci', action='store_true', help='Whether to compute the MCI')
     parser.add_argument('-av1245', action='store_true', help='Whether to compute the AV1245')
     parser.add_argument('-n', '--ncores', default=1, type=int, help='Number of cores for the MCI')
@@ -20,27 +23,28 @@ def main():
         parser.error("No rings specified. You must specify at least one ring.")
 
     rings = []
-    current_group = []
+    current_ring = []
     for item in args.rings:
         parts = item.split(',')
         for i, part in enumerate(parts):
             if part.strip():  # if part is not empty
                 try:
-                    current_group.append(int(part))
+                    current_ring.append(int(part))
                 except ValueError:
                     parser.error(f"Invalid ring number: {part}")
             # If there was a comma, we end the current group
             if i < len(parts) - 1:
-                rings.append(current_group)
-                current_group = []
+                rings.append(current_ring)
+                current_ring = []
 
-    if current_group:
-        rings.append(current_group)
+    if current_ring:
+        rings.append(current_ring)
 
     if not rings:
         parser.error("No rings specified. You must specify at least one ring.")
 
-    path = args.name
+    # Construct the full path based on the script's directory
+    path = os.path.join(script_dir, args.name)
     if not os.path.isdir(path):
         parser.error(f"Error: The path '{path}' does not exist or is not a directory.")
 
@@ -52,7 +56,7 @@ def main():
     # Printing the verbose if specified
     if args.verbose:
         print(" Verbose Mode Enabled:")
-        print(f" Path: {args.path}")
+        print(f" Path: {path}")
         for i, ring in enumerate(rings, 1):
             print(f" Ring {i}: {ring}")
         print(f" MCI: {mci}")
@@ -60,8 +64,8 @@ def main():
         print(f" Number of Cores: {ncores}")
 
     part = path.split('_')[-1]
-    aom_file = path + ".aoms"
-    molinfo_file = path + ".molinfo"
+    aom_file = os.path.join(path, args.name + ".aoms")
+    molinfo_file = os.path.join(path, args.name + ".molinfo")
     if args.verbose:
         print(f"Processing file: {aom_file}")
 
