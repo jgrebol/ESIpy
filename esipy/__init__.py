@@ -10,7 +10,7 @@ from esipy.indicators import (
     compute_pdi_no, compute_boa_no
 )
 from esipy.make_aoms import make_aoms
-from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type
+from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type, save_file
 
 
 class IndicatorsRest:
@@ -1104,10 +1104,11 @@ class ESI:
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
-                 ncores=1, saveaoms=None, savemolinfo=None, name="calc", readpath='.', read=False
+                 ncores=1, save=None, name="calc", readpath='.', read=False
                  ):
         # For usual ESIpy calculations
         self._aom = aom
+        self._aom_loaded = False
         self.rings = rings
         self.mol = mol
         self.mf = mf
@@ -1123,10 +1124,10 @@ class ESI:
         self.connectivity = connectivity
         self.geom = geom
         # For other tools
-        self.name = name
         self.ncores = ncores
-        self.saveaoms = saveaoms
-        self.savemolinfo = savemolinfo
+        self.save = save
+        self.saveaoms = save + ".aoms" if save else None
+        self.savemolinfo = save + ".molinfo" if save else None
         self.readpath = readpath
         self.read = read
 
@@ -1183,15 +1184,26 @@ class ESI:
         :rtype: list
         """
 
+        if self._aom_loaded:
+            return self._aom
         if isinstance(self._aom, str):
             return load_file(self._aom)
         if self.read == True:
-            return self.readaoms()
+            self._aom_loaded = True
+            aom = self.readaoms()
+            if self.save:
+                print(f" | Saved the AOMs in the {self.saveaoms} file")
+                import os
+                save_file(aom, os.path.join(self.readpath, self.saveaoms))
+                print(f" | Saved the molinfo in the {self.savemolinfo} file")
+                save_file(read_molinfo(self.readpath), os.path.join(self.readpath, self.savemolinfo))
+            return aom
         if self._aom is None:
             if isinstance(self.partition, list):
                 raise ValueError(
                     " | Only one partition at a time. Partition should be a string, not a list.\n | Please consider looping through the partitions before calling the function")
             if self.mol and self.mf and self.partition:
+                self._aom_loaded = True
                 self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=self.saveaoms, myhf=self.myhf)
                 if self.saveaoms:
                     print(f" | Saved the AOMs in the {self.saveaoms} file")
@@ -1280,8 +1292,6 @@ class ESI:
         :rtype: list
         """
 
-        if self.name == "calc":
-            print(" | No 'name' specified. Will use 'calc'")
         if self.readpath is None:
             print(" | No path specified in 'ESI.readpath'. Will assume working directory")
 
@@ -1335,17 +1345,11 @@ class ESI:
         if self.rings is None:
             raise ValueError(" | The variable 'rings' is mandatory and must be a list with the ring connectivity")
 
-        if self._aom is None:
-            if isinstance(self.aom, str):
-                print(f" | Loading the AOMs from file {self.aom}")
-                aom = load_file(self.aom)
-                print(aom)
-                if aom is None:
-                    raise NameError(" | Please provide a valid name to read the AOMs")
-            print(f" | Partition {self.partition} does not have aom, generating it")
+        if isinstance(self._aom, str):
+            print(f" | Loading the AOMs from file {self._aom}")
             self._aom = self.aom
-            if self._aom is None:
-                raise ValueError(" | Could not build the AOMs from the given data")
+            if self.aom is None:
+                raise NameError(" | Please provide a valid name to read the AOMs")
 
         if wf_type(self.aom) == "rest":
             from esipy.rest import info_rest, deloc_rest, arom_rest

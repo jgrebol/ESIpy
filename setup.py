@@ -9,6 +9,7 @@ setup(
     author="Joan Grebol, Eduard Matito, Pedro Salvador",
     url="https://github.com/jgrebol/ESIpy",
     packages=["esipy"],
+    scripts=["scripts/int2esi", "scripts/aom2esi"],
     install_requires=[
         "numpy<=1.23.3", # Earliest version supported via pip
         "pyscf<=2.4",

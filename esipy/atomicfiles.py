@@ -29,8 +29,10 @@ def read_aoms(path='.'):
             intfile.endswith('.int') and os.path.isfile(os.path.join(path, intfile))]
     ordered = sorted(ints, key=lambda x: int(re.search(r'\d+', x).group()))
 
+    if ordered == []:
+        raise ValueError(f"No *.int files found in the directory '{path}'.")
+
     for intfile in ordered:
-        print("Reading file: ", intfile)
         intfile_path = os.path.join(path, intfile)
         with open(intfile_path, 'r') as f:
             mat_lines = []
@@ -346,8 +348,6 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
 
             f.close()
 
-import os
-
 def read_molinfo(path):
     """
     Reads all *.int files from a directory and builds the molinfo dictionary.
@@ -397,7 +397,5 @@ def read_molinfo(path):
                 found_energy = True
     molinfo["symbols"] = symbs
     molinfo["atom_numbers"] = atm_nums
-    print(molinfo["atom_numbers"])
-    print(molinfo["symbols"])
 
     return molinfo

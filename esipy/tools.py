@@ -232,13 +232,10 @@ def mol_info(mol=None, mf=None, save=None, partition=None):
         else:
             info.update({"xc": "None"})
 
-    print(info["symbols"])
-    exit()
     if save:
         save_file(info, save)
 
     return info
-
 
 def format_partition(partition):
     """
