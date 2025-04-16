@@ -5,9 +5,6 @@ import argparse
 import os
 
 def main():
-    # Get the directory where the script is located
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-
     # First we define each parser
     parser = argparse.ArgumentParser()
     parser.add_argument('name', default='.', help='Name (without extension) of the AOMs')
@@ -44,8 +41,7 @@ def main():
         parser.error("No rings specified. You must specify at least one ring.")
 
     # Construct the full path based on the script's directory
-    path = os.path.join(script_dir, args.name)
-    print(path)
+    path = os.path.join(os.getcwd(), args.name)
     if not os.path.isdir(path):
         parser.error(f"Error: The path '{path}' does not exist or is not a directory.")
 
