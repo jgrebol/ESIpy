@@ -20,7 +20,6 @@ def main():
     if not args.rings:
         parser.error("No rings specified. You must specify at least one ring.")
 
-    # Parse rings
     rings = []
     current_group = []
     for item in args.rings:
