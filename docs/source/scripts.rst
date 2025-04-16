@@ -42,9 +42,9 @@ INT2ESI
 
 Similarly, one can read the AOMs from the .int files from an AIMAll or ESIpy calculation. The general format of the command is:
 
-```bash
+.. code-block:: bash
 
-int2esi <path> [options]
+    int2esi <path> [options]
 
 where <path> is the path of the "_atomicfiles/" directory. The options for the script are:
 
@@ -58,6 +58,6 @@ where <path> is the path of the "_atomicfiles/" directory. The options for the s
 
 An example input to read the AOMs from `bz_iao_atomicfiles/` would be:
 
-```bash
+.. code-block:: bash
 
-int2esi bz_iao_atomicfiles -r 1 2 3 4 5 6
+    int2esi bz_iao_atomicfiles -r 1 2 3 4 5 6
