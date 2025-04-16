@@ -46,7 +46,7 @@ class ESItest(unittest.TestCase):
         os.chdir(script_dir)
 
     def test_write_read_aoms_rest(self):
-        name = "test4_atomicfiles_rest"
+        name = os.path.abspath("test4_atomicfiles_rest")
         esitest_wnao = esipy.ESI(mol=mol, mf=rest, rings=ring, partition='nao', name=name,
                                  save=name + "_nao")
         esitest_wnao.writeaoms(name + "_nao")
@@ -54,29 +54,30 @@ class ESItest(unittest.TestCase):
                                  save=name + "_mul")
         esitest_wmul.writeaoms(name + "_mul")
 
-        #esitest_rnao = esipy.ESI(read=True, molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name,
-        #                   readpath=name + '_nao')
-        #esitest_rnao.readaoms()
-        #esitest_rnao.print()
-        #esitest_rmul = esipy.ESI(read=True, molinfo=name + "_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
-        #esitest_rmul.readaoms()
-        #esitest_rmul.print()
+        esitest_rnao = esipy.ESI(read=True, molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name,
+                           readpath=name + '_nao')
+        esitest_rnao.readaoms()
+        esitest_rnao.print()
+        esitest_rmul = esipy.ESI(read=True, molinfo=name + "_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
+        esitest_rmul.readaoms()
+        esitest_rmul.print()
 
     def test_write_read_aoms_unrest(self):
-        name = "test4_atomicfiles_unrest"
+        name = os.path.abspath("test4_atomicfiles_unrest")
         esitest_wnao = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='nao', name=name,
                                  save=name + "_nao")
         esitest_wnao.writeaoms(name + "_nao")
         esitest_wmul = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='m', name=name,
                                  save=name + "_mul")
         esitest_wmul.writeaoms(name + "_mul")
-        #esitest_rnao = esipy.ESI(read=True, molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name,
-        #                   readpath=name + "_nao")
-        #esitest_rnao.readaoms()
-        #esitest_rnao.print()
-        #esitest_rmul = esipy.ESI(read=True, molinfo=name + "_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
-        #esitest_rmul.readaoms()
-        #esitest_rmul.print()
+
+        esitest_rnao = esipy.ESI(read=True, molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name,
+                           readpath=name + "_nao")
+        esitest_rnao.readaoms()
+        esitest_rnao.print()
+        esitest_rmul = esipy.ESI(read=True, molinfo=name + "_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
+        esitest_rmul.readaoms()
+        esitest_rmul.print()
 
 if __name__ == "__main__":
     unittest.main()
