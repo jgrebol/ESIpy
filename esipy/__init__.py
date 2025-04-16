@@ -1142,6 +1142,10 @@ class ESI:
         print("  Joan Grebol, Eduard Matito, Pedro Salvador  ")
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
 
+        # Can not work on IAO and Natural Orbitals yet
+        if self.partition == "iao" and wf_type(self.aom) == "no":
+            raise ValueError(" | IAO and Natural Orbitals not implemented yet")
+
         wf = wf_type(self.aom)
         if isinstance(self.rings[0], int):
             self.rings = [self.rings]
