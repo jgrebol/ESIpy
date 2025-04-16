@@ -176,7 +176,7 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
             pass
         else:
             bla = indicators[ring_index].bla
-            if bla is None:
+            if bla[0] is None:
                 pass
             else:
                 bla_c = indicators[ring_index].bla_c

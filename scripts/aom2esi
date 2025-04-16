@@ -41,6 +41,7 @@ def main():
         parser.error("No rings specified. You must specify at least one ring.")
 
     # Construct the full path based on the script's directory
+    working_dir = os.getcwd()
     path = os.path.join(os.getcwd(), args.name)
 
     # Assigning argument values to variables
@@ -59,8 +60,9 @@ def main():
         print(f" Number of Cores: {ncores}")
 
     part = path.split('_')[-1]
-    aom_file = os.path.join(path, args.name + ".aoms")
-    molinfo_file = os.path.join(path, args.name + ".molinfo")
+    aom_file = os.path.join(working_dir, args.name + ".aoms")
+    molinfo_file = os.path.join(working_dir, args.name + ".molinfo")
+
     if args.verbose:
         print(f"Processing file: {aom_file}")
 
