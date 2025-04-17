@@ -1,6 +1,5 @@
 import os
 import re
-
 import numpy as np
 
 from esipy.tools import wf_type, format_short_partition
@@ -35,6 +34,24 @@ def read_aoms(path='.'):
     if ordered == []:
         raise ValueError(f"No *.int files found in the directory '{path}'.")
 
+    first_file = os.path.join(path, ordered[0])
+    with open(first_file, 'r') as f:
+        for line in f:
+            if "Restricted, closed" in line:
+                wf = "rest"
+                break
+            elif "Unrestricted, single" in line:
+                wf = "unrest"
+                break
+            elif "Restricted, natural" in line:
+                wf = "no"
+                break
+            else:
+                raise ValueError("Wavefunction type could not be determined.")
+
+    if wf == "no":
+        occs = read_occs(first_file)
+
     for intfile in ordered:
         intfile_path = os.path.join(path, intfile)
         with open(intfile_path, 'r') as f:
@@ -43,9 +60,8 @@ def read_aoms(path='.'):
                 if "Mulliken" in line:
                     mul = True
                 if start_string in line:
-                    next(f)
-                    calcinfo = next(f)
-                    next(f)
+                    for _ in range(3):
+                        next(f)
                     while True:
                         line = next(f).strip()
                         if not line:
@@ -74,19 +90,21 @@ def read_aoms(path='.'):
                             elif shape_aom_alpha > 0:
                                 break
 
-                    if 'Restricted' in calcinfo:
+                    if wf == "rest" or wf == "no":
                         aom.append(matrix)
 
-                    if 'Unrestricted' in calcinfo:
+                    if wf == "unrest":
                         SCR_alpha = matrix[:shape_aom_alpha, :shape_aom_alpha]
                         SCR_beta = matrix[shape_aom_alpha:, shape_aom_alpha:]
                         aom_alpha.append(SCR_alpha)
                         aom_beta.append(SCR_beta)
 
-    if 'Restricted' in calcinfo:
+    if wf == "rest":
         return aom
-    elif 'Unrestricted' in calcinfo:
+    elif wf == "unrest":
         return [aom_alpha, aom_beta]
+    elif wf == "no":
+        return [aom, occs]
     else:
         raise ValueError("ESIpy can not read AOMs from correlated wavefunctions YET")
 
@@ -417,3 +435,40 @@ def get_partition(path, int_file):
     elif "ESIpy" in lines[0]:
         return lines[1].split()[1].strip()
     return None
+
+def read_occs(file_path):
+    """
+    Extracts the NO coefficients from a Restricted, natural orbitals AIMAll calculation.
+
+    :param file_path: Path to the file to process.
+    :type file_path: str
+    :return: List of extracted Occ_MO(i) values.
+    :rtype: list of float
+    """
+    occ_mo_values = []
+    start_processing = False
+
+    with open(file_path, 'r') as file:
+        for line in file:
+            # Start processing after the header line
+            if "Molecular Orbital (MO) Data" in line:
+                start_processing = True
+                for _ in range(8):
+                    next(file)
+                continue
+
+            # Stop processing at a blank line
+            if start_processing and not line.strip():
+                break
+
+            # Extract the third column if processing has started
+            if start_processing:
+                columns = line.split()
+                if len(columns) >= 3:
+                    try:
+                        occ_mo_values.append(float(columns[2]))
+                    except ValueError:
+                        pass
+
+    return np.diag(occ_mo_values)
+

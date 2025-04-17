@@ -1168,8 +1168,11 @@ class ESI:
                                                         connectivity=self.connectivity, geom=self.geom,
                                                         molinfo=self.molinfo, ncores=self.ncores))
         elif wf == "no":
-            if np.ndim(self.mf.make_rdm1(ao_repr=True)) == 3:
-                raise ValueError(" | Can not compute Natural Orbitals from unrestricted orbitals YET.")
+            if read is not True:
+                if self.mf is None:
+                    raise ValueError(" | Missing variable 'mf'.")
+                if np.ndim(self.mf.make_rdm1(ao_repr=True)) == 3:
+                    raise ValueError(" | Can not compute Natural Orbitals from unrestricted orbitals YET.")
             self.indicators = []
             for i in self.rings:
                 self.indicators.append(IndicatorsNatorb(aom=self.aom, rings=i, mol=self.mol, mf=self.mf, myhf=self.myhf,

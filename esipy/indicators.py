@@ -524,6 +524,8 @@ def compute_homa(arr, molinfo, homarefs=None):
         refs.update(homarefs)
 
     geom = molinfo["geom"]
+    if geom is None:
+        return None
     symbols = molinfo["symbols"]
     atom_symbols = [symbols[int(i) - 1] for i in arr]
     bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]]))
