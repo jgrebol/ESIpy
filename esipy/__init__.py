@@ -1327,6 +1327,9 @@ class ESI:
                 raise AttributeError(
                     f" | Missing required attribute '{attr}'. Please define it before calling ESI.writeaoms")
 
+        if wf_type(self.aom) == "no":
+            raise ValueError(" | Can not write AOMs in AIMAll format for Natural Orbitals yet")
+
         write_aoms(self.mol, self.mf, file, self.aom, self.rings, self.partition)
         print(f" | Written the AOMs in {self.readpath}/{file}/")
 
