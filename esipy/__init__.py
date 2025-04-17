@@ -1147,6 +1147,8 @@ class ESI:
         #    raise ValueError(" | IAO and Natural Orbitals not implemented yet")
 
         wf = wf_type(self.aom)
+        print(wf)
+        exit()
         if isinstance(self.rings[0], int):
             self.rings = [self.rings]
         if wf == "rest":
