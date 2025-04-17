@@ -49,8 +49,6 @@ def read_aoms(path='.'):
         else:
             raise ValueError("Wavefunction type could not be determined.")
 
-    print(wf)
-    exit()
     if wf == "no":
         occs = read_occs(first_file)
 

@@ -1107,7 +1107,7 @@ class ESI:
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
-                 ncores=1, save=None, name="calc", readpath='.', read=False
+                 ncores=1, save=None, readpath='.', read=False
                  ):
         # For usual ESIpy calculations
         self._aom = aom
