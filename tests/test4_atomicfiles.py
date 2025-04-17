@@ -47,10 +47,10 @@ class ESItest(unittest.TestCase):
 
     def test_write_read_aoms_rest(self):
         name = "test4_atomicfiles_rest"
-        esitest_wnao = esipy.ESI(mol=mol, mf=rest, rings=ring, partition='nao', name=name,
+        esitest_wnao = esipy.ESI(mol=mol, mf=rest, rings=ring, partition='nao',
                                  save=name + "_nao")
         esitest_wnao.writeaoms(name + "_nao")
-        esitest_wmul = esipy.ESI(mol=mol, mf=rest, rings=ring, partition='m', name=name,
+        esitest_wmul = esipy.ESI(mol=mol, mf=rest, rings=ring, partition='m',
                                  save=name + "_mul")
         esitest_wmul.writeaoms(name + "_mul")
 
@@ -64,10 +64,10 @@ class ESItest(unittest.TestCase):
 
     def test_write_read_aoms_unrest(self):
         name = "test4_atomicfiles_unrest"
-        esitest_wnao = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='nao', name=name,
+        esitest_wnao = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='nao',
                                  save=name + "_nao")
         esitest_wnao.writeaoms(name + "_nao")
-        esitest_wmul = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='m', name=name,
+        esitest_wmul = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='m',
                                  save=name + "_mul")
         esitest_wmul.writeaoms(name + "_mul")
         #esitest_rnao = esipy.ESI(read=True, molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name,
