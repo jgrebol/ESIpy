@@ -46,8 +46,8 @@ def read_aoms(path='.'):
             elif "Restricted, natural" in line:
                 wf = "no"
                 break
-            else:
-                raise ValueError("Wavefunction type could not be determined.")
+        else:
+            raise ValueError("Wavefunction type could not be determined.")
 
     if wf == "no":
         occs = read_occs(first_file)
