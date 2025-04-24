@@ -1129,8 +1129,8 @@ class ESI:
         # For other tools
         self.ncores = ncores
         self.save = save
-        self.saveaoms = save + ".aoms" if save else None
-        self.savemolinfo = save + ".molinfo" if save else None
+        self.saveaoms = save + '_' + self.partition + ".aoms" if save else None
+        self.savemolinfo = save + '_' + self.partition + ".molinfo" if save else None
         self.readpath = readpath
         self.read = read
 
@@ -1143,8 +1143,8 @@ class ESI:
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
 
         # Can not work on IAO and Natural Orbitals yet
-        #if self.partition == "iao" and wf_type(self.aom) == "no":
-        #    raise ValueError(" | IAO and Natural Orbitals not implemented yet")
+        if self.partition == "iao" and wf_type(self.aom) == "no":
+            raise ValueError(" | IAO and Natural Orbitals not implemented yet")
 
         wf = wf_type(self.aom)
         if isinstance(self.rings[0], int):
@@ -1168,7 +1168,7 @@ class ESI:
                                                         connectivity=self.connectivity, geom=self.geom,
                                                         molinfo=self.molinfo, ncores=self.ncores))
         elif wf == "no":
-            if read is not True:
+            if self.read is not True and type(self._aom) != str:
                 if self.mf is None:
                     raise ValueError(" | Missing variable 'mf'.")
                 if np.ndim(self.mf.make_rdm1(ao_repr=True)) == 3:
@@ -1193,6 +1193,12 @@ class ESI:
         :returns: The AOMs in the MO basis.
         :rtype: list
         """
+
+        print(self.molinfo["calctype"])
+
+        if self.molinfo["calctype"] not in ["RHF", "SymAdaptedRHF", "UHF", "SymAdaptedUHF",
+                                            "RKS", "SymAdaptedRKS", "UKS", "SymAdaptedUKS"] and self.partition == "iao":
+            raise ValueError(" | IAO and Natural Orbitals not implemented yet")
 
         if self._aom_loaded:
             return self._aom
@@ -1231,6 +1237,8 @@ class ESI:
         :rtype: dict
         """
 
+        if self.read is True:
+            return read_molinfo(self.readpath)
         if isinstance(self._molinfo, str):
             return load_file(self._molinfo)
         if self._molinfo is None:
@@ -1327,11 +1335,8 @@ class ESI:
                 raise AttributeError(
                     f" | Missing required attribute '{attr}'. Please define it before calling ESI.writeaoms")
 
-        if wf_type(self.aom) == "no":
-            raise ValueError(" | Can not write AOMs in AIMAll format for Natural Orbitals yet")
-
         write_aoms(self.mol, self.mf, file, self.aom, self.rings, self.partition)
-        print(f" | Written the AOMs in {self.readpath}/{file}/")
+        print(f" | Written the AOMs in {self.readpath}/{file}_{self.partition}.aoms")
 
     def print(self):
         """

@@ -5,7 +5,6 @@ environ["NUMEXPR_NUM_THREADS"] = "1"
 environ["OMP_NUM_THREADS"] = "1"
 environ["MKL_NUM_THREADS"] = "1"
 
-
 def wf_type(aom):
     """
     Checks the topology of the AOMs to obtain the type of wavefunction.

@@ -167,7 +167,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
         S = mol.intor("int1e_ovlp")
         if "fci" in mf.__module__:
-            occ, coeff = get_natorbs_fci(mf, S, myhf, 2, 2)
+            raise NameError(" | FCI not supported yet")
+            #occ, coeff = get_natorbs_fci(mf, S, myhf, 2, 2)
         else:
             occ, coeff = get_natorbs(mf, S)
 
@@ -221,7 +222,9 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         else:
             raise NameError("Hilbert-space scheme not available")
 
+        aom = [aom, occ]
+
         if save:
             save_file(aom, save)
 
-        return [aom, occ]
+        return aom

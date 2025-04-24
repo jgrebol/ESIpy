@@ -64,6 +64,9 @@ def main():
         print(f" Number of Cores: {ncores}")
 
     part = path.split('_')[-1]
+    if part == 'lowdin':
+        if path.split('_')[-2] == 'meta':
+            part = "meta_lowdin"
     aom_file = os.path.join(working_dir, args.name + ".aoms")
     molinfo_file = os.path.join(working_dir, args.name + ".molinfo")
 
