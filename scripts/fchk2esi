@@ -9,7 +9,8 @@ def main():
     # First we define each parser
     parser = argparse.ArgumentParser()
     parser.add_argument('fchname', help='Name of the .fchk file')
-    parser.add_argument('-nr', '--num-rings', type=int, default=1, help='Number of rings')
+    parser.add_argument('-r', '--rings', nargs='+',
+                        help='Rings. For more than one ring, separate using a comma (e.g., "-r 1 2 3 4 5 6, 7 8 9 10 11 12")')
     parser.add_argument('-p', '--partition', type=str, help='Partition')
     parser.add_argument('-mci', action='store_true', help='Whether to compute the MCI')
     parser.add_argument('-av1245', action='store_true', help='Whether to compute the AV1245')
@@ -18,23 +19,31 @@ def main():
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose')
     parser.add_argument('-w', '--write-aoms', action='store_true', help='Whether to write the AOMs in AIMAll format')
 
-    #args = parser.parse_args()
-    args, unknown = parser.parse_known_args()
-
-    for i in range(1, args.num_rings + 1):
-        parser.add_argument(f'-r{i}', f'--ring{i}', type=int, nargs='+', help=f'Ring {i}')
-
     args = parser.parse_args()
 
-    rings = []
-    for i in range(1, args.num_rings + 1):
-        ring_attr = getattr(args, f'ring{i}', None)
-        if ring_attr:
-            rings.append(ring_attr)
+    if not args.rings:
+        parser.error("No rings specified. You must specify at least one ring.")
 
-    # Checking if a ring is provided
+    rings = []
+    current_ring = []
+    for item in args.rings:
+        parts = item.split(',')
+        for i, part in enumerate(parts):
+            if part.strip():  # if part is not empty
+                try:
+                    current_ring.append(int(part))
+                except ValueError:
+                    parser.error(f"Invalid ring number: {part}")
+            # If there was a comma, we end the current group
+            if i < len(parts) - 1:
+                rings.append(current_ring)
+                current_ring = []
+
+    if current_ring:
+        rings.append(current_ring)
+
     if not rings:
-        parser.error(f"No ring specified. You must specify at least one ring.")
+        parser.error("No rings specified. You must specify at least one ring.")
 
     # Assigning argument values to variables
     fchname = args.fchname

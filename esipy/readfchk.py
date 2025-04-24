@@ -114,6 +114,7 @@ class Mole:
         self.dcart = read_from_fchk("Pure/Cartesian d shells", self.path)[-1]
         self.fcart = read_from_fchk("Pure/Cartesian f shells", self.path)[-1]
         self.cart = self.dcart == 0 or self.fcart == 0
+        self.cart = True
         self.verbose = 0
         self.mf = MeanField(path, self)
         self.iatsh = self.mf.iatsh
@@ -141,6 +142,10 @@ class Mole:
         self._basis = pyscf_mol._basis
         self._atm = pyscf_mol._atm
         self._env = pyscf_mol._env
+        print(self._bas)
+        print(self._atm)
+        print(self._env)
+        exit()
         self._add_suffix = pyscf_mol._add_suffix
         self.nbas = len(self._bas)
 
@@ -149,6 +154,7 @@ class Mole:
 
     def aoslice_by_atom(self, ao_loc=None):
         return self.copy.aoslice_by_atom()
+
     #def aoslice_by_atom(self, ao_loc=None): # For NAO subroutine purpose
 #
 #        counts = [0] * (max(self.iatsh) + 1)
