@@ -16,6 +16,7 @@ This program has been developed by Joan Grèbol-Tomàs under the supervision of 
    Theoretical Background <theory>
    Getting started <get-started>
    Advanced utilities <advanced>
+   Scripts <scripts>
    MCI Timings <mci-timings>
    API Reference <api>
 

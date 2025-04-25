@@ -1,5 +1,11 @@
+from os import environ
 import numpy as np
 from collections import deque, defaultdict
+
+
+environ["NUMEXPR_NUM_THREADS"] = "1"
+environ["OMP_NUM_THREADS"] = "1"
+environ["MKL_NUM_THREADS"] = "1"
 
 def wf_type(aom):
     """
@@ -87,6 +93,7 @@ def find_distances(arr, geom):
     :returns: List containing the distances of the members of the ring in Bohrs.
     :rtype: list of float
     """
+
     distances = []
     for i in range(len(arr)):
         coord1 = geom[arr[i] - 1]
@@ -336,6 +343,7 @@ def build_eta(mol):
     :returns: List containing the eta matrices for each atom.
     :rtype: list of numpy.ndarray
     """
+    import numpy as np
     eta = [np.zeros((mol.nao, mol.nao)) for _ in range(mol.natm)]
     for i in range(mol.natm):
         start = mol.aoslice_by_atom()[i, -2]

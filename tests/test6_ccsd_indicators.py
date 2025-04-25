@@ -67,7 +67,7 @@ expected = {
 class ESItest(unittest.TestCase):
 
     def run_pop_tests(self, partition, exp):
-        esitest = ESI(mol=mol, mf=mf, myhf=myhf, rings=ring, partition=partition, name="test6_ccsd")
+        esitest = ESI(mol=mol, mf=mf, myhf=myhf, rings=ring, partition=partition)
         esitest.print()
         aom, occ = esitest.aom
 

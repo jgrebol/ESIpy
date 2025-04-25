@@ -185,10 +185,18 @@ def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None,
                 print(" | ")
                 print(" | Found custom HOMER references 'alpha' and 'r_opt'. Computing")
                 print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homer))
+
             print(" ----------------------------------------------------------------------")
-            print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].bla))
-            print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].bla_c))
-            print(" ----------------------------------------------------------------------")
+            if molinfo["geom"] is not None:
+                pass
+            else:
+                bla = indicators[ring_index].bla
+                if bla[0] is None:
+                    pass
+                else:
+                    bla_c = indicators[ring_index].bla_c
+                    print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, bla))
+                    print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, bla_c))
 
         print(" ----------------------------------------------------------------------")
         print(" | Current version does not allow FLU for correlated wavefunctions")

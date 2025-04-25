@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+
+from esipy import ESI
+import argparse
+import os
+
+def main():
+    # First we define each parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument('path', default='.', help='Path to the .int files')
+    parser.add_argument('-r', '--rings', nargs='+', help='Rings. For more than one ring, separate using a comma (e.g., "-r 1 2 3, 4 5 6")')
+    parser.add_argument('-mci', action='store_true', help='Whether to compute the MCI')
+    parser.add_argument('-av1245', action='store_true', help='Whether to compute the AV1245')
+    parser.add_argument('-n', '--ncores', default=1, type=int, help='Number of cores for the MCI')
+    parser.add_argument('-s', '--save', action='store_true', help='Whether to save the AOMs (and molinfo if specified)')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose')
+
+    args = parser.parse_args()
+
+    if not args.rings:
+        parser.error("No rings specified. You must specify at least one ring.")
+
+    rings = []
+    current_group = []
+    for item in args.rings:
+        parts = item.split(',')
+        for i, part in enumerate(parts):
+            if part.strip():  # if part is not empty
+                try:
+                    current_group.append(int(part))
+                except ValueError:
+                    parser.error(f"Invalid ring number: {part}")
+            # If there was a comma, we end the current group
+            if i < len(parts) - 1:
+                rings.append(current_group)
+                current_group = []
+
+    if current_group:
+        rings.append(current_group)
+
+    if not rings:
+        parser.error("No rings specified. You must specify at least one ring.")
+
+    path = args.path
+    if not os.path.isdir(path):
+        parser.error(f"Error: The path '{path}' does not exist or is not a directory.")
+
+    # Assigning argument values to variables
+    mci = True if args.mci else None
+    av1245 = True if args.av1245 else None
+    ncores = args.ncores
+
+    # Printing the verbose if specified
+    if args.verbose:
+        print(" Verbose Mode Enabled:")
+        print(f" Path: {args.path}")
+        for i, ring in enumerate(rings, 1):
+            print(f" Ring {i}: {ring}")
+        print(f" MCI: {mci}")
+        print(f" AV1245: {av1245}")
+        print(f" Number of Cores: {ncores}")
+
+    part = "qtaim"
+    working_dir = os.getcwd()
+    path = os.path.join(working_dir, args.path)
+    arom = ESI(read=True, readpath=path, rings=rings, partition=part, ncores=ncores, mci=mci, av1245=av1245)
+    arom.print()
+
+if __name__ == '__main__':
+    main()

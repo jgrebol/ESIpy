@@ -92,7 +92,7 @@ class ESItest(unittest.TestCase):
 
     def test_init_aoms(self):
         esitest = esipy.ESI(mol=mol, mf=mf, rings=[1, 2, 3, 4, 5, 6], partition='mulliken',
-                            saveaoms='example01_mulliken.aoms')
+                            save='example01_mulliken')
         self.assertTrue(hasattr(esitest, "aom"))
 
         # We try getting the AOMs from a file
@@ -104,7 +104,7 @@ class ESItest(unittest.TestCase):
 
     def test_init_molinfo(self):
         esitest = esipy.ESI(mol=mol, mf=mf, rings=[1, 2, 3, 4, 5, 6], partition='mulliken',
-                            savemolinfo='example01_mulliken.molinfo')
+                            save='example01_mulliken')
         self.assertTrue(hasattr(esitest, "molinfo"))
         self.assertTrue(isinstance(esitest.molinfo, dict))
 

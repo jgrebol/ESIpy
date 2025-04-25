@@ -359,7 +359,6 @@ def compute_pdi_no(arr, aom):
     else:
         return None
 
-
 ########### FLU ###########
 
 # Calculation of the FLU (Restricted and Unrestricted)
@@ -590,6 +589,8 @@ def compute_homa(arr, molinfo, homarefs=None):
         refs.update(homarefs)
 
     geom = molinfo["geom"]
+    if geom is None:
+        return None
     symbols = molinfo["symbols"]
     atom_symbols = [symbols[int(i) - 1] for i in arr]
     bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]]))
@@ -643,6 +644,9 @@ def compute_bla(arr, molinfo):
     :returns: Contains the BLA and the BLA\_c indices, respectively.
     :rtype: tuple
     """
+
+    if molinfo["geom"] is None:
+        return None
 
     distances = find_distances(arr, molinfo["geom"])
 

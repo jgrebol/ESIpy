@@ -4,7 +4,7 @@ import numpy as np
 
 from esipy.atomicfiles import write_aoms, read_aoms
 from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type, build_connec_rest, \
-    build_connec_unrest, build_connec_no, find_rings, is_fused
+    build_connec_unrest, build_connec_no, find_rings, is_fused, save_file
 
 from esipy.indicators import (
     compute_iring, sequential_mci, multiprocessing_mci,
@@ -15,7 +15,6 @@ from esipy.indicators import (
     compute_pdi_no, compute_boa_no
 )
 from esipy.make_aoms import make_aoms
-from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type
 
 from esipy.mciaprox import aproxmci
 
@@ -217,6 +216,8 @@ class IndicatorsRest:
         :rtype: tuple
         """
         if not hasattr(self, '_done_homa'):
+            if self._molinfo["geom"] is None:
+                return None
             self._done_homa = compute_homa(self._rings, self._molinfo, self._homarefs)
         return self._done_homa
 
@@ -261,6 +262,8 @@ class IndicatorsRest:
         """
         if not hasattr(self, '_done_bla'):
             self._done_bla = compute_bla(self._rings, self._molinfo)
+            if self._done_bla is None:
+                return None
         return self._done_bla
 
     @property
@@ -271,6 +274,8 @@ class IndicatorsRest:
         :returns: The BLA value.
         :rtype: float
         """
+        if self._bla() is None:
+            return [None, None]
         return self._bla()[0]
 
     @property
@@ -1104,10 +1109,11 @@ class ESI:
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
-                 ncores=1, saveaoms=None, savemolinfo=None, name="calc", read=False, readpath='.',
-                 d=1, mcialg=0, minlen=6, maxlen=10, rings_thres = 0.25, fused=False):
+                 ncores=1, save=None, readpath='.', read=False, d=1, mcialg=0, minlen=6, maxlen=10, rings_thres = 0.25, fused=False):
+
         # For usual ESIpy calculations
         self._aom = aom
+        self._aom_loaded = False
         self.rings = rings
         self.mol = mol
         self.mf = mf
@@ -1126,8 +1132,9 @@ class ESI:
         self.read = read
         self.name = name
         self.ncores = ncores
-        self.saveaoms = saveaoms
-        self.savemolinfo = savemolinfo
+        self.save = save
+        self.saveaoms = save + '_' + self.partition + ".aoms" if save else None
+        self.savemolinfo = save + '_' + self.partition + ".molinfo" if save else None
         self.readpath = readpath
         self.minlen = minlen
         self.maxlen = maxlen
@@ -1142,6 +1149,14 @@ class ESI:
         print("   Application to Aromaticity Calculations    ")
         print("  Joan Grebol, Eduard Matito, Pedro Salvador  ")
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
+
+        # Can not work on IAO and Natural Orbitals yet
+        sd = ["RHF", "SymAdaptedRHF", "UHF", "SymAdaptedUHF", "RKS", "SymAdaptedRKS", "UKS", "SymAdaptedUKS"]
+        if self.partition == "iao" and self.molinfo["calctype"] not in sd:
+            print(" | WARNING: IAO and Natural Orbitals from unrestricted orbitals not implemented yet")
+        elif self.partition == "nao" and self.molinfo["calctype"] not in sd:
+            print(" | WARNING: NAO and Natural Orbitals from unrestricted orbitals not implemented yet")
+
 
         wf = wf_type(self.aom)
         if isinstance(self.rings[0], int):
@@ -1165,8 +1180,14 @@ class ESI:
                                                         connectivity=self.connectivity, geom=self.geom,
                                                         molinfo=self.molinfo, ncores=self.ncores))
         elif wf == "no":
-            if np.ndim(self.mf.make_rdm1(ao_repr=True)) == 3:
-                raise ValueError(" | Can not compute Natural Orbitals from unrestricted orbitals YET.")
+            if self.read is not True and type(self._aom) != str:
+                if self.mf is None:
+                    raise ValueError(" | Missing variable 'mf'.")
+                if np.ndim(self.mf.make_rdm1(ao_repr=True)) == 3:
+                    if self.partition == "nao":
+                        raise ValueError(" | Can not compute Natural Orbitals and NAO from unrestricted orbitals YET.")
+                    elif self.partition == "iao":
+                        raise ValueError(" | Can not compute Natural Orbitals and IAO from unrestricted orbitals YET.")
             self.indicators = []
             for i in self.rings:
                 self.indicators.append(IndicatorsNatorb(aom=self.aom, rings=i, mol=self.mol, mf=self.mf, myhf=self.myhf,
@@ -1206,15 +1227,26 @@ class ESI:
         :rtype: list
         """
 
+        if self._aom_loaded:
+            return self._aom
         if isinstance(self._aom, str):
             return load_file(self._aom)
         if self.read == True:
-            return self.readaoms()
+            self._aom_loaded = True
+            aom = self.readaoms()
+            if self.save:
+                print(f" | Saved the AOMs in the {self.saveaoms} file")
+                import os
+                save_file(aom, os.path.join(self.readpath, self.saveaoms))
+                print(f" | Saved the molinfo in the {self.savemolinfo} file")
+                save_file(read_molinfo(self.readpath), os.path.join(self.readpath, self.savemolinfo))
+            return aom
         if self._aom is None:
             if isinstance(self.partition, list):
                 raise ValueError(
                     " | Only one partition at a time. Partition should be a string, not a list.\n | Please consider looping through the partitions before calling the function")
             if self.mol and self.mf and self.partition:
+                self._aom_loaded = True
                 self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=self.saveaoms, myhf=self.myhf)
                 if self.saveaoms:
                     print(f" | Saved the AOMs in the {self.saveaoms} file")
@@ -1345,13 +1377,12 @@ class ESI:
         :rtype: list
         """
 
-        if self.name == "calc":
-            print(" | No 'name' specified. Will use 'calc'")
         if self.readpath is None:
             print(" | No path specified in 'ESI.readpath'. Will assume working directory")
 
         self._aom = read_aoms(path=self.readpath)
-        print(f" | Read the AOMs from {self.readpath}/{self.name}.aoms")
+        self._molinfo = read_molinfo(path=self.readpath)
+        print(f" | Read the AOMs from {self.readpath}/")
         return self._aom
 
     def writeaoms(self, file):
@@ -1372,7 +1403,7 @@ class ESI:
                     f" | Missing required attribute '{attr}'. Please define it before calling ESI.writeaoms")
 
         write_aoms(self.mol, self.mf, file, self.aom, self.rings, self.partition)
-        print(f" | Written the AOMs in {self.readpath}/{file}/")
+        print(f" | Written the AOMs in {self.readpath}/{file}_{self.partition}.aoms")
 
     def mciaprox(self, mcialg=0, d=1):
         print(' -------------------------------------------------')
@@ -1463,17 +1494,11 @@ class ESI:
         if self.rings is None:
             raise ValueError(" | The variable 'rings' is mandatory and must be a list with the ring connectivity")
 
-        if self._aom is None:
-            if isinstance(self.aom, str):
-                print(f" | Loading the AOMs from file {self.aom}")
-                aom = load_file(self.aom)
-                print(aom)
-                if aom is None:
-                    raise NameError(" | Please provide a valid name to read the AOMs")
-            print(f" | Partition {self.partition} does not have aom, generating it")
+        if isinstance(self._aom, str):
+            print(f" | Loading the AOMs from file {self._aom}")
             self._aom = self.aom
-            if self._aom is None:
-                raise ValueError(" | Could not build the AOMs from the given data")
+            if self.aom is None:
+                raise NameError(" | Please provide a valid name to read the AOMs")
 
         if wf_type(self.aom) == "rest":
             from esipy.rest import info_rest, deloc_rest, arom_rest
