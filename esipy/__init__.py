@@ -1145,9 +1145,9 @@ class ESI:
         # Can not work on IAO and Natural Orbitals yet
         sd = ["RHF", "SymAdaptedRHF", "UHF", "SymAdaptedUHF", "RKS", "SymAdaptedRKS", "UKS", "SymAdaptedUKS"]
         if self.partition == "iao" and self.molinfo["calctype"] not in sd:
-            print(" | WARNING: IAO computed from HF object.")
+            print(" | WARNING: IAO and Natural Orbitals from unrestricted orbitals not implemented yet")
         elif self.partition == "nao" and self.molinfo["calctype"] not in sd:
-                raise ValueError(" | NAO and Natural Orbitals from unrestricted orbitals not implemented yet")
+            print(" | WARNING: NAO and Natural Orbitals from unrestricted orbitals not implemented yet")
 
 
         wf = wf_type(self.aom)
@@ -1200,10 +1200,6 @@ class ESI:
         :returns: The AOMs in the MO basis.
         :rtype: list
         """
-
-        if self.molinfo["calctype"] not in ["RHF", "SymAdaptedRHF", "UHF", "SymAdaptedUHF",
-                                            "RKS", "SymAdaptedRKS", "UKS", "SymAdaptedUKS"] and self.partition == "iao":
-            raise ValueError(" | IAO and Natural Orbitals not implemented yet")
 
         if self._aom_loaded:
             return self._aom
