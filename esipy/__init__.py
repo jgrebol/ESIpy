@@ -1143,8 +1143,12 @@ class ESI:
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
 
         # Can not work on IAO and Natural Orbitals yet
-        if self.partition == "iao" and wf_type(self.aom) == "no":
+        sd = ["RHF", "SymAdaptedRHF", "UHF", "SymAdaptedUHF", "RKS", "SymAdaptedRKS", "UKS", "SymAdaptedUKS"]
+        if self.partition == "iao" and self.molinfo["calctype"] not in sd:
             raise ValueError(" | IAO and Natural Orbitals not implemented yet")
+        elif self.partition == "nao" and self.molinfo["calctype"] not in sd:
+                raise ValueError(" | NAO and Natural Orbitals from unrestricted orbitals not implemented yet")
+
 
         wf = wf_type(self.aom)
         if isinstance(self.rings[0], int):
@@ -1172,7 +1176,10 @@ class ESI:
                 if self.mf is None:
                     raise ValueError(" | Missing variable 'mf'.")
                 if np.ndim(self.mf.make_rdm1(ao_repr=True)) == 3:
-                    raise ValueError(" | Can not compute Natural Orbitals from unrestricted orbitals YET.")
+                    if self.partition == "nao":
+                        raise ValueError(" | Can not compute Natural Orbitals and NAO from unrestricted orbitals YET.")
+                    elif self.partition == "iao":
+                        raise ValueError(" | Can not compute Natural Orbitals and IAO from unrestricted orbitals YET.")
             self.indicators = []
             for i in self.rings:
                 self.indicators.append(IndicatorsNatorb(aom=self.aom, rings=i, mol=self.mol, mf=self.mf, myhf=self.myhf,
@@ -1193,8 +1200,6 @@ class ESI:
         :returns: The AOMs in the MO basis.
         :rtype: list
         """
-
-        print(self.molinfo["calctype"])
 
         if self.molinfo["calctype"] not in ["RHF", "SymAdaptedRHF", "UHF", "SymAdaptedUHF",
                                             "RKS", "SymAdaptedRKS", "UKS", "SymAdaptedUKS"] and self.partition == "iao":
