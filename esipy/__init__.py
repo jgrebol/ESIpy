@@ -1145,7 +1145,7 @@ class ESI:
         # Can not work on IAO and Natural Orbitals yet
         sd = ["RHF", "SymAdaptedRHF", "UHF", "SymAdaptedUHF", "RKS", "SymAdaptedRKS", "UKS", "SymAdaptedUKS"]
         if self.partition == "iao" and self.molinfo["calctype"] not in sd:
-            raise ValueError(" | IAO and Natural Orbitals not implemented yet")
+            raise Warning(" | IAO computed from HF object.")
         elif self.partition == "nao" and self.molinfo["calctype"] not in sd:
                 raise ValueError(" | NAO and Natural Orbitals from unrestricted orbitals not implemented yet")
 
