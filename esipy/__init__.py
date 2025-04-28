@@ -2,7 +2,7 @@ from os import environ
 
 import numpy as np
 
-from esipy.atomicfiles import write_aoms, read_aoms
+from esipy.atomicfiles import write_aoms, read_aoms, read_molinfo
 from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type, build_connec_rest, \
     build_connec_unrest, build_connec_no, find_rings, is_fused, save_file
 
@@ -1130,7 +1130,6 @@ class ESI:
         self.geom = geom
         # For other tools
         self.read = read
-        self.name = name
         self.ncores = ncores
         self.save = save
         self.saveaoms = save + '_' + self.partition + ".aoms" if save else None
@@ -1141,6 +1140,8 @@ class ESI:
         self.rings_thres = rings_thres
         # For the MCI approximations
         self.fused = fused
+        self.d = d
+        self.mcialg = mcialg
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
