@@ -10,7 +10,8 @@ from esipy.indicators import (
     compute_pdi_no, compute_boa_no
 )
 from esipy.make_aoms import make_aoms
-from esipy.tools import mol_info, format_partition, load_file, format_short_partition, wf_type, save_file
+from esipy.tools import (mol_info, format_partition, load_file, format_short_partition, wf_type, save_file,
+                         build_connec_rest, build_connec_unrest, build_connec_no, find_rings)
 
 
 class IndicatorsRest:
@@ -1107,7 +1108,8 @@ class ESI:
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
-                 ncores=1, save=None, readpath='.', read=False
+                 ncores=1, save=None, readpath='.', read=False,
+                 maxlen=12, minlen=6, rings_thres=0.3,
                  ):
         # For usual ESIpy calculations
         self._aom = aom
@@ -1133,6 +1135,10 @@ class ESI:
         self.savemolinfo = save + '_' + self.partition + ".molinfo" if save else None
         self.readpath = readpath
         self.read = read
+        # For finding rings
+        self.maxlen = maxlen
+        self.minlen = minlen
+        self.rings_thres = rings_thres
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
@@ -1190,6 +1196,24 @@ class ESI:
                                                         molinfo=self.molinfo, ncores=self.ncores))
         else:
             raise ValueError(" | Could not determine the wavefunction type")
+
+    @property
+    def rings(self):
+        if self._rings == "find":
+            wf = wf_type(self.aom)
+            if wf == "rest":
+                self._rings = find_rings(build_connec_rest(self.aom, self.rings_thres), self.minlen, self.maxlen)
+            elif wf == "unrest":
+                self._rings = find_rings(build_connec_unrest(self.aom, self.rings_thres), self.minlen, self.maxlen)
+            elif wf == "no":
+                self._rings = find_rings(build_connec_no(self.aom, self.rings_thres), self.minlen, self.maxlen)
+        if self._rings == []:
+            raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
+        return self._rings
+
+    @rings.setter
+    def rings(self, value):
+        self._rings = value
 
     @property
     def aom(self):

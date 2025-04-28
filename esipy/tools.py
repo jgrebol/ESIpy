@@ -1,5 +1,6 @@
 from os import environ
 import numpy as np
+from collections import deque, defaultdict
 
 environ["NUMEXPR_NUM_THREADS"] = "1"
 environ["OMP_NUM_THREADS"] = "1"
@@ -350,3 +351,112 @@ def build_eta(mol):
         end = mol.aoslice_by_atom()[i, -1]
         eta[i][start:end, start:end] = np.eye(end - start)
     return eta
+
+def build_connec_rest(Smo, thres=0.3):
+    natoms = len(Smo)
+    connec_dict = {}
+
+    for i in range(1, natoms + 1):
+        for j in range(1, natoms + 1):
+            if i != j:
+                if 2 * find_di(Smo, i, j) >= thres:
+                    if i not in connec_dict:
+                        connec_dict[i] = []
+                    connec_dict[i].append(j)
+    return filter_connec(connec_dict)
+
+def build_connec_unrest(Smo, thres=0.3):
+    natoms = len(Smo[0])
+    connec_dict = {}
+
+    for i in range(1, natoms + 1):
+        for j in range(1, natoms + 1):
+            if i != j:
+                di_alpha = find_di(Smo[0], i, j)
+                di_beta = find_di(Smo[1], i, j)
+                di = di_alpha + di_beta
+                if di >= thres:
+                    if i not in connec_dict:
+                        connec_dict[i] = []
+                    connec_dict[i].append(j)
+    return filter_connec(connec_dict)
+
+def build_connec_no(Smo, thres=0.3):
+    connec_dict = {}
+
+    for i in range(len(Smo[0])):
+        for j in range(len(Smo[0])):
+            if i != j:
+                if find_di_no(Smo, i, j) >= thres:
+                    if i not in connec_dict:
+                        connec_dict[i] = []
+                    connec_dict[i].append(j)
+    return filter_connec(connec_dict)
+
+def find_rings(connec, minlen=6, maxlen=6):
+    def dfs(connec, minlen, maxlen, start):
+        stack = [(start, [start])]
+        while stack:
+            (v, path) = stack.pop()
+            if len(path) > maxlen:
+                continue
+            if len(path) >= minlen and start in connec[path[-1]] and path[1] < path[-1] and path[0] == start:
+                yield path
+            for next in connec.get(v, []):
+                if next not in path:
+                    stack.append((next, path + [next]))
+
+    def unique(path, all):
+        for shift in range(len(path)):
+            rot = np.roll(path, shift).tolist()
+            if rot in all or rot[::-1] in all:
+                return False
+        return True
+
+    all_paths = []
+    starts = find_middle_nodes(connec)
+    if not starts:
+        starts = [1]
+    for start in starts:
+        for path in dfs(connec, minlen, maxlen, start):
+            if unique(path, all_paths):
+                all_paths.append(path)
+    return all_paths
+
+def filter_connec(connec):
+    filtered_connec = {}
+    for key, values in connec.items():
+        if len(values) > 1:
+            filtered_vals = [v for v in values if len(connec[v]) > 1]
+            if filtered_vals:
+                filtered_connec[key] = filtered_vals
+    return filtered_connec
+
+def is_fused(arr, connec):
+    for i in range(len(arr) - 1):
+        if len([x for x in connec[arr[i]] if x in arr]) >= 3:
+            return True
+    return False
+
+def find_middle_nodes(connec2):
+    return [key for key, vals in connec2.items() if len(vals) > 2]
+
+def find_node_distances(connec):
+   distances = defaultdict(dict)
+
+   for start in connec:
+       queue = deque([(start, 0)])
+       visited = set()
+
+       while queue:
+           cur_node, cur_dist = queue.popleft()
+
+           if cur_node not in visited:
+               visited.add(cur_node)
+               distances[start][cur_node] = cur_dist
+
+               for neighbor in connec[cur_node]:
+                   if neighbor not in visited:
+                       queue.append((neighbor, cur_dist + 1))
+
+   return distances
