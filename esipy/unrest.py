@@ -3,7 +3,7 @@ import numpy as np
 from esipy.tools import format_partition, find_multiplicity
 
 
-def info_unrest(aom, molinfo):
+def info_unrest(aom, molinfo, nfrags=0):
     """
     Prints the information of the calculation for unrestricted wavefunctions.
 
@@ -15,7 +15,7 @@ def info_unrest(aom, molinfo):
 
     partition = format_partition(molinfo["partition"])
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
-    print(" | Number of Atoms:          {}".format(len(aom[0])))
+    print(" | Number of Atoms:          {}".format(len(aom[0])-nfrags))
     print(" | Occ. Mol. Orbitals:       {}({})".format(np.shape(aom[0][0])[0], np.shape(aom[1][0])[0]))
     print(" | Wavefunction type:        Unrestricted")
     print(" | Atomic partition:         {}".format(partition.upper() if partition else "Not specified"))
@@ -36,8 +36,8 @@ def info_unrest(aom, molinfo):
     else:
         print(" | Total energy:             {:<13f}".format(molinfo["energy"]))
     print(" ------------------------------------------- ")
-    trace_a = np.sum([np.trace(matrix) for matrix in aom[0]])
-    trace_b = np.sum([np.trace(matrix) for matrix in aom[1]])
+    trace_a = np.sum([np.trace(matrix) for matrix in aom[0]][:len(molinfo["symbols"])])
+    trace_b = np.sum([np.trace(matrix) for matrix in aom[1]][:len(molinfo["symbols"])])
     print(" | Tr(alpha):    {:.13f}".format(trace_a))
     print(" | Tr(beta) :    {:.13f}".format(trace_b))
     print(" | Tr(Enter):    {:.13f}".format(trace_a + trace_b))
@@ -54,7 +54,8 @@ def deloc_unrest(aom, molinfo):
     :type molinfo: dict
     """
 
-    symbols = molinfo["symbols"]
+    presymbols = molinfo["symbols"]
+    symbols = presymbols + ["FF"] * (len(aom[0])-len(presymbols))
 
     # Getting the LIs and DIs
     dis_alpha, dis_beta = [], []
@@ -84,9 +85,13 @@ def deloc_unrest(aom, molinfo):
             symbols[i], i + 1, Nij_alpha[i] + Nij_beta[i], Nij_alpha[i], Nij_beta[i], Nij_alpha[i] - lis_alpha[i],
                         Nij_beta[i] - lis_beta[i]))
     print(" ------------------------------------------------------------------- ")
-    print(" | TOT:    {:8.4f}  {:8.4f}  {:8.4f}   {:8.4f}   {:8.4f}".format(
-        sum(Nij_alpha) + sum(Nij_beta), sum(Nij_alpha), sum(Nij_beta), sum(Nij_alpha) - sum(lis_alpha),
-        sum(Nij_beta) - sum(lis_beta)))
+    Ntota = np.sum(Nij_alpha[:len(presymbols)])
+    Ntotb = np.sum(Nij_beta[:len(presymbols)])
+    listota = np.sum(lis_alpha[:len(presymbols)])
+    listotb = np.sum(lis_beta[:len(presymbols)])
+    distota = Ntota - listota
+    distotb = Ntotb - listotb
+    print(" | TOT:    {:8.4f}  {:8.4f}  {:8.4f}   {:8.4f}   {:8.4f}".format(Ntota, Ntotb, listota, listotb, distota, distotb))
     print(" ------------------------------------------------------------------- ")
     print(" ------------------------------------------- ")
     print(" |    Pair        DI       DIaa      DIbb ")
@@ -107,12 +112,11 @@ def deloc_unrest(aom, molinfo):
                     str(j + 1).center(2), ditot, dia, dib))
     print(" ------------------------------------------- ")
     print(" |    TOT:   {:>9.4f} {:>9.4f} {:>9.4f} ".format(
-        sum(dis_alpha) + sum(dis_beta) + sum(lis_alpha) + sum(lis_beta), sum(dis_alpha) + sum(lis_alpha),
-        sum(dis_beta) + sum(lis_beta)))
+        Ntota + Ntotb, Ntota, Ntotb))
     print(" |    LOC:   {:>9.4f} {:>9.4f} {:>9.4f} ".format(
-        sum(lis_alpha) + sum(lis_beta), sum(lis_alpha), sum(lis_beta)))
+        listota + listotb, listota, listotb))
     print(" |  DELOC:   {:>9.4f} {:>9.4f} {:>9.4f} ".format(
-        sum(dis_alpha) + sum(dis_beta), sum(dis_alpha), sum(dis_beta)))
+        distota + distotb, distota, distotb))
     print(" ------------------------------------------- ")
 
 
@@ -172,16 +176,24 @@ def arom_unrest(aom, rings, molinfo, indicators, mci=False, av1245=False, partit
         rings = [rings]
 
     # Looping through each of the rings
+    frag = False
     for ring_index, ring in enumerate(rings):
+        for r in ring:
+            if isinstance(r, set):
+                connectivity = None
+                frag = True
+                break
+            else:
+                connectivity = [symbols[int(i) - 1] for i in ring]
         print(" ----------------------------------------------------------------------")
         print(" |")
         print(" | Ring  {} ({}):   {}".format(
             ring_index + 1, len(ring), "  ".join(str(num) for num in ring)))
         print(" |")
         print(" ----------------------------------------------------------------------")
+        ring = list(np.arange(1, len(ring) + 1))
 
         # Starting the calculation of the aromaticity indicators
-        connectivity = [symbols[int(i) - 1] for i in ring]
         if homarefs is not None:
             print(" | Using HOMA references provided by the user")
         else:
@@ -216,25 +228,26 @@ def arom_unrest(aom, rings, molinfo, indicators, mci=False, av1245=False, partit
                 print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, bla))
                 print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, bla_c))
         print(" ----------------------------------------------------------------------")
-        flu = indicators[ring_index].flu
-        if flu is None:
-            print(" | Could not compute FLU")
-        else:
-            if flurefs is not None:
-                print(" | Using FLU references provided by the user")
+        if not frag:
+            flu = indicators[ring_index].flu
+            if flu is None:
+                print(" | Could not compute FLU")
             else:
-                print(" | Using the default FLU references")
-            print(" | Atoms  :   {}".format("  ".join(str(atom) for atom in connectivity)))
-            print(" |")
-            print(" | *** FLU_ALPHA ***")
-            print(" | FLU_aa       {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].flu_alpha))
-            print(" |")
-            print(" | *** FLU_BETA ***")
-            print(" | FLU_bb       {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].flu_beta))
-            print(" |")
-            print(" | *** FLU_TOTAL ***")
-            print(" | FLU          {} =  {:>.6f}".format(ring_index + 1, flu))
-        print(" ----------------------------------------------------------------------")
+                if flurefs is not None:
+                    print(" | Using FLU references provided by the user")
+                else:
+                    print(" | Using the default FLU references")
+                print(" | Atoms  :   {}".format("  ".join(str(atom) for atom in connectivity)))
+                print(" |")
+                print(" | *** FLU_ALPHA ***")
+                print(" | FLU_aa       {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].flu_alpha))
+                print(" |")
+                print(" | *** FLU_BETA ***")
+                print(" | FLU_bb       {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].flu_beta))
+                print(" |")
+                print(" | *** FLU_TOTAL ***")
+                print(" | FLU          {} =  {:>.6f}".format(ring_index + 1, flu))
+            print(" ----------------------------------------------------------------------")
 
         print(" |")
         print(" | *** BOA_ALPHA ***")
@@ -243,7 +256,7 @@ def arom_unrest(aom, rings, molinfo, indicators, mci=False, av1245=False, partit
         print(" |")
         print(" | *** BOA_BETA ***")
         print(" | BOA_bb       {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].boa_beta))
-        print(" | BOAc_bb     {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].boa_c_beta))
+        print(" | BOAc_bb      {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].boa_c_beta))
         print(" |")
         print(" | *** BOA_TOTAL ***")
         print(" | BOA          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].boa))

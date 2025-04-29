@@ -11,7 +11,7 @@ from esipy.indicators import (
 )
 from esipy.make_aoms import make_aoms
 from esipy.tools import (mol_info, format_partition, load_file, format_short_partition, wf_type, save_file,
-                         build_connec_rest, build_connec_unrest, build_connec_no, find_rings)
+                         build_connec_rest, build_connec_unrest, build_connec_no, find_rings, process_fragments)
 
 
 class IndicatorsRest:
@@ -52,6 +52,7 @@ class IndicatorsRest:
         self._geom = geom
         self._molinfo = molinfo
         self._ncores = ncores
+
 
     @property
     def iring(self):
@@ -1114,7 +1115,7 @@ class ESI:
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
-        self.rings = rings
+        self._rings = rings
         self.mol = mol
         self.mf = mf
         self.myhf = myhf
@@ -1128,6 +1129,7 @@ class ESI:
         self.homerrefs = homerrefs
         self.connectivity = connectivity
         self.geom = geom
+        self.frag = False
         # For other tools
         self.ncores = ncores
         self.save = save
@@ -1139,6 +1141,10 @@ class ESI:
         self.maxlen = maxlen
         self.minlen = minlen
         self.rings_thres = rings_thres
+        if wf_type(self.aom) == "rest" or wf_type(self.aom) == "no":
+            self.natom = len(self.aom[0])
+        elif wf_type(self.aom) == "unrest":
+            self.natom = len(self.aom[0][0])
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
@@ -1157,21 +1163,36 @@ class ESI:
 
 
         wf = wf_type(self.aom)
-        if isinstance(self.rings[0], int):
+        if isinstance(self.rings[0], int) or isinstance(self.rings[0], set):
             self.rings = [self.rings]
         if wf == "rest":
-            self.indicators = []
+            self.fragaom = list(process_fragments(self.aom, self.rings, False))
+            self.nfrags = len(self.fragaom)
+            self.fragring = list(np.arange(1, len(self.fragaom) + 1))
+            self.totalaom = self.aom + self.fragaom
+
             for i in self.rings:
-                self.indicators.append(IndicatorsRest(aom=self.aom, rings=i, mol=self.mol, mf=self.mf, myhf=self.myhf,
+                self.indicators = []
+                self.indicators.append(IndicatorsRest(aom=self.fragaom, rings=self.fragring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                       partition=self.partition, mci=self.mci,
                                                       av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs,
                                                       homerrefs=self.homerrefs, connectivity=self.connectivity,
                                                       geom=self.geom,
                                                       molinfo=self.molinfo, ncores=self.ncores))
         elif wf == "unrest":
+            self.fragaom_a = list(process_fragments(self.aom[0], self.rings, False))
+            self.fragaom_b = list(process_fragments(self.aom[1], self.rings, True))
+            self.fragaom = [self.fragaom_a, self.fragaom_b]
+            for i in self.rings:
+                self.indicators = []
+                self.nfrags = len(self.fragaom_a)
+                self.fragring = list(np.arange(1, len(self.fragaom_a) + 1))
+                self.totalaom_a = self.aom[0] + self.fragaom_a
+                self.totalaom_b = self.aom[1] + self.fragaom_b
+                self.totalaom = [self.totalaom_a, self.totalaom_b]
             self.indicators = []
             for i in self.rings:
-                self.indicators.append(IndicatorsUnrest(aom=self.aom, rings=i, mol=self.mol, mf=self.mf, myhf=self.myhf,
+                self.indicators.append(IndicatorsUnrest(aom=self.fragaom, rings=self.fragring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                         partition=self.partition, mci=self.mci,
                                                         av1245=self.av1245, flurefs=self.flurefs,
                                                         homarefs=self.homarefs, homerrefs=self.homerrefs,
@@ -1186,9 +1207,16 @@ class ESI:
                         raise ValueError(" | Can not compute Natural Orbitals and NAO from unrestricted orbitals YET.")
                     elif self.partition == "iao":
                         raise ValueError(" | Can not compute Natural Orbitals and IAO from unrestricted orbitals YET.")
-            self.indicators = []
+            aom, occ = self.aom
+            self._fragaom = list(process_fragments(aom, self.rings, False))
+            self.fragaom = [self._fragaom, occ]
             for i in self.rings:
-                self.indicators.append(IndicatorsNatorb(aom=self.aom, rings=i, mol=self.mol, mf=self.mf, myhf=self.myhf,
+                self.indicators = []
+                self.nfrags = len(self._fragaom)
+                self.fragring = list(np.arange(1, len(self._fragaom) + 1))
+                self.totalaom = aom + self._fragaom
+                self.totalaom = [self.totalaom, occ]
+                self.indicators.append(IndicatorsNatorb(aom=self.fragaom, rings=self.fragring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                         partition=self.partition, mci=self.mci,
                                                         av1245=self.av1245, flurefs=self.flurefs,
                                                         homarefs=self.homarefs, homerrefs=self.homerrefs,
@@ -1233,11 +1261,11 @@ class ESI:
             self._aom_loaded = True
             aom = self.readaoms()
             if self.save:
-                print(f" | Saved the AOMs in the {self.saveaoms} file")
                 import os
                 save_file(aom, os.path.join(self.readpath, self.saveaoms))
-                print(f" | Saved the molinfo in the {self.savemolinfo} file")
                 save_file(read_molinfo(self.readpath), os.path.join(self.readpath, self.savemolinfo))
+                print(f" | Saved the AOMs in the {self.saveaoms} file")
+                print(f" | Saved the molinfo in the {self.savemolinfo} file")
             return aom
         if self._aom is None:
             if isinstance(self.partition, list):
@@ -1268,8 +1296,6 @@ class ESI:
             return load_file(self._molinfo)
         if self._molinfo is None:
             self._molinfo = mol_info(self.mol, self.mf, self.savemolinfo, self._partition)
-            if self.savemolinfo:
-                print(f" | Saved the molinfo in the {self.savemolinfo} file")
         return self._molinfo
 
     @property
@@ -1396,24 +1422,24 @@ class ESI:
 
         if wf_type(self.aom) == "rest":
             from esipy.rest import info_rest, deloc_rest, arom_rest
-            info_rest(self.aom, self.molinfo)
-            deloc_rest(self.aom, self.molinfo)
+            info_rest(self.totalaom, self.molinfo, self.nfrags)
+            deloc_rest(self.totalaom, self.molinfo)
             arom_rest(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                       av1245=self.av1245,
                       flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores)
 
         elif wf_type(self.aom) == "unrest":
             from esipy.unrest import info_unrest, deloc_unrest, arom_unrest
-            info_unrest(self.aom, self.molinfo)
-            deloc_unrest(self.aom, self.molinfo)
+            info_unrest(self.totalaom, self.molinfo, self.nfrags)
+            deloc_unrest(self.totalaom, self.molinfo)
             arom_unrest(aom=self.aom, rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                         av1245=self.av1245, partition=self.partition,
                         flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores)
 
         elif wf_type(self.aom) == "no":
             from esipy.no import info_no, deloc_no, arom_no
-            info_no(self.aom, self.molinfo)
-            deloc_no(self.aom, self.molinfo)
+            info_no(self.totalaom, self.molinfo, self.nfrags)
+            deloc_no(self.totalaom, self.molinfo)
             arom_no(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                     av1245=self.av1245,
                     flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores)

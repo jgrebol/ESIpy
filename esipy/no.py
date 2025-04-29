@@ -3,7 +3,7 @@ import numpy as np
 from esipy.tools import format_partition
 
 
-def info_no(aom, molinfo):
+def info_no(aom, molinfo, nfrags=0):
     """
     Prints the initial information for correlated wavefunctions.
 
@@ -16,7 +16,7 @@ def info_no(aom, molinfo):
     aom, occ = aom
     partition = format_partition(molinfo["partition"])
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
-    print(" | Number of Atoms:          {}".format(len(aom)))
+    print(" | Number of Atoms:          {}".format(len(aom)-nfrags))
     print(" | Occ. Mol. Orbitals:       {}".format(np.shape(aom[0])[0]))
     print(" | Wavefunction type:        Natural Orbitals")
     print(" | Atomic partition:         {}".format(partition.upper() if partition else "Not specified"))
@@ -37,7 +37,7 @@ def info_no(aom, molinfo):
     else:
         print(" | Total energy:             {:<13f}".format(molinfo["energy"]))
     print(" ------------------------------------------- ")
-    trace = np.sum([np.trace(matrix) for matrix in aom])
+    trace = np.sum([np.trace(matrix) for matrix in aom][:len(aom)-nfrags])
     print(" | Tr(Enter):    {:.13f}".format(trace))
     print(" ------------------------------------------- ")
 
@@ -53,7 +53,8 @@ def deloc_no(aom, molinfo):
     """
 
     aom, occ = aom
-    symbols = molinfo["symbols"]
+    presymbols = molinfo["symbols"]
+    symbols = presymbols + ["FF"] * (len(aom)-len(presymbols))
 
     # Getting the LIs and DIs
     difs, dixs, lifs, lixs, N = [], [], [], [], []
@@ -83,8 +84,12 @@ def deloc_no(aom, molinfo):
         print(" | {:>2} {:>2d}  {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}".format(
             symbols[i], i + 1, N[i], N[i] - lif, dlocX, lif, lix))
     print(" ---------------------------------------------------------- ")
+    Ntot = np.sum(N[:len(presymbols)])
+    lifstot = np.sum(lifs[:len(presymbols)])
+    lixstot = np.sum(lixs[:len(presymbols)])
+    dixstot = np.sum(dixs[:len(presymbols)])
     print(" | TOT:   {:>8.4f}  {:>8.4f}  {:>8.4f}  {:>8.4f}  {:>8.4f}".format(
-        sum(N), sum(N) - sum(lifs), sum(dixs), sum(lifs), sum(lixs)))
+        Ntot, Ntot-lifstot, dixstot, lifstot, lixstot))
     print(" ---------------------------------------------------------- ")
 
     print(" ---------------------------------- ")
@@ -162,14 +167,23 @@ def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None,
         rings = [rings]
 
     # Looping through each of the rings
-
+    frag = False
     for ring_index, ring in enumerate(rings):
+        for r in ring:
+            if isinstance(r, set):
+                connectivity = None
+                frag = True
+                break
+            else:
+                connectivity = [symbols[int(i) - 1] for i in ring]
+
         print(" ----------------------------------------------------------------------")
 
         print(" |")
         print(" | Ring  {} ({}):   {}".format(ring_index + 1, len(ring), "  ".join(str(num) for num in ring)))
         print(" |")
         print(" ----------------------------------------------------------------------")
+        ring = list(np.arange(1, len(ring) + 1))
         if homarefs is not None:
             print(" | Using HOMA references provided by the user")
         else:

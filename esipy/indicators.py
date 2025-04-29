@@ -527,6 +527,7 @@ def compute_homa(arr, molinfo, homarefs=None):
     if geom is None:
         return None
     symbols = molinfo["symbols"]
+
     atom_symbols = [symbols[int(i) - 1] for i in arr]
     bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]]))
                   for i in range(len(arr))]

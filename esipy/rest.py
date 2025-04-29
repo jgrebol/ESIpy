@@ -3,7 +3,7 @@ import numpy as np
 from esipy.tools import format_partition
 
 
-def info_rest(aom, molinfo):
+def info_rest(aom, molinfo, nfrags=0):
     """
     Print the information of the molecule and the calculation.
 
@@ -15,7 +15,7 @@ def info_rest(aom, molinfo):
     partition = format_partition(molinfo["partition"])
 
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
-    print(" | Number of Atoms:          {}".format(len(aom)))
+    print(" | Number of Atoms:          {}".format(len(aom)-nfrags))
     print(" | Occ. Mol. Orbitals:       {}".format(np.shape(aom[0])[0]))
     print(" | Wavefunction type:        Restricted")
     print(" | Atomic partition:         {}".format(partition.upper() if partition else "Not specified"))
@@ -36,7 +36,7 @@ def info_rest(aom, molinfo):
     else:
         print(" | Total energy:             {:<13f}".format(molinfo["energy"]))
     print(" ------------------------------------------- ")
-    trace = np.sum([np.trace(matrix) for matrix in aom])
+    trace = np.sum([np.trace(matrix) for matrix in aom][:len(aom)-nfrags])
     print(" | Tr(Enter):    {:.13f}".format(trace))
     print(" ------------------------------------------- ")
 
@@ -52,7 +52,8 @@ def deloc_rest(aom, molinfo):
     """
 
     # Checking where to read the atomic symbols from
-    symbols = molinfo["symbols"]
+    presymbols = molinfo["symbols"]
+    symbols = presymbols + ["FF"] * (len(aom)-len(presymbols))
 
     print(" ------------------------------------- ")
     print(" | Atom    N(Sij)     loc.      dloc. ")
@@ -71,9 +72,12 @@ def deloc_rest(aom, molinfo):
         for j in range(i + 1, len(aom)):
             di = 4 * np.trace(np.dot(aom[i], aom[j]))
             dis.append(di)
+    Ntot = np.sum(N[:len(presymbols)])
+    distot = np.sum(dis[:len(presymbols)])
+    listot = Ntot - distot
     print(" ------------------------------------- ")
     print(" | TOT:  {:>8.4f}  {:>8.4f}  {:>8.4f}".format(
-        sum(N), sum(N) - sum(dis), sum(dis)))
+        Ntot, listot, distot))
     print(" ------------------------------------- ")
 
     print(" ------------------------ ")
@@ -90,9 +94,9 @@ def deloc_rest(aom, molinfo):
                     symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), 4 * np.trace(np.dot(aom[i], aom[j]))))
     print(" ------------------------ ")
-    print(" |   TOT:      {:>8.4f} ".format(np.sum(dis) + np.sum(lis)))
-    print(" |   LOC:      {:>8.4f} ".format(np.sum(lis)))
-    print(" | DELOC:      {:>8.4f} ".format(np.sum(dis)))
+    print(" |   TOT:      {:>8.4f} ".format(Ntot))
+    print(" |   LOC:      {:>8.4f} ".format(listot))
+    print(" | DELOC:      {:>8.4f} ".format(distot))
     print(" ------------------------ ")
 
 
@@ -147,20 +151,32 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
         rings = [rings]
 
     # Looping through each of the rings
+    frag = False
     for ring_index, ring in enumerate(rings):
+        for r in ring:
+            if isinstance(r, set):
+                connectivity = None
+                frag = True
+                break
+            else:
+                connectivity = [symbols[int(i) - 1] for i in ring]
         print(" ----------------------------------------------------------------------")
         print(" |")
         print(" | Ring  {} ({}):   {}".format(ring_index + 1, len(ring), "  ".join(str(num) for num in ring)))
         print(" |")
         print(" ----------------------------------------------------------------------")
-        connectivity = [symbols[int(i) - 1] for i in ring]
+        ring = list(np.arange(1, len(ring) + 1))
+
         if homarefs is not None:
             print(" | Using HOMA references provided by the user")
         else:
             print(" | Using default HOMA references")
         homa = indicators[ring_index].homa
         if homa is None:
-            print(" | Connectivity could not match parameters")
+            if frag:
+                print(" | Could not compute geometric indicators between fragments")
+            else:
+                print(" | Connectivity could not match parameters")
         else:
             print(" | EN           {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].en))
             print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].geo))
@@ -183,18 +199,19 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
                 print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, bla))
                 print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, bla_c))
 
-        flu = indicators[ring_index].flu
-        if flu is None:
-            print(" | Could not compute FLU")
-        else:
-            if flurefs is not None:
-                print(" | Using FLU references provided by the user")
+        if not frag:
+            flu = indicators[ring_index].flu
+            if flu is None:
+                print(" | Could not compute FLU")
             else:
-                print(" | Using the default FLU references")
-            print(" ----------------------------------------------------------------------")
-            print(" | Atoms  :   {}".format("  ".join(str(atom) for atom in connectivity)))
-            print(" |")
-            print(" | FLU          {} =  {:>.6f}".format(ring_index + 1, flu))
+                if flurefs is not None:
+                    print(" | Using FLU references provided by the user")
+                else:
+                    print(" | Using the default FLU references")
+                print(" ----------------------------------------------------------------------")
+                print(" | Atoms  :   {}".format("  ".join(str(atom) for atom in connectivity)))
+                print(" |")
+                print(" | FLU          {} =  {:>.6f}".format(ring_index + 1, flu))
         print(" ----------------------------------------------------------------------")
 
         print(" | BOA          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].boa))

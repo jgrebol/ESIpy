@@ -237,6 +237,34 @@ def mol_info(mol=None, mf=None, save=None, partition=None):
 
     return info
 
+# Add this function to `esipy/tools.py`
+def process_fragments(aom, rings, done=False):
+    """
+    Processes fragments by combining AOMs and updating rings.
+
+    :param aom: List of AOMs.
+    :param rings: List of rings (can include sets for fragments).
+    :returns: Updated AOMs, rings, and fragment AOMs.
+    :rtype: tuple (list, list, list)
+    """
+    import numpy as np
+
+    fragaom = []
+    nfrags = 0
+    for ring in rings:
+        for r in ring:
+            if isinstance(r, set):
+                nfrags += 1
+                if not done:
+                    print(f" | Fragment FF{len(aom) + nfrags}: {r}")
+                combined_aom = np.zeros_like(aom[0])
+                for atm in r:
+                    combined_aom += aom[atm - 1]
+                fragaom.append(combined_aom)
+            else:
+                fragaom.append(aom[r - 1])
+    return fragaom
+
 def format_partition(partition):
     """
     Filters the 'partition' attribute for flexibility.
