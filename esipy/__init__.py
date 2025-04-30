@@ -271,7 +271,6 @@ class IndicatorsRest:
         :returns: The BLA value.
         :rtype: float
         """
-        print(self._bla())
         if self._bla() is None:
             return [None, None]
         return self._bla()[0]
