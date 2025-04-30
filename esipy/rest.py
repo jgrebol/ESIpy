@@ -41,7 +41,7 @@ def info_rest(aom, molinfo, nfrags=0):
     print(" ------------------------------------------- ")
 
 
-def deloc_rest(aom, molinfo):
+def deloc_rest(aom, molinfo, fragmap={}):
     """
     Population analysis, localization and delocalization indices for restricted, single-determinant calculations.
 
@@ -53,7 +53,7 @@ def deloc_rest(aom, molinfo):
 
     # Checking where to read the atomic symbols from
     presymbols = molinfo["symbols"]
-    symbols = presymbols + ["FF"] * (len(aom)-len(presymbols))
+    symbols = presymbols + ["FF"] * (len(fragmap))
 
     print(" ------------------------------------- ")
     print(" | Atom    N(Sij)     loc.      dloc. ")
@@ -147,6 +147,7 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
 
     natoms = molinfo["symbols"]
     symbols = molinfo["symbols"] + ["FF"] * (len(fragmap))
+
     partition = molinfo["partition"]
     if not isinstance(rings[0], list):
         rings = [rings]
@@ -167,11 +168,12 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
             print(" | Using HOMA references provided by the user")
         else:
             print(" | Using default HOMA references")
-        homa = indicators[ring_index].homa
+        if frag:
+            print(" | Could not compute geometric indicators between fragments")
+            homa = None
+        else:
+            homa = indicators[ring_index].homa
         if homa is None:
-            if frag:
-                print(" | Could not compute geometric indicators between fragments")
-            else:
                 print(" | Connectivity could not match parameters")
         else:
             print(" | EN           {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].en))

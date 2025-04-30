@@ -265,7 +265,7 @@ def process_fragments(aom, rings, done=False):
                     combined_aom += aom[atm - 1]
                 fragaom.append(combined_aom)
             else:
-                fragaom.append(aom[r - 1])
+                continue
     return fragaom, fragmap
 
 def format_partition(partition):

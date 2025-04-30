@@ -42,7 +42,7 @@ def info_no(aom, molinfo, nfrags=0):
     print(" ------------------------------------------- ")
 
 
-def deloc_no(aom, molinfo):
+def deloc_no(aom, molinfo, fragmap={}):
     """
     Population analysis, localization and delocalization indices for correlated wavefunctions.
 
@@ -54,7 +54,11 @@ def deloc_no(aom, molinfo):
 
     aom, occ = aom
     presymbols = molinfo["symbols"]
+    a = len(presymbols)
     symbols = presymbols + ["FF"] * (len(aom)-len(presymbols))
+    if len(aom)-len(presymbols) > 0:
+        print(" | WARNING: Beta version of fragments with correlated wavefunctions")
+        print(" |          Results may not be accurate")
 
     # Getting the LIs and DIs
     difs, dixs, lifs, lixs, N = [], [], [], [], []
@@ -76,18 +80,20 @@ def deloc_no(aom, molinfo):
             if i != j:
                 dif = np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i], occ ** (1 / 2), aom[j])))
                 dix = 0.5 * np.trace(np.linalg.multi_dot((occ, aom[i], occ, aom[j])))
-                dlocF += dif
-                dlocX += dix
-                difs.append(dif)
-                dixs.append(dix)
+                if symbols[j] != "FF":
+                    dlocF += dif
+                    dlocX += dix
+                    difs.append(dlocF)
+                    dixs.append(dlocX)
 
         print(" | {:>2} {:>2d}  {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}".format(
-            symbols[i], i + 1, N[i], N[i] - lif, dlocX, lif, lix))
+            symbols[i], i + 1, N[i], dlocF, dlocX, lif, lix))
     print(" ---------------------------------------------------------- ")
     Ntot = np.sum(N[:len(presymbols)])
     lifstot = np.sum(lifs[:len(presymbols)])
     lixstot = np.sum(lixs[:len(presymbols)])
     dixstot = np.sum(dixs[:len(presymbols)])
+    difstot = Ntot - lifstot
     print(" | TOT:   {:>8.4f}  {:>8.4f}  {:>8.4f}  {:>8.4f}  {:>8.4f}".format(
         Ntot, Ntot-lifstot, dixstot, lifstot, lixstot))
     print(" ---------------------------------------------------------- ")
@@ -97,17 +103,21 @@ def deloc_no(aom, molinfo):
     print(" ---------------------------------- ")
     for i in range(len(aom)):
         for j in range(i, len(aom)):
+            if symbols[i] == "FF" or symbols[j] == "FF":
+                continue
             if i == j:
                 print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
                     symbols[i], i + 1, symbols[j], j + 1, lifs[i], lixs[i]))
             else:
-                print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
-                    symbols[i], i + 1, symbols[j], j + 1, 2 * difs[i * len(aom) + j - (i + 1)],
-                                2 * dixs[i * len(aom) + j - (i + 1)]))
+                dif = 2 * difs[i * len(aom) + j - (i + 1)]
+                dix = 2 * dixs[i * len(aom) + j - (i + 1)]
+                if symbols[i] != "FF" and symbols[j] != "FF":  # Exclude FF atoms from contributing
+                    print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
+                        symbols[i], i + 1, symbols[j], j + 1, dif, dix))
     print(" ---------------------------------- ")
-    print(" |   TOT:     {:>8.4f}  {:>8.4f}  ".format(np.sum(difs) + np.sum(lifs), np.sum(dixs) + np.sum(lixs)))
-    print(" |   LOC:     {:>8.4f}  {:>8.4f} ".format(np.sum(lifs), np.sum(lixs)))
-    print(" | DELOC:     {:>8.4f}  {:>8.4f} ".format(np.sum(difs), np.sum(dixs)))
+    print(" |   TOT:     {:>8.4f}  {:>8.4f}  ".format(Ntot, lixstot + dixstot))
+    print(" |   LOC:     {:>8.4f}  {:>8.4f} ".format(lifstot, lixstot))
+    print(" | DELOC:     {:>8.4f}  {:>8.4f} ".format(difstot, dixstot))
     print(" ---------------------------------- ")
 
 
@@ -182,7 +192,11 @@ def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None,
             print(" | Using HOMA references provided by the user")
         else:
             print(" | Using default HOMA references")
-        homa = indicators[ring_index].homa
+        if frag:
+            print(" | Could not compute geometric indicators between fragments")
+            homa = None
+        else:
+            homa = indicators[ring_index].homa
         if homa is None:
             print(" | Connectivity could not match parameters")
         else:

@@ -44,7 +44,7 @@ def info_unrest(aom, molinfo, nfrags=0):
     print(" ------------------------------------------- ")
 
 
-def deloc_unrest(aom, molinfo):
+def deloc_unrest(aom, molinfo, fragmap={}):
     """
     Population analysis, localization and delocalization indices for unrestricted, single-determinant calculations.
 
@@ -55,7 +55,7 @@ def deloc_unrest(aom, molinfo):
     """
 
     presymbols = molinfo["symbols"]
-    symbols = presymbols + ["FF"] * (len(aom[0])-len(presymbols))
+    symbols = presymbols + ["FF"] * (len(fragmap))
 
     # Getting the LIs and DIs
     dis_alpha, dis_beta = [], []
@@ -91,7 +91,7 @@ def deloc_unrest(aom, molinfo):
     listotb = np.sum(lis_beta[:len(presymbols)])
     distota = Ntota - listota
     distotb = Ntotb - listotb
-    print(" | TOT:    {:8.4f}  {:8.4f}  {:8.4f}   {:8.4f}   {:8.4f}".format(Ntota, Ntotb, listota, listotb, distota, distotb))
+    print(" | TOT:    {:8.4f}  {:8.4f}  {:8.4f}   {:8.4f}   {:8.4f}".format(Ntota+Ntotb, Ntota, Ntotb, distota, distotb))
     print(" ------------------------------------------------------------------- ")
     print(" ------------------------------------------- ")
     print(" |    Pair        DI       DIaa      DIbb ")
@@ -194,7 +194,11 @@ def arom_unrest(aom, rings, molinfo, indicators, mci=False, av1245=False, partit
         else:
             print(" | Using default HOMA references")
 
-        homa = indicators[ring_index].homa
+        if frag:
+            print(" | Could not compute geometric indicators between fragments")
+            homa = None
+        else:
+            homa = indicators[ring_index].homa
         if homa is None:
             print(" | Connectivity could not match parameters")
         else:
@@ -212,7 +216,7 @@ def arom_unrest(aom, rings, molinfo, indicators, mci=False, av1245=False, partit
 
                 print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homer))
 
-        if molinfo["geom"] is None:
+        if molinfo["geom"] is not None:
             pass
         else:
             bla = indicators[ring_index].bla

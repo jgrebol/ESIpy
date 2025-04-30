@@ -1167,32 +1167,45 @@ class ESI:
             self.rings = [self.rings]
         if wf == "rest":
             self.fragaom, self.fragmap = list(process_fragments(self.aom, self.rings, False))
+            if self.fragaom:
+                self.totalaom = self.aom + self.fragaom
+            else:
+                self.fragaom = self.aom
+                self.totalaom = self.aom
             self.nfrags = len(self.fragaom)
-            self.fragring = list(np.arange(1, len(self.fragaom) + 1))
-            self.totalaom = self.aom + self.fragaom
 
+            ring = []
             for i in self.rings:
+                for j in range(len(i)):
+                    ring.append(self.fragmap[tuple(i[j % len(i)])] if isinstance(i[j % len(i)], set) else i[j % len(i)])
                 self.indicators = []
-                self.indicators.append(IndicatorsRest(aom=self.fragaom, rings=self.fragring, mol=self.mol, mf=self.mf, myhf=self.myhf,
+                self.indicators.append(IndicatorsRest(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                       partition=self.partition, mci=self.mci,
                                                       av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs,
                                                       homerrefs=self.homerrefs, connectivity=self.connectivity,
                                                       geom=self.geom,
                                                       molinfo=self.molinfo, ncores=self.ncores))
         elif wf == "unrest":
+
             self.fragaom_a, self.fragmap = list(process_fragments(self.aom[0], self.rings, False))
-            self.fragaom_b, _ = list(process_fragments(self.aom[1], self.rings, True))
-            self.fragaom = [self.fragaom_a, self.fragaom_b]
-            for i in self.rings:
-                self.indicators = []
-                self.nfrags = len(self.fragaom_a)
-                self.fragring = list(np.arange(1, len(self.fragaom_a) + 1))
+            self.fragaom_b, self.fragmap = list(process_fragments(self.aom[1], self.rings, True))
+            if self.fragaom_a:
                 self.totalaom_a = self.aom[0] + self.fragaom_a
                 self.totalaom_b = self.aom[1] + self.fragaom_b
+                self.fragaom = [self.fragaom_a, self.fragaom_b]
                 self.totalaom = [self.totalaom_a, self.totalaom_b]
-            self.indicators = []
+
+            else:
+                self.fragaom = self.aom
+                self.totalaom = self.aom
+            self.nfrags = len(self.fragaom)
+
+            ring = []
             for i in self.rings:
-                self.indicators.append(IndicatorsUnrest(aom=self.fragaom, rings=self.fragring, mol=self.mol, mf=self.mf, myhf=self.myhf,
+                for j in range(len(i)):
+                    ring.append(self.fragmap[tuple(i[j % len(i)])] if isinstance(i[j % len(i)], set) else i[j % len(i)])
+                self.indicators = []
+                self.indicators.append(IndicatorsUnrest(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                         partition=self.partition, mci=self.mci,
                                                         av1245=self.av1245, flurefs=self.flurefs,
                                                         homarefs=self.homarefs, homerrefs=self.homerrefs,
@@ -1208,15 +1221,22 @@ class ESI:
                     elif self.partition == "iao":
                         raise ValueError(" | Can not compute Natural Orbitals and IAO from unrestricted orbitals YET.")
             aom, occ = self.aom
-            self._fragaom, self.fragmap = list(process_fragments(aom, self.rings, False))
-            self.fragaom = [self._fragaom, occ]
+            self.fragaom, self.fragmap = list(process_fragments(aom, self.rings, False))
+            if self.fragaom:
+                self.totalaom = aom + self.fragaom
+            else:
+                self.fragaom = aom
+                self.totalaom = aom
+            self.fragaom = [self.fragaom, occ]
+            self.totalaom = [self.totalaom, occ]
+            self.nfrags = len(self.fragaom)
+
+            ring = []
             for i in self.rings:
+                for j in range(len(i)):
+                    ring.append(self.fragmap[tuple(i[j % len(i)])] if isinstance(i[j % len(i)], set) else i[j % len(i)])
                 self.indicators = []
-                self.nfrags = len(self._fragaom)
-                self.fragring = list(np.arange(1, len(self._fragaom) + 1))
-                self.totalaom = aom + self._fragaom
-                self.totalaom = [self.totalaom, occ]
-                self.indicators.append(IndicatorsNatorb(aom=self.fragaom, rings=self.fragring, mol=self.mol, mf=self.mf, myhf=self.myhf,
+                self.indicators.append(IndicatorsNatorb(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                         partition=self.partition, mci=self.mci,
                                                         av1245=self.av1245, flurefs=self.flurefs,
                                                         homarefs=self.homarefs, homerrefs=self.homerrefs,
@@ -1227,7 +1247,7 @@ class ESI:
 
     @property
     def rings(self):
-        if self._rings == "find":
+        if self._rings == "find" or self._rings == "f":
             wf = wf_type(self.aom)
             if wf == "rest":
                 self._rings = find_rings(build_connec_rest(self.aom, self.rings_thres), self.minlen, self.maxlen)
@@ -1423,7 +1443,7 @@ class ESI:
         if wf_type(self.aom) == "rest":
             from esipy.rest import info_rest, deloc_rest, arom_rest
             info_rest(self.totalaom, self.molinfo, self.nfrags)
-            deloc_rest(self.totalaom, self.molinfo)
+            deloc_rest(self.totalaom, self.molinfo, self.fragmap)
             arom_rest(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                       av1245=self.av1245,
                       flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap)
@@ -1431,7 +1451,7 @@ class ESI:
         elif wf_type(self.aom) == "unrest":
             from esipy.unrest import info_unrest, deloc_unrest, arom_unrest
             info_unrest(self.totalaom, self.molinfo, self.nfrags)
-            deloc_unrest(self.totalaom, self.molinfo)
+            deloc_unrest(self.totalaom, self.molinfo, self.fragmap)
             arom_unrest(aom=self.aom, rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                         av1245=self.av1245, partition=self.partition,
                         flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap,)
@@ -1439,7 +1459,7 @@ class ESI:
         elif wf_type(self.aom) == "no":
             from esipy.no import info_no, deloc_no, arom_no
             info_no(self.totalaom, self.molinfo, self.nfrags)
-            deloc_no(self.totalaom, self.molinfo)
+            deloc_no(self.totalaom, self.molinfo, self.fragmap)
             arom_no(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                     av1245=self.av1245,
                     flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap,)

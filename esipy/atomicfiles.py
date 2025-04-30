@@ -171,7 +171,7 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
     shortpart = format_short_partition(partition)
 
     new_dir_name = name + "_" + shortpart
-    #symbols = [s.lower() for s in symbols]
+    symbols = [s.lower() for s in symbols]
     titles = [symbols[i] + str(atom_numbers[i]) for i in range(mol.natm)]  # Setting the title of the files
     new_dir_path = os.path.join(os.getcwd(), new_dir_name)
     os.makedirs(new_dir_path, exist_ok=True)
@@ -244,10 +244,13 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
                     for j in range(len(aom[i])):
                         for k in range(len(aom[i])):
                             f.write("{:.16E}  ".format(aom[i][j][k]))
+                        f.write("\n")
                 else:
                     for j in range(len(aom[i])):
-                        for k in range(j, len(aom[i])):
-                            f.write("{:.16E}  ".format(aom[i][j][k]))
+                        for k in range(len(aom[i])):
+                            if k <= j:
+                                f.write("{:.16E}  ".format(aom[i][j][k]))
+                        f.write("\n")
 
             f.write("\n\n")
             f.write("Molecular Orbital (MO) Data:\n")
