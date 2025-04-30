@@ -153,6 +153,21 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
 
     # Creating a new directory for the calculation
 
+    symbols = [mol.atom_symbol(i) for i in range(mol.natm)]
+    fragidx = mol.natm + 1
+    fragmap = {}
+    dofrag = False
+
+    # Mark fragments in the order they are defined
+    for i, sublist in enumerate(ring):
+        for j, element in enumerate(sublist):
+            if isinstance(element, set):
+                dofrag = True
+                fragmap[tuple(element)] = fragidx
+                sublist[j] = fragidx
+                fragidx += 1
+
+
     shortpart = format_short_partition(partition)
 
     new_dir_name = name + "_" + shortpart
@@ -299,34 +314,21 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
                 f.write("$NOMCI\n")
             if isinstance(ring[0], int):
                 ring = [ring]
-            dofrag = False
-            for arr in ring:
-                for r in arr:
-                    if isinstance(r, set):
-                        dofrag = True
-                        break
             if dofrag:
                 if len(ring) != 1:
                     raise ValueError(" | To write fragments, only one ring can be specified.")
                 f.write("$FRAGMENTS\n")
-                f.write(f"{len(ring[0])}\n")
-                for sublist in ring:
-                    for elem in sublist:
-                        if isinstance(elem, int):
-                            f.write(f"1\n{elem} ")
-                        elif isinstance(elem, set):
-                            f.write(f"{len(elem)}\n")
-                            f.write(" ".join(str(value) for value in elem))
-                        f.write("\n")
-            elif ring:
-                f.write("$RING\n")
-                f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
-                for sublist in ring:
-                    f.write(str(len(sublist)) + "\n")
-                    f.write(" ".join(str(value) for value in sublist))
+                f.write(f"{len(fragmap)}\n")
+                for fragatm in fragmap.keys():
+                    f.write(f"{len(fragatm)}\n")
+                    f.write(" ".join(str(value) for value in fragatm))
                     f.write("\n")
-            else:
-                f.write("\n")  # No ring specified, write it manually
+            f.write("$RING\n")
+            f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
+            for sublist in ring:
+                f.write(str(len(sublist)) + "\n")
+                f.write(" ".join(str(value) for value in sublist))
+                f.write("\n")
             f.write("$ATOMS\n")
             f.write(str(mol.natm) + "\n")
             for title in titles:
@@ -351,20 +353,21 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
             f.write(name + ".wfx\n")
             if not domci:
                 f.write("$NOMCI\n")
-            f.write("$RING\n")
-            if ring is not None:
-                if isinstance(ring[0], int):  # If only one ring is specified
-                    f.write("1\n{}\n".format(len(ring)))
-                    f.write(" ".join(str(value) for value in ring))
+            if dofrag:
+                if len(ring) != 1:
+                    raise ValueError(" | To write fragments, only one ring can be specified.")
+                f.write("$FRAGMENTS\n")
+                f.write(f"{len(fragmap)}\n")
+                for fragatm in fragmap.keys():
+                    f.write(f"{len(fragatm)}\n")
+                    f.write(" ".join(str(value) for value in fragatm))
                     f.write("\n")
-                else:
-                    f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
-                    for sublist in ring:
-                        f.write(str(len(sublist)) + "\n")
-                        f.write(" ".join(str(value) for value in sublist))
-                        f.write("\n")
-                    else:
-                        f.write("\n")  # No ring specified, write it manually
+            f.write("$RING\n")
+            f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
+            for sublist in ring:
+                f.write(str(len(sublist)) + "\n")
+                f.write(" ".join(str(value) for value in sublist))
+                f.write("\n")
             f.write("$AV1245\n")
             f.write("$FULLOUT\n")
             if partition == "mulliken":

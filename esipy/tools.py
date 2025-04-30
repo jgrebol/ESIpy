@@ -250,10 +250,13 @@ def process_fragments(aom, rings, done=False):
     import numpy as np
 
     fragaom = []
+    fragmap = {}
     nfrags = 0
     for ring in rings:
         for r in ring:
             if isinstance(r, set):
+                if tuple(r) not in fragmap:
+                    fragmap[tuple(r)] = nfrags + len(aom) + 1
                 nfrags += 1
                 if not done:
                     print(f" | Fragment FF{len(aom) + nfrags}: {r}")
@@ -263,7 +266,7 @@ def process_fragments(aom, rings, done=False):
                 fragaom.append(combined_aom)
             else:
                 fragaom.append(aom[r - 1])
-    return fragaom
+    return fragaom, fragmap
 
 def format_partition(partition):
     """

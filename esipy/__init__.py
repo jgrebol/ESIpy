@@ -1166,7 +1166,7 @@ class ESI:
         if isinstance(self.rings[0], int) or isinstance(self.rings[0], set):
             self.rings = [self.rings]
         if wf == "rest":
-            self.fragaom = list(process_fragments(self.aom, self.rings, False))
+            self.fragaom, self.fragmap = list(process_fragments(self.aom, self.rings, False))
             self.nfrags = len(self.fragaom)
             self.fragring = list(np.arange(1, len(self.fragaom) + 1))
             self.totalaom = self.aom + self.fragaom
@@ -1180,8 +1180,8 @@ class ESI:
                                                       geom=self.geom,
                                                       molinfo=self.molinfo, ncores=self.ncores))
         elif wf == "unrest":
-            self.fragaom_a = list(process_fragments(self.aom[0], self.rings, False))
-            self.fragaom_b = list(process_fragments(self.aom[1], self.rings, True))
+            self.fragaom_a, self.fragmap = list(process_fragments(self.aom[0], self.rings, False))
+            self.fragaom_b, _ = list(process_fragments(self.aom[1], self.rings, True))
             self.fragaom = [self.fragaom_a, self.fragaom_b]
             for i in self.rings:
                 self.indicators = []
@@ -1208,7 +1208,7 @@ class ESI:
                     elif self.partition == "iao":
                         raise ValueError(" | Can not compute Natural Orbitals and IAO from unrestricted orbitals YET.")
             aom, occ = self.aom
-            self._fragaom = list(process_fragments(aom, self.rings, False))
+            self._fragaom, self.fragmap = list(process_fragments(aom, self.rings, False))
             self.fragaom = [self._fragaom, occ]
             for i in self.rings:
                 self.indicators = []
@@ -1426,7 +1426,7 @@ class ESI:
             deloc_rest(self.totalaom, self.molinfo)
             arom_rest(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                       av1245=self.av1245,
-                      flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores)
+                      flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap)
 
         elif wf_type(self.aom) == "unrest":
             from esipy.unrest import info_unrest, deloc_unrest, arom_unrest
@@ -1434,7 +1434,7 @@ class ESI:
             deloc_unrest(self.totalaom, self.molinfo)
             arom_unrest(aom=self.aom, rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                         av1245=self.av1245, partition=self.partition,
-                        flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores)
+                        flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap,)
 
         elif wf_type(self.aom) == "no":
             from esipy.no import info_no, deloc_no, arom_no
@@ -1442,7 +1442,7 @@ class ESI:
             deloc_no(self.totalaom, self.molinfo)
             arom_no(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                     av1245=self.av1245,
-                    flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores)
+                    flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap,)
 
 
 environ["NUMEXPR_NUM_THREADS"] = "1"

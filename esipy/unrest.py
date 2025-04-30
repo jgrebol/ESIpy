@@ -121,8 +121,7 @@ def deloc_unrest(aom, molinfo):
 
 
 def arom_unrest(aom, rings, molinfo, indicators, mci=False, av1245=False, partition=None, flurefs=None, homarefs=None,
-                homerrefs=None,
-                ncores=1):
+                homerrefs=None, ncores=1, fragmap=None):
     """
     Outputs the aromaticity indices for unrestricted, single-determinant wavefunctions.
 
@@ -165,32 +164,28 @@ def arom_unrest(aom, rings, molinfo, indicators, mci=False, av1245=False, partit
     print(" ----------------------------------------------------------------------")
 
     # Checking where to read the atomic symbols from
-    if molinfo:
-        symbols = molinfo["symbols"]
-        partition = molinfo["partition"]
-    else:
+    if not molinfo:
         raise NameError(" 'molinfo' not found. Check input")
+
+    natoms=molinfo["symbols"]
+    symbols = molinfo["symbols"] + ["FF"] * (len(fragmap))
+    partition = molinfo["partition"]
 
     # Checking if the list rings is contains more than one ring to analyze
     if not isinstance(rings[0], list):
         rings = [rings]
 
     # Looping through each of the rings
-    frag = False
     for ring_index, ring in enumerate(rings):
-        for r in ring:
-            if isinstance(r, set):
-                connectivity = None
-                frag = True
-                break
-            else:
-                connectivity = [symbols[int(i) - 1] for i in ring]
+        frag = True if fragmap is not None else False
+        connectivity = None if frag else [symbols[int(i) - 1] for i in rings[0]]
         print(" ----------------------------------------------------------------------")
         print(" |")
         print(" | Ring  {} ({}):   {}".format(
             ring_index + 1, len(ring), "  ".join(str(num) for num in ring)))
         print(" |")
         print(" ----------------------------------------------------------------------")
+        goodring = ring
         ring = list(np.arange(1, len(ring) + 1))
 
         # Starting the calculation of the aromaticity indicators
@@ -298,50 +293,68 @@ def arom_unrest(aom, rings, molinfo, indicators, mci=False, av1245=False, partit
             else:
                 av1245_list_alpha = indicators[ring_index].av1245_list_alpha
                 av1245_list_beta = indicators[ring_index].av1245_list_beta
-                av1245_list = indicators[ring_index].av1245_list
+                av1245_pairs, av1245_indices = [], []
+                for i in range(len(goodring)):
+                    first = fragmap[tuple(goodring[i % len(goodring)])] if isinstance(goodring[i % len(goodring)], set) else goodring[i % len(goodring)]
+                    second = fragmap[tuple(goodring[(i + 1) % len(goodring)])] if isinstance(
+                        goodring[(i + 1) % len(goodring)], set) else goodring[(i + 1) % len(goodring)]
+                    third = fragmap[tuple(goodring[(i + 3) % len(goodring)])] if isinstance(
+                        goodring[(i + 3) % len(goodring)], set) else goodring[(i + 3) % len(goodring)]
+                    fourth = fragmap[tuple(goodring[(i + 4) % len(goodring)])] if isinstance(
+                        goodring[(i + 4) % len(goodring)], set) else goodring[(i + 4) % len(goodring)]
+
+
+                    # Create the ring with corresponding symbols
+                    symbs = [
+                        symbols[first - 1] if isinstance(first, int) else symbols[first],
+                        symbols[second - 1] if isinstance(second, int) else symbols[second],
+                        symbols[third - 1] if isinstance(third, int) else symbols[third],
+                        symbols[fourth - 1] if isinstance(fourth, int) else symbols[fourth]
+                    ]
+
+                    av1245_pairs.append(symbs)
+                    av1245_indices.append((first, second, third, fourth))
 
                 print(" |")
                 print(" | *** AV1245_ALPHA ***")
                 for j in range(len(ring)):
-                    print(" |  {} {} - {} {} - {} {} - {} {}  |  {:>9.4f}".format(
-                        str(ring[j]).rjust(2), symbols[(ring[j % len(ring)] - 1)],
-                        str(ring[(j + 1) % len(ring)]).rjust(2), symbols[(ring[(j + 1) % len(ring)] - 1)],
-                        str(ring[(j + 3) % len(ring)]).rjust(2), symbols[(ring[(j + 3) % len(ring)] - 1)],
-                        str(ring[(j + 4) % len(ring)]).rjust(2), symbols[(ring[(j + 4) % len(ring)] - 1)],
-                        av1245_list_alpha[(ring[j] - 1) % len(ring)]))
-                print(" |   AV1245_alpha {} =             {:>9.4f}".format(ring_index + 1,
-                                                                           indicators[ring_index].av1245_alpha))
-                print(" |    AVmin_alpha {} =             {:>9.4f}".format(ring_index + 1,
-                                                                           indicators[ring_index].avmin_alpha))
-
+                    symbs = av1245_pairs[j]
+                    av1245_idx = av1245_indices[j]
+                    print(" |  {} {} - {} {} - {} {} - {} {}  |  {:>6.4f}".format(
+                    str(av1245_idx[0]).rjust(2), symbs[0].ljust(2),
+                    str(av1245_idx[1]).rjust(2), symbs[1].ljust(2),
+                    str(av1245_idx[2]).rjust(2), symbs[2].ljust(2),
+                    str(av1245_idx[3]).rjust(2), symbs[3].ljust(2),
+                    av1245_list_alpha[(av1245_idx[0] - 1) % len(ring)]))
                 print(" |")
                 print(" | *** AV1245_BETA ***")
-
                 for j in range(len(ring)):
-                    print(" |  {} {} - {} {} - {} {} - {} {}  |  {:>9.4f}".format(
-                        str(ring[j]).rjust(2), symbols[(ring[j % len(ring)] - 1)],
-                        str(ring[(j + 1) % len(ring)]).rjust(2), symbols[(ring[(j + 1) % len(ring)] - 1)],
-                        str(ring[(j + 3) % len(ring)]).rjust(2), symbols[(ring[(j + 3) % len(ring)] - 1)],
-                        str(ring[(j + 4) % len(ring)]).rjust(2), symbols[(ring[(j + 4) % len(ring)] - 1)],
-                        av1245_list_beta[(ring[j] - 1) % len(ring)]))
-                print(" |   AV1245_beta  {} =             {:>9.4f}".format(ring_index + 1,
-                                                                           indicators[ring_index].av1245_beta))
-                print(" |    AVmin_beta  {} =             {:>9.4f}".format(ring_index + 1,
-                                                                           indicators[ring_index].avmin_beta))
+                    symbs = av1245_pairs[j]
+                    av1245_idx = av1245_indices[j]
+                    print(" |  {} {} - {} {} - {} {} - {} {}  |  {:>6.4f}".format(
+                        str(av1245_idx[0]).rjust(2), symbs[0].ljust(2),
+                        str(av1245_idx[1]).rjust(2), symbs[1].ljust(2),
+                        str(av1245_idx[2]).rjust(2), symbs[2].ljust(2),
+                        str(av1245_idx[3]).rjust(2), symbs[3].ljust(2),
+                        av1245_list_beta[(av1245_idx[0] - 1) % len(ring)]))
                 print(" | ")
                 print(" | *** AV1245_TOTAL ***")
                 for j in range(len(ring)):
-                    print(" |  {} {} - {} {} - {} {} - {} {}  |  {:>9.4f}".format(
-                        str(ring[j]).rjust(2), symbols[(ring[j % len(ring)] - 1)],
-                        str(ring[(j + 1) % len(ring)]).rjust(2), symbols[(ring[(j + 1) % len(ring)] - 1)],
-                        str(ring[(j + 3) % len(ring)]).rjust(2), symbols[(ring[(j + 3) % len(ring)] - 1)],
-                        str(ring[(j + 4) % len(ring)]).rjust(2), symbols[(ring[(j + 4) % len(ring)] - 1)],
-                        av1245_list[(ring[j] - 1) % len(ring)]))
-                print(
-                    " |   AV1245       {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].av1245))
-                print(
-                    " |    AVmin       {} =             {:>9.4f}".format(ring_index + 1, indicators[ring_index].avmin))
-                print(" ---------------------------------------------------------------------- ")
+                    symbs = av1245_pairs[j]
+                    av1245_idx = av1245_indices[j]
+                    print(" |  {} {} - {} {} - {} {} - {} {}  |  {:>6.4f}".format(
+                        str(av1245_idx[0]).rjust(2), symbs[0].ljust(2),
+                        str(av1245_idx[1]).rjust(2), symbs[1].ljust(2),
+                        str(av1245_idx[2]).rjust(2), symbs[2].ljust(2),
+                        str(av1245_idx[3]).rjust(2), symbs[3].ljust(2),
+                        av1245_list_alpha[(av1245_idx[0] - 1) % len(ring)]
+                        +av1245_list_beta[(av1245_idx[0] - 1) % len(ring)]))
+            print(" |")
+            print(" | AV1245 {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].av1245))
+            print(" |  AVmin {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].avmin))
+            print(" ---------------------------------------------------------------------- ")
+
+
 
         iring_alpha = indicators[ring_index].iring_alpha
         iring_beta = indicators[ring_index].iring_beta

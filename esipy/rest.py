@@ -101,7 +101,7 @@ def deloc_rest(aom, molinfo):
 
 
 def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None, homarefs=None, homerrefs=None,
-              ncores=1):
+              ncores=1, fragmap=None):
     """
     Output for the aromaticity indices for restricted, single-determinant calculations.
 
@@ -140,31 +140,27 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
     print(" ----------------------------------------------------------------------")
 
     # Checking where to read the atomic symbols from
-    if molinfo:
-        symbols = molinfo["symbols"]
-        partition = molinfo["partition"]
-    else:
+    if not molinfo:
         raise NameError(" 'molinfo' not found. Check input")
 
     # Checking if the list rings is contains more than one ring to analyze
+
+    natoms = molinfo["symbols"]
+    symbols = molinfo["symbols"] + ["FF"] * (len(fragmap))
+    partition = molinfo["partition"]
     if not isinstance(rings[0], list):
         rings = [rings]
 
     # Looping through each of the rings
-    frag = False
     for ring_index, ring in enumerate(rings):
-        for r in ring:
-            if isinstance(r, set):
-                connectivity = None
-                frag = True
-                break
-            else:
-                connectivity = [symbols[int(i) - 1] for i in ring]
+        frag = True if fragmap is not None else False
+        connectivity = None if frag else [symbols[int(i) - 1] for i in rings[0]]
         print(" ----------------------------------------------------------------------")
         print(" |")
         print(" | Ring  {} ({}):   {}".format(ring_index + 1, len(ring), "  ".join(str(num) for num in ring)))
         print(" |")
         print(" ----------------------------------------------------------------------")
+        goodring = ring
         ring = list(np.arange(1, len(ring) + 1))
 
         if homarefs is not None:
@@ -236,17 +232,34 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
 
             else:
                 av1245_list = indicators[ring_index].av1245_list
-                av1245_pairs = [(ring[i % len(ring)], ring[(i + 1) % len(ring)], ring[(i + 3) % len(ring)],
-                                 ring[(i + 4) % len(ring)])
-                                for i in range(len(ring))]
+                av1245_pairs, av1245_indices = [], []
+                for i in range(len(goodring)):
+                    first = fragmap[tuple(goodring[i % len(goodring)])] if isinstance(goodring[i % len(goodring)], set) else goodring[i % len(goodring)]
+                    second = fragmap[tuple(goodring[(i + 1) % len(goodring)])] if isinstance(
+                        goodring[(i + 1) % len(goodring)], set) else goodring[(i + 1) % len(goodring)]
+                    third = fragmap[tuple(goodring[(i + 3) % len(goodring)])] if isinstance(
+                        goodring[(i + 3) % len(goodring)], set) else goodring[(i + 3) % len(goodring)]
+                    fourth = fragmap[tuple(goodring[(i + 4) % len(goodring)])] if isinstance(
+                        goodring[(i + 4) % len(goodring)], set) else goodring[(i + 4) % len(goodring)]
 
-                for j in range(len(ring)):
+
+                    # Create the ring with corresponding symbols
+                    symbs = [
+                        symbols[first - 1] if isinstance(first, int) else symbols[first],
+                        symbols[second - 1] if isinstance(second, int) else symbols[second],
+                        symbols[third - 1] if isinstance(third, int) else symbols[third],
+                        symbols[fourth - 1] if isinstance(fourth, int) else symbols[fourth]
+                    ]
+
+                    av1245_pairs.append(symbs)
+                    av1245_indices.append((first, second, third, fourth))
+
                     print(" |  {} {} - {} {} - {} {} - {} {}  |  {:>6.4f}".format(
-                        str(ring[j]).rjust(2), symbols[av1245_pairs[j][0] - 1].ljust(2),
-                        str(ring[(j + 1) % len(ring)]).rjust(2), symbols[av1245_pairs[j][1] - 1].ljust(2),
-                        str(ring[(j + 3) % len(ring)]).rjust(2), symbols[av1245_pairs[j][2] - 1].ljust(2),
-                        str(ring[(j + 4) % len(ring)]).rjust(2), symbols[av1245_pairs[j][3] - 1].ljust(2),
-                        av1245_list[(ring[j] - 1) % len(ring)]))
+                    str(av1245_indices[-1][0]).rjust(2), symbs[0].ljust(2),
+                    str(av1245_indices[-1][1]).rjust(2), symbs[1].ljust(2),
+                    str(av1245_indices[-1][2]).rjust(2), symbs[2].ljust(2),
+                    str(av1245_indices[-1][3]).rjust(2), symbs[3].ljust(2),
+                    av1245_list[(av1245_indices[-1][0] - 1) % len(ring)]))
                 print(" | AV1245 {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].av1245))
                 print(" |  AVmin {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].avmin))
                 print(" ---------------------------------------------------------------------- ")
