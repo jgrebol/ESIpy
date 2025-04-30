@@ -238,6 +238,36 @@ def mol_info(mol=None, mf=None, save=None, partition=None):
 
     return info
 
+# Add this function to `esipy/tools.py`
+def process_fragments(aom, rings, done=False):
+    """
+    Processes fragments by combining AOMs and updating rings.
+
+    :param aom: List of AOMs.
+    :param rings: List of rings (can include sets for fragments).
+    :returns: Updated AOMs, rings, and fragment AOMs.
+    :rtype: tuple (list, list, list)
+    """
+    import numpy as np
+
+    fragaom = []
+    fragmap = {}
+    nfrags = 0
+    for ring in rings:
+        for r in ring:
+            if isinstance(r, set):
+                if tuple(r) not in fragmap:
+                    fragmap[tuple(r)] = nfrags + len(aom) + 1
+                nfrags += 1
+                if not done:
+                    print(f" | Fragment FF{len(aom) + nfrags}: {r}")
+                combined_aom = np.zeros_like(aom[0])
+                for atm in r:
+                    combined_aom += aom[atm - 1]
+                fragaom.append(combined_aom)
+            else:
+                continue
+    return fragaom, fragmap
 
 def format_partition(partition):
     """
@@ -261,6 +291,8 @@ def format_partition(partition):
         return "nao"
     elif partition in ["i", "iao", "intrinsic", "intr"]:
         return "iao"
+    elif partition in ["q", "qt", "qtaim", "quant", "quantum"]:
+        return "qtaim"
     else:
         raise NameError(" | Invalid partition scheme")
 
@@ -282,7 +314,7 @@ def format_short_partition(partition):
         return "low"
     elif partition == "meta_lowdin":
         return "metalow"
-    elif partition == "nao" or partition == "iao":
+    elif partition == "nao" or partition == "iao" or partition == "qtaim":
         return partition
     else:
         raise NameError(" | Invalid partition scheme")
@@ -362,7 +394,7 @@ def build_connec_rest(Smo, thres=0.3):
                     if i not in connec_dict:
                         connec_dict[i] = []
                     connec_dict[i].append(j)
-    return connec_dict
+    return filter_connec(connec_dict)
 
 def build_connec_unrest(Smo, thres=0.3):
     natoms = len(Smo[0])
@@ -378,7 +410,7 @@ def build_connec_unrest(Smo, thres=0.3):
                     if i not in connec_dict:
                         connec_dict[i] = []
                     connec_dict[i].append(j)
-    return connec_dict
+    return filter_connec(connec_dict)
 
 def build_connec_no(Smo, thres=0.3):
     connec_dict = {}
@@ -390,7 +422,7 @@ def build_connec_no(Smo, thres=0.3):
                     if i not in connec_dict:
                         connec_dict[i] = []
                     connec_dict[i].append(j)
-    return connec_dict
+    return filter_connec(connec_dict)
 
 def find_rings(connec, minlen=6, maxlen=6):
     def dfs(connec, minlen, maxlen, start):
@@ -415,7 +447,7 @@ def find_rings(connec, minlen=6, maxlen=6):
     all_paths = []
     starts = find_middle_nodes(connec)
     if not starts:
-        starts = [0]
+        starts = [1]
     for start in starts:
         for path in dfs(connec, minlen, maxlen, start):
             if unique(path, all_paths):
@@ -440,22 +472,22 @@ def is_fused(arr, connec):
 def find_middle_nodes(connec2):
     return [key for key, vals in connec2.items() if len(vals) > 2]
 
-def find_node_distances(graph):
+def find_node_distances(connec):
    distances = defaultdict(dict)
 
-   for start in graph:
+   for start in connec:
        queue = deque([(start, 0)])
        visited = set()
 
        while queue:
-           current_node, current_dist = queue.popleft()
+           cur_node, cur_dist = queue.popleft()
 
-           if current_node not in visited:
-               visited.add(current_node)
-               distances[start][current_node] = current_dist
+           if cur_node not in visited:
+               visited.add(cur_node)
+               distances[start][cur_node] = cur_dist
 
-               for neighbor in graph[current_node]:
+               for neighbor in connec[cur_node]:
                    if neighbor not in visited:
-                       queue.append((neighbor, current_dist + 1))
+                       queue.append((neighbor, cur_dist + 1))
 
    return distances

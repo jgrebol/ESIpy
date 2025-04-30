@@ -1,6 +1,7 @@
 import os
 import re
 import numpy as np
+from charset_normalizer.md import is_arabic_isolated_form
 
 from esipy.tools import wf_type, format_short_partition, load_file
 
@@ -152,10 +153,25 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
 
     # Creating a new directory for the calculation
 
+    symbols = [mol.atom_symbol(i) for i in range(mol.natm)]
+    fragidx = mol.natm + 1
+    fragmap = {}
+    dofrag = False
+
+    # Mark fragments in the order they are defined
+    for i, sublist in enumerate(ring):
+        for j, element in enumerate(sublist):
+            if isinstance(element, set):
+                dofrag = True
+                fragmap[tuple(element)] = fragidx
+                sublist[j] = fragidx
+                fragidx += 1
+
+
     shortpart = format_short_partition(partition)
 
     new_dir_name = name + "_" + shortpart
-    #symbols = [s.lower() for s in symbols]
+    symbols = [s.lower() for s in symbols]
     titles = [symbols[i] + str(atom_numbers[i]) for i in range(mol.natm)]  # Setting the title of the files
     new_dir_path = os.path.join(os.getcwd(), new_dir_name)
     os.makedirs(new_dir_path, exist_ok=True)
@@ -228,10 +244,13 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
                     for j in range(len(aom[i])):
                         for k in range(len(aom[i])):
                             f.write("{:.16E}  ".format(aom[i][j][k]))
+                        f.write("\n")
                 else:
                     for j in range(len(aom[i])):
-                        for k in range(j, len(aom[i])):
-                            f.write("{:.16E}  ".format(aom[i][j][k]))
+                        for k in range(len(aom[i])):
+                            if k <= j:
+                                f.write("{:.16E}  ".format(aom[i][j][k]))
+                        f.write("\n")
 
             f.write("\n\n")
             f.write("Molecular Orbital (MO) Data:\n")
@@ -296,20 +315,23 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
                 f.write("hf\n")
             if not domci:
                 f.write("$NOMCI\n")
-            f.write("$RING\n")
-            if ring is not None:
-                if isinstance(ring[0], int):  # If only one ring is specified
-                    f.write("1\n{}\n".format(len(ring)))
-                    f.write(" ".join(str(value) for value in ring))
+            if isinstance(ring[0], int):
+                ring = [ring]
+            if dofrag:
+                if len(ring) != 1:
+                    raise ValueError(" | To write fragments, only one ring can be specified.")
+                f.write("$FRAGMENTS\n")
+                f.write(f"{len(fragmap)}\n")
+                for fragatm in fragmap.keys():
+                    f.write(f"{len(fragatm)}\n")
+                    f.write(" ".join(str(value) for value in fragatm))
                     f.write("\n")
-                else:
-                    f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
-                    for sublist in ring:
-                        f.write(str(len(sublist)) + "\n")
-                        f.write(" ".join(str(value) for value in sublist))
-                        f.write("\n")
-            else:
-                f.write("\n")  # No ring specified, write it manually
+            f.write("$RING\n")
+            f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
+            for sublist in ring:
+                f.write(str(len(sublist)) + "\n")
+                f.write(" ".join(str(value) for value in sublist))
+                f.write("\n")
             f.write("$ATOMS\n")
             f.write(str(mol.natm) + "\n")
             for title in titles:
@@ -334,20 +356,21 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
             f.write(name + ".wfx\n")
             if not domci:
                 f.write("$NOMCI\n")
-            f.write("$RING\n")
-            if ring is not None:
-                if isinstance(ring[0], int):  # If only one ring is specified
-                    f.write("1\n{}\n".format(len(ring)))
-                    f.write(" ".join(str(value) for value in ring))
+            if dofrag:
+                if len(ring) != 1:
+                    raise ValueError(" | To write fragments, only one ring can be specified.")
+                f.write("$FRAGMENTS\n")
+                f.write(f"{len(fragmap)}\n")
+                for fragatm in fragmap.keys():
+                    f.write(f"{len(fragatm)}\n")
+                    f.write(" ".join(str(value) for value in fragatm))
                     f.write("\n")
-                else:
-                    f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
-                    for sublist in ring:
-                        f.write(str(len(sublist)) + "\n")
-                        f.write(" ".join(str(value) for value in sublist))
-                        f.write("\n")
-                    else:
-                        f.write("\n")  # No ring specified, write it manually
+            f.write("$RING\n")
+            f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
+            for sublist in ring:
+                f.write(str(len(sublist)) + "\n")
+                f.write(" ".join(str(value) for value in sublist))
+                f.write("\n")
             f.write("$AV1245\n")
             f.write("$FULLOUT\n")
             if partition == "mulliken":
