@@ -36,7 +36,7 @@ def info_rest(aom, molinfo, nfrags=0):
     else:
         print(" | Total energy:             {:<13f}".format(molinfo["energy"]))
     print(" ------------------------------------------- ")
-    trace = np.sum([np.trace(matrix) for matrix in aom][:len(aom)-nfrags])
+    trace = np.sum([np.trace(matrix) for matrix in aom[:len(aom)-nfrags]])
     print(" | Tr(Enter):    {:.13f}".format(trace))
     print(" ------------------------------------------- ")
 
@@ -60,21 +60,23 @@ def deloc_rest(aom, molinfo, fragmap={}):
     print(" ------------------------------------- ")
 
     # Getting the LIs and DIs
-    dis, lis, N = [], [], []
+    dis, lis, Ns = [], [], []
     for i in range(len(aom)):
         li = 2 * np.trace(np.dot(aom[i], aom[i]))
+        N = 2 * np.trace(aom[i])
         lis.append(li)
-        N.append(2 * np.trace(aom[i]))
+        Ns.append(N)
 
         print(" | {:>2}{:>2d}  {:>8.4f}  {:>8.4f}  {:>8.4f} ".format(
-            symbols[i], i + 1, N[i], lis[i], N[i] - lis[i]))
+            symbols[i], i + 1, N, li, N - li))
 
         for j in range(i + 1, len(aom)):
             di = 4 * np.trace(np.dot(aom[i], aom[j]))
-            dis.append(di)
-    Ntot = np.sum(N[:len(presymbols)])
-    distot = np.sum(dis[:len(presymbols)])
-    listot = Ntot - distot
+            if j < len(presymbols):
+                dis.append(di)
+    Ntot = np.sum(Ns[:len(presymbols)])
+    listot = np.sum(lis[:len(presymbols)])
+    distot = Ntot - listot
     print(" ------------------------------------- ")
     print(" | TOT:  {:>8.4f}  {:>8.4f}  {:>8.4f}".format(
         Ntot, listot, distot))
