@@ -1,8 +1,6 @@
 import os
 import re
 import numpy as np
-from charset_normalizer.md import is_arabic_isolated_form
-
 from esipy.tools import wf_type, format_short_partition, load_file
 
 
