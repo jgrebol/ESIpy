@@ -1168,10 +1168,10 @@ class ESI:
             self.fragaom, self.fragmap = list(process_fragments(self.aom, self.rings, False))
             if self.fragaom:
                 self.totalaom = self.aom + self.fragaom
-                self.nfrags = len(self.fragaom)
             else:
+                self.fragaom = self.aom
                 self.totalaom = self.aom
-                self.nfrags = 0
+            self.nfrags = len(self.fragaom)
 
             ring = []
             for i in self.rings:
@@ -1193,11 +1193,11 @@ class ESI:
                 self.totalaom_b = self.aom[1] + self.fragaom_b
                 self.fragaom = [self.fragaom_a, self.fragaom_b]
                 self.totalaom = [self.totalaom_a, self.totalaom_b]
-                self.nfrags = len(self.fragaom_a)
 
             else:
+                self.fragaom = self.aom
                 self.totalaom = self.aom
-                self.nfrags = 0
+            self.nfrags = len(self.fragaom)
 
             ring = []
             for i in self.rings:
@@ -1223,11 +1223,12 @@ class ESI:
             self.fragaom, self.fragmap = list(process_fragments(aom, self.rings, False))
             if self.fragaom:
                 self.totalaom = aom + self.fragaom
-                self.nfrags = len(self.fragaom)
             else:
+                self.fragaom = aom
                 self.totalaom = aom
-                self.nfrags = 0
+            self.fragaom = [self.fragaom, occ]
             self.totalaom = [self.totalaom, occ]
+            self.nfrags = len(self.fragaom)
 
             ring = []
             for i in self.rings:
