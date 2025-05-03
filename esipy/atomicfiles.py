@@ -127,6 +127,7 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
         - A 'name.bad' file with a standard input for the ESI-3D code.
         - For Natural Orbitals, a 'name.wfx' file with the occupancies for the ESI-3D code.
     """
+    from copy import deepcopy
 
     if isinstance(aom, str):
         aom = load_file(aom)
@@ -156,8 +157,10 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
     fragmap = {}
     dofrag = False
 
+    ringcopy = deepcopy(ring)
+
     # Mark fragments in the order they are defined
-    for i, sublist in enumerate(ring):
+    for i, sublist in enumerate(ringcopy):
         for j, element in enumerate(sublist):
             if isinstance(element, set):
                 dofrag = True
