@@ -1162,9 +1162,8 @@ class ESI:
 
 
         wf = wf_type(self.aom)
-        if isinstance(self.rings[0], int) or isinstance(self.rings[0], set):
-            self.rings = [self.rings]
         if wf == "rest":
+
             self.fragaom, self.fragmap = list(process_fragments(self.aom, self.rings, False))
             if self.fragaom:
                 self.totalaom = self.aom + self.fragaom
@@ -1173,12 +1172,15 @@ class ESI:
                 self.totalaom = self.aom
                 self.nfrags = 0
 
-            ring = []
+            self.indicators = []
             for i in self.rings:
-                for j in range(len(i)):
-                    ring.append(self.fragmap[tuple(i[j % len(i)])] if isinstance(i[j % len(i)], set) else i[j % len(i)])
-                self.indicators = []
-                self.indicators.append(IndicatorsRest(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
+                ring = []
+                for j in i:
+                    if isinstance(j, set):
+                        ring.append(self.fragmap[tuple(j)] if isinstance(j, set) else j)
+                    else:
+                        ring.append(j)
+                    self.indicators.append(IndicatorsRest(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                       partition=self.partition, mci=self.mci,
                                                       av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs,
                                                       homerrefs=self.homerrefs, connectivity=self.connectivity,
@@ -1244,23 +1246,33 @@ class ESI:
         else:
             raise ValueError(" | Could not determine the wavefunction type")
 
+        self._aom = self.totalaom
+        self._aom_loaded = True
+
     @property
     def rings(self):
         if self._rings == "find" or self._rings == "f":
+            foundrings = []
             wf = wf_type(self.aom)
             if wf == "rest":
-                self._rings = find_rings(build_connec_rest(self.aom, self.rings_thres), self.minlen, self.maxlen)
+                foundrings = find_rings(build_connec_rest(self.aom, self.rings_thres), self.minlen, self.maxlen)
             elif wf == "unrest":
-                self._rings = find_rings(build_connec_unrest(self.aom, self.rings_thres), self.minlen, self.maxlen)
+                foundrings = find_rings(build_connec_unrest(self.aom, self.rings_thres), self.minlen, self.maxlen)
             elif wf == "no":
-                self._rings = find_rings(build_connec_no(self.aom, self.rings_thres), self.minlen, self.maxlen)
-        if self._rings == []:
-            raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
+                foundrings = find_rings(build_connec_no(self.aom, self.rings_thres), self.minlen, self.maxlen)
+
+            if foundrings == []:
+                raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
+            else:
+                return foundrings
+            return
+        if isinstance(self._rings, list) and (not self._rings or isinstance(self._rings[0], (int, set))):
+            self._rings = [self._rings]
         return self._rings
 
-    @rings.setter
-    def rings(self, value):
-        self._rings = value
+    #@rings.setter
+    #def rings(self, value):
+    #    self._rings = value
 
     @property
     def aom(self):

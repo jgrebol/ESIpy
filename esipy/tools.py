@@ -131,6 +131,7 @@ def find_di(aom, i, j):
     :rtype: float
     """
 
+
     return 2 * np.trace(np.dot(aom[i - 1], aom[j - 1]))
 
 
