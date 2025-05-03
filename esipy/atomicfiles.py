@@ -331,7 +331,8 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
             f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
             for sublist in ring:
                 f.write(str(len(sublist)) + "\n")
-                f.write(" ".join(str(value) for value in sublist))
+                mapped = [fragmap.get(tuple(x), x) if isinstance(x, set) else x for x in sublist]
+                f.write(" ".join(str(value) for value in mapped))
                 f.write("\n")
             f.write("$ATOMS\n")
             f.write(str(mol.natm) + "\n")
