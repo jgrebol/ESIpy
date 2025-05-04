@@ -56,7 +56,31 @@ class IndicatorsRest:
         self._geom = geom
         self._molinfo = molinfo
         self._ncores = ncores
+        self._done_mci = None
+        self._reset()
 
+    def _reset(self):
+        """
+        Reset computed attributes to None.
+        """
+        if hasattr(self, '_done_mci'):
+            del self._done_mci
+        if hasattr(self, '_done_av'):
+            del self._done_av
+        if hasattr(self, '_done_pdi'):
+            del self._done_pdi
+        if hasattr(self, '_done_boa'):
+            del self._done_boa
+        if hasattr(self, '_done_homa'):
+            del self._done_homa
+        if hasattr(self, '_done_bla'):
+            del self._done_bla
+
+    def reset(self):
+        """
+        Public method to reset computed attributes.
+        """
+        self._reset()
 
     @property
     def iring(self):
@@ -1180,7 +1204,7 @@ class ESI:
                         ring.append(self.fragmap[tuple(j)] if isinstance(j, set) else j)
                     else:
                         ring.append(j)
-                    self.indicators.append(IndicatorsRest(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
+                self.indicators.append(IndicatorsRest(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                       partition=self.partition, mci=self.mci,
                                                       av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs,
                                                       homerrefs=self.homerrefs, connectivity=self.connectivity,
@@ -1265,7 +1289,6 @@ class ESI:
                 raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
             else:
                 return foundrings
-            return
         if isinstance(self._rings, list) and (not self._rings or isinstance(self._rings[0], (int, set))):
             self._rings = [self._rings]
         return self._rings
