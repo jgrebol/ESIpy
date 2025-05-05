@@ -140,7 +140,6 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
         print(" |                           [PCCP 20, 2787 (2018)]        ")
     print(" |  For a recent review see: [CSR 44, 6434 (2015)]         ")
     print(" ----------------------------------------------------------------------")
-    print(rings)
 
     # Checking where to read the atomic symbols from
     if not molinfo:
