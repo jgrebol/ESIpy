@@ -127,24 +127,24 @@ def multiprocessing_mci(arr, aom, ncores, partition):
        :rtype: float
     """
 
-    from multiprocessing import Pool
+    from multiprocessing import get_context
     from math import factorial
     from functools import partial
     from itertools import permutations, islice
 
-    pool = Pool(processes=ncores)
+    ctx = get_context('spawn')
     dumb = partial(compute_iring, aom=aom)
     chunk_size = 50000
 
     iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
-    if partition == 'mulliken' or partition == "non-symmetric":
-        # We account for twice the value for symmetric AOMs
-        val = 0.5 * sum(pool.imap(dumb, iterable2, chunk_size))
-        return val
-    else:  # Remove reversed permutations
-        iterable2 = (x for x in iterable2 if x[1] < x[-1])
-        val = sum(pool.imap(dumb, iterable2, chunk_size))
-        return val
+    with ctx.Pool(processes=ncores) as pool:
+        if partition in ('mulliken', "non-symmetric"):
+            # We account for twice the value for symmetric AOMs
+            val = 0.5 * sum(pool.imap(dumb, iterable2, chunk_size))
+        else:  # Remove reversed permutations
+            iterable2 = (x for x in iterable2 if x[1] < x[-1])
+            val = sum(pool.imap(dumb, iterable2, chunk_size))
+    return val
 
 def multiprocessing_mci_no(arr, aom, ncores, partition):
     """

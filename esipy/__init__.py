@@ -1608,3 +1608,5 @@ class ESI:
 environ["NUMEXPR_NUM_THREADS"] = "1"
 environ["OMP_NUM_THREADS"] = "1"
 environ["MKL_NUM_THREADS"] = "1"
+environ["PYTHONBUFFERED"] = "1"
+
