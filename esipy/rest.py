@@ -147,7 +147,6 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
 
     # Checking if the list rings is contains more than one ring to analyze
 
-    natoms = molinfo["symbols"]
     symbols = molinfo["symbols"] + ["FF"] * (len(fragmap))
 
     partition = molinfo["partition"]
@@ -155,7 +154,7 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
         rings = [rings]
 
     # Looping through each of the rings
-    for ring_index, ring in enumerate(rings):
+    for ring_index, ring in enumerate(rings.copy()):
         frag = True if fragmap is not None else False
         connectivity = None if frag else [symbols[int(i) - 1] for i in rings[0]]
         print(" ----------------------------------------------------------------------")
@@ -223,6 +222,9 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
             print(" |   PDI could not be calculated as the number of centers is not 6")
 
         else:
+            print(rings[ring_index])
+            print(ring_index)
+            print(rings)
             pdi_list = indicators[ring_index].pdi_list
             print(" | DI ({:>2} -{:>2} )   =  {:.4f}".format(ring[0], ring[3], pdi_list[0]))
             print(" | DI ({:>2} -{:>2} )   =  {:.4f}".format(ring[1], ring[4], pdi_list[1]))
@@ -263,7 +265,7 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
                     str(av1245_indices[-1][1]).rjust(2), symbs[1].ljust(2),
                     str(av1245_indices[-1][2]).rjust(2), symbs[2].ljust(2),
                     str(av1245_indices[-1][3]).rjust(2), symbs[3].ljust(2),
-                    av1245_list[(av1245_indices[-1][0] - 1) % len(ring)]))
+                    av1245_list[i % len(goodring)]))
                 print(" | AV1245 {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].av1245))
                 print(" |  AVmin {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].avmin))
                 print(" ---------------------------------------------------------------------- ")

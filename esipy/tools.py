@@ -412,7 +412,7 @@ def build_connec_unrest(Smo, thres=0.3):
                     connec_dict[i].append(j)
     return filter_connec(connec_dict)
 
-def build_connec_no(Smo, thres=0.3):
+def build_connec_no(Smo, thres=0.25):
     connec_dict = {}
 
     for i in range(len(Smo[0])):
@@ -435,11 +435,11 @@ def find_rings(connec, minlen=6, maxlen=6):
                 yield path
             for next in connec.get(v, []):
                 if next not in path:
-                    stack.append((next, path + [next]))
+                    stack.append((next, path.copy() + [next]))
 
     def unique(path, all):
         for shift in range(len(path)):
-            rot = np.roll(path, shift).tolist()
+            rot = np.roll(path.copy(), shift).tolist()
             if rot in all or rot[::-1] in all:
                 return False
         return True

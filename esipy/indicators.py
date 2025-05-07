@@ -23,7 +23,7 @@ def compute_iring(arr, aom):
     product = np.identity(aom[0].shape[0])
     for i in arr:
         product = np.dot(product, aom[i - 1])
-    iring = 2 ** (len(arr) - 1) * np.trace(product)
+    iring = (2 ** (len(arr) - 1)) * np.trace(product)
 
     return iring
 
@@ -202,7 +202,7 @@ def compute_av1245(arr, aom, partition):
     """
 
     products = []
-    for cp in av1245_pairs(arr):
+    for cp in av1245_pairs(arr.copy()):
         product = sequential_mci(list(cp), aom, partition)
         products.append(1000 * product / 3)
 

@@ -1,5 +1,6 @@
+import copy
 from os import environ
-
+from copy import deepcopy
 import numpy as np
 
 from esipy.atomicfiles import write_aoms, read_aoms, read_molinfo
@@ -1173,11 +1174,11 @@ class ESI:
                 self.totalaom = self.aom
                 self.nfrags = 0
 
-            ring = []
-            for i in self.rings:
+            self.indicators = []
+            for i in deepcopy(self.rings):
+                ring = []
                 for j in range(len(i)):
                     ring.append(self.fragmap[tuple(i[j % len(i)])] if isinstance(i[j % len(i)], set) else i[j % len(i)])
-                self.indicators = []
                 self.indicators.append(IndicatorsRest(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                       partition=self.partition, mci=self.mci,
                                                       av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs,
@@ -1199,11 +1200,11 @@ class ESI:
                 self.totalaom = self.aom
                 self.nfrags = 0
 
-            ring = []
-            for i in self.rings:
+            self.indicators = []
+            for i in deepcopy(self.rings):
+                ring = []
                 for j in range(len(i)):
                     ring.append(self.fragmap[tuple(i[j % len(i)])] if isinstance(i[j % len(i)], set) else i[j % len(i)])
-                self.indicators = []
                 self.indicators.append(IndicatorsUnrest(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                         partition=self.partition, mci=self.mci,
                                                         av1245=self.av1245, flurefs=self.flurefs,
@@ -1229,11 +1230,11 @@ class ESI:
                 self.nfrags = 0
             self.totalaom = [self.totalaom, occ]
 
-            ring = []
-            for i in self.rings:
+            self.indicators = []
+            for i in deepcopy(self.rings):
+                ring = []
                 for j in range(len(i)):
                     ring.append(self.fragmap[tuple(i[j % len(i)])] if isinstance(i[j % len(i)], set) else i[j % len(i)])
-                self.indicators = []
                 self.indicators.append(IndicatorsNatorb(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                         partition=self.partition, mci=self.mci,
                                                         av1245=self.av1245, flurefs=self.flurefs,
