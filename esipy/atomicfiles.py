@@ -319,8 +319,6 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
             if isinstance(ring[0], int):
                 ring = [ring]
             if dofrag:
-                if len(ring) != 1:
-                    raise ValueError(" | To write fragments, only one ring can be specified.")
                 f.write("$FRAGMENTS\n")
                 f.write(f"{len(fragmap)}\n")
                 for fragatm in fragmap.keys():
