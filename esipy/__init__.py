@@ -1,22 +1,19 @@
 from os import environ
-
+from copy import deepcopy
 import numpy as np
+from time import time
 
 from esipy.atomicfiles import write_aoms, read_aoms, read_molinfo
-from esipy.tools import (mol_info, format_partition, load_file, format_short_partition, wf_type, build_connec_rest, \
-    build_connec_unrest, build_connec_no, find_rings, is_fused, save_file, process_fragments, is_fused)
-
 from esipy.indicators import (
     compute_iring, sequential_mci, multiprocessing_mci,
-    compute_av1245, compute_pdi, compute_flu, compute_boa, compute_homer, compute_homa, compute_bla,
-    compute_iring, sequential_mci, multiprocessing_mci, compute_huckel_iring, compute_huckel_mci,
     compute_av1245, compute_pdi, compute_flu, compute_boa, compute_homer, compute_homa, compute_bla,
     compute_iring_no, sequential_mci_no, multiprocessing_mci_no, compute_av1245_no,
     compute_pdi_no, compute_boa_no
 )
 from esipy.make_aoms import make_aoms
+from esipy.tools import (mol_info, format_partition, load_file, format_short_partition, wf_type, save_file,
+                         build_connec_rest, build_connec_unrest, build_connec_no, find_rings, process_fragments)
 
-from esipy.mciaprox import aproxmci
 
 class IndicatorsRest:
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None,
@@ -56,31 +53,7 @@ class IndicatorsRest:
         self._geom = geom
         self._molinfo = molinfo
         self._ncores = ncores
-        self._done_mci = None
-        self._reset()
 
-    def _reset(self):
-        """
-        Reset computed attributes to None.
-        """
-        if hasattr(self, '_done_mci'):
-            del self._done_mci
-        if hasattr(self, '_done_av'):
-            del self._done_av
-        if hasattr(self, '_done_pdi'):
-            del self._done_pdi
-        if hasattr(self, '_done_boa'):
-            del self._done_boa
-        if hasattr(self, '_done_homa'):
-            del self._done_homa
-        if hasattr(self, '_done_bla'):
-            del self._done_bla
-
-    def reset(self):
-        """
-        Public method to reset computed attributes.
-        """
-        self._reset()
 
     @property
     def iring(self):
@@ -311,6 +284,8 @@ class IndicatorsRest:
         :returns: The BLA_c value.
         :rtype: float
         """
+        if self._bla() is None:
+            return [None, None]
         return self._bla()[1]
 
 
@@ -1163,11 +1138,17 @@ class ESI:
         self.readpath = readpath
         self.minlen = minlen
         self.maxlen = maxlen
+        self.minlen = minlen
         self.rings_thres = rings_thres
         # For the MCI approximations
         self.fused = fused
         self.d = d
         self.mcialg = mcialg
+        self._printedrings = False
+        if wf_type(self.aom) == "rest" or wf_type(self.aom) == "no":
+            self.natom = len(self.aom[0])
+        elif wf_type(self.aom) == "unrest":
+            self.natom = len(self.aom[0][0])
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
@@ -1197,13 +1178,10 @@ class ESI:
                 self.nfrags = 0
 
             self.indicators = []
-            for i in self.rings:
+            for i in deepcopy(self.rings):
                 ring = []
-                for j in i:
-                    if isinstance(j, set):
-                        ring.append(self.fragmap[tuple(j)] if isinstance(j, set) else j)
-                    else:
-                        ring.append(j)
+                for j in range(len(i)):
+                    ring.append(self.fragmap[tuple(i[j % len(i)])] if isinstance(i[j % len(i)], set) else i[j % len(i)])
                 self.indicators.append(IndicatorsRest(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                       partition=self.partition, mci=self.mci,
                                                       av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs,
@@ -1225,11 +1203,11 @@ class ESI:
                 self.totalaom = self.aom
                 self.nfrags = 0
 
-            ring = []
-            for i in self.rings:
+            self.indicators = []
+            for i in deepcopy(self.rings):
+                ring = []
                 for j in range(len(i)):
                     ring.append(self.fragmap[tuple(i[j % len(i)])] if isinstance(i[j % len(i)], set) else i[j % len(i)])
-                self.indicators = []
                 self.indicators.append(IndicatorsUnrest(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                         partition=self.partition, mci=self.mci,
                                                         av1245=self.av1245, flurefs=self.flurefs,
@@ -1256,11 +1234,11 @@ class ESI:
 
             self.totalaom = [self.totalaom, occ]
 
-            ring = []
-            for i in self.rings:
+            self.indicators = []
+            for i in deepcopy(self.rings):
+                ring = []
                 for j in range(len(i)):
                     ring.append(self.fragmap[tuple(i[j % len(i)])] if isinstance(i[j % len(i)], set) else i[j % len(i)])
-                self.indicators = []
                 self.indicators.append(IndicatorsNatorb(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                         partition=self.partition, mci=self.mci,
                                                         av1245=self.av1245, flurefs=self.flurefs,
@@ -1276,21 +1254,31 @@ class ESI:
     @property
     def rings(self):
         if self._rings == "find" or self._rings == "f":
-            foundrings = []
+            if self.partition == "mulliken" or self.partition == "lowdin":
+                raise ValueError(f" | DIs from {self.partition}.capitalize() are very inconsistent. Could not find rings.\n | Please provide the rings manually.")
+            if not self._printedrings:
+                print(" | Finding rings...")
+            startrings = time()
             wf = wf_type(self.aom)
             if wf == "rest":
-                foundrings = find_rings(build_connec_rest(self.aom, self.rings_thres), self.minlen, self.maxlen)
+                self._rings = find_rings(build_connec_rest(self.aom, self.rings_thres), self.minlen, self.maxlen)
             elif wf == "unrest":
-                foundrings = find_rings(build_connec_unrest(self.aom, self.rings_thres), self.minlen, self.maxlen)
+                self._rings = find_rings(build_connec_unrest(self.aom, self.rings_thres), self.minlen, self.maxlen)
             elif wf == "no":
-                foundrings = find_rings(build_connec_no(self.aom, self.rings_thres), self.minlen, self.maxlen)
+                self._rings = find_rings(build_connec_no(self.aom, self.rings_thres), self.minlen, self.maxlen)
+            endrings = time()
 
-            if foundrings == []:
+            if not self._rings:
                 raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
-            else:
-                return foundrings
-        if isinstance(self._rings, list) and (not self._rings or isinstance(self._rings[0], (int, set))):
-            self._rings = [self._rings]
+            elif not self._printedrings:
+                print(f" | Found {len(self._rings)} rings in {endrings-startrings} seconds:")
+                print(" | -------------------------------")
+                print(" | rings = [")
+                for i in self._rings:
+                    print(" | ", i, ",")
+                print(" | ]")
+                print(" | -------------------------------")
+                self._printedrings = True
         return self._rings
 
     #@rings.setter
@@ -1406,48 +1394,6 @@ class ESI:
     def av1245(self, value):
         self._av1245 = value
 
-    def huckel(self):
-        """
-        Computes the Iring (and MCI if specified) using Huckel's approximation.
-        """
-        print(' -------------------------------------------------')
-        print(" | Module to compute Huckel's multicenter indicators")
-        print(' -------------------------------------------------')
-        for ring_index, ring in enumerate(self.rings):
-
-            print(' -------------------------------------------------')
-            print(f" | Ring {ring_index+1} ({len(ring)}): ", ring)
-            print(' -------------------------------------------------')
-            if wf_type(self.aom) == "rest" or wf_type(self.aom) == "no":
-                h_iring = compute_huckel_iring(ring, self.aom)
-                print(" | The Iring Huckel is:        {:.6f}".format(h_iring))
-                if h_iring < 0:
-                    print(" | The Iring**(1/n) Huckel is: {:.6f}".format(-np.abs(h_iring)**(1/len(ring))))
-                else:
-                    print(" | The Iring**(1/n) Huckel is: {:.6f}".format(h_iring**(1/len(ring))))
-                print(' -------------------------------------------------')
-                h_mci = compute_huckel_mci(ring, self.aom)
-                print(" | The MCI Huckel is:          {:.6f}".format(h_mci))
-                if h_mci < 0:
-                    print(" | The MCI**(1/n) Huckel is:   {:.6f}".format(-np.abs(h_mci)**(1/len(ring))))
-                else:
-                    print(" | The MCI**(1/n) Huckel is:   {:.6f}".format(h_mci**(1/len(ring))))
-            elif wf_type(self.aom) == "unrest":
-                h_iring = compute_huckel_iring(ring, self.aom)
-                print(" | The Iring total Huckel is:  {:.6f}".format(h_iring))
-                if h_iring < 0:
-                    print(" | The Iring**(1/n) Huckel is: {:.6f}".format(-np.abs(h_iring)**(1/len(ring))))
-                else:
-                    print(" | The Iring**(1/n) Huckel is: {:.6f}".format(h_iring**(1/len(ring))))
-                print(' -------------------------------------------------')
-                h_mci = compute_huckel_mci(ring, self.aom[0])
-                print(" | The MCI total Huckel is:          {:.6f}".format(h_mci))
-                if h_mci < 0:
-                    print(" | The MCI**(1/n) Huckel is:         {:.6f}".format(-np.abs(h_mci)**(1/len(ring))))
-                else:
-                    print(" | The MCI**(1/n) Huckel is:         {:.6f}".format(h_mci ** (1 / len(ring))))
-            print(' -------------------------------------------------')
-
     def readaoms(self):
         """
         Reads the AOMs from a directory in AIMAll and ESIpy format. Overwrites 'ESI.aom' variable. By default, it will
@@ -1484,70 +1430,6 @@ class ESI:
 
         write_aoms(self.mol, self.mf, file, self.aom, self.rings, self.partition)
         print(f" | Written the AOMs in {self.readpath}/{file}_{self.partition}.aoms")
-
-    def mciaprox(self, mcialg=0, d=1):
-        print(' -------------------------------------------------')
-        print(" | Module to compute approximations for the MCI")
-        print(' -------------------------------------------------')
-
-        if getattr(self, "partition") is None:
-            print(" | No partition specified. Will assume non-symmetric AOMs")
-
-        if self.ncores == 1:
-            print(" | Using MCI's single-core algorithm")
-        else:
-            print(f" | Using MCI's multi-core algorithm for {self.ncores} cores")
-
-        if mcialg == 0:
-            print(" | Exact MCI calcualtion")
-        elif mcialg == 1:
-            print(f" | Approximate MCI. Algorithm 1.\n | All permutations having a maximum distance of {d}")
-        elif mcialg == 2:
-            print(f" | Approximate MCI. Algorithm 2.\n | Only permutations having a maximum distance of {d}")
-        elif mcialg == 3:
-            print(f" | Approximate MCI. Algorithm 3.\n | Only permutations having a maximum distance of {d}\n | and excluding any EVEN distance between two vertices")
-        elif mcialg == 4:
-            print(f" | Approximate MCI. Algorithm 4.\n | Only permutations having a maximum distance of {d}\n | and excluding any ODD distance between two vertices")
-        print(' -------------------------------------------------')
-
-        if isinstance(self.rings[0], int):
-            self.rings = [self.rings]
-
-        for ring_index, ring in enumerate(self.rings):
-            print(f" | Ring {ring_index+1} ({len(ring)}): {ring}")
-            print(' -------------------------------------------------')
-            wf = wf_type(self.aom)
-            if wf == "rest":
-                connec = build_connec_rest(self.aom, self.rings_thres)
-            elif wf == "unrest":
-                connec = build_connec_unrest(self.aom, self.rings_thres)
-            elif wf == "no":
-                connec = build_connec_no(self.aom, self.rings_thres)
-            if mcialg != 0 and (is_fused(ring, connec) or self.fused == True):
-                print(" | Fused ring. Computing with BFS algorithm")
-            else:
-                print(" | Single ring. Computing with standard algorithm")
-
-            if wf_type(self.aom) == "rest":
-                val, nperms, t = aproxmci(ring, self.aom, self.partition, mcialg, d, self.ncores, self.minlen, self.maxlen, self.rings_thres, self.fused)
-                val = 2 * val
-            elif wf_type(self.aom) == "unrest":
-                val_a, nperms, t_a = aproxmci(ring, self.aom[0], self.partition, mcialg, d, self.ncores, self.minlen, self.maxlen, self.rings_thres, self.fused)
-                val_b, _, t_b = aproxmci(ring, self.aom[1], self.partition, mcialg, d, self.ncores, self.minlen, self.maxlen, self.rings_thres, self.fused)
-                val = val_a + val_b
-                t = t_a + t_b
-                nperms = 2 * nperms
-
-            print(f" | Number of permutations:           {nperms:.14g}")
-
-            print(f" | Time for the MCI calculation:     {t:.5f} seconds")
-            print(f" | MCI(mcialg={mcialg}, d={d}):               {val:.8f}")
-            if val > 0:
-                print(f" | MCI(mcialg={mcialg}, d={d})**(1/n):        {val ** (1/len(ring)):.8f}")
-            else:
-                from numpy import abs
-                print(f" | MCI(mcialg={mcialg}, d={d})**(1/n):        -{abs(val) ** (1 / len(ring)):.8f}")
-            print(' -------------------------------------------------')
 
     def print(self):
         """
@@ -1608,5 +1490,3 @@ class ESI:
 environ["NUMEXPR_NUM_THREADS"] = "1"
 environ["OMP_NUM_THREADS"] = "1"
 environ["MKL_NUM_THREADS"] = "1"
-environ["PYTHONBUFFERED"] = "1"
-
