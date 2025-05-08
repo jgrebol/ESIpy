@@ -114,8 +114,13 @@ a.reference.internal .xref.py.py-mod.docutils.literal.notranslate {
 
 #side-menu {
 margin-top: .2em,
-text-color: #0A1A1A;
+color: #0A1A1A;
 height: auto}
+
+#side-menu li {
+  padding-top: 0.5em; /* Add some space above each item */
+  padding-bottom: 0.5em; /* Add some space below each item */
+}
 
 #search input[type=text] {
   width: 100%;
