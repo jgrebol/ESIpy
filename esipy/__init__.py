@@ -1270,8 +1270,6 @@ class ESI:
 
             if not self._rings:
                 raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
-            elif len(self._rings) == 1 and isinstance(self._rings[0], int):
-                self._rings = [self._rings]
             elif not self._printedrings:
                 print(f" | Found {len(self._rings)} rings in {endrings-startrings} seconds:")
                 print(" | -------------------------------")
@@ -1281,6 +1279,8 @@ class ESI:
                 print(" | ]")
                 print(" | -------------------------------")
                 self._printedrings = True
+        if isinstance(self._rings[0], (int, set)):
+            self._rings = [self._rings]
         return self._rings
 
     #@rings.setter
