@@ -106,6 +106,7 @@ h3, h4, h5, h6 {
   background-color: #18997D;
   height: auto;
   max-height: 145vh;
+    padding-bottom: .25em;
 }
 
 a.reference.internal .xref.py.py-mod.docutils.literal.notranslate {
