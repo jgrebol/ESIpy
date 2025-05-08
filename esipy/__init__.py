@@ -1249,7 +1249,7 @@ class ESI:
     def rings(self):
         if self._rings == "find" or self._rings == "f":
             if self.partition == "mulliken" or self.partition == "lowdin":
-                raise ValueError(f" | DIs from {self.partition}.capitalize() are very inconsistent. Could not find rings.\n | Please provide the rings manually.")
+                raise ValueError(f" | DIs from {self.partition.capitalize()} are very inconsistent. Could not find rings.\n | Please provide the rings manually.")
             if not self._printedrings:
                 print(" | Finding rings...")
             startrings = time()
@@ -1273,6 +1273,8 @@ class ESI:
                 print(" | ]")
                 print(" | -------------------------------")
                 self._printedrings = True
+        if isinstance(self._rings[0], (int, set)):
+            self._rings = [self._rings]
         return self._rings
 
     @rings.setter
