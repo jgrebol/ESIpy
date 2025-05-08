@@ -1,7 +1,7 @@
-import copy
 from os import environ
 from copy import deepcopy
 import numpy as np
+from time import time
 
 from esipy.atomicfiles import write_aoms, read_aoms, read_molinfo
 from esipy.indicators import (
@@ -1141,6 +1141,7 @@ class ESI:
         self.maxlen = maxlen
         self.minlen = minlen
         self.rings_thres = rings_thres
+        self._printedrings = False
         if wf_type(self.aom) == "rest" or wf_type(self.aom) == "no":
             self.natom = len(self.aom[0])
         elif wf_type(self.aom) == "unrest":
@@ -1247,6 +1248,11 @@ class ESI:
     @property
     def rings(self):
         if self._rings == "find" or self._rings == "f":
+            if self.partition == "mulliken" or self.partition == "lowdin":
+                raise ValueError(f" | DIs from {self.partition}.capitalize() are very inconsistent. Could not find rings.\n | Please provide the rings manually.")
+            if not self._printedrings:
+                print(" | Finding rings...")
+            startrings = time()
             wf = wf_type(self.aom)
             if wf == "rest":
                 self._rings = find_rings(build_connec_rest(self.aom, self.rings_thres), self.minlen, self.maxlen)
@@ -1254,8 +1260,19 @@ class ESI:
                 self._rings = find_rings(build_connec_unrest(self.aom, self.rings_thres), self.minlen, self.maxlen)
             elif wf == "no":
                 self._rings = find_rings(build_connec_no(self.aom, self.rings_thres), self.minlen, self.maxlen)
-        if self._rings == []:
-            raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
+            endrings = time()
+
+            if not self._rings:
+                raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
+            elif not self._printedrings:
+                print(f" | Found {len(self._rings)} rings in {endrings-startrings} seconds:")
+                print(" | -------------------------------")
+                print(" | rings = [")
+                for i in self._rings:
+                    print(" | ", i, ",")
+                print(" | ]")
+                print(" | -------------------------------")
+                self._printedrings = True
         return self._rings
 
     @rings.setter
