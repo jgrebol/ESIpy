@@ -118,11 +118,6 @@ margin-top: .025em,
 color: #0A1A1A;
 height: auto}
 
-#side-menu li {
-  padding-top: 0.5em; /* Add some space above each item */
-  padding-bottom: 0.5em; /* Add some space below each item */
-}
-
 #search input[type=text] {
   width: 100%;
   height: 1.5em;
