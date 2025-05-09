@@ -54,7 +54,6 @@ def deloc_no(aom, molinfo, fragmap={}):
 
     aom, occ = aom
     presymbols = molinfo["symbols"]
-    a = len(presymbols)
     symbols = presymbols + ["FF"] * (len(aom)-len(presymbols))
     if len(aom)-len(presymbols) > 0:
         print(" | WARNING: Beta version of fragments with correlated wavefunctions")
@@ -109,8 +108,8 @@ def deloc_no(aom, molinfo, fragmap={}):
                 print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
                     symbols[i], i + 1, symbols[j], j + 1, lifs[i], lixs[i]))
             else:
-                dif = 2 * difs[i * len(aom) + j - (i + 1)]
-                dix = 2 * dixs[i * len(aom) + j - (i + 1)]
+                dif = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i], occ ** (1 / 2), aom[j])))
+                dix = np.trace(np.linalg.multi_dot((occ, aom[i], occ, aom[j])))
                 if symbols[i] != "FF" and symbols[j] != "FF":  # Exclude FF atoms from contributing
                     print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
                         symbols[i], i + 1, symbols[j], j + 1, dif, dix))

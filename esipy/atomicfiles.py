@@ -101,7 +101,7 @@ def read_aoms(path='.'):
 
 ########### WRITING THE INPUT FOR THE ESI-3D CODE FROM THE AOMS ###########
 
-def write_aoms(mol, mf, name, aom, ring=None, partition=None):
+def write_aoms(mol, mf, name, aom, ring=[], partition=None):
     """
         Writes the input for the ESI-3D code from the AOMs.
 
@@ -131,6 +131,10 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
 
     if isinstance(aom, str):
         aom = load_file(aom)
+    if ring is None:
+        pass
+    elif isinstance(ring[0], int):
+        ring = [ring]
 
     wf = wf_type(aom)
     if wf == "no":
@@ -160,13 +164,14 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
     ringcopy = deepcopy(ring)
 
     # Mark fragments in the order they are defined
-    for i, sublist in enumerate(ringcopy):
-        for j, element in enumerate(sublist):
-            if isinstance(element, set):
-                dofrag = True
-                fragmap[tuple(element)] = fragidx
-                sublist[j] = fragidx
-                fragidx += 1
+    if ring:
+        for i, sublist in enumerate(ringcopy):
+            for j, element in enumerate(sublist):
+                if isinstance(element, set):
+                    dofrag = True
+                    fragmap[tuple(element)] = fragidx
+                    sublist[j] = fragidx
+                    fragidx += 1
 
 
     shortpart = format_short_partition(partition)
@@ -295,12 +300,14 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
             f.write(i + ".int\n")
         f.close()
 
+    # Writing the file containing the title of the atomic .int files
     domci = False
-    if isinstance(ring[0], int):
-        ring = [ring]
-    for r in ring:
-        if len(r) < 10:
-            domci = True
+    if ring:
+        if isinstance(ring[0], int):
+            ring = [ring]
+        for r in ring:
+            if len(r) < 10:
+                domci = True
 
     # Single-determinant input file
     if wf == "rest" or wf == "unrest":
@@ -316,8 +323,6 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
                 f.write("hf\n")
             if not domci:
                 f.write("$NOMCI\n")
-            if isinstance(ring[0], int):
-                ring = [ring]
             if dofrag:
                 f.write("$FRAGMENTS\n")
                 f.write(f"{len(fragmap)}\n")
@@ -325,13 +330,14 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
                     f.write(f"{len(fragatm)}\n")
                     f.write(" ".join(str(value) for value in fragatm))
                     f.write("\n")
-            f.write("$RING\n")
-            f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
-            for sublist in ring:
-                f.write(str(len(sublist)) + "\n")
-                mapped = [fragmap.get(tuple(x), x) if isinstance(x, set) else x for x in sublist]
-                f.write(" ".join(str(value) for value in mapped))
-                f.write("\n")
+            if ring:
+                f.write("$RING\n")
+                f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
+                for sublist in ring:
+                    f.write(str(len(sublist)) + "\n")
+                    mapped = [fragmap.get(tuple(x), x) if isinstance(x, set) else x for x in sublist]
+                    f.write(" ".join(str(value) for value in mapped))
+                    f.write("\n")
             f.write("$ATOMS\n")
             f.write(str(mol.natm) + "\n")
             for title in titles:
@@ -365,12 +371,13 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
                     f.write(f"{len(fragatm)}\n")
                     f.write(" ".join(str(value) for value in fragatm))
                     f.write("\n")
-            f.write("$RING\n")
-            f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
-            for sublist in ring:
-                f.write(str(len(sublist)) + "\n")
-                f.write(" ".join(str(value) for value in sublist))
-                f.write("\n")
+            if ring:
+                f.write("$RING\n")
+                f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
+                for sublist in ring:
+                    f.write(str(len(sublist)) + "\n")
+                    f.write(" ".join(str(value) for value in sublist))
+                    f.write("\n")
             f.write("$AV1245\n")
             f.write("$FULLOUT\n")
             if partition == "mulliken":

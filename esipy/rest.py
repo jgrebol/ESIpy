@@ -222,9 +222,6 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
             print(" |   PDI could not be calculated as the number of centers is not 6")
 
         else:
-            print(rings[ring_index])
-            print(ring_index)
-            print(rings)
             pdi_list = indicators[ring_index].pdi_list
             print(" | DI ({:>2} -{:>2} )   =  {:.4f}".format(ring[0], ring[3], pdi_list[0]))
             print(" | DI ({:>2} -{:>2} )   =  {:.4f}".format(ring[1], ring[4], pdi_list[1]))
