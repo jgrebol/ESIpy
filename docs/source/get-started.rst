@@ -59,8 +59,9 @@ the output of which provides the indices split into orbital contributions.
 Dealing with AOMs
 -----------------
 
-In order to avoid the single-point calculation, the attributes `saveaoms` and `savemolinfo` will save the AOMs and a dictionary
-containing information about the molecule and calculation into a binary file in disk. Hereafter, these will be accessible
+In order to avoid the single-point calculation, the `save` attribute will save the AOMs and a dictionary
+containing information about the molecule and calculation into a binary file in disk. It should contain only the title of
+the calculation, and ESIpy will add the used partition scheme and the extension (`.aoms` and `.molinfo`). Hereafter, these will be accessible
 at any time. It is also recommended to use a for-loop scheme for all the partitions, as the computational time to generate
 the matrices is minimal and independent to the chosen scheme.
 
@@ -69,9 +70,7 @@ the matrices is minimal and independent to the chosen scheme.
     ring = [1, 2, 3, 4, 5, 6]
     name = "benzene"
     for part in ["mulliken", "lowdin", "meta_lowdin", "nao", "iao"]:
-        aoms_name = name + '_' + part + '.aoms'
-        molinfo_name = name + '_' + part + '.molinfo'
-        arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, saveaoms=aoms_name, savemolinfo=molinfo_name)
+        arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, save=name)
         arom.print()
 
 Additionally, one can generate a directory containing the AOMs in AIMAll format. These files are readable from ESIpy,
@@ -92,7 +91,7 @@ and read through the method `readaoms()` by previously specifying the `read=True
     arom.print()
 
 .. warning::
-    By using the `readaoms()` method, the output will be limited as it will not get information about the molecule
+    By using the `readaoms()` method, the output will be limited as it will not get information about the molecule.
 
 Correlated wavefunctions
 ------------------------

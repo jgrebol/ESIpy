@@ -105,7 +105,8 @@ h3, h4, h5, h6 {
   position: relative;
   background-color: #18997D;
   height: auto;
-  max-height: 140vh;
+  max-height: 150vh;
+    padding-bottom: .25em;
 }
 
 a.reference.internal .xref.py.py-mod.docutils.literal.notranslate {
@@ -113,8 +114,9 @@ a.reference.internal .xref.py.py-mod.docutils.literal.notranslate {
 }
 
 #side-menu {
-margin-top: .2em,
-text-color: #0A1A1A;}
+margin-top: .025em,
+color: #0A1A1A;
+height: auto}
 
 #search input[type=text] {
   width: 100%;

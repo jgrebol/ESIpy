@@ -155,8 +155,8 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
 
     # Looping through each of the rings
     for ring_index, ring in enumerate(rings.copy()):
-        frag = True if fragmap is not None else False
-        connectivity = None if frag else [symbols[int(i) - 1] for i in rings[0]]
+        frag = True if fragmap else False
+        connectivity = None if frag else [symbols[int(i) - 1] for i in ring]
         print(" ----------------------------------------------------------------------")
         print(" |")
         print(" | Ring  {} ({}):   {}".format(ring_index + 1, len(ring), "  ".join(str(num) for num in ring)))

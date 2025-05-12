@@ -1108,9 +1108,10 @@ class ESI:
 
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
-                 homerrefs=None, connectivity=None, geom=None, molinfo=None,
-                 ncores=1, save=None, readpath='.', read=False, d=1, mcialg=0, minlen=6, maxlen=10, rings_thres = 0.25, fused=False):
-
+                 homerrefs=None, connectivity=None, geom=None, molinfo={},
+                 ncores=1, save=None, readpath='.', read=False,
+                 maxlen=12, minlen=6, rings_thres=0.3,
+                 ):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
@@ -1130,25 +1131,18 @@ class ESI:
         self.geom = geom
         self.frag = False
         # For other tools
-        self.read = read
         self.ncores = ncores
         self.save = save
         self.saveaoms = save + '_' + self.partition + ".aoms" if save else None
         self.savemolinfo = save + '_' + self.partition + ".molinfo" if save else None
         self.readpath = readpath
-        self.minlen = minlen
+        self.read = read
+        # For finding rings
+        self.rings_thres = rings_thres
         self.maxlen = maxlen
         self.minlen = minlen
-        self.rings_thres = rings_thres
-        # For the MCI approximations
-        self.fused = fused
-        self.d = d
-        self.mcialg = mcialg
         self._printedrings = False
-        if wf_type(self.aom) == "rest" or wf_type(self.aom) == "no":
-            self.natom = len(self.aom[0])
-        elif wf_type(self.aom) == "unrest":
-            self.natom = len(self.aom[0][0])
+        self._connec = None
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
@@ -1167,8 +1161,11 @@ class ESI:
 
 
         wf = wf_type(self.aom)
+        if isinstance(self.rings[0], int) or isinstance(self.rings[0], set):
+            self.rings = [self.rings]
         if wf == "rest":
-
+            if not self.rings:
+                return
             self.fragaom, self.fragmap = list(process_fragments(self.aom, self.rings, False))
             if self.fragaom:
                 self.totalaom = self.aom + self.fragaom
@@ -1189,6 +1186,8 @@ class ESI:
                                                       geom=self.geom,
                                                       molinfo=self.molinfo, ncores=self.ncores))
         elif wf == "unrest":
+            if not self.rings:
+                return
 
             self.fragaom_a, self.fragmap = list(process_fragments(self.aom[0], self.rings, False))
             self.fragaom_b, self.fragmap = list(process_fragments(self.aom[1], self.rings, True))
@@ -1215,6 +1214,8 @@ class ESI:
                                                         connectivity=self.connectivity, geom=self.geom,
                                                         molinfo=self.molinfo, ncores=self.ncores))
         elif wf == "no":
+            if not self.rings:
+                return
             if self.read is not True and type(self._aom) != str:
                 if self.mf is None:
                     raise ValueError(" | Missing variable 'mf'.")
@@ -1253,19 +1254,23 @@ class ESI:
 
     @property
     def rings(self):
+        if not self._rings:
+            self.totalaom = self.aom
+            self.nfrags = 0
+            self.fragmap = {}
+            return None
         if self._rings == "find" or self._rings == "f":
-            if self.partition == "mulliken" or self.partition == "lowdin":
-                raise ValueError(f" | DIs from {self.partition}.capitalize() are very inconsistent. Could not find rings.\n | Please provide the rings manually.")
             if not self._printedrings:
                 print(" | Finding rings...")
             startrings = time()
-            wf = wf_type(self.aom)
-            if wf == "rest":
-                self._rings = find_rings(build_connec_rest(self.aom, self.rings_thres), self.minlen, self.maxlen)
-            elif wf == "unrest":
-                self._rings = find_rings(build_connec_unrest(self.aom, self.rings_thres), self.minlen, self.maxlen)
-            elif wf == "no":
-                self._rings = find_rings(build_connec_no(self.aom, self.rings_thres), self.minlen, self.maxlen)
+            if self.connec:
+                graph = self.connec
+            else:
+                graph = self.molinfo.get("connec")
+            if not graph:
+                raise ValueError(" | Could not find the connectivity matrix. ")
+
+            self._rings = find_rings(graph, self.minlen, self.maxlen)
             endrings = time()
 
             if not self._rings:
@@ -1283,9 +1288,28 @@ class ESI:
             self._rings = [self._rings]
         return self._rings
 
-    #@rings.setter
-    #def rings(self, value):
-    #    self._rings = value
+    @rings.setter
+    def rings(self, value):
+        self._rings = value
+
+    @property
+    def molinfo(self):
+        """
+        Get the information about the molecule and calculation. If not provided, it will compute it. If set as a string,
+        it will read the information from the directory. Can be saved in a file with the `savemolinfo` attribute.
+
+        :returns: Information about the molecule and calculation.
+        :rtype: dict
+        """
+
+        if self.read is True:
+            return read_molinfo(self.readpath)
+        if isinstance(self._molinfo, str):
+            return load_file(self._molinfo)
+        if not self._molinfo:
+            graph = self._connec
+            self._molinfo = mol_info(self.mol, self.mf, self.savemolinfo, self._partition, graph)
+        return self._molinfo
 
     @property
     def aom(self):
@@ -1325,24 +1349,6 @@ class ESI:
         return self._aom
 
     @property
-    def molinfo(self):
-        """
-        Get the information about the molecule and calculation. If not provided, it will compute it. If set as a string,
-        it will read the information from the directory. Can be saved in a file with the `savemolinfo` attribute.
-
-        :returns: Information about the molecule and calculation.
-        :rtype: dict
-        """
-
-        if self.read is True:
-            return read_molinfo(self.readpath)
-        if isinstance(self._molinfo, str):
-            return load_file(self._molinfo)
-        if self._molinfo is None:
-            self._molinfo = mol_info(self.mol, self.mf, self.savemolinfo, self._partition)
-        return self._molinfo
-
-    @property
     def partition(self):
         """
         Get the partition scheme for the Hilbert-space. Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao'.
@@ -1355,6 +1361,39 @@ class ESI:
         if isinstance(self._partition, str):
             return format_partition(self._partition)
         raise ValueError(" | Partition could not be processed. Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao'")
+
+    @property
+    def connec(self):
+        """
+        Get the connectivity matrix. If the partition is 'mulliken' or 'lowdin',
+        build the meta-Lowdin AOMs and compute the connectivity matrix from there.
+        The computation is controlled by the 'done_connec' flag.
+
+        :returns: The connectivity matrix.
+        :rtype: list
+        """
+        if not hasattr(self, 'done_connec') or not self.done_connec:
+            if self.molinfo.get("connec") is not None:
+                self._connec = self.molinfo.get("connec")
+                return self._connec
+            if self.partition in ['mulliken', 'lowdin']:
+                print(" | Building meta-Lowdin AOMs to compute connectivity.")
+                if self.mol is None or self.mf is None and not self._connec:
+                    raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build meta-Lowdin AOMs.")
+                mat = make_aoms(self.mol, self.mf, partition="meta_lowdin", save=None, myhf=self.myhf)
+            else:
+                mat = self.aom
+            if wf_type(self.aom) == "rest":
+                self._connec = build_connec_rest(mat, self.rings_thres)
+            elif wf_type(self.aom) == "unrest":
+                self._connec = build_connec_unrest(mat, self.rings_thres)
+            elif wf_type(self.aom) == "no":
+                self._connec = build_connec_no(mat, self.rings_thres)
+            else:
+                self._connec = None
+            self.done_connec = True
+            self.molinfo.get("connec") == self._connec
+        return self._connec
 
     @property
     def mci(self):
@@ -1455,9 +1494,6 @@ class ESI:
             raise ValueError(
                 " | Only one partition at a time. Partition should be a string, not a list\n | Please consider looping through the partitions before calling the function")
 
-        if self.rings is None:
-            raise ValueError(" | The variable 'rings' is mandatory and must be a list with the ring connectivity")
-
         if isinstance(self._aom, str):
             print(f" | Loading the AOMs from file {self._aom}")
             self._aom = self.aom
@@ -1468,7 +1504,8 @@ class ESI:
             from esipy.rest import info_rest, deloc_rest, arom_rest
             info_rest(self.totalaom, self.molinfo, self.nfrags)
             deloc_rest(self.totalaom, self.molinfo, self.fragmap)
-            arom_rest(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
+            if self.rings:
+                arom_rest(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                       av1245=self.av1245,
                       flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap)
 
@@ -1476,7 +1513,8 @@ class ESI:
             from esipy.unrest import info_unrest, deloc_unrest, arom_unrest
             info_unrest(self.totalaom, self.molinfo, self.nfrags)
             deloc_unrest(self.totalaom, self.molinfo, self.fragmap)
-            arom_unrest(aom=self.aom, rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
+            if self.rings:
+                arom_unrest(aom=self.aom, rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                         av1245=self.av1245, partition=self.partition,
                         flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap,)
 
@@ -1484,7 +1522,8 @@ class ESI:
             from esipy.no import info_no, deloc_no, arom_no
             info_no(self.totalaom, self.molinfo, self.nfrags)
             deloc_no(self.totalaom, self.molinfo, self.fragmap)
-            arom_no(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
+            if self.rings:
+                arom_no(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                     av1245=self.av1245,
                     flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap,)
 
@@ -1492,3 +1531,4 @@ class ESI:
 environ["NUMEXPR_NUM_THREADS"] = "1"
 environ["OMP_NUM_THREADS"] = "1"
 environ["MKL_NUM_THREADS"] = "1"
+environ["PYTHONBUFFERED"] = "1"
