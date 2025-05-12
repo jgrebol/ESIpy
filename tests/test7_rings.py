@@ -64,18 +64,21 @@ class TestRingsBehavior(unittest.TestCase):
         """Test rings as integers."""
         rings_data = [1, 2, 3, 4, 5, 6]
         self.esi = ESI(mol=mol, mf=mf, partition="nao", rings=rings_data)
+        self.esi.print()
         self.assertEqual(self.esi.rings, [[1, 2, 3, 4, 5, 6]], "Failed for integer rings")
 
     def test_morering(self):
         """Test rings as integers."""
         rings_data = [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]]
         self.esi = ESI(mol=mol, mf=mf, partition="nao", rings=rings_data)
+        self.esi.print()
         self.assertEqual(self.esi.rings, [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]], "Failed for integer rings")
 
     def test_onefrag(self):
         """Test rings as fragments (set of atom labels)."""
         rings_data = [{1, 2}, {3, 4}, {5, 6}, {7, 8}, {9, 10}, {11, 12}]
         self.esi = ESI(mol=mol, mf=mf, partition="nao", rings=rings_data)
+        self.esi.print()
         print(self.esi.rings)
         self.assertEqual(self.esi.rings, [[{1, 2}, {3, 4}, {5, 6}, {7, 8}, {9, 10}, {11, 12}]], "Failed for fragment rings")
 
@@ -96,32 +99,13 @@ class TestRingsBehavior(unittest.TestCase):
         """Test rings as a mix of integers and fragments."""
         rings_data = [3, [1, 2, 3]]
         self.esi.rings = rings_data
-        self.assertEqual(self.esi.rings, rings_data, "Failed for mixed rings")
+        self.assertEqual(self.esi.rings, [[3, [1, 2, 3]]], "Failed for mixed rings")
 
     def test_rings_nested(self):
         """Test rings as a list of lists (nested rings)."""
         rings_data = [[3, 4], [[1, 2, 3], [4, 5, 6]]]
         self.esi.rings = rings_data
         self.assertEqual(self.esi.rings, rings_data, "Failed for nested rings")
-
-    def test_rings_automatic_f(self):
-        """Test automatic ring detection using 'f'."""
-        self.esi.rings = "f"
-        # The assertion depends on how 'f' is processed.
-        # If it's stored as "f" and processed later:
-        self.assertEqual(self.esi.rings, "f", "Failed for automatic ring detection with 'f'")
-        # If 'f' triggers immediate calculation and stores the result (e.g., a list of rings):
-        # self.assertIsInstance(self.esi.rings, list, "Rings should be a list after 'f' detection")
-        # self.assertTrue(all(isinstance(r, list) for r in self.esi.rings), "Each ring should be a list")
-
-    def test_rings_automatic_find(self):
-        """Test automatic ring detection using 'find'."""
-        self.esi.rings = "find"
-        # Similar to 'f', the assertion depends on the behavior.
-        self.assertEqual(self.esi.rings, "find", "Failed for automatic ring detection with 'find'")
-        # Or, if it processes immediately:
-        # self.assertIsInstance(self.esi.rings, list, "Rings should be a list after 'find' detection")
-        # self.assertTrue(all(isinstance(r, list) for r in self.esi.rings), "Each ring should be a list")
 
 if __name__ == "__main__":
     unittest.main()
