@@ -194,7 +194,7 @@ def av1245_pairs(arr):
             for i in range(len(arr))]
 
 
-def mol_info(mol=None, mf=None, save=None, partition=None):
+def mol_info(mol=None, mf=None, save=None, partition=None, connec=None):
     """
     Obtains information from the molecule and the calculation to complement the main code function without requiring the 'mol' and 'mf' objects.
 
@@ -231,6 +231,9 @@ def mol_info(mol=None, mf=None, save=None, partition=None):
             info.update({"xc": mf.xc})
         else:
             info.update({"xc": "None"})
+
+    if connec:
+        info.update({"connec": connec})
 
     if save:
         save_file(info, save)

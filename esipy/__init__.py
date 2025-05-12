@@ -1138,14 +1138,10 @@ class ESI:
         self.readpath = readpath
         self.read = read
         # For finding rings
+        self.rings_thres = rings_thres
         self.maxlen = maxlen
         self.minlen = minlen
-        self.rings_thres = rings_thres
         self._printedrings = False
-        if wf_type(self.aom) == "rest" or wf_type(self.aom) == "no":
-            self.natom = len(self.aom[0])
-        elif wf_type(self.aom) == "unrest":
-            self.natom = len(self.aom[0][0])
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
@@ -1257,18 +1253,17 @@ class ESI:
             self.fragmap = {}
             return None
         if self._rings == "find" or self._rings == "f":
-            if self.partition == "mulliken" or self.partition == "lowdin":
-                raise ValueError(f" | DIs from {self.partition.capitalize()} are very inconsistent. Could not find rings.\n | Please provide the rings manually.")
             if not self._printedrings:
                 print(" | Finding rings...")
             startrings = time()
-            wf = wf_type(self.aom)
-            if wf == "rest":
-                self._rings = find_rings(build_connec_rest(self.aom, self.rings_thres), self.minlen, self.maxlen)
-            elif wf == "unrest":
-                self._rings = find_rings(build_connec_unrest(self.aom, self.rings_thres), self.minlen, self.maxlen)
-            elif wf == "no":
-                self._rings = find_rings(build_connec_no(self.aom, self.rings_thres), self.minlen, self.maxlen)
+            if self.connec:
+                graph = self.connec
+            else:
+                graph = self.molinfo.get("connec")
+            if not graph:
+                raise ValueError(" | Could not find the connectivity matrix. ")
+
+            self._rings = find_rings(graph, self.minlen, self.maxlen)
             endrings = time()
 
             if not self._rings:
@@ -1319,30 +1314,12 @@ class ESI:
                 raise ValueError(
                     " | Only one partition at a time. Partition should be a string, not a list.\n | Please consider looping through the partitions before calling the function")
             if self.mol and self.mf and self.partition:
-                self._aom_loaded = True
-                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=self.saveaoms, myhf=self.myhf)
-                if self.saveaoms:
-                    print(f" | Saved the AOMs in the {self.saveaoms} file")
-            else:
-                raise ValueError(" | Missing variables 'mol', 'mf', or 'partition'")
-        return self._aom
+                if "connec" not in self._molinfo:
+                    self._molinfo["connec"] = self.connec  # Build and store connec if not present
 
-    @property
-    def molinfo(self):
-        """
-        Get the information about the molecule and calculation. If not provided, it will compute it. If set as a string,
-        it will read the information from the directory. Can be saved in a file with the `savemolinfo` attribute.
+        if "connec" not in self._molinfo:
+            self._molinfo["connec"] = self.connec  # Build and store connec if not present
 
-        :returns: Information about the molecule and calculation.
-        :rtype: dict
-        """
-
-        if self.read is True:
-            return read_molinfo(self.readpath)
-        if isinstance(self._molinfo, str):
-            return load_file(self._molinfo)
-        if self._molinfo is None:
-            self._molinfo = mol_info(self.mol, self.mf, self.savemolinfo, self._partition)
         return self._molinfo
 
     @property
@@ -1358,6 +1335,41 @@ class ESI:
         if isinstance(self._partition, str):
             return format_partition(self._partition)
         raise ValueError(" | Partition could not be processed. Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao'")
+
+    @property
+    def connec(self):
+        """
+        Get the connectivity matrix. If the partition is 'mulliken' or 'lowdin',
+        build the meta-Lowdin AOMs and compute the connectivity matrix from there.
+        The computation is controlled by the 'done_connec' flag.
+
+        :returns: The connectivity matrix.
+        :rtype: list
+        """
+        if self._connec is not None:
+            return self._connec
+
+        if self.molinfo.get("connec") is not None:
+            self._connec = self.molinfo.get("connec")
+            return self._connec
+        if not hasattr(self, 'done_connec') or not self.done_connec:
+            if self.partition in ['mulliken', 'lowdin']:
+                print(" | Building meta-Lowdin AOMs to compute connectivity.")
+                if self.mol is None or self.mf is None and self.molinfo.get("connec") is None:
+                    raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build meta-Lowdin AOMs.")
+                mat = make_aoms(self.mol, self.mf, partition="meta_lowdin", save=None, myhf=self.myhf)
+            else:
+                mat = self.aom
+            if wf_type(self.aom) == "rest":
+                self._connec = build_connec_rest(mat, self.rings_thres)
+            elif wf_type(self.aom) == "unrest":
+                self._connec = build_connec_unrest(mat, self.rings_thres)
+            elif wf_type(self.aom) == "no":
+                self._connec = build_connec_no(mat, self.rings_thres)
+            else:
+                self._connec = None
+            self.done_connec = True
+        return self._connec
 
     @property
     def mci(self):

@@ -86,7 +86,7 @@ def deloc_no(aom, molinfo, fragmap={}):
                     dixs.append(dlocX)
 
         print(" | {:>2} {:>2d}  {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}".format(
-            symbols[i], i + 1, N[i], dlocF, dlocX, lif, lix))
+            symbols[i], i + 1, N[i], N[i]-lif, dlocX, lif, lix))
     print(" ---------------------------------------------------------- ")
     Ntot = np.sum(N[:len(presymbols)])
     lifstot = np.sum(lifs[:len(presymbols)])
