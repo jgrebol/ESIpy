@@ -1108,7 +1108,7 @@ class ESI:
 
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
-                 homerrefs=None, connectivity=None, geom=None, molinfo=None,
+                 homerrefs=None, connectivity=None, geom=None, molinfo={},
                  ncores=1, save=None, readpath='.', read=False,
                  maxlen=12, minlen=6, rings_thres=0.3,
                  ):
@@ -1142,6 +1142,7 @@ class ESI:
         self.maxlen = maxlen
         self.minlen = minlen
         self._printedrings = False
+        self._connec = None
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
@@ -1286,6 +1287,27 @@ class ESI:
         self._rings = value
 
     @property
+    def molinfo(self):
+        """
+        Get the information about the molecule and calculation. If not provided, it will compute it. If set as a string,
+        it will read the information from the directory. Can be saved in a file with the `savemolinfo` attribute.
+
+        :returns: Information about the molecule and calculation.
+        :rtype: dict
+        """
+
+        if self.read is True:
+            return read_molinfo(self.readpath)
+        if isinstance(self._molinfo, str):
+            return load_file(self._molinfo)
+        if self._molinfo is None:
+            graph = self._connec
+            print(self._connec)
+            exit()
+            self._molinfo = mol_info(self.mol, self.mf, self.savemolinfo, self._partition, graph)
+        return self._molinfo
+
+    @property
     def aom(self):
         """
         Get the Atomic Overlap Matrices (AOMs) in the MO basis. If not provided, it will compute them. If set as
@@ -1314,11 +1336,11 @@ class ESI:
                 raise ValueError(
                     " | Only one partition at a time. Partition should be a string, not a list.\n | Please consider looping through the partitions before calling the function")
             if self.mol and self.mf and self.partition:
-                if "connec" not in self._molinfo:
-                    self._molinfo["connec"] = self.connec  # Build and store connec if not present
+                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=self.save)
+                return self._aom
 
         if "connec" not in self._molinfo:
-            self._molinfo["connec"] = self.connec  # Build and store connec if not present
+            self._molinfo["connec"] = self._connec  # Build and store connec if not present
 
         return self._molinfo
 
