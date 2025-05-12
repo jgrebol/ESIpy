@@ -240,6 +240,31 @@ def mol_info(mol=None, mf=None, save=None, partition=None, connec=None):
 
     return info
 
+
+def build_connectivity(mat=None, threshold=None):
+    """
+    Build the connectivity dictionary based on the given atomic overlap matrices.
+
+    Parameters:
+        mat: Atomic overlap matrices. If None, uses self.aom or builds meta_lowdin AOMs
+        threshold: Threshold for connectivity determination. If None, uses self.rings_thres
+
+    Returns:
+        Dictionary representing atomic connectivity
+    """
+    wf = wf_type(mat)
+
+    if wf == "rest":
+        graph = build_connec_rest(mat, threshold)
+    elif wf == "unrest":
+        graph = build_connec_unrest(mat, threshold)
+    elif wf == "no":
+        graph = build_connec_no(mat, threshold)
+    else:
+        graph = None
+
+    return graph
+
 # Add this function to `esipy/tools.py`
 def process_fragments(aom, rings, done=False):
     """
@@ -386,7 +411,7 @@ def build_eta(mol):
         eta[i][start:end, start:end] = np.eye(end - start)
     return eta
 
-def build_connec_rest(Smo, thres=0.3):
+def build_connec_rest(Smo, thres=0.25):
     natoms = len(Smo)
     connec_dict = {}
 
@@ -399,7 +424,7 @@ def build_connec_rest(Smo, thres=0.3):
                     connec_dict[i].append(j)
     return filter_connec(connec_dict)
 
-def build_connec_unrest(Smo, thres=0.3):
+def build_connec_unrest(Smo, thres=0.25):
     natoms = len(Smo[0])
     connec_dict = {}
 

@@ -14,6 +14,7 @@ def info_rest(aom, molinfo, nfrags=0):
     """
     partition = format_partition(molinfo["partition"])
 
+
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     print(" | Number of Atoms:          {}".format(len(aom)-nfrags))
     print(" | Occ. Mol. Orbitals:       {}".format(np.shape(aom[0])[0]))

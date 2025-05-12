@@ -12,7 +12,7 @@ from esipy.indicators import (
 )
 from esipy.make_aoms import make_aoms
 from esipy.tools import (mol_info, format_partition, load_file, format_short_partition, wf_type, save_file,
-                         build_connec_rest, build_connec_unrest, build_connec_no, find_rings, process_fragments)
+                         build_connec_rest, build_connec_unrest, build_connec_no, find_rings, process_fragments, build_connectivity)
 
 
 class IndicatorsRest:
@@ -1143,6 +1143,7 @@ class ESI:
         self.minlen = minlen
         self._printedrings = False
         self._connec = None
+        self.done_connec = False
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
@@ -1297,12 +1298,22 @@ class ESI:
         """
 
         if self.read is True:
-            return read_molinfo(self.readpath)
+            self._molinfo = read_molinfo(self.readpath)
+            return self._molinfo
         if isinstance(self._molinfo, str):
-            return load_file(self._molinfo)
+            self._molinfo = load_file(self._molinfo)
+            return self._molinfo
         if not self._molinfo:
-            graph = self._connec
+            if self.partition in ['mulliken', 'lowdin']:
+                print(" | Building meta-Lowdin AOMs to compute connectivity.")
+                if self.mol is None or self.mf is None:
+                    raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build meta-Lowdin AOMs.")
+                mat = make_aoms(self.mol, self.mf, partition="meta_lowdin", save=None, myhf=self.myhf)
+            else:
+                mat = self.aom
+            graph = build_connectivity(mat=mat, threshold=self.rings_thres)
             self._molinfo = mol_info(self.mol, self.mf, self.savemolinfo, self._partition, graph)
+
         return self._molinfo
 
     @property
@@ -1366,30 +1377,26 @@ class ESI:
         The computation is controlled by the 'done_connec' flag.
 
         :returns: The connectivity matrix.
-        :rtype: list
+        :rtype: dict
         """
+        if self._connec is not None:
+            return self._connec
         if not hasattr(self, 'done_connec') or not self.done_connec:
             if self.molinfo.get("connec") is not None:
                 self._connec = self.molinfo.get("connec")
+                self.done_connec = True
                 return self._connec
+
             if self.partition in ['mulliken', 'lowdin']:
                 print(" | Building meta-Lowdin AOMs to compute connectivity.")
-                if self.mol is None or self.mf is None and not self._connec:
+                if self.mol is None or self.mf is None:
                     raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build meta-Lowdin AOMs.")
                 mat = make_aoms(self.mol, self.mf, partition="meta_lowdin", save=None, myhf=self.myhf)
             else:
                 mat = self.aom
-            if wf_type(self.aom) == "rest":
-                self._connec = build_connec_rest(mat, self.rings_thres)
-            elif wf_type(self.aom) == "unrest":
-                self._connec = build_connec_unrest(mat, self.rings_thres)
-            elif wf_type(self.aom) == "no":
-                self._connec = build_connec_no(mat, self.rings_thres)
-            else:
-                self._connec = None
+            self._connec = build_connectivity(mat=mat, threshold=self.rings_thres)
             self.done_connec = True
-            self.molinfo.get("connec") == self._connec
-        return self._connec
+            return self._connec
 
     @property
     def mci(self):
