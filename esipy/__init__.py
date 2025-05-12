@@ -1161,8 +1161,6 @@ class ESI:
 
 
         wf = wf_type(self.aom)
-        if isinstance(self.rings[0], int) or isinstance(self.rings[0], set):
-            self.rings = [self.rings]
         if wf == "rest":
             if not self.rings:
                 return
