@@ -1300,10 +1300,8 @@ class ESI:
             return read_molinfo(self.readpath)
         if isinstance(self._molinfo, str):
             return load_file(self._molinfo)
-        if self._molinfo is None:
+        if not self._molinfo:
             graph = self._connec
-            print(self._connec)
-            exit()
             self._molinfo = mol_info(self.mol, self.mf, self.savemolinfo, self._partition, graph)
         return self._molinfo
 
@@ -1336,11 +1334,13 @@ class ESI:
                 raise ValueError(
                     " | Only one partition at a time. Partition should be a string, not a list.\n | Please consider looping through the partitions before calling the function")
             if self.mol and self.mf and self.partition:
-                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=self.save)
-                return self._aom
-
-        if "connec" not in self._molinfo:
-            self._molinfo["connec"] = self._connec  # Build and store connec if not present
+                self._aom_loaded = True
+                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=self.saveaoms, myhf=self.myhf)
+                if self.saveaoms:
+                    print(f" | Saved the AOMs in the {self.saveaoms} file")
+            else:
+                raise ValueError(" | Missing variables 'mol', 'mf', or 'partition'")
+        return self._aom
 
         return self._molinfo
 
@@ -1368,16 +1368,13 @@ class ESI:
         :returns: The connectivity matrix.
         :rtype: list
         """
-        if self._connec is not None:
-            return self._connec
-
-        if self.molinfo.get("connec") is not None:
-            self._connec = self.molinfo.get("connec")
-            return self._connec
         if not hasattr(self, 'done_connec') or not self.done_connec:
+            if self.molinfo.get("connec") is not None:
+                self._connec = self.molinfo.get("connec")
+                return self._connec
             if self.partition in ['mulliken', 'lowdin']:
                 print(" | Building meta-Lowdin AOMs to compute connectivity.")
-                if self.mol is None or self.mf is None and self.molinfo.get("connec") is None:
+                if self.mol is None or self.mf is None and not self._connec:
                     raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build meta-Lowdin AOMs.")
                 mat = make_aoms(self.mol, self.mf, partition="meta_lowdin", save=None, myhf=self.myhf)
             else:
@@ -1391,6 +1388,7 @@ class ESI:
             else:
                 self._connec = None
             self.done_connec = True
+            self.molinfo.get("connec") == self._connec
         return self._connec
 
     @property
