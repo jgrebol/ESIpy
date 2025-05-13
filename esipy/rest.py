@@ -149,6 +149,8 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
     # Checking if the list rings is contains more than one ring to analyze
 
     symbols = molinfo["symbols"] + ["FF"] * (len(fragmap))
+    print("printing symbols", symbols)
+    print("len symbols", len(symbols))
 
     partition = molinfo["partition"]
     if not isinstance(rings[0], list):
