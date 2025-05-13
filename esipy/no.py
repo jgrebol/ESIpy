@@ -169,7 +169,6 @@ def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None,
     if not molinfo:
         raise NameError(" 'molinfo' not found. Check input")
 
-    natoms = molinfo["symbols"]
     symbols = molinfo["symbols"] + ["FF"] * (len(fragmap))
     partition = molinfo["partition"]
 
@@ -178,7 +177,9 @@ def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None,
 
     # Looping through each of the rings
     for ring_index, ring in enumerate(rings):
-        frag = True if fragmap is not None else False
+        frag = False
+        if any(tuple(r) in fragmap for r in ring if isinstance(r, (set, list))):
+            frag = True
         connectivity = None if frag else [symbols[int(i) - 1] for i in rings[0]]
         print(" ----------------------------------------------------------------------")
         print(" |")
