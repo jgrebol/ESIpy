@@ -54,7 +54,9 @@ def deloc_rest(aom, molinfo, fragmap={}):
 
     # Checking where to read the atomic symbols from
     presymbols = molinfo["symbols"]
+    print("len presymbols", len(presymbols))
     symbols = presymbols + ["FF"] * (len(fragmap))
+    print("printing symbols", symbols)
 
     print(" ------------------------------------- ")
     print(" | Atom    N(Sij)     loc.      dloc. ")
@@ -148,9 +150,12 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
 
     # Checking if the list rings is contains more than one ring to analyze
 
-    symbols = molinfo["symbols"] + ["FF"] * (len(fragmap))
-    print("printing symbols", symbols)
+    presymbols = molinfo["symbols"]
+    symbols = presymbols + ["FF"] * (len(fragmap))
+    print("len presymbols", len(presymbols))
     print("len symbols", len(symbols))
+    print("printing presymbols", presymbols)
+    print("printing symbols", symbols)
 
     partition = molinfo["partition"]
     if not isinstance(rings[0], list):
