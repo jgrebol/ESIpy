@@ -107,5 +107,11 @@ class TestRingsBehavior(unittest.TestCase):
         self.esi.rings = rings_data
         self.assertEqual(self.esi.rings, rings_data, "Failed for nested rings")
 
+    def test_findrings(self):
+        """Test findrings method."""
+        rings_data = "f"
+        self.esi = ESI(mol=mol, mf=mf, partition="nao", rings=rings_data)
+
+
 if __name__ == "__main__":
     unittest.main()

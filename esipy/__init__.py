@@ -1130,6 +1130,7 @@ class ESI:
         self.connectivity = connectivity
         self.geom = geom
         self.frag = False
+        self.fragmap = {}
         # For other tools
         self.ncores = ncores
         self.save = save
@@ -1144,6 +1145,7 @@ class ESI:
         self._printedrings = False
         self._connec = None
         self.done_connec = False
+        self.filtrings = [[]]
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
@@ -1285,6 +1287,15 @@ class ESI:
                 self._printedrings = True
         if isinstance(self._rings[0], (int, set)):
             self._rings = [self._rings]
+        if self.fragmap:
+            for i in range(len(self._rings)):
+                ring = []
+                for j in range(len(self._rings[i])):
+                    ring.append(self.fragmap[tuple(self._rings[i][j % len(self._rings[i])])] if isinstance(self._rings[i][j % len(self._rings[i])], set) else self._rings[i][j % len(self._rings[i])])
+                print(ring)
+                self.filtrings.append(ring)
+
+        print(self._rings)
         return self._rings
 
     @rings.setter
