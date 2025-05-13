@@ -1292,10 +1292,8 @@ class ESI:
                 ring = []
                 for j in range(len(self._rings[i])):
                     ring.append(self.fragmap[tuple(self._rings[i][j % len(self._rings[i])])] if isinstance(self._rings[i][j % len(self._rings[i])], set) else self._rings[i][j % len(self._rings[i])])
-                print(ring)
                 self.filtrings.append(ring)
 
-        print(self._rings)
         return self._rings
 
     @rings.setter
