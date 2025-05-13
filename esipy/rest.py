@@ -152,10 +152,6 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
 
     presymbols = molinfo["symbols"]
     symbols = presymbols + ["FF"] * (len(fragmap))
-    print("len presymbols", len(presymbols))
-    print("len symbols", len(symbols))
-    print("printing presymbols", presymbols)
-    print("printing symbols", symbols)
 
     partition = molinfo["partition"]
     if not isinstance(rings[0], list):
