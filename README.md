@@ -3,7 +3,7 @@
 The ESIpy program is aimed at the calculation of population analysis and aromaticity indicators from different
 Hilbert-space partitions using the PySCF module. The program supports both restricted and unrestricted calculations for
 single-determinant wavefunctions, and correlated wavefunctions from a restricted object (RHF). The atomic partitions
-supported by the program are Mulliken, Löwdin, meta-Löwdin, Natural Atomic Orbitals (NAO), and Intrinsic Atomic Orbita (
+supported by the program are Mulliken, Löwdin, meta-Löwdin, Natural Atomic Orbitals (NAO), and Intrinsic Atomic Orbitals (
 IAO).
 
 The on-line documentation can be found [here](https://esipython.readthedocs.io/en/latest/).
@@ -33,7 +33,7 @@ pip install esipython
 The latest stable version can be obtained through:
 
 ```
-pip upgrade esipython
+pip install --upgrade esipython
 ```
 
 The latest non-stable version available on Github can be obtained through:
@@ -85,7 +85,7 @@ The simplest form of input follows a usual PySCF calculation
     arom.print()
 ```
 
-To avoid the single-point calculation, the attributes `saveaoms` and `savemolinfo` will save the AOMs and a dictionary
+To avoid the single-point calculation, the attribute `save` will save the AOMs and a dictionary
 containing information about the molecule and calculation into a binary file in disk. Hereafter, these will be accessible
 at any time. It is also recommended to use a for-loop scheme for all the partitions, as the computational time to generate
 the matrices is minimal and independent of the chosen scheme.
@@ -94,9 +94,7 @@ the matrices is minimal and independent of the chosen scheme.
     ring = [1, 2, 3, 4, 5, 6]
     name = "benzene"
     for part in ["mulliken", "lowdin", "meta_lowdin", "nao", "iao"]:
-        aoms_name = name + '_' + part + '.aoms'
-        molinfo_name = name + '_' + part + '.molinfo'
-        arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, saveaoms=aoms_name, savemolinfo=molinfo_name)
+        arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, save=name)
         arom.print()
 ```
 
@@ -105,15 +103,13 @@ but also from Eduard Matito's ESI-3D code. These are written through the method 
 
 ```python
     arom = esipy.ESI(mol=mol, mf=mf, rings=[1,2,3,4,5,6], partition="nao")
-    arom.writeaoms("benzene_nao")
+    arom.writeaoms("benzene")
 ```
 
 ## Further work
 
 - Approximations for the MCI calculation in large systems.
 - Read the AOMs (or the data required for their calculation) from other source programs and store them as ESIpy `Smo`.
-- Calculation of aromaticity indicators from defined fragments.
 - Split the calculation into orbital contributions.
-- Algorithm to automatically find the rings inside a system.
 - Adaptation of some indicators to non-closed circuits (e.g., linear chains).
 
