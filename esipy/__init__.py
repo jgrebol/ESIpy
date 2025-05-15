@@ -1266,9 +1266,6 @@ class ESI:
                 graph = self.molinfo.get("connec")
             if not graph:
                 raise ValueError(" | Could not find the connectivity matrix. ")
-            print("graph", graph)
-            print("minlen", self.minlen)
-            print("maxlen", self.maxlen)
 
             self._rings = find_rings(graph, self.minlen, self.maxlen)
             endrings = time()

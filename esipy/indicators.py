@@ -540,8 +540,8 @@ def compute_homa(arr, molinfo, homarefs=None):
             return None
 
     distances = find_distances(arr, geom)
-    alpha = refs["alpha"]
-    r_opt = refs["r_opt"]
+    alpha = refs["ALPHA"]
+    r_opt = refs["R_OPT"]
 
     ravs, bonds = [], []
     for i in range(len(arr)):
