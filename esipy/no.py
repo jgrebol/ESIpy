@@ -87,7 +87,7 @@ def deloc_no(aom, molinfo, fragmap={}):
 
         print(" | {:>2} {:>2d}  {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}  {:8.4f}".format(
             symbols[i], i + 1, N[i], N[i]-lif, dlocX, lif, lix))
-    print(" ---------------------------------------------------------- ")
+    #print(" ---------------------------------------------------------- ")
     Ntot = np.sum(N[:len(presymbols)])
     lifstot = np.sum(lifs[:len(presymbols)])
     lixstot = np.sum(lixs[:len(presymbols)])
@@ -180,7 +180,7 @@ def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None,
         frag = False
         if any(tuple(r) in fragmap for r in ring if isinstance(r, (set, list))):
             frag = True
-        connectivity = None if frag else [symbols[int(i) - 1] for i in rings[0]]
+        connectivity = None if frag else [symbols[int(i) - 1] for i in ring]
         print(" ----------------------------------------------------------------------")
         print(" |")
         print(" | Ring  {} ({}):   {}".format(ring_index + 1, len(ring), "  ".join(str(num) for num in ring)))

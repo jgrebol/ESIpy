@@ -2,7 +2,6 @@ import unittest
 from esipy import ESI
 from pyscf import gto, scf
 
-# Molecule and PySCF setup from the original test7_rings.py
 mol = gto.Mole()
 mol.atom = '''
 6       -0.340927711      0.000000000     -3.650697859
@@ -51,7 +50,7 @@ mol.max_memory = 4000
 mol.build()
 
 mf = scf.HF(mol)
-mf.max_cycle = 1
+mf.max_cycle = 1 # Only for ESIpy qualitative purpose
 mf.kernel()
 
 class TestRingsBehavior(unittest.TestCase):
@@ -65,14 +64,14 @@ class TestRingsBehavior(unittest.TestCase):
         rings_data = [1, 2, 3, 4, 5, 6]
         self.esi = ESI(mol=mol, mf=mf, partition="nao", rings=rings_data)
         self.esi.print()
-        self.assertEqual(self.esi.rings, [[1, 2, 3, 4, 5, 6]], "Failed for integer rings")
+        self.assertEqual(self.esi.filtrings, [[1, 2, 3, 4, 5, 6]], "Failed for integer rings")
 
     def test_morering(self):
         """Test rings as integers."""
         rings_data = [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]]
         self.esi = ESI(mol=mol, mf=mf, partition="nao", rings=rings_data)
         self.esi.print()
-        self.assertEqual(self.esi.rings, [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]], "Failed for integer rings")
+        self.assertEqual(self.esi.filtrings, [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]], "Failed for integer rings")
 
     def test_onefrag(self):
         """Test rings as fragments (set of atom labels)."""
@@ -80,32 +79,52 @@ class TestRingsBehavior(unittest.TestCase):
         self.esi = ESI(mol=mol, mf=mf, partition="nao", rings=rings_data)
         self.esi.print()
         print(self.esi.rings)
-        self.assertEqual(self.esi.rings, [[{1, 2}, {3, 4}, {5, 6}, {7, 8}, {9, 10}, {11, 12}]], "Failed for fragment rings")
+        self.assertEqual(self.esi.filtrings, [[37, 38, 39, 40, 41, 42]], "Failed for fragment rings")
 
     def test_twofrags(self):
         """Test rings as fragments (set of atom labels)."""
-        rings_data = [[{1, 2}, {3, 4}, {5, 6}, {7, 8}, {9, 10}, {11, 12}], [{13, 14}, {15, 16}, {17, 18}, {19, 20}, {21, 22}, {23, 24}]]
+        rings_data = [[{1, 2}, {3, 4}, {5, 6}, {7, 8}, {9, 10}, {11, 12}],[{1, 12}, {2, 11}, {3, 10}, {4, 9}, {5, 8}, {6, 7}]]
         self.esi = ESI(mol=mol, mf=mf, partition="nao", rings=rings_data)
         print(self.esi.rings)
-        self.assertEqual(self.esi.rings, [[{1, 2}, {3, 4}, {5, 6}, {7, 8}, {9, 10}, {11, 12}], [{13, 14}, {15, 16}, {17, 18}, {19, 20}, {21, 22}, {23, 24}]], "Failed for fragment rings")
+        self.assertEqual(self.esi.filtrings, [[37, 38, 39, 40, 41, 42], [43, 44, 45, 46, 47, 48]], "Failed for two fragments")
 
     def test_atomandfrag(self):
         """Test rings as fragments (set of atom labels)."""
         rings_data = [{1, 2}, 3, {4, 5}, 6, {7, 8}, 9]
         self.esi = ESI(mol=mol, mf=mf, partition="nao", rings=rings_data)
-        self.assertEqual(self.esi.rings, [[{1, 2}, 3, {4, 5}, 6, {7, 8}, 9]], "Failed for fragment rings")
+        self.assertEqual(self.esi.filtrings, [[37, 3, 38, 6, 39, 9]], "Failed for fragment rings")
 
-    def test_rings_mixed(self):
-        """Test rings as a mix of integers and fragments."""
-        rings_data = [3, [1, 2, 3]]
-        self.esi.rings = rings_data
-        self.assertEqual(self.esi.rings, [[3, [1, 2, 3]]], "Failed for mixed rings")
-
-    def test_rings_nested(self):
-        """Test rings as a list of lists (nested rings)."""
-        rings_data = [[3, 4], [[1, 2, 3], [4, 5, 6]]]
-        self.esi.rings = rings_data
-        self.assertEqual(self.esi.rings, rings_data, "Failed for nested rings")
+    def test_findrings(self):
+        """Test ring finding algorithm"""
+        rings = [
+                 [2, 3, 7, 25, 24, 23],
+         [2, 3, 7, 10, 30, 29, 28, 25, 24, 23],
+         [2, 3, 4, 8, 9, 10, 30, 29, 28, 25, 24, 23],
+         [2, 3, 4, 8, 9, 10, 7, 25, 24, 23],
+         [2, 1, 6, 5, 16, 15, 14, 8, 9, 10, 7, 3],
+         [2, 1, 6, 5, 16, 15, 14, 8, 4, 3],
+         [2, 1, 6, 5, 4, 8, 9, 10, 7, 25, 24, 23],
+         [2, 1, 6, 5, 4, 8, 9, 10, 7, 3],
+         [2, 1, 6, 5, 4, 3],
+         [2, 1, 6, 5, 4, 3, 7, 25, 24, 23],
+         [3, 4, 8, 14, 13, 12, 11, 33, 35, 30, 10, 7],
+         [3, 4, 8, 14, 13, 12, 11, 9, 10, 7],
+         [3, 4, 8, 9, 11, 33, 35, 30, 29, 28, 25, 7],
+         [3, 4, 8, 9, 11, 33, 35, 30, 10, 7],
+         [3, 4, 8, 9, 10, 30, 29, 28, 25, 7],
+         [3, 4, 8, 9, 10, 7],
+         [3, 4, 5, 16, 15, 14, 13, 12, 11, 9, 10, 7],
+         [3, 4, 5, 16, 15, 14, 8, 9, 10, 7],
+         [4, 5, 16, 15, 14, 13, 12, 11, 9, 8],
+         [4, 5, 16, 15, 14, 8],
+         [7, 10, 30, 29, 28, 25],
+         [7, 10, 9, 11, 33, 35, 30, 29, 28, 25],
+         [8, 9, 11, 12, 13, 14],
+         [8, 9, 10, 30, 35, 33, 11, 12, 13, 14],
+         [9, 10, 30, 35, 33, 11],
+        ]
+        self.esi = ESI(mol=mol, mf=mf, partition="nao", rings="f")
+        self.assertEqual(self.esi.filtrings, rings, "Failed for ring finding algorithm")
 
 if __name__ == "__main__":
     unittest.main()

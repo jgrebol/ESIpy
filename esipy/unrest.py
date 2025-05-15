@@ -175,11 +175,11 @@ def arom_unrest(aom, rings, molinfo, indicators, mci=False, av1245=False, partit
         rings = [rings]
 
     # Looping through each of the rings
-    for ring_index, ring in enumerate(rings):
+    for ring_index, ring in enumerate(rings.copy()):
         frag = False
         if any(tuple(r) in fragmap for r in ring if isinstance(r, (set, list))):
             frag = True
-        connectivity = None if frag else [symbols[int(i) - 1] for i in rings[0]]
+        connectivity = None if frag else [symbols[int(i) - 1] for i in ring]
         print(" ----------------------------------------------------------------------")
         print(" |")
         print(" | Ring  {} ({}):   {}".format(

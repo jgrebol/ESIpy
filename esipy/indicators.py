@@ -355,13 +355,14 @@ def compute_flu(arr, molinfo, aom, flurefs=None, partition=None):
     flu_value, flu_polar = 0, 0
     symbols = molinfo["symbols"]
     atom_symbols = [symbols[int(i) - 1] for i in arr]
-    bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]]))
+    bond_types = ["".join(sorted([atom_symbols[i].upper(), atom_symbols[(i + 1) % len(arr)].upper()]))
                   for i in range(len(arr))]
 
     # Setting and update of the reference values
     flu_refs = find_flurefs(partition)
     if flurefs is not None:
         flu_refs.update(flurefs)
+    flu_refs = {key.upper(): value for key, value in flu_refs.items()}
 
     dis = find_dis(arr, aom)
     lis = find_lis(arr, aom)
@@ -522,6 +523,7 @@ def compute_homa(arr, molinfo, homarefs=None):
     }
     if homarefs is not None:
         refs.update(homarefs)
+    refs = {key.upper(): value for key, value in refs.items()}
 
     geom = molinfo["geom"]
     if geom is None:
@@ -529,7 +531,7 @@ def compute_homa(arr, molinfo, homarefs=None):
     symbols = molinfo["symbols"]
 
     atom_symbols = [symbols[int(i) - 1] for i in arr]
-    bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]]))
+    bond_types = ["".join(sorted([atom_symbols[i].upper(), atom_symbols[(i + 1) % len(arr)].upper()]))
                   for i in range(len(arr))]
 
     for i in range(len(arr)):

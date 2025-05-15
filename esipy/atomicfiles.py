@@ -66,18 +66,27 @@ def read_aoms(path='.'):
                         if not line:
                             break
                         mat_lines.extend([float(num) for num in line.split()])
+                        print(len(mat_lines))
 
                     # We first get the number of shape of the alpha-alpha matrix
+                    print(mat_lines)
+                    print(len(mat_lines))
                     na, nb = read_orbs(intfile_path)
                     nt = na + nb
+                    print(na, nb, nt)
 
                     # Mulliken works on non-symmetric, square AOMs
+                    if na != nb:
+                        shape = nt
+                    else:
+                        shape = na
+
                     if mul:
-                        matrix = np.array(mat_lines).reshape((nt, nt))
+                        matrix = np.array(mat_lines).reshape((shape, shape))
                     # Symmetric AOMs work on lower-triangular matrices
                     else:
-                        low_matrix = np.zeros((nt, nt))
-                        low_matrix[np.tril_indices(nt)] = mat_lines
+                        low_matrix = np.zeros((shape, shape))
+                        low_matrix[np.tril_indices(shape)] = mat_lines
                         matrix = low_matrix + low_matrix.T - np.diag(low_matrix.diagonal())
 
                     if wf == "rest" or wf == "no":
@@ -142,8 +151,6 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
 
     # Obtaining information for the files
 
-    symbols = [mol.atom_symbol(i) for i in range(mol.natm)]
-    atom_numbers = [i + 1 for i in range(mol.natm)]
     if wf == "unrest":
         nalpha = [np.trace(aom_alpha) for aom_alpha in aom[0]]
         nbeta = [np.trace(aom_beta) for aom_beta in aom[1]]
@@ -156,6 +163,7 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
 
     # Creating a new directory for the calculation
 
+    atom_numbers = [i + 1 for i in range(mol.natm)]
     symbols = [mol.atom_symbol(i) for i in range(mol.natm)]
     fragidx = mol.natm + 1
     fragmap = {}
@@ -363,8 +371,6 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
             if not domci:
                 f.write("$NOMCI\n")
             if dofrag:
-                if len(ring) != 1:
-                    raise ValueError(" | To write fragments, only one ring can be specified.")
                 f.write("$FRAGMENTS\n")
                 f.write(f"{len(fragmap)}\n")
                 for fragatm in fragmap.keys():
@@ -376,7 +382,8 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
                 f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
                 for sublist in ring:
                     f.write(str(len(sublist)) + "\n")
-                    f.write(" ".join(str(value) for value in sublist))
+                    mapped = [fragmap.get(tuple(x), x) if isinstance(x, set) else x for x in sublist]
+                    f.write(" ".join(str(value) for value in mapped))
                     f.write("\n")
             f.write("$AV1245\n")
             f.write("$FULLOUT\n")
@@ -491,7 +498,7 @@ def read_molinfo(path):
                 found_energy = True
     molinfo["symbols"] = symbs
     molinfo["atom_numbers"] = atm_nums
-    molinfo["geom"] = read_wfx_info(path)
+    molinfo["geom"] = read_wfx_info(path) if any(f.endswith('.wfx') for f in os.listdir(path)) else None
 
     return molinfo
 
