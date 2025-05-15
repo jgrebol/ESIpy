@@ -1365,8 +1365,6 @@ class ESI:
                 raise ValueError(" | Missing variables 'mol', 'mf', or 'partition'")
         return self._aom
 
-        return self._molinfo
-
     @property
     def partition(self):
         """
