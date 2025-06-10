@@ -3,17 +3,20 @@ import numpy as np
 from esipy.tools import format_partition
 
 
-def info_rest(aom, molinfo):
+def info_rest(aom, molinfo, nfrags=0):
     """
     Print the information of the molecule and the calculation.
-    Args:
-        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-        molinfo: Information about the molecule and the calculation.
+
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :param molinfo: Information about the molecule and the calculation.
+    :type molinfo: dict
     """
     partition = format_partition(molinfo["partition"])
 
+
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
-    print(" | Number of Atoms:          {}".format(len(aom)))
+    print(" | Number of Atoms:          {}".format(len(aom)-nfrags))
     print(" | Occ. Mol. Orbitals:       {}".format(np.shape(aom[0])[0]))
     print(" | Wavefunction type:        Restricted")
     print(" | Atomic partition:         {}".format(partition.upper() if partition else "Not specified"))
@@ -24,47 +27,60 @@ def info_rest(aom, molinfo):
     if "dft" in molinfo["method"] and molinfo["xc"] is not None:
         print(" | Functional:              ", molinfo["xc"])
 
-    print(" | Basis set:               ", molinfo["basisset"].upper())
+    if isinstance(molinfo["basisset"], dict):
+        for key in molinfo["basisset"]:
+            print(" | Basis set for {:>2}:         {}".format(key, molinfo["basisset"][key].upper()))
+    elif isinstance(molinfo["basisset"], str):
+        print(" | Basis set:               ", molinfo["basisset"].upper())
     if isinstance(molinfo["energy"], str):
         print(" | Total energy:          {}".format(molinfo["energy"]))
     else:
         print(" | Total energy:             {:<13f}".format(molinfo["energy"]))
     print(" ------------------------------------------- ")
-    trace = np.sum([np.trace(matrix) for matrix in aom])
+    trace = np.sum([np.trace(matrix) for matrix in aom[:len(aom)-nfrags]])
     print(" | Tr(Enter):    {:.13f}".format(trace))
     print(" ------------------------------------------- ")
 
 
-def deloc_rest(aom, molinfo):
-    """Population analysis, localization and delocalization indices for restricted, single-determinant calculations.
-    Args:
-        aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-        molinfo: Information about the molecule and the calculation.
+def deloc_rest(aom, molinfo, fragmap={}):
+    """
+    Population analysis, localization and delocalization indices for restricted, single-determinant calculations.
+
+    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :param molinfo: Information about the molecule and the calculation.
+    :type molinfo: dict
     """
 
     # Checking where to read the atomic symbols from
-    symbols = molinfo["symbols"]
+    presymbols = molinfo["symbols"]
+    symbols = presymbols + ["FF"] * (len(fragmap))
 
     print(" ------------------------------------- ")
     print(" | Atom    N(Sij)     loc.      dloc. ")
     print(" ------------------------------------- ")
 
     # Getting the LIs and DIs
-    dis, lis, N = [], [], []
+    dis, lis, Ns = [], [], []
     for i in range(len(aom)):
         li = 2 * np.trace(np.dot(aom[i], aom[i]))
+        N = 2 * np.trace(aom[i])
         lis.append(li)
-        N.append(2 * np.trace(aom[i]))
+        Ns.append(N)
 
         print(" | {:>2}{:>2d}  {:>8.4f}  {:>8.4f}  {:>8.4f} ".format(
-            symbols[i], i + 1, N[i], lis[i], N[i] - lis[i]))
+            symbols[i], i + 1, N, li, N - li))
 
         for j in range(i + 1, len(aom)):
             di = 4 * np.trace(np.dot(aom[i], aom[j]))
-            dis.append(di)
+            if j < len(presymbols):
+                dis.append(di)
+    Ntot = np.sum(Ns[:len(presymbols)])
+    listot = np.sum(lis[:len(presymbols)])
+    distot = Ntot - listot
     print(" ------------------------------------- ")
     print(" | TOT:  {:>8.4f}  {:>8.4f}  {:>8.4f}".format(
-        sum(N), sum(N) - sum(dis), sum(dis)))
+        Ntot, listot, distot))
     print(" ------------------------------------- ")
 
     print(" ------------------------ ")
@@ -81,26 +97,35 @@ def deloc_rest(aom, molinfo):
                     symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), 4 * np.trace(np.dot(aom[i], aom[j]))))
     print(" ------------------------ ")
-    print(" |   TOT:      {:>8.4f} ".format(np.sum(dis) + np.sum(lis)))
-    print(" |   LOC:      {:>8.4f} ".format(np.sum(lis)))
-    print(" | DELOC:      {:>8.4f} ".format(np.sum(dis)))
+    print(" |   TOT:      {:>8.4f} ".format(Ntot))
+    print(" |   LOC:      {:>8.4f} ".format(listot))
+    print(" | DELOC:      {:>8.4f} ".format(distot))
     print(" ------------------------ ")
 
 
 def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None, homarefs=None, homerrefs=None,
-              ncores=1):
+              ncores=1, fragmap=None):
     """
     Output for the aromaticity indices for restricted, single-determinant calculations.
-    Args:
-        rings: List of the atoms in the rings.
-        molinfo: Information about the molecule and the calculation.
-        indicators: Class containing the indicators for each ring.
-        mci: Boolean to compute the MCI.
-        av1245: Boolean to compute the AV1245.
-        flurefs: Dictionary with custom references for the FLU.
-        homarefs: Dictionary with custom references for the HOMA.
-        homerrefs: Dictionary with custom references for the HOMER.
-        ncores: Number of cores to use for the MCI calculation. By default, 1.
+
+    :param rings: List of the atoms in the rings.
+    :type rings: list of lists
+    :param molinfo: Information about the molecule and the calculation.
+    :type molinfo: dict
+    :param indicators: Class containing the indicators for each ring.
+    :type indicators: class
+    :param mci: Boolean to compute the MCI.
+    :type mci: bool, optional
+    :param av1245: Boolean to compute the AV1245.
+    :type av1245: bool, optional
+    :param flurefs: Dictionary with custom references for the FLU.
+    :type flurefs: dict, optional
+    :param homarefs: Dictionary with custom references for the HOMA.
+    :type homarefs: dict, optional
+    :param homerrefs: Dictionary with custom references for the HOMER.
+    :type homerrefs: dict, optional
+    :param ncores: Number of cores to use for the MCI calculation. By default, 1.
+    :type ncores: int, optional
     """
 
     print(" ----------------------------------------------------------------------")
@@ -118,31 +143,42 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
     print(" ----------------------------------------------------------------------")
 
     # Checking where to read the atomic symbols from
-    if molinfo:
-        symbols = molinfo["symbols"]
-        partition = molinfo["partition"]
-    else:
+    if not molinfo:
         raise NameError(" 'molinfo' not found. Check input")
 
     # Checking if the list rings is contains more than one ring to analyze
+
+    symbols = molinfo["symbols"] + ["FF"] * (len(fragmap))
+
+    partition = molinfo["partition"]
     if not isinstance(rings[0], list):
         rings = [rings]
 
     # Looping through each of the rings
-    for ring_index, ring in enumerate(rings):
+    for ring_index, ring in enumerate(rings.copy()):
+        frag = False
+        if any(tuple(r) in fragmap for r in ring if isinstance(r, (set, list))):
+            frag = True
+        connectivity = None if frag else [symbols[int(i) - 1] for i in ring]
         print(" ----------------------------------------------------------------------")
         print(" |")
         print(" | Ring  {} ({}):   {}".format(ring_index + 1, len(ring), "  ".join(str(num) for num in ring)))
         print(" |")
         print(" ----------------------------------------------------------------------")
-        connectivity = [symbols[int(i) - 1] for i in ring]
+        goodring = ring
+        ring = list(np.arange(1, len(ring) + 1))
+
         if homarefs is not None:
             print(" | Using HOMA references provided by the user")
         else:
             print(" | Using default HOMA references")
-        homa = indicators[ring_index].homa
+        if frag:
+            print(" | Could not compute geometric indicators between fragments")
+            homa = None
+        else:
+            homa = indicators[ring_index].homa
         if homa is None:
-            print(" | Connectivity could not match parameters")
+                print(" | Connectivity could not match parameters")
         else:
             print(" | EN           {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].en))
             print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].geo))
@@ -154,21 +190,30 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
             print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homer))
         print(" ----------------------------------------------------------------------")
 
-        print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].bla))
-        print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].bla_c))
-
-        flu = indicators[ring_index].flu
-        if flu is None:
-            print(" | Could not compute FLU")
+        if molinfo["geom"] is not None:
+            pass
         else:
-            if flurefs is not None:
-                print(" | Using FLU references provided by the user")
+            bla = indicators[ring_index].bla
+            if bla[0] is None:
+                pass
             else:
-                print(" | Using the default FLU references")
-            print(" ----------------------------------------------------------------------")
-            print(" | Atoms  :   {}".format("  ".join(str(atom) for atom in connectivity)))
-            print(" |")
-            print(" | FLU          {} =  {:>.6f}".format(ring_index + 1, flu))
+                bla_c = indicators[ring_index].bla_c
+                print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, bla))
+                print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, bla_c))
+
+        if not frag:
+            flu = indicators[ring_index].flu
+            if flu is None:
+                print(" | Could not compute FLU")
+            else:
+                if flurefs is not None:
+                    print(" | Using FLU references provided by the user")
+                else:
+                    print(" | Using the default FLU references")
+                print(" ----------------------------------------------------------------------")
+                print(" | Atoms  :   {}".format("  ".join(str(atom) for atom in connectivity)))
+                print(" |")
+                print(" | FLU          {} =  {:>.6f}".format(ring_index + 1, flu))
         print(" ----------------------------------------------------------------------")
 
         print(" | BOA          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].boa))
@@ -193,17 +238,34 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
 
             else:
                 av1245_list = indicators[ring_index].av1245_list
-                av1245_pairs = [(ring[i % len(ring)], ring[(i + 1) % len(ring)], ring[(i + 3) % len(ring)],
-                                 ring[(i + 4) % len(ring)])
-                                for i in range(len(ring))]
+                av1245_pairs, av1245_indices = [], []
+                for i in range(len(goodring)):
+                    first = fragmap[tuple(goodring[i % len(goodring)])] if isinstance(goodring[i % len(goodring)], set) else goodring[i % len(goodring)]
+                    second = fragmap[tuple(goodring[(i + 1) % len(goodring)])] if isinstance(
+                        goodring[(i + 1) % len(goodring)], set) else goodring[(i + 1) % len(goodring)]
+                    third = fragmap[tuple(goodring[(i + 3) % len(goodring)])] if isinstance(
+                        goodring[(i + 3) % len(goodring)], set) else goodring[(i + 3) % len(goodring)]
+                    fourth = fragmap[tuple(goodring[(i + 4) % len(goodring)])] if isinstance(
+                        goodring[(i + 4) % len(goodring)], set) else goodring[(i + 4) % len(goodring)]
 
-                for j in range(len(ring)):
+
+                    # Create the ring with corresponding symbols
+                    symbs = [
+                        symbols[first - 1] if isinstance(first, int) else symbols[first],
+                        symbols[second - 1] if isinstance(second, int) else symbols[second],
+                        symbols[third - 1] if isinstance(third, int) else symbols[third],
+                        symbols[fourth - 1] if isinstance(fourth, int) else symbols[fourth]
+                    ]
+
+                    av1245_pairs.append(symbs)
+                    av1245_indices.append((first, second, third, fourth))
+
                     print(" |  {} {} - {} {} - {} {} - {} {}  |  {:>6.4f}".format(
-                        str(ring[j]).rjust(2), symbols[av1245_pairs[j][0] - 1].ljust(2),
-                        str(ring[(j + 1) % len(ring)]).rjust(2), symbols[av1245_pairs[j][1] - 1].ljust(2),
-                        str(ring[(j + 3) % len(ring)]).rjust(2), symbols[av1245_pairs[j][2] - 1].ljust(2),
-                        str(ring[(j + 4) % len(ring)]).rjust(2), symbols[av1245_pairs[j][3] - 1].ljust(2),
-                        av1245_list[(ring[j] - 1) % len(ring)]))
+                    str(av1245_indices[-1][0]).rjust(2), symbs[0].ljust(2),
+                    str(av1245_indices[-1][1]).rjust(2), symbs[1].ljust(2),
+                    str(av1245_indices[-1][2]).rjust(2), symbs[2].ljust(2),
+                    str(av1245_indices[-1][3]).rjust(2), symbs[3].ljust(2),
+                    av1245_list[i % len(goodring)]))
                 print(" | AV1245 {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].av1245))
                 print(" |  AVmin {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].avmin))
                 print(" ---------------------------------------------------------------------- ")

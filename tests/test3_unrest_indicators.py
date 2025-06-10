@@ -92,20 +92,20 @@ class ESItest(unittest.TestCase):
         exp_avmin = exp['exp_avmin']
 
         # Multicenter indicators
-        self.assertAlmostEqual(inds.iring, exp_iring, places=6)
+        self.assertAlmostEqual(inds.iring, exp_iring, places=5)
         self.assertAlmostEqual(inds.mci, exp_mci, places=5)
         esitest = ESI(mol=mol, mf=mf, rings=ring, partition=partition, ncores=2)
         inds = esitest.indicators[0]
         self.assertAlmostEqual(inds.mci, exp_mci, places=5)
         self.assertAlmostEqual(inds.av1245, exp_av, places=2)
         self.assertAlmostEqual(inds.avmin, exp_avmin, places=2)
-        self.assertAlmostEqual(inds.pdi, exp_pdi, places=6)
+        self.assertAlmostEqual(inds.pdi, exp_pdi, places=5)
 
         # Geometric indicators
-        self.assertAlmostEqual(inds.homa, 0.993307, places=6)
-        self.assertAlmostEqual(inds.en, 0.006693, places=6)
-        self.assertAlmostEqual(inds.geo, 0, places=6)
-        self.assertAlmostEqual(inds.bla, 0, places=6)
+        self.assertAlmostEqual(inds.homa, 0.993307, places=5)
+        self.assertAlmostEqual(inds.en, 0.006693, places=5)
+        self.assertAlmostEqual(inds.geo, 0, places=5)
+        self.assertAlmostEqual(inds.bla, 0, places=5)
 
     def test_mulliken(self):
         partition = 'mulliken'

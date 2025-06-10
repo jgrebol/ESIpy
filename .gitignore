@@ -10,9 +10,10 @@ tests/__pycache__/
 tests/*.pyc
 tests/*.pyo
 
-build/*
-dist/*
-docs/source/*
+build/
+dist/
+docs/build/
+docs/source/_templates/
 
 .idea/*
 *.egg-info/*

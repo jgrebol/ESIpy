@@ -1,0 +1,90 @@
+:root {
+  --main-color: #18997D;
+}
+
+#main-content {
+font-family:}
+
+a:hover:not(.headerlink) {
+  border-bottom: 2px solid var(--main-color);
+  text-color: #00CCAD;
+}
+
+#project-container {
+width: 90%;
+text-align: right;
+}
+
+li.toctree-l1 > a:hover, li.toctree-l2 > a:hover, li.toctree-l3 > a:hover {
+  text-underline-color: #E0F7F4
+}
+
+#side-menu-container li.toctree-l1 > a:hover,
+#side-menu-container li.toctree-l2 > a:hover,
+#side-menu-container li.toctree-l3 > a:hover {
+  color: #E0F7F4;
+}
+
+#main-content-container li.toctree-l1 > a:hover,
+#main-content-container li.toctree-l2 > a:hover,
+#main-content-container li.toctree-l3 > a:hover {
+  color: #009982;
+}
+
+#main-container {
+text-align: justify;
+}
+
+header #logo-container {
+  width: 150%;
+  height: 100px;
+  padding-left: 0em;
+  text-decoration: none;
+}
+
+#logo-container img {
+  max-width: 150%;
+  max-height: 150%;
+  object-fit: cover;
+  text-decoration: none;
+}
+
+img.align-center {
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+    width: 60%;
+}
+
+#project-container {
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+}
+
+#project-container h1 {
+  font-size: 2em;
+  font-weight: 700;
+  color: --text-color;
+}
+
+.headerlink {
+  display: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  position: relative;
+}
+
+h1::after, h2::after, h3::after, h4::after, h5::after, h6::after {
+  content: '';
+  position: absolute;
+  width: calc(100% + 10px); /* Extend the underline a bit longer to the right */
+  height: 2px;
+  bottom: -2px; /* Adjust the position of the underline */
+  left: 0;
+  background-color: var(--hover-color);
+  visibility: visible;
+  transform: scaleX(1);
+  transition: all 0.3s ease-in-out;
+}

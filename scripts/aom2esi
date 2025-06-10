@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+
+from esipy import ESI
+import argparse
+import os
+
+def main():
+    # First we define each parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument('name', default='.', help='Name (without extension) of the AOMs')
+    parser.add_argument('-r', '--rings', nargs='+', help='Rings. For more than one ring, separate using a comma (e.g., "-r 1 2 3 4 5 6, 7 8 9 10 11 12")')
+    parser.add_argument('-mci', action='store_true', help='Whether to compute the MCI')
+    parser.add_argument('-av1245', action='store_true', help='Whether to compute the AV1245')
+    parser.add_argument('-n', '--ncores', default=1, type=int, help='Number of cores for the MCI')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose')
+
+    args = parser.parse_args()
+
+    if not args.rings:
+        parser.error("No rings specified. You must specify at least one ring.")
+
+    rings = []
+    current_ring = []
+    for item in args.rings:
+        parts = item.split(',')
+        for i, part in enumerate(parts):
+            if part.strip():  # if part is not empty
+                try:
+                    current_ring.append(int(part))
+                except ValueError:
+                    parser.error(f"Invalid ring number: {part}")
+            # If there was a comma, we end the current group
+            if i < len(parts) - 1:
+                rings.append(current_ring)
+                current_ring = []
+
+    if current_ring:
+        rings.append(current_ring)
+
+    if not rings:
+        parser.error("No rings specified. You must specify at least one ring.")
+
+    # Construct the full path based on the script's directory
+    working_dir = os.getcwd()
+
+    if args.name == '.':
+        path = working_dir
+    else:
+        path = os.path.join(working_dir, args.name)
+
+    # Assigning argument values to variables
+    mci = True if args.mci else None
+    av1245 = True if args.av1245 else None
+    ncores = args.ncores
+
+    # Printing the verbose if specified
+    if args.verbose:
+        print(" Verbose Mode Enabled:")
+        print(f" Path: {path}")
+        for i, ring in enumerate(rings, 1):
+            print(f" Ring {i}: {ring}")
+        print(f" MCI: {mci}")
+        print(f" AV1245: {av1245}")
+        print(f" Number of Cores: {ncores}")
+
+    part = path.split('_')[-1]
+    if part == 'lowdin':
+        if path.split('_')[-2] == 'meta':
+            part = "meta_lowdin"
+    aom_file = os.path.join(working_dir, args.name + ".aoms")
+    molinfo_file = os.path.join(working_dir, args.name + ".molinfo")
+
+    if args.verbose:
+        print(f"Processing file: {aom_file}")
+
+    arom = ESI(aom=aom_file, molinfo=molinfo_file, readpath=path, rings=rings, partition=part, ncores=ncores, mci=mci, av1245=av1245)
+    arom.print()
+
+if __name__ == '__main__':
+    main()

@@ -30,12 +30,10 @@ mf.xc = 'B3LYPg'
 mf.kernel()
 
 ring = [7, 3, 1, 2, 6, 10]
-partition = 'nao'
+partition = 'ml'
 name = 'example08'
-molinfo_name = name + '_' + partition + '.molinfo'
-aoms_name = name + '_' + partition + '.aoms'
+save = name + '_' + partition
 
-arom = esipy.ESI(rings=ring, partition=partition, mol=mol, mf=mf, name=name, saveaoms=aoms_name,
-                 savemolinfo=molinfo_name)
+arom = esipy.ESI(rings=ring, partition=partition, mol=mol, mf=mf, name=name, saveaoms=save + '.aoms', savemolinfo=save + '.molinfo')
 arom.print()
-arom.writeaoms()
+arom.writeaoms(name+"_"+partition)

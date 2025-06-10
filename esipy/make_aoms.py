@@ -7,18 +7,23 @@ from esipy.tools import save_file, format_partition, get_natorbs, build_eta
 np.set_printoptions(threshold=np.inf, linewidth=200, precision=6, suppress=True)
 
 def make_aoms(mol, mf, partition, myhf=None, save=None):
-    """Build the Atomic Overlap Matrices (AOMs) in the Molecular Orbitals basis. If using Natural Orbitals,
+    """
+    Build the Atomic Overlap Matrices (AOMs) in the Molecular Orbitals basis. If using Natural Orbitals,
     the HF instance is required as the reference to build the IAO transformation matrix.
-    Args:
-        mol: PySCF Mole object.
-        mf: PySCF SCF object.
-        partition: String with the name of the partition.
-        myhf: PySCF SCF object. Required if using Natural Orbitals.
-        save: String with the name of the file to save the AOMs.
-    Returns:
-        For RESTRICTED calculations, a list with each of the AOMs.
-        For UNRESTRICTED calculations, a list with the alpha and beta AOMs, as [aom_alpha, aom_beta].
-        For NATURAL ORBITALS calculations, a list with the AOMs and the Natural Orbitals occupation numbers, as [aom, occ].
+
+    :param mol: PySCF Mole object.
+    :type mol: pyscf.gto.Mole
+    :param mf: PySCF SCF object.
+    :type mf: pyscf.scf.hf.SCF
+    :param partition: String with the name of the partition.
+    :type partition: str
+    :param myhf: PySCF SCF object. Required if using Natural Orbitals.
+    :type myhf: pyscf.scf.hf.SCF, optional
+    :param save: String with the name of the file to save the AOMs.
+    :type save: str, optional
+
+    :returns: For RESTRICTED calculations, a list with each of the AOMs. For UNRESTRICTED calculations, a list with the alpha and beta AOMs, as [aom_alpha, aom_beta]. For NATURAL ORBITALS calculations, a list with the AOMs and the Natural Orbitals occupation numbers, as [aom, occ].
+    :rtype: list
     """
 
     partition = format_partition(partition)
@@ -163,7 +168,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
         S = mol.intor("int1e_ovlp")
         if "fci" in mf.__module__:
-            occ, coeff = get_natorbs_fci(mf, S, myhf, 2, 2)
+            raise NameError(" | FCI not supported yet")
+            #occ, coeff = get_natorbs_fci(mf, S, myhf, 2, 2)
         else:
             occ, coeff = get_natorbs(mf, S)
 
@@ -217,7 +223,9 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         else:
             raise NameError("Hilbert-space scheme not available")
 
+        aom = [aom, occ]
+
         if save:
             save_file(aom, save)
 
-        return [aom, occ]
+        return aom
