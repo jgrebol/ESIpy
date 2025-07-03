@@ -78,6 +78,204 @@ def read_atomic_symbols(z):
     return [z_to_symbol[int(i)] for i in z]
 
 
+def make_env(mol):
+    """
+    Build the _env array as PySCF does, using data from FCHK.
+    One block of basis data per unique element.
+    """
+    from pyscf.gto.mole import gto_norm, _nomalize_contracted_ao
+
+    # 1. Start with 20 zero-padding floats
+    env = [0.0] * 20
+
+    # 2. Append each atom's coordinates (in Bohr) plus a 0.0 zeta
+    coords = mol.atom_coords()  # shape (natoms,3)
+    for (x,y,z) in coords:
+        env.extend([x, y, z, 0.0])
+
+    # 3. Identify one representative atom for each element type
+    uniques = {}
+    for i in range(mol.natm):
+        Z = mol.atomic_numbers[i]
+        if Z not in uniques:
+            uniques[Z] = i
+
+    # Fix shell-to-atom indexing from FCHK (1->0-based)
+    iatsh = [i-1 for i in mol.iatsh]
+
+    # 4. Compute pointer array for primitives
+    prim_ptr = [0] * (mol.ncshell + 1)
+    for i in range(mol.ncshell):
+        prim_ptr[i+1] = prim_ptr[i] + mol.mnsh[i]
+
+    done_exps = set()
+
+    # sort uniques
+    uniques = {k: v for k, v in sorted(uniques.items(), key=lambda item: item[0])}
+    # 5. Process shells for each unique atom type
+    for rep_atom_idx in uniques.values():
+        for shell_id in range(mol.ncshell):
+            if iatsh[shell_id] != rep_atom_idx:
+                continue
+            l = mol.mssh[shell_id]
+            nprim = mol.mnsh[shell_id]
+            p0 = prim_ptr[shell_id]
+            p1 = prim_ptr[shell_id+1]
+            exps = np.array(mol.expsh[p0:p1])
+
+            # Normalize and add the S&P parts if needed
+            if l == -1:
+                # SP shell: split into S(l=0) and P(l=1)
+                # Determine number of contractions for S and P
+                nctr_s = (len(mol.c1[p0:p1]) // nprim)
+                nctr_p = (len(mol.c2[p0:p1]) // nprim)
+                cs = np.array(mol.c1[p0:p1]).reshape(nprim, nctr_s)
+                cp = np.array(mol.c2[p0:p1]).reshape(nprim, nctr_p)
+                # S part
+                cs = cs * gto_norm(0, exps).reshape(-1,1)
+                cs = _nomalize_contracted_ao(0, exps, cs)
+                env.extend(exps.tolist())
+                env.extend(cs.T.reshape(-1).tolist())
+                # P part
+                cp = cp * gto_norm(1, exps).reshape(-1,1)
+                cp = _nomalize_contracted_ao(1, exps, cp)
+                env.extend(exps.tolist())
+                env.extend(cp.T.reshape(-1).tolist())
+            else:
+                # Normal shell (s,p,d,f)
+                # For cartesian d or f (l=-2,-3), treat as l=2,3
+                l0 = abs(l)
+                coeffs = mol.c1[p0:p1]
+                nctr = len(coeffs) // nprim
+                cs = np.array(coeffs).reshape(nprim, nctr)
+                cs = cs * gto_norm(l0, exps).reshape(-1,1)
+                cs = _nomalize_contracted_ao(l0, exps, cs)
+                expvals = tuple(np.round(exps, 8))
+                if expvals not in done_exps:
+                    env.extend(exps.tolist())
+                    done_exps.add(expvals)
+                env.extend(cs.T.reshape(-1).tolist())
+
+    return np.array(env, dtype=np.float32)
+
+def make_atm(mol):
+    """Construct _atm array and _env from Mole object manually."""
+    _atm = []
+    _env = []
+    for i, (Z, coord) in enumerate(zip(mol.atomic_numbers, mol.atom_coords())):
+        x, y, z = coord
+        ptr_coord = len(_env) + 20  # Points to x
+        _env.extend([x, y, z])
+        ptr_zeta = len(_env) + 20  # Points to zeta
+        _env.append(0.0)  # Nuclear zeta (0.0 for point charge)
+
+        # 13-slot _atm record
+        atm_rec = [0] * 6
+        atm_rec[0] = Z                   # Atomic number
+        atm_rec[1] = ptr_coord          # Pointer to coordinates in _env
+        atm_rec[2] = 1                   # Nuclear model: 0 = point
+        atm_rec[3] = ptr_zeta            # Pointer to zeta in _env
+        _atm.append(atm_rec)
+
+    return np.array(_atm, dtype=np.int32)
+
+def make_bas(self):
+    """Construct _bas array from Mole object. Returns _bas array and updated _env."""
+    _bas = []
+    env = list(self._env)  # Start with existing _env
+    ptr = len(env)
+    exp_idx = 0
+
+    for i, atom1 in enumerate(self.iatsh):
+        atom_id = atom1 - 1  # zero-based
+        l_raw = self.mssh[i]
+        nprim = self.mnsh[i]
+        exponents = self.expsh[exp_idx:exp_idx + nprim]
+        coeff1 = self.c1[exp_idx:exp_idx + nprim]
+        coeff2 = self.c2[exp_idx:exp_idx + nprim] if self.c2 is not None else None
+        exp_idx += nprim
+
+        if l_raw == -1:
+            # SP shell: add two basis functions (S and P parts)
+            env.extend(exponents)
+            env.extend(coeff1)
+            env.extend(coeff2)
+            # S shell part
+            _bas.append([
+                atom_id, 0, nprim, 1, int(self.cart),  # l=0
+                ptr, ptr + nprim, 0
+            ])
+            # P shell part
+            _bas.append([
+                atom_id, 1, nprim, 0, int(self.cart),  # l=1
+                ptr, ptr + 2*nprim, 0
+            ])
+            ptr += 3 * nprim
+        else:
+            l = abs(l_raw)
+            env.extend(exponents)
+            env.extend(coeff1)
+            _bas.append([
+                atom_id, l, nprim, 1, 0,
+                ptr, ptr + nprim, 0
+            ])
+            ptr += 2 * nprim  # Exps + Coeffs
+
+    # Update self._env and return _bas
+    return np.array(_bas, dtype=np.int32)
+
+
+def make_basis(mol):
+    """
+    Constructs a PySCF-style basis dict (mol._basis) from Mole object.
+    Returns a dictionary like {'H': [[0, [exp, coeff], ...], ...], ...}
+    """
+    basis_dict = {}
+    dones = []
+    idx = 0  # current position in the primitive arrays
+    processed = {}
+
+    for shell_idx, atom_idx in enumerate(mol.iatsh):
+        atom_symbol = mol.atomic_symbols[atom_idx - 1]
+        if atom_symbol in dones and processed[atom_symbol] != atom_idx:
+            nprim = mol.mnsh[shell_idx]
+            idx += nprim
+            continue
+
+        if atom_symbol not in dones:
+            dones.append(atom_symbol)
+            processed[atom_symbol] = atom_idx
+
+        shell_type = mol.mssh[shell_idx]
+        nprim = mol.mnsh[shell_idx]
+
+        exps = mol.expsh[idx:idx + nprim]
+        coeffs1 = mol.c1[idx:idx + nprim]
+        coeffs2 = mol.c2[idx:idx + nprim] if mol.c2 is not None else None
+        idx += nprim
+
+        shell_entry = []
+
+        if shell_type == -1:
+            # SP shell (hybrid s and p shell in same block)
+            sp_shell = [-1]
+            for e, c1_val, c2_val in zip(exps, coeffs1, coeffs2):
+                sp_shell.append([e, c1_val, c2_val])
+            shell_entry = [sp_shell]
+        else:
+            shell = [abs(shell_type)]
+            for e, c in zip(exps, coeffs1):
+                shell.append([e, c])
+            shell_entry = [shell]
+
+        if atom_symbol not in basis_dict:
+            basis_dict[atom_symbol] = shell_entry
+        else:
+            basis_dict[atom_symbol].extend(shell_entry)
+
+    return basis_dict
+
+
 def degens(l, cart_flag):
     """Return the number of contracted functions for a given angular momentum l.
 
@@ -127,9 +325,11 @@ class Mole:
 
         from pyscf import gto
 
+        self._basis = make_basis(self)
+
         pyscf_mol = gto.M(
             atom=[(self.atomic_symbols[i], self.atom_coords()[i]) for i in range(self.natoms)],
-            basis=self.basis,
+            basis=self._basis,
             spin=self.spin,
             charge=self.charge,
             cart=self.cart,
@@ -137,15 +337,16 @@ class Mole:
         pyscf_mol.build()
 
         self.copy = pyscf_mol
-        #self._bas = build_bas(self)
-        self._bas = pyscf_mol._bas
-        self._basis = pyscf_mol._basis
         self._atm = pyscf_mol._atm
         self._env = pyscf_mol._env
-        print(self._bas)
-        print(self._atm)
-        print(self._env)
-        exit()
+        self._bas = pyscf_mol._bas
+
+
+        #self._bas = build_bas(self)
+        #self._bas = pyscf_mol._bas
+        #self._basis = pyscf_mol._basis
+        #self._atm, self._env = make_atm_env(self.atomic_numbers, self.atom_coords())
+        #self._env = pyscf_mol._env
         self._add_suffix = pyscf_mol._add_suffix
         self.nbas = len(self._bas)
 
@@ -155,29 +356,6 @@ class Mole:
     def aoslice_by_atom(self, ao_loc=None):
         return self.copy.aoslice_by_atom()
 
-    #def aoslice_by_atom(self, ao_loc=None): # For NAO subroutine purpose
-#
-#        counts = [0] * (max(self.iatsh) + 1)
-#        for value in self.iatsh:
-#            counts[value] += 1
-#        counts = counts[1:]
-#
-#        start_shell = 0
-#        aoslices = []
-#
-#        result = []
-#        index = 0
-#        for count in counts:
-#            sums = sum(mult(self.mssh[index + i]) for i in range(count))
-#            result.append(sums)
-#            index += count
-#
-#        for s in result:
-#            stop_shell = start_shell + s
-#            aoslices.append(np.array((0, 0, start_shell, stop_shell)))
-#            start_shell = stop_shell
-#
-#        return np.array(aoslices)
 
     def atom_coords(self):
         coords = read_list_from_fchk('Current cartesian coordinates', 'Number of symbols', self.path)
@@ -185,9 +363,7 @@ class Mole:
 
     def intor_symmetric(self,str):
         if str == 'int1e_ovlp':
-            process_basis(self.mf)
-            ovlp = build_ovlp(self.mf)
-            return ovlp
+            return self.copy.intor_symmetric('int1e_ovlp', comp=1)
         else:
             raise ValueError("Invalid integral type: {}".format(str))
 
@@ -335,8 +511,10 @@ class MeanField:
             return np.array([rdm1_a, rdm1_b])
 
     def get_ovlp(self):
+        return self.mol.copy.intor_symmetric('int1e_ovlp')
         process_basis(self)
         ovlp = build_ovlp(self)
+        print("Overlap:", ovlp)
         return ovlp
 
 def mult(shell_type):

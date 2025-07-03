@@ -93,7 +93,7 @@ def main():
     for part in partition:
         save_name = molname + '_' + part
         print(f' Saving the AOMs in the file: {save_name}.aoms')
-        arom = ESI(mol=mol, mf=mf, rings=rings, partition=part, saveaoms=save_name + '.aoms', savemolinfo=save_name + '.molinfo')
+        arom = ESI(mol=mol, mf=mf, rings=rings, partition=part, save=save_name)
         arom.print()
         if writeaoms:
             arom.writeaoms()

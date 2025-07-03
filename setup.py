@@ -16,6 +16,7 @@ setup(
     scripts=[
         "scripts/int2esi",
         "scripts/aom2esi",
+        "scripts/fchk2esi",
     ],
     install_requires=[
         "numpy<=1.23.3",
