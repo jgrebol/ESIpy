@@ -230,6 +230,8 @@ def make_basis(mol):
     Constructs a PySCF-style basis dict (mol._basis) from Mole object.
     Returns a dictionary like {'H': [[0, [exp, coeff], ...], ...], ...}
     """
+    from pyscf.gto import gto_norm
+    from pyscf.gto.mole import _nomalize_contracted_ao
     basis_dict = {}
     dones = []
     idx = 0  # current position in the primitive arrays
@@ -249,22 +251,24 @@ def make_basis(mol):
         shell_type = mol.mssh[shell_idx]
         nprim = mol.mnsh[shell_idx]
 
-        exps = mol.expsh[idx:idx + nprim]
-        coeffs1 = mol.c1[idx:idx + nprim]
-        coeffs2 = mol.c2[idx:idx + nprim] if mol.c2 is not None else None
+        exps = np.array(mol.expsh[idx:idx + nprim])
+        coeffs1 = np.array(mol.c1[idx:idx + nprim])
+        coeffs2 = np.array(mol.c2[idx:idx + nprim]) if mol.c2 is not None else None
         idx += nprim
 
         shell_entry = []
 
         if shell_type == -1:
-            # SP shell (hybrid s and p shell in same block)
-            sp_shell = [-1]
             for e, c1_val, c2_val in zip(exps, coeffs1, coeffs2):
-                sp_shell.append([e, c1_val, c2_val])
-            shell_entry = [sp_shell]
+                shell.append([e, c1_val, c2_val])
+            shell_entry = [shell]
         else:
+            l = abs(shell_type)
+            cs1 = coeffs1
+            #cs1 = (gto_norm(l, exps) * coeffs1).reshape(-1, 1)
+            #cs1 = _nomalize_contracted_ao(l, exps, cs1)
             shell = [abs(shell_type)]
-            for e, c in zip(exps, coeffs1):
+            for e, c in zip(exps, cs1):
                 shell.append([e, c])
             shell_entry = [shell]
 
@@ -312,7 +316,6 @@ class Mole:
         self.dcart = read_from_fchk("Pure/Cartesian d shells", self.path)[-1]
         self.fcart = read_from_fchk("Pure/Cartesian f shells", self.path)[-1]
         self.cart = self.dcart == 0 or self.fcart == 0
-        self.cart = True
         self.verbose = 0
         self.mf = MeanField(path, self)
         self.iatsh = self.mf.iatsh
@@ -329,12 +332,14 @@ class Mole:
 
         pyscf_mol = gto.M(
             atom=[(self.atomic_symbols[i], self.atom_coords()[i]) for i in range(self.natoms)],
-            basis=self._basis,
+            basis="cc-pvdz",
             spin=self.spin,
             charge=self.charge,
             cart=self.cart,
         )
         pyscf_mol.build()
+        print(pyscf_mol.intor_symmetric("int1e_ovlp"))
+        exit()
 
         self.copy = pyscf_mol
         self._atm = pyscf_mol._atm
@@ -355,7 +360,6 @@ class Mole:
 
     def aoslice_by_atom(self, ao_loc=None):
         return self.copy.aoslice_by_atom()
-
 
     def atom_coords(self):
         coords = read_list_from_fchk('Current cartesian coordinates', 'Number of symbols', self.path)
@@ -491,6 +495,7 @@ class MeanField:
                 self.c2 = read_list_from_fchk('P(S=P) Contraction coefficients', 'Coordinates of each shell', self.path)
             else:
                 self.c1 = read_list_from_fchk('Contraction coefficients', 'Coordinates of each shell', self.path)
+                self.c2 = None
 
     def make_rdm1(self):
         """Computes density matrix."""
@@ -514,7 +519,6 @@ class MeanField:
         return self.mol.copy.intor_symmetric('int1e_ovlp')
         process_basis(self)
         ovlp = build_ovlp(self)
-        print("Overlap:", ovlp)
         return ovlp
 
 def mult(shell_type):

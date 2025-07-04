@@ -408,6 +408,7 @@ def build_eta(mol):
     for i in range(mol.natm):
         start = mol.aoslice_by_atom()[i, -2]
         end = mol.aoslice_by_atom()[i, -1]
+        print("start, end:", start, end)
         eta[i][start:end, start:end] = np.eye(end - start)
     return eta
 

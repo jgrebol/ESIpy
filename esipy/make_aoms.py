@@ -153,6 +153,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             eta = build_eta(mol)
 
             for i in range(mol.natm):
+                print(S)
+                exit()
                 SCR = np.linalg.multi_dot((coeff.T, S, eta[i], coeff))
                 aom.append(SCR)
 
