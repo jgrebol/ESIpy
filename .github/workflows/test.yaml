@@ -23,7 +23,7 @@ jobs:
 
       - name: Install your package for testing
         run: |
-          python -m pip install . # This will install esipython from setup.py
+          python -m pip install .
 
       - name: Install dependencies
         run: |
