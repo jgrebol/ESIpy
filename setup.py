@@ -22,5 +22,6 @@ setup(
         "pyscf<=2.4",
         "sphinx",
     ],
+    requires_python=">=3.7, <3.12",
 )
 
