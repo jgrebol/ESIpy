@@ -16,9 +16,6 @@ jobs:
       - name: Check Python version
         run: python --version
 
-      - name: Clear pip cache
-        run: pip cache purge
-
       - name: Upgrade pip, setuptools, wheel, pip-tools
         run: |
           python -m ensurepip --upgrade
@@ -26,11 +23,11 @@ jobs:
 
       - name: Install your package for testing
         run: |
-          pip install . # This will install esipython from setup.py
+          python -m pip install . # This will install esipython from setup.py
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          python -m pip install -r requirements.txt
 
       - name: Run tests
         run: |
