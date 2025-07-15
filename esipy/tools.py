@@ -318,6 +318,8 @@ def format_partition(partition):
         return "nao"
     elif partition in ["i", "iao", "intrinsic", "intr"]:
         return "iao"
+    elif partition in ["iao-autosad", "autosad", "iaoa", "iao-a", "ia"]:
+        return "iao-autosad"
     elif partition in ["q", "qt", "qtaim", "quant", "quantum"]:
         return "qtaim"
     else:
@@ -519,3 +521,155 @@ def find_node_distances(connec):
                        queue.append((neighbor, cur_dist + 1))
 
    return distances
+
+
+def get_efos2(mol, mf):
+    from pyscf.lo.nao import _prenao_sub
+    from pyscf import gto, scf, dft
+
+    aufbau_order = {
+        '1s': 1, '2s': 2, '2p': 3, '3s': 4, '3p': 5, '4s': 6,
+        '3d': 7, '4p': 8, '5s': 9, '4d': 10, '5p': 11, '6s': 12,
+        '4f': 13, '5d': 14, '6p': 15, '7s': 16, '5f': 17, '6d': 18,
+        '7p': 19
+    }
+
+    unpaired = {
+        "H": 1, "He": 0, "Li": 1, "Be": 0, "B": 1, "C": 2, "N": 3, "O": 2, "F": 1, "Ne": 0,
+        "Na": 1, "Mg": 0, "Al": 1, "Si": 2, "P": 3, "S": 2, "Cl": 1, "Ar": 0, "K": 1, "Ca": 0,
+    }
+
+    minorbs = {
+        "H": 1, "He": 1, "Li": 2, "Be": 2, "B": 5, "C": 5, "N": 5, "O": 5, "F": 5, "Ne": 5,
+        "Na": 6, "Mg": 6, "Al": 9, "Si": 9, "P": 9, "S": 9, "Cl": 9, "Ar": 9, "K": 10, "Ca": 10,
+    }
+
+    aoslices = mol.aoslice_by_atom()
+
+    # Get the unique atom symbols in the molecule
+    atoms = []
+    atom_indices = []
+    for ia in range(mol.natm):
+        symb = mol.atom_pure_symbol(ia)
+        if symb not in atoms:
+            atoms.append(symb)
+            atom_indices.append(ia)
+
+    # Sort the atom indices based on the order of appearance in the molecule
+
+    atom_veps = {}
+    atom_vaps = {}
+    for atom_symbol, ia in zip(atoms, atom_indices):
+        start, end = aoslices[ia, 2], aoslices[ia, 3]
+
+        # Create a new molecule object for the current atom
+        molatm = gto.Mole()
+        molatm.atom = f"{atom_symbol} 0.0 0.0 0.0"
+        molatm.basis = {atom_symbol: mol._basis[atom_symbol]}
+        molatm.spin = unpaired[atom_symbol]
+        molatm.charge = 0
+        mol.symmetry = False
+        molatm.build()
+
+        orbital_labels = [label[2] for label in molatm.ao_labels(fmt=False)]
+
+        # Create a new SCF object for the atom
+        if "HF" in mf.__class__.__name__:
+            mfatm = scf.HF(molatm)
+        elif "KS" in mf.__class__.__name__:
+            mfatm = scf.KS(molatm)
+        else:
+            mfatm = mf.__class__(molatm)
+
+        mfatm.kernel()
+
+        # Build AO 1-RDM manually
+        if "U" in mfatm.__class__.__name__:
+            Ca, Cb = mfatm.mo_coeff
+            occa, occb = mfatm.mo_occ
+            Da = np.einsum('pi,i,qi->pq', Ca, occa, Ca)
+            Db = np.einsum('pi,i,qi->pq', Cb, occb, Cb)
+            Patm = Da + Db
+        else:
+            C = mfatm.mo_coeff
+            occ = mfatm.mo_occ
+            Patm = np.einsum('pi,i,qi->pq', C, occ, C)
+
+        Satm = mfatm.get_ovlp()
+        PSatm = np.dot(Patm, Satm)
+        SPSatm = np.dot(Satm, PSatm)
+
+        vaps_atom, veps_atom = _prenao_sub(molatm, SPSatm, Satm)
+
+        # Order the orbitals based on Aufbau's principle
+        atom_orbitals = orbital_labels[start:end]
+        aufbau_values = [aufbau_order.get(orb, float('inf')) for orb in orbital_labels]
+
+        ordered_indices = np.argsort([-val for val in aufbau_values])
+
+        # Only keep the first n_occ occupied orbitals for each atom
+        n_occ = minorbs[atom_symbol]  # or use your own dictionary for occupied orbitals
+        vaps_ordered = vaps_atom[ordered_indices][::-1][:n_occ]
+        veps_ordered = veps_atom[:, ordered_indices][:, ::-1][:, :n_occ]
+        print(np.shape(veps_ordered))
+
+        atom_veps[atom_symbol] = veps_ordered
+        atom_vaps[atom_symbol] = vaps_ordered
+
+    aoslices = mol.aoslice_by_atom()
+    nminbas = sum(atom_veps[mol.atom_pure_symbol(ia)].shape[1] for ia in range(mol.natm))
+    veps_block = np.zeros((mol.nao, nminbas))
+    vaps_diag = []
+
+    col = 0
+    for ia in range(mol.natm):
+        atom_symbol = mol.atom_pure_symbol(ia)
+        start, end = aoslices[ia, 2], aoslices[ia, 3]
+        veps = atom_veps[atom_symbol]
+        vaps = atom_vaps[atom_symbol]
+        ncol = veps.shape[1]
+        veps_block[start:end, col:col + ncol] = veps
+        vaps_diag.extend(list(vaps))
+        #vaps_diag[start:end, col:col + ncol] = np.diag(vaps)
+        col += ncol
+
+    np.set_printoptions(threshold=np.inf, linewidth=200, suppress=True)
+
+    return vaps_diag, veps_block
+
+def autosad(mol, mf):
+    import numpy as np
+    from pyscf import scf, lo
+
+    # Getting data
+    S1 = mol.intor_symmetric('int1e_ovlp')  # In AO basis
+    C = get_efos2(mol, mf)[1] # (nbas×nminbas)
+    C_occ = mf.mo_coeff[:, :mol.nelectron // 2]
+
+    # Overlaps respecte la base minima
+    S12 = S1 @ C  # (nbas×nminbas)
+    S2 = C.T @ S1 @ C  # Linear combination of original AOs
+
+    # Building the projectors
+    S21 = S12.T
+    Ctild_min = np.linalg.solve(S2, S21 @ C_occ)  # shape (n_min×n_occ)
+
+    try:
+        P12 = np.linalg.solve(S1, S12)  # S1 x P12 = S12
+        Ctild_AO = np.linalg.solve(S1, S12 @ Ctild_min) # Ctild_AO = P12 C_tild_min
+    except np.linalg.LinAlgError:
+        # S1 is ill-conditioned: use canonical orthonormalization as in PySCF
+        X = scf.addons.canonical_orth_(S1, lindep_threshold=1e-8)
+        P12 = X @ X.T @ S12
+        Ctild_AO = P12 @ Ctild_min
+
+    # Ortonormalitzar els orbitals projectats
+    Ctild = lo.vec_lowdin(Ctild_AO, S1)  # W(WSW)**(-1/2)
+
+    # Mes projectors
+    P_occ = C_occ @ C_occ.T @ S1  # projector onto occupied space (equiv a CCS1)
+    P_proj = Ctild @ Ctild.T @ S1  # projector onto projected space throuhg polarized orbitals (equiv a CCS2)
+    IAOs = P12 + 2 * (P_occ @ P_proj @ P12) - P_occ @ P12 - P_proj @ P12 # PySCF expression
+
+    return IAOs
+

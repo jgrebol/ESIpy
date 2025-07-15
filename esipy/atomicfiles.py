@@ -66,14 +66,10 @@ def read_aoms(path='.'):
                         if not line:
                             break
                         mat_lines.extend([float(num) for num in line.split()])
-                        print(len(mat_lines))
 
                     # We first get the number of shape of the alpha-alpha matrix
-                    print(mat_lines)
-                    print(len(mat_lines))
                     na, nb = read_orbs(intfile_path)
                     nt = na + nb
-                    print(na, nb, nt)
 
                     # Mulliken works on non-symmetric, square AOMs
                     if na != nb:
