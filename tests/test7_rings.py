@@ -50,7 +50,7 @@ mol.max_memory = 4000
 mol.build()
 
 mf = scf.HF(mol)
-mf.max_cycle = 1 # Only for ESIpy qualitative purpose
+mf.max_cycle = 1 # Only for ESIpy to do the test faster
 mf.kernel()
 
 class TestRingsBehavior(unittest.TestCase):

@@ -174,17 +174,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         if save:
             save_file(aom, save)
 
-        print(np.shape(aom))
-        aom2 = []
-        for a in aom:
-            print(a[12][12], a[12][13], a[13][12], a[13][13])
-            #aom2.append([[a[12][12], a[12][13]], [a[13][12], a[13][13]]])
-            aom2.append([[a[-2][-2], a[-2][-1]], [a[-1][-2], a[-1][-1]]])
-        print(np.shape(aom2))
-        print(np.shape(aom2[0]))
-        print(aom2[0])
-
-        return np.array(aom2)
+        return aom
 
     else:
 

@@ -1169,7 +1169,9 @@ class ESI:
                 return
             self.fragaom, self.fragmap = list(process_fragments(self.aom, self.rings, False))
             if self.fragaom:
-                self.totalaom = self.aom + self.fragaom
+                self.totalaom = deepcopy(self.aom)
+                for f in self.fragaom:
+                    self.totalaom.append(f)
                 self.nfrags = len(self.fragaom)
             else:
                 self.totalaom = self.aom
