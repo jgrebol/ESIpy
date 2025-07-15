@@ -4,7 +4,8 @@ on: [push, pull_request]
 
 jobs:
   test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04 # Using ubuntu-22.04 as discussed
+
     steps:
       - uses: actions/checkout@v4
 
@@ -12,6 +13,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.8'
+
+      - name: Ensure pip is upgraded and available
+        run: python -m ensurepip --upgrade
 
       - name: Check Python version
         run: python --version
@@ -21,14 +25,29 @@ jobs:
 
       - name: Upgrade pip, setuptools, wheel, pip-tools
         run: |
+          # The `python -m pip install --upgrade setuptools` from your request is covered here.
+          # We're making sure all critical packaging tools are current.
           python -m pip install --upgrade pip setuptools wheel pip-tools
+
+      # Add the specific module installation here, replacing <module>
+      # This step should come AFTER the core tools are upgraded,
+      # and BEFORE installing your main package or its requirements,
+      # UNLESS it's part of your requirements.txt.
+      # If it's a *dependency* of your project, it should be in requirements.txt.
+      # If it's a *tool* needed for your build/test process that's not a direct project dependency, place it here.
+      - name: Install specific module (replace <module>)
+        run: python -m pip install <module>
 
       - name: Install your package for testing
         run: |
+          # It's often cleaner to install main dependencies first, then the package itself.
+          # So, I'm suggesting moving the `pip install -r requirements.txt` before this step.
           pip install . # This will install esipython from setup.py
 
-      - name: Install dependencies
+      - name: Install project dependencies (moved for typical flow)
         run: |
+          # This should ideally be run before installing your package if your package
+          # relies on these dependencies for its own installation/testing.
           pip install -r requirements.txt
 
       - name: Run tests
