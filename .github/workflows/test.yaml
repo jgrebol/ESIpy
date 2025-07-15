@@ -8,12 +8,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python from .python-version file
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          # Note: 'python-version' is omitted, and 'python-version-file' is used implicitly
-          # or explicitly if you prefer, but it defaults to looking for it.
-          # python-version-file: '.python-version' # You could explicitly state this too
+          python-version: '3.10'
 
       - name: Check Python version
         run: python --version
