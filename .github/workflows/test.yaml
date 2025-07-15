@@ -26,18 +26,19 @@ jobs:
       - name: Upgrade pip, setuptools, wheel, pip-tools
         run: |
           python -m ensurepip --upgrade
-          # Add --no-cache-dir to pip install commands to prevent caching during upgrade
           python -m pip install --upgrade --no-cache-dir pip setuptools wheel pip-tools
 
       - name: Install your package for testing
         run: |
-          # Add --no-cache-dir to pip install to prevent caching of the installed package
           python -m pip install --no-cache-dir .
 
       - name: Install dependencies
         run: |
-          # Add --no-cache-dir to pip install to prevent caching of dependencies
           python -m pip install --no-cache-dir -r requirements.txt
+
+      - name: Install Sphinx and doc dependencies
+        run: |
+          python -m pip install --no-cache-dir -r docs/source/requirements.txt
 
       - name: Run tests
         run: |
