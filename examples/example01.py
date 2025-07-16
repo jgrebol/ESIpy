@@ -32,9 +32,7 @@ mf.kernel()
 ring = [1, 2, 3, 4, 5, 6]
 name = "example01"
 
-for part in ["m", "lowdin", "meta_lowdin", "nao", "iao"]:
-    save = name + '_' + part
-    arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, saveaoms=save + '.aoms', savemolinfo=save + '.molinfo',
-                     name=name, mci=False, av1245=True)
+for part in ["mulliken", "lowdin", "meta_lowdin", "nao", "iao"]:
+    arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, save=name, mci=True, av1245=True) # mci and av1245 are optional arguments
     arom.print()
-    arom.writeaoms(name + '_' + part)
+    arom.writeaoms(name) # Will take the form "name_partition/"

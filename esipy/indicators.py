@@ -360,10 +360,8 @@ def compute_flu(arr, molinfo, aom, flurefs=None, partition=None):
 
     # Setting and update of the reference values
     flu_refs = find_flurefs(partition)
-    if flurefs is not None:
-        flu_refs.update(flurefs)
-    else:
-        return None
+    if flurefs:
+        flu_refs.update({k.upper(): v for k, v in flurefs.items()})
     flu_refs = {key.upper(): value for key, value in flu_refs.items()}
 
     dis = find_dis(arr, aom)

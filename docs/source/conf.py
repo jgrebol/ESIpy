@@ -23,7 +23,7 @@ html_context = {
 project = 'ESIpy'
 copyright = '2024, Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador'
 author = 'Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador'
-release = '1.0'
+release = '1.0.6'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

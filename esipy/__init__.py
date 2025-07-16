@@ -1096,7 +1096,6 @@ class ESI:
     ncores (optional, int): Number of cores to use for the MCI calculation. Default is 1.
     saveaoms (optional): Name where to save the AOMs in binary.
     savemolinfo (optional): Name where to save the molecular information dictionary in binary.
-    name (optional, str): Name of the calculation. Default is 'calc'.
     readpath (optional, str): Path to read the AOMs. Default is '.'.
     indicators (obj): Object containing the indicators of the calculation. Generated in the initialization.
 

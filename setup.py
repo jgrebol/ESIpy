@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 setup(
     name="esipython",
-    version="1.0.5",
+    version="1.0.6",
     description="Calculation of electronic aromaticity indicators",
     long_description=long_description,
     long_description_content_type="text/markdown",
