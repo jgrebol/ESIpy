@@ -78,14 +78,12 @@ def read_atomic_symbols(z):
     return [z_to_symbol[int(i)] for i in z]
 
 
-import numpy
-
 def reorder_mo_coeff(mf):
     """
     Reorder MO coefficients according to:
     1. Atom index
     2. Angular momentum (s < p < d < f ...)
-    3. Shell index (inner to outer)
+    3. Shell index (inner to outer, grouped by atom and l)
     4. Spherical harmonic order (Condon-Shortley)
 
     Also prints AOs in format: index | AO label
@@ -93,30 +91,38 @@ def reorder_mo_coeff(mf):
     import numpy as np
 
     mol = mf.mol
-    print(mf.get_ovlp())
     ao_loc = mol.ao_loc_nr()
-    nbas = mol.nbas
+    print(ao_loc)
+    nbas = mf.nbas
     mo_coeff = mf.mo_coeff.copy()
-    # Spherical harmonic reordering: number of functions → Condon-Shortley index order
+
     spherical_orders = {
-        3: [0, 1, 2],                             # s: s, pz, px, py
-        5: [4, 2, 0, 1, 3],                         # d: dxy, dyz, dz^2, dxz, dx2-y2
+        3: [0, 1, 2],                               # p: pz, py, px
+        5: [4, 2, 0, 1, 3],                         # d
         7: [6, 4, 2, 0, 1, 3, 5],                   # f
         9: [8, 6, 4, 2, 0, 1, 3, 5, 7],             # g
         11: [10, 8, 6, 4, 2, 0, 1, 3, 5, 7, 9],     # h
     }
 
-    ao_metadata = []  # (ao_index, atom_id, l, shell_index, spherical_order)
+    ao_metadata = []  # (ao_index, atom_id, l, shell_index_within_group, spherical_order)
+    shell_counts = {}  # Track number of shells per (atom, l)
+    nbas = mf.nbas
 
     for bas_id in range(nbas):
         start = ao_loc[bas_id]
         end = ao_loc[bas_id + 1]
         nfunc = end - start
+        print("nbas", nbas, "bas_id", bas_id, "start", start, "end", end, "nfunc", nfunc)
 
         atom_id = mol.bas_atom(bas_id)
         l = mol.bas_angular(bas_id)
-        shell_index = bas_id
+        key = (atom_id, l)
 
+        # Determine current shell index in this (atom, l) group
+        shell_index = shell_counts.get(key, 0)
+        shell_counts[key] = shell_index + 1
+
+        # Use spherical ordering if defined
         sph_order = spherical_orders.get(nfunc, list(range(nfunc)))
         for i, local_order in enumerate(sph_order):
             ao_index = start + i
@@ -124,11 +130,10 @@ def reorder_mo_coeff(mf):
 
     # Sort by: atom → angular momentum → shell index → spherical order
     ao_metadata_sorted = sorted(ao_metadata, key=lambda x: (x[1], x[2], x[3], x[4]))
-    reorder_indices = [entry[0] for entry in ao_metadata_sorted]
+    print(ao_metadata_sorted)  # <- This will now match your expected output
 
-    # Apply reordering to MO coefficients
-    mo_coeff = mo_coeff[:, reorder_indices]
-    print(mo_coeff)
+    reorder_indices = [entry[0] for entry in ao_metadata_sorted]
+    mo_coeff = mo_coeff[reorder_indices]
 
     # Print AO labels in new order
     print("Index | AO Label")
@@ -136,8 +141,9 @@ def reorder_mo_coeff(mf):
     for new_idx, old_idx in enumerate(reorder_indices):
         print(f"{new_idx:5d} | {ao_labels[old_idx]}")
 
-    print("Trace check", np.trace(mo_coeff @ mf.get_ovlp()))
+    print("Trace check", np.trace(mo_coeff @ mo_coeff.T @ mf.get_ovlp()))
     return mo_coeff
+
 
 
 def make_env(mol):
@@ -290,62 +296,81 @@ def make_bas(self):
 import numpy as np
 
 def make_basis(mf):
-    # From basissetexchange.org, activate "
+    """Generate a basis set string representation from a PySCF-derived MeanField object for NWChem."""
     output_lines = []
 
-    shells_by_atom_index = [[] for _ in range(mf.natoms)]
-    print(mf.expsh)
-    print(mf.c1)
-    print(mf.c2)
+    shell_labels = {
+        0: "S",
+        1: "P",
+        2: "D",
+        3: "F",
+        4: "G",
+        5: "H"
+    }
 
-    current_exp_idx = 0
-    current_c1_idx = 0
+    is_global_spherical = any(code < 0 for code in mf.mssh)
+    output_lines.append("basis spherical" if is_global_spherical else "basis cartesian")
+
+    exp_idx = coeff_idx = 0
+    collected_shells = {}           # Map symbol → shells
+    seen_symbols = set()            # Track which symbols we've collected
+
+    first_atom_idx_for_symbol = {}
+
+    # Track first atom index for each element
+    for atom_idx, sym in enumerate(mf.atomic_symbols):
+        if sym not in first_atom_idx_for_symbol:
+            first_atom_idx_for_symbol[sym] = atom_idx
 
     for i in range(mf.ncshell):
-        shell_type_code = mf.mssh[i]
-        num_primitives = mf.mnsh[i]
-        atom_index = mf.iatsh[i] - 1
+        raw_shell_code = mf.mssh[i]
+        l = abs(raw_shell_code)
+        atom_idx = mf.iatsh[i] - 1
+        sym = mf.atomic_symbols[atom_idx]
+        n_prim = mf.mnsh[i]
 
-        primitives_data = []
-        for _ in range(num_primitives):
-            exponent = mf.expsh[current_exp_idx]
-            coeff = mf.c1[current_c1_idx]
-            primitives_data.append((exponent, coeff))
-            current_exp_idx += 1
-            current_c1_idx += 1
-
-        shells_by_atom_index[atom_index].append({
-            'type_code': shell_type_code,
-            'primitives': primitives_data
-        })
-
-    printed_atom_types = set()
-
-    for atom_idx in range(mf.natoms):
-        atom_symbol = mf.atomic_symbols[atom_idx]
-
-        if atom_symbol in printed_atom_types:
+        # ✅ Only take shells from first instance of this atom symbol
+        if atom_idx != first_atom_idx_for_symbol[sym]:
             continue
 
-        printed_atom_types.add(atom_symbol)
+        if i == mf.ncshell - 1:
+            remaining_coeffs = len(mf.c1) - coeff_idx
+        else:
+            remaining_prims = sum(mf.mnsh[i + 1:])
+            remaining_coeffs = len(mf.c1) - coeff_idx
+            remaining_coeffs -= remaining_prims
 
-        for shell in shells_by_atom_index[atom_idx]:
-            shell_type_code = shell['type_code']
-            primitives = shell['primitives']
+        n_contr = remaining_coeffs // n_prim
 
-            if shell_type_code == 0:  # S
-                output_lines.append(f"{atom_symbol}    S")
-                for exponent, coeff in primitives:
-                    output_lines.append(f"      {exponent:.6E}           {coeff:.6E}")
+        primitives = []
+        for _ in range(n_prim):
+            exponent = mf.expsh[exp_idx]
+            coeff = mf.c1[coeff_idx]
+            primitives.append((exponent, coeff))
+            exp_idx += 1
+            coeff_idx += n_contr
 
-            elif shell_type_code == 1:  # P
-                output_lines.append(f"{atom_symbol}    P")
-                for exponent, coeff in primitives:
-                    output_lines.append(f"      {exponent:.6E}           {coeff:.6E}")
-            # Other shell types (D, F, etc.) would go here,
-            # ensuring they also do not include mf.c2 coefficients.
+        if sym not in collected_shells:
+            collected_shells[sym] = []
 
+        collected_shells[sym].append({
+            "l": l,
+            "primitives": primitives
+        })
+
+    # Emit shells for each unique element
+    for sym, shells in collected_shells.items():
+        for l in sorted(shell_labels):
+            label = shell_labels[l]
+            for shell in shells:
+                if shell["l"] == l:
+                    output_lines.append(f"{sym}    {label}")
+                    for exp, coef in shell["primitives"]:
+                        output_lines.append(f"      {exp:.6E}           {coef:.6E}")
+
+    output_lines.append("end")
     return "\n".join(output_lines)
+
 
 def degens(l, cart_flag):
     """Return the number of contracted functions for a given angular momentum l.
@@ -377,6 +402,7 @@ class Mole:
         self.natm = self.natoms
         self.nbasis = int(read_from_fchk('Number of basis functions', self.path)[-1])
         self.nao = self.nbasis
+        self.nbas = int(read_from_fchk('Number of contracted shells', self.path)[-1])
         self.atomic_numbers = [int(i) for i in read_list_from_fchk('Atomic numbers', 'Nuclear charges', self.path)]
         self.atomic_symbols = read_atomic_symbols(self.atomic_numbers)
         self.dcart = read_from_fchk("Pure/Cartesian d shells", self.path)[-1]
@@ -411,16 +437,21 @@ class Mole:
         self.input_basis = str(make_basis(self))
         print(self.input_basis)
 
+        norm = 0.52917721092
+
+        print(self.atom_coords())
         pyscf_mol = gto.M(
-            atom=[(self.atomic_symbols[i], self.atom_coords()[i]) for i in range(self.natoms)],
+            atom=[(self.atomic_symbols[i], self.atom_coords()[i]*norm) for i in range(self.natoms)],
             basis=gto.basis.parse(self.input_basis),
             spin=self.spin,
             charge=self.charge,
             cart=self.cart,
         )
         pyscf_mol.build()
-        print(pyscf_mol.intor('int1e_ovlp'))
         print(pyscf_mol._basis)
+        print(pyscf_mol.ao_loc_nr())
+        print("hola", pyscf_mol.intor('int1e_ovlp'))
+        print(pyscf_mol.atom_coords())
 
         self.copy = pyscf_mol
         self._atm = pyscf_mol._atm
@@ -428,7 +459,10 @@ class Mole:
         self._bas = pyscf_mol._bas
         self._basis = pyscf_mol._basis
         self._add_suffix = pyscf_mol._add_suffix
-        self.nbas = len(self._bas)
+        print(self._bas)
+        print(self._env)
+        print(self._atm)
+        print(self._basis)
 
         self.mf = MeanField(path, self)
         self.iatsh = self.mf.iatsh
@@ -438,7 +472,6 @@ class Mole:
         self.c1 = self.mf.c1
         self.c2 = self.mf.c2 if hasattr(self.mf, 'c2') and self.mf.c2 is not None else None
         self.ncshell = self.mf.ncshell
-
 
     def atom_symbol(self, pos):
         return self.copy.atom_symbol(pos)
@@ -543,6 +576,7 @@ class MeanField:
         self.natoms = int(read_from_fchk('Number of atoms', self.path)[-1])
         self.nbasis = int(read_from_fchk('Number of basis functions', self.path)[-1])
         self.numprim = int(read_from_fchk('Number of primitive shells', self.path)[-1])
+        self.nbas = int(read_from_fchk('Number of contracted shells', self.path)[-1])
         self.atomic_numbers = [int(i) for i in read_list_from_fchk('Atomic numbers', 'Nuclear charges', self.path)]
         self.atomic_symbols = read_atomic_symbols(self.atomic_numbers)
         self.numao = int(read_from_fchk('Number of basis functions', self.path)[-1])
@@ -584,7 +618,11 @@ class MeanField:
         elif wf == 'unrest':
             self.mo_coeff_alpha = read_list_from_fchk('Alpha MO coefficients', 'Beta MO coefficients', self.path)
             self.mo_coeff_beta = read_list_from_fchk('Beta MO coefficients', 'Orthonormal basis', self.path)
-            self.mo_coeff = [self.mo_coeff_alpha.T, self.mo_coeff_beta.T]
+            self.mo_coeff_alpha = np.array(self.mo_coeff_alpha).reshape(self.nummo, self.numao).T
+            self.mo_coeff_beta = np.array(self.mo_coeff_beta).reshape(self.nummo, self.numao).T
+            self.mo_coeff_alpha = reorder_mo_coeff(self)
+            self.mo_coeff_beta = reorder_mo_coeff(self)
+            self.mo_coeff = [self.mo_coeff_alpha, self.mo_coeff_beta]
 
     def make_rdm1(self):
         """Computes density matrix."""
