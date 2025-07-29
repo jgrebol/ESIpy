@@ -25,6 +25,16 @@ def read_level_theory(path):
         next(f)
         return next(f).split()
 
+def read_symmetry(path):
+    with open(path, 'r') as f:
+        for _ in range(9):
+            next(f)
+        line = next(f).split()
+        if "symm" in line or "Symm" in line:
+            return True
+        else:
+            return False
+
 def read_contract_coeff(path):
     l = []
     with open(path, 'r') as f:
@@ -77,74 +87,95 @@ def read_atomic_symbols(z):
 
     return [z_to_symbol[int(i)] for i in z]
 
-
 def reorder_mo_coeff(mf):
     """
-    Reorder MO coefficients according to:
-    1. Atom index
-    2. Angular momentum (s < p < d < f ...)
-    3. Shell index (inner to outer, grouped by atom and l)
-    4. Spherical harmonic order (Condon-Shortley)
-
-    Also prints AOs in format: index | AO label
+    Reorders MO coefficients from FCHK ordering back to PySCF ordering.
+    Returns the reordered coefficient matrix.
     """
     import numpy as np
 
     mol = mf.mol
-    ao_loc = mol.ao_loc_nr()
-    nbas = mf.nbas
-    mo_coeff = mf.mo_coeff.copy()
+    ao_labels = mol.ao_labels()
+    nbas = mol.nao_nr()
 
-    spherical_orders = {
-        3: [1, 0, 2],                               # p: pz, py, px
-        5: [0, 1, 2, 3, 4],                         # d
-        7: [6, 4, 2, 0, 1, 3, 5],                   # f
-        9: [8, 6, 4, 2, 0, 1, 3, 5, 7],             # g
-        11: [10, 8, 6, 4, 2, 0, 1, 3, 5, 7, 9],     # h
+    cart_shifts = {
+        # D Orbitals (l=2)
+        'dxx': 0, 'dxy': 2, 'dxz': 2, 'dyy': -2, 'dyz': 1, 'dzz': -3,
+
+        # F Orbitals (l=3)
+        'fxxx': 0, 'fxxy': 3, 'fxxz': 3, 'fxyy': 0, 'fxyz': 5, 'fxzz': 1,
+        'fyyy': -5, 'fyyz': 1, 'fyzz': -1, 'fzzz': -7,
+
+        # G Orbitals (l=4)
+        'gxxxx': 0, 'gxxxy': 2, 'gxxxz': 2, 'gxxyy': 2, 'gxxyz': 2,
+        'gxxzz': 2, 'gxyyy': 2, 'gxyyz': 2, 'gxyzz': 2, 'gxzzz': 2,
+        'gyyyy': -9, 'gyyyz': 1, 'gyyzz': 1, 'gyzzz': 1, 'gzzzz': -12,
+
+        # H Orbitals (l=5)
+        'hxxxxx': 0, 'hxxxxy': 2, 'hxxxxz': 2, 'hxxxyy': 2, 'hxxxyz': 2,
+        'hxxxzz': 2, 'hxxyyy': 2, 'hxxyyz': 2, 'hxxyzz': 2, 'hxxzzz': 2,
+        'hxyyyy': 2, 'hxyyyz': 2, 'hxyyzz': 2, 'hxyzzz': 2, 'hxzzzz': 2,
+        'hyyyyy': -14, 'hyyyyz': 1, 'hyyyzz': 1, 'hyyzzz': 1, 'hyzzzz': 1,
+        'hzzzzz': -18,
     }
 
-    ao_metadata = []  # (ao_index, atom_id, l, shell_index_within_group, spherical_order)
-    shell_counts = {}  # Track number of shells per (atom, l)
-    nbas = mf.nbas
+    sph_shifts = {
+        # D Orbitals (l=2)
+        'd+2': 3, 'd 2': 3, 'd+1': 0, 'd 1': 0, 'd+0': -2, 'd 0': -2,
+        'd-1': -1, 'd-2': 0,
 
-    for bas_id in range(nbas):
-        start = ao_loc[bas_id]
-        end = ao_loc[bas_id + 1]
-        nfunc = end - start
-        print("nbas", nbas, "bas_id", bas_id, "start", start, "end", end, "nfunc", nfunc)
+        # F Orbitals (l=3)
+        'f+3': 5, 'f 3': 5, 'f+2': 2, 'f 2': 2, 'f+1': -1, 'f 1': -1,
+        'f+0': -3, 'f 0': -3, 'f-1': -2, 'f-2': -1, 'f-3': -1,
 
-        atom_id = mol.bas_atom(bas_id)
-        l = mol.bas_angular(bas_id)
-        key = (atom_id, l)
+        # G Orbitals (l=4)
+        'g+4': 7, 'g 4': 7, 'g+3': 4, 'g 3': 4, 'g+2': 1, 'g 2': 1,
+        'g+1': -2, 'g 1': -2, 'g+0': -4, 'g 0': -4, 'g-1': -3, 'g-2': -2,
+        'g-3': -1, 'g-4': -1,
 
-        # Determine current shell index in this (atom, l) group
-        shell_index = shell_counts.get(key, 0)
-        shell_counts[key] = shell_index + 1
+        # H Orbitals (l=5)
+        'h+5': 9, 'h 5': 9, 'h+4': 6, 'h 4': 6, 'h+3': 3, 'h 3': 3,
+        'h+2': 0, 'h 2': 0, 'h+1': -3, 'h 1': -3, 'h+0': -5, 'h 0': -5,
+        'h-1': -4, 'h-2': -3, 'h-3': -2, 'h-4': -1, 'h-5': -1,
+    }
 
-        # Use spherical ordering if defined
-        sph_order = spherical_orders.get(nfunc, list(range(nfunc)))
-        for i, local_order in enumerate(sph_order):
-            ao_index = start + i
-            ao_metadata.append((ao_index, atom_id, l, shell_index, local_order))
+    # Define AO label shifts
+    #cart_shifts = {
+    #    'dxy': +2, 'dxz': +3, 'dyy': -2, 'dyz': -2, 'dzz': -1,
+    #    'fxxx': 0, 'fxxy': +5, 'fxxz': +7, 'fxyy': 0, 'fxyz': -3,
+    #    'fxzz': -3, 'fyyy': -1, 'fyyz': +1, 'fyzz': -1, 'fzzz': -5,
+    #}
 
-    # Sort by: atom → angular momentum → shell index → spherical order
-    ao_metadata_sorted = sorted(ao_metadata, key=lambda x: (x[1], x[2], x[3], x[4]))
+    #sph_shifts = {
+    #    'dxy': +2, 'dyz': +2, 'dz^2': -1, 'dxz': +1, 'dx2-y2': -4,
+    #    'f-3': +3, 'f-2': +3, 'f-1': 0, 'f+0': +2, 'f 0': +2,
+    #    'f+1': -3, 'f 1': -3, 'f+2': +1, 'f 2': +1, 'f+3': -6, 'f 3': -6,
+    #}
 
-    reorder_indices = [entry[0] for entry in ao_metadata_sorted]
-    print("before", mo_coeff)
-    mo_coeff = mo_coeff[reorder_indices]
-    print("\n"*20)
-    print("after", mo_coeff)
-    exit()
+    shift_map = cart_shifts if mol.cart else sph_shifts
 
-    # Print AO labels in new order
-    print("Index | AO Label")
-    ao_labels = mol.ao_labels()
-    for new_idx, old_idx in enumerate(reorder_indices):
-        print(f"{new_idx:5d} | {ao_labels[old_idx]}")
+    # Apply forward imap (like FCHK)
+    imap = list(range(nbas))
+    for i, label in enumerate(ao_labels):
+        for key, shift in shift_map.items():
+            if key in label:
+                imap[i] += shift
+                break  # Apply only first match
 
-    print("Trace check", np.trace(mo_coeff @ mo_coeff.T @ mf.get_ovlp()))
-    return mo_coeff
+    # Reverse mapping
+    reverse_imap = [0] * nbas
+    for i, idx in enumerate(imap):
+        reverse_imap[idx] = i
+
+    print(reverse_imap)
+    # Reorder coefficients
+    coeff = mf.mo_coeff.copy()
+    print("before", coeff)
+    #coeff = coeff[:, reverse_imap]
+    print("after", coeff)
+    print("Trace:", np.trace(coeff @ coeff.T @ mf.get_ovlp()))
+    return coeff
+
 
 def make_env(mol):
     """
@@ -305,93 +336,88 @@ def make_basis(mf):
         2: "D",
         3: "F",
         4: "G",
-        5: "H"
+        5: "H",
+        -1: "SP",  # SP hybrid shell
     }
 
-    is_global_spherical = any(sh < 0 for sh in mf.mssh) # Any negative l is spherical
+    is_global_spherical = any(sh < 0 and sh != -1 for sh in mf.mssh)
     output_lines.append("basis spherical" if is_global_spherical else "basis cartesian")
 
     exp_idx = coeff_idx = 0
     done_shells = {}
-
     first_atom = {}
 
-    # Track first atom index for each element
     for atom_idx, sym in enumerate(mf.atomic_symbols):
         if sym not in first_atom:
             first_atom[sym] = atom_idx
 
     for i in range(mf.ncshell):
-        raw_shell_code = mf.mssh[i]
-        l = abs(raw_shell_code)
+        l_raw = mf.mssh[i]
+        l = abs(l_raw)
         atom_idx = mf.iatsh[i] - 1
         sym = mf.atomic_symbols[atom_idx]
         n_prim = mf.mnsh[i]
 
-        # ✅ Only take shells from first instance of this atom symbol
         if atom_idx != first_atom[sym]:
+            # Skip duplicated atoms (not first occurrence)
+            coeffs_per_prim = 2 if l_raw == -1 else (len(mf.c1) - coeff_idx) // n_prim
+            exp_idx += n_prim
+            coeff_idx += coeffs_per_prim * n_prim
             continue
-
-        if i == mf.ncshell - 1:
-            remaining_coeffs = len(mf.c1) - coeff_idx
-        else:
-            remaining_prims = sum(mf.mnsh[i + 1:])
-            remaining_coeffs = len(mf.c1) - coeff_idx
-            remaining_coeffs -= remaining_prims
-
-        n_contr = remaining_coeffs // n_prim
-
-        primitives = []
-        for _ in range(n_prim):
-            exponent = mf.expsh[exp_idx]
-            coeff = mf.c1[coeff_idx]
-            primitives.append((exponent, coeff))
-            exp_idx += 1
-            coeff_idx += n_contr
 
         if sym not in done_shells:
             done_shells[sym] = []
 
-        done_shells[sym].append({
-            "l": l,
-            "primitives": primitives
-        })
+        if l_raw == -1:
+            # SP shell: c1 stores S, c2 stores P
+            primitives = []
+            for _ in range(n_prim):
+                exponent = mf.expsh[exp_idx]
+                coef_s = mf.c1[coeff_idx]
+                coef_p = mf.c2[coeff_idx]
+                primitives.append((exponent, coef_s, coef_p))
+                exp_idx += 1
+                coeff_idx += 1
+            done_shells[sym].append({"l": -1, "primitives": primitives})
+        else:
+            # Regular shell
+            if i == mf.ncshell - 1:
+                n_contr = (len(mf.c1) - coeff_idx) // n_prim
+            else:
+                next_exp_idx = exp_idx + n_prim
+                remaining_prims = sum(mf.mnsh[i + 1:])
+                remaining_coeffs = len(mf.c1) - coeff_idx - remaining_prims
+                n_contr = remaining_coeffs // n_prim
 
+            primitives = []
+            for _ in range(n_prim):
+                exponent = mf.expsh[exp_idx]
+                coefs = mf.c1[coeff_idx:coeff_idx + n_contr]
+                primitives.append((exponent, coefs))
+                exp_idx += 1
+                coeff_idx += n_contr
+
+            done_shells[sym].append({"l": l, "primitives": primitives})
+
+    # Generate output
     for sym, shells in done_shells.items():
-        for l in sorted(shell_labels):
-            label = shell_labels[l]
-            # Get all shells of this angular momentum
-            l_shells = [sh for sh in shells if sh["l"] == l]
-            if not l_shells:
-                continue
-
-            # Gather all unique exponents
-            unique_exps = sorted({exp for sh in l_shells for exp, _ in sh["primitives"]}, reverse=True)
-
-            # Build rows: exp -> list of coefficients for each shell (0.0 if missing)
-            exp_to_row = {}
-            for exp in unique_exps:
-                row = []
-                for sh in l_shells:
-                    coef = 0.0
-                    for e, c in sh["primitives"]:
-                        if abs(e - exp) < 1e-8:
-                            coef = c
-                            break
-                    row.append(coef)
-                exp_to_row[exp] = row
-
-            # Print section header
+        for shell in shells:
+            l = shell["l"]
+            label = shell_labels.get(l, f"L={l}")
             output_lines.append(f"{sym}    {label}")
 
-            # Emit rows
-            for exp in unique_exps:
-                row = exp_to_row[exp]
-                line = f"      {exp: .6E}"
-                for coef in row:
-                    line += f"           {coef: .8E}"
-                output_lines.append(line)
-
+            if l == -1:
+                # SP: Exponent + S coef + P coef
+                for exp, coef_s, coef_p in shell["primitives"]:
+                    output_lines.append(
+                        f"      {exp: .10E}      {coef_s: .10E}      {coef_p: .10E}"
+                    )
+            else:
+                for exp, coefs in shell["primitives"]:
+                    line = f"      {exp: .10E}"
+                    for c in coefs:
+                        line += f"      {c: .10E}"
+                    output_lines.append(line)
 
     output_lines.append("end")
     return "\n".join(output_lines)
@@ -421,13 +447,13 @@ class Mole:
         self.nbeta = int(read_from_fchk('Number of beta electrons', self.path)[-1])
         self.charge = int(read_from_fchk('Charge', self.path)[-1])
         self.spin = int(self.nalpha) - int(self.nbeta)
+        self.symmetry = read_symmetry(self.path)
         self.nelec = int(read_from_fchk('Number of electrons', self.path)[-1])
         self.charge = int(read_from_fchk('Charge', self.path)[-1])
         self.natoms = int(read_from_fchk('Number of atoms', self.path)[-1])
         self.natm = self.natoms
         self.nbasis = int(read_from_fchk('Number of basis functions', self.path)[-1])
         self.nao = self.nbasis
-        self.nbas = int(read_from_fchk('Largest degree of contraction', self.path)[-1])
         self.atomic_numbers = [int(i) for i in read_list_from_fchk('Atomic numbers', 'Nuclear charges', self.path)]
         self.atomic_symbols = read_atomic_symbols(self.atomic_numbers)
         self.dcart = read_from_fchk("Pure/Cartesian d shells", self.path)[-1]
@@ -471,12 +497,15 @@ class Mole:
             spin=self.spin,
             charge=self.charge,
             cart=self.cart,
+            symmetry=self.symmetry,
         )
         pyscf_mol.build()
         print(pyscf_mol._basis)
         print(pyscf_mol.ao_loc_nr())
         print("hola", pyscf_mol.intor('int1e_ovlp'))
+        print("\n"*20)
         print(pyscf_mol.atom_coords())
+        print(pyscf_mol.ao_labels())
 
         self.copy = pyscf_mol
         self._atm = pyscf_mol._atm
@@ -484,6 +513,7 @@ class Mole:
         self._bas = pyscf_mol._bas
         self._basis = pyscf_mol._basis
         self._add_suffix = pyscf_mol._add_suffix
+        self.nbas = pyscf_mol.nbas
         print(self._bas)
         print(self._env)
         print(self._atm)
@@ -601,7 +631,6 @@ class MeanField:
         self.natoms = int(read_from_fchk('Number of atoms', self.path)[-1])
         self.nbasis = int(read_from_fchk('Number of basis functions', self.path)[-1])
         self.numprim = int(read_from_fchk('Number of primitive shells', self.path)[-1])
-        self.nbas = int(read_from_fchk('Largest degree of contraction', self.path)[-1])
         self.atomic_numbers = [int(i) for i in read_list_from_fchk('Atomic numbers', 'Nuclear charges', self.path)]
         self.atomic_symbols = read_atomic_symbols(self.atomic_numbers)
         self.numao = int(read_from_fchk('Number of basis functions', self.path)[-1])
@@ -649,6 +678,29 @@ class MeanField:
             self.mo_coeff_beta = reorder_mo_coeff(self)
             self.mo_coeff = [self.mo_coeff_alpha, self.mo_coeff_beta]
 
+        # Create custom mf to increase MO coeff precision
+        # Store mo_coeff in an excel
+        import pandas as pd
+        data = np.where(self.mo_coeff < 1e-10, 0, self.mo_coeff)  # Set small values to zero
+        df = pd.DataFrame(data, dtype=np.float64)
+        df.to_excel('mo_coeff_readfchk_reordered.xlsx', index=False)
+        data = np.where(self.get_ovlp() < 1e-10, 0, self.get_ovlp())  # Set small values to zero
+        df2 = pd.DataFrame(data, dtype=np.float64)
+        df2.to_excel('overlap_readfchk.xlsx', index=False)
+        exit()
+
+        from pyscf import scf
+        if 'R' in self.__class__.__name__:
+            mf_pyscf = scf.RHF(self.mol.copy)
+        elif 'U' in self.__class__.__name__:
+            mf_pyscf = scf.UHF(self.mol.copy)
+        mf_pyscf.mo_coeff = self.mo_coeff # Start from the MO coefficients read from FCHK
+        mf_pyscf.mo_occ = self.mo_occ
+        mf_pyscf.verbose = 9
+        mf_pyscf.kernel()
+        # Update the MO coefficients
+        #self.mo_coeff = mf_pyscf.mo_coeff
+
     def make_rdm1(self):
         """Computes density matrix."""
         if len(np.shape(self.mo_coeff)) == 2:  # RHF/RKS
@@ -669,8 +721,12 @@ class MeanField:
 
     def get_ovlp(self):
         return self.mol.copy.intor_symmetric('int1e_ovlp')
+        print("Building overlap matrix...")
+        from time import time
+        start = time()
         process_basis(self)
         ovlp = build_ovlp(self)
+        print("Overlap matrix built in {:.2f} seconds.".format(time() - start))
         return ovlp
 
 
