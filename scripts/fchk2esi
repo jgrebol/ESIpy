@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from esipy import ESI
-from esipy.readfchk import readfchk
+from esipy.readfchk2 import readfchk
 import argparse
 import os
 
