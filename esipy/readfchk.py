@@ -490,7 +490,6 @@ class Mole:
 
         norm = 0.52917721092
 
-        print(self.atom_coords())
         pyscf_mol = gto.M(
             atom=[(self.atomic_symbols[i], self.atom_coords()[i]*norm) for i in range(self.natoms)],
             basis=gto.basis.parse(self.input_basis),
