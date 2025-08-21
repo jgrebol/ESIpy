@@ -1,10 +1,8 @@
 import numpy as np
-from pyscf.lo import nao, iao
+from pyscf.lo import nao
 from pyscf.lo.orth import lowdin, restore_ao_character
 
 from esipy.tools import save_file, format_partition, get_natorbs, build_eta
-
-np.set_printoptions(threshold=np.inf, linewidth=200, precision=6, suppress=True)
 
 def make_aoms(mol, mf, partition, myhf=None, save=None):
     """
@@ -63,15 +61,24 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
         # Special case IAO
         elif partition == "iao":
-            U_alpha_iao_nonortho = iao.iao(mol, coeff_alpha)
-            U_beta_iao_nonortho = iao.iao(mol, coeff_beta)
+            if hasattr(mf, "_read_fchk"):
+                from esipy.tools import iao
+                from esipy.readfchk2 import MeanFieldMINAO
+                pmol = MeanFieldMINAO(mol)
+                U_alpha_iao_nonortho = iao(mf, coeff_alpha)
+                U_beta_iao_nonortho = iao(mf, coeff_beta)
+            else:
+                from pyscf.lo.iao import iao
+                from pyscf.lo.iao import reference_mol
+                U_alpha_iao_nonortho = iao(mol, coeff_alpha)
+                U_beta_iao_nonortho = iao(mol, coeff_beta)
+                pmol = reference_mol(mol)
             U_alpha_inv = np.dot(U_alpha_iao_nonortho, lowdin(
                 np.linalg.multi_dot((U_alpha_iao_nonortho.T, S, U_alpha_iao_nonortho))))
             U_beta_inv = np.dot(U_beta_iao_nonortho, lowdin(
                 np.linalg.multi_dot((U_beta_iao_nonortho.T, S, U_beta_iao_nonortho))))
             U_alpha = np.dot(S, U_alpha_inv)
             U_beta = np.dot(S, U_beta_inv)
-            pmol = iao.reference_mol(mol)
 
             eta = build_eta(pmol)
 
@@ -83,11 +90,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
         # Special case plain Mulliken
         elif partition == "mulliken":
-            eta = [np.zeros((mol.nao, mol.nao)) for i in range(mol.natm)]
-            for i in range(mol.natm):
-                start = mol.aoslice_by_atom()[i, -2]
-                end = mol.aoslice_by_atom()[i, -1]
-                eta[i][start:end, start:end] = np.eye(end - start)
+            eta = build_eta(mol)
 
             for i in range(mol.natm):
                 SCR_alpha = np.linalg.multi_dot((coeff_alpha.T, S, eta[i], coeff_alpha))
@@ -136,11 +139,18 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
         # Special case IAO
         elif partition == "iao":
-            U_iao_nonortho = iao.iao(mol, coeff)
+            if hasattr(mf, "_read_fchk"):
+                from esipy.tools import iao
+                from esipy.readfchk2 import MeanFieldMINAO
+                pmol = MeanFieldMINAO(mol)
+                U_iao_nonortho = iao(mf, coeff)
+            else:
+                from pyscf.lo.iao import iao, reference_mol
+                pmol = reference_mol(mol)
+                U_iao_nonortho = iao(mol, coeff)
             U_inv = np.dot(U_iao_nonortho, lowdin(
                 np.linalg.multi_dot((U_iao_nonortho.T, S, U_iao_nonortho))))
             U = np.dot(S, U_inv)
-            pmol = iao.reference_mol(mol)
 
             eta = build_eta(pmol)
 
@@ -153,7 +163,6 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             eta = build_eta(mol)
 
             for i in range(mol.natm):
-                print(np.shape(coeff.T), np.shape(S), np.shape(eta[i]))
                 SCR = np.linalg.multi_dot((coeff.T, S, eta[i], coeff))
                 aom.append(SCR)
 
@@ -196,15 +205,17 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             # Special case IAO
         elif partition == "iao":
             # HF instance required to build the orthogonalization matrix
-            if myhf is None:
+            if myhf is None or hasattr(mf, "_read_fchk") is True:
                 raise NameError(
                     " | Could not calculate partition from Natural Orbitals calculation \n | Please provide HF reference object in 'myhf'")
+            from pyscf.lo.iao import iao
             coeff_hf = myhf.mo_coeff
-            U_iao_nonortho = iao.iao(mol, coeff_hf)
+            U_iao_nonortho = iao(mol, coeff_hf)
             U_inv = np.dot(U_iao_nonortho, lowdin(
                 np.linalg.multi_dot((U_iao_nonortho.T, S, U_iao_nonortho))))
             U = np.dot(S, U_inv)
-            pmol = iao.reference_mol(mol)
+            from pyscf.lo.iao import reference_mol
+            pmol = reference_mol(mol)
 
             eta = build_eta(mol)
 
