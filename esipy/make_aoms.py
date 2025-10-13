@@ -140,10 +140,9 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         # Special case IAO
         elif partition == "iao":
             if hasattr(mf, "_read_fchk"):
-                from esipy.tools import iao
-                from esipy.readfchk2 import MeanFieldMINAO
+                from esipy.readfchk import iao, MeanFieldMINAO
                 pmol = MeanFieldMINAO(mol)
-                U_iao_nonortho = iao(mf, coeff)
+                U_iao_nonortho = iao(mf, pmol)
             else:
                 from pyscf.lo.iao import iao, reference_mol
                 pmol = reference_mol(mol)

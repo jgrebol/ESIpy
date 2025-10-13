@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.special import factorial
-
 def readfchk(filename):
     """
     Reads the information from a fchk file.
@@ -10,8 +9,8 @@ def readfchk(filename):
     Returns:
         Mole object and MeanField object.
     """
-    mol = Mole(filename)
-    mf = MeanField(filename, mol)
+    mol = Mole2(filename)
+    mf = MeanField2(filename, mol)
     return mol, mf
 
 def read_from_fchk(to_read, path):
@@ -87,175 +86,129 @@ def read_atomic_symbols(z):
 
     return [z_to_symbol[int(i)] for i in z]
 
-def reorder_mo_coeff(mf):
+def make_bas_env(mol):
     """
-    Reorders MO coefficients from FCHK ordering back to PySCF ordering.
-    Returns the reordered coefficient matrix.
-    """
-    import numpy as np
-
-    mol = mf.mol
-    ao_labels = mol.ao_labels()
-    nbas = mol.nao_nr()
-
-    cart_shifts = {
-        # D Orbitals (l=2)
-        'dxx': 0, 'dxy': 2, 'dxz': 2, 'dyy': -2, 'dyz': 1, 'dzz': -3,
-
-        # F Orbitals (l=3)
-        'fxxx': 0, 'fxxy': 3, 'fxxz': 3, 'fxyy': 0, 'fxyz': 5, 'fxzz': 1,
-        'fyyy': -5, 'fyyz': 1, 'fyzz': -1, 'fzzz': -7,
-
-        # G Orbitals (l=4)
-        'gxxxx': 0, 'gxxxy': 2, 'gxxxz': 2, 'gxxyy': 2, 'gxxyz': 2,
-        'gxxzz': 2, 'gxyyy': 2, 'gxyyz': 2, 'gxyzz': 2, 'gxzzz': 2,
-        'gyyyy': -9, 'gyyyz': 1, 'gyyzz': 1, 'gyzzz': 1, 'gzzzz': -12,
-
-        # H Orbitals (l=5)
-        'hxxxxx': 0, 'hxxxxy': 2, 'hxxxxz': 2, 'hxxxyy': 2, 'hxxxyz': 2,
-        'hxxxzz': 2, 'hxxyyy': 2, 'hxxyyz': 2, 'hxxyzz': 2, 'hxxzzz': 2,
-        'hxyyyy': 2, 'hxyyyz': 2, 'hxyyzz': 2, 'hxyzzz': 2, 'hxzzzz': 2,
-        'hyyyyy': -14, 'hyyyyz': 1, 'hyyyzz': 1, 'hyyzzz': 1, 'hyzzzz': 1,
-        'hzzzzz': -18,
-    }
-
-    sph_shifts = {
-        # D Orbitals (l=2)
-        'd+2': 3, 'd 2': 3, 'd+1': 0, 'd 1': 0, 'd+0': -2, 'd 0': -2,
-        'd-1': -1, 'd-2': 0,
-
-        # F Orbitals (l=3)
-        'f+3': 5, 'f 3': 5, 'f+2': 2, 'f 2': 2, 'f+1': -1, 'f 1': -1,
-        'f+0': -3, 'f 0': -3, 'f-1': -2, 'f-2': -1, 'f-3': -1,
-
-        # G Orbitals (l=4)
-        'g+4': 7, 'g 4': 7, 'g+3': 4, 'g 3': 4, 'g+2': 1, 'g 2': 1,
-        'g+1': -2, 'g 1': -2, 'g+0': -4, 'g 0': -4, 'g-1': -3, 'g-2': -2,
-        'g-3': -1, 'g-4': -1,
-
-        # H Orbitals (l=5)
-        'h+5': 9, 'h 5': 9, 'h+4': 6, 'h 4': 6, 'h+3': 3, 'h 3': 3,
-        'h+2': 0, 'h 2': 0, 'h+1': -3, 'h 1': -3, 'h+0': -5, 'h 0': -5,
-        'h-1': -4, 'h-2': -3, 'h-3': -2, 'h-4': -1, 'h-5': -1,
-    }
-
-    # Define AO label shifts
-    #cart_shifts = {
-    #    'dxy': +2, 'dxz': +3, 'dyy': -2, 'dyz': -2, 'dzz': -1,
-    #    'fxxx': 0, 'fxxy': +5, 'fxxz': +7, 'fxyy': 0, 'fxyz': -3,
-    #    'fxzz': -3, 'fyyy': -1, 'fyyz': +1, 'fyzz': -1, 'fzzz': -5,
-    #}
-
-    #sph_shifts = {
-    #    'dxy': +2, 'dyz': +2, 'dz^2': -1, 'dxz': +1, 'dx2-y2': -4,
-    #    'f-3': +3, 'f-2': +3, 'f-1': 0, 'f+0': +2, 'f 0': +2,
-    #    'f+1': -3, 'f 1': -3, 'f+2': +1, 'f 2': +1, 'f+3': -6, 'f 3': -6,
-    #}
-
-    shift_map = cart_shifts if mol.cart else sph_shifts
-
-    # Apply forward imap (like FCHK)
-    imap = list(range(nbas))
-    for i, label in enumerate(ao_labels):
-        for key, shift in shift_map.items():
-            if key in label:
-                imap[i] += shift
-                break  # Apply only first match
-
-    # Reverse mapping
-    reverse_imap = [0] * nbas
-    for i, idx in enumerate(imap):
-        reverse_imap[idx] = i
-
-    print(reverse_imap)
-    # Reorder coefficients
-    coeff = mf.mo_coeff.copy()
-    print("before", coeff)
-    #coeff = coeff[:, reverse_imap]
-    print("after", coeff)
-    print("Trace:", np.trace(coeff @ coeff.T @ mf.get_ovlp()))
-    return coeff
-
-
-def make_env(mol):
-    """
-    Build the _env array as PySCF does, using data from FCHK.
-    One block of basis data per unique element.
+    Builds mol._env and mol._bas in PySCF format.
+    _env stores unique basis blocks once per element type.
+    _bas includes all shells for all atoms, pointing into _env.
     """
     from pyscf.gto.mole import gto_norm, _nomalize_contracted_ao
+    import numpy as np
 
-    # 1. Start with 20 zero-padding floats
     env = [0.0] * 20
+    bas = []
 
-    # 2. Append each atom's coordinates (in Bohr) plus a 0.0 zeta
-    coords = mol.atom_coords()  # shape (natoms,3)
-    for (x,y,z) in coords:
+    coords = mol.atom_coords()
+    for (x, y, z) in coords:
         env.extend([x, y, z, 0.0])
 
-    # 3. Identify one representative atom for each element type
-    uniques = {}
-    for i in range(mol.natm):
-        Z = mol.atomic_numbers[i]
-        if Z not in uniques:
-            uniques[Z] = i
+    iatsh = [i - 1 for i in mol.iatsh]  # shell to atom (0-based)
+    prim_ptr = [0]
+    for n in mol.mnsh:
+        prim_ptr.append(prim_ptr[-1] + n)
 
-    # Fix shell-to-atom indexing from FCHK (1->0-based)
-    iatsh = [i-1 for i in mol.iatsh]
+    # Mapping (Z, l, expvals, shell_type) => (ptr_exp, ptr_coeff)
+    basis_block_map = {}
+    env_idx = 20 + 4 * mol.natm
 
-    # 4. Compute pointer array for primitives
-    prim_ptr = [0] * (mol.ncshell + 1)
-    for i in range(mol.ncshell):
-        prim_ptr[i+1] = prim_ptr[i] + mol.mnsh[i]
+    # Loop over every atom
+    shell_offsets = [0] * mol.natm  # track number of shells per atom
+    for ish in range(mol.ncshell):
+        atom_idx = iatsh[ish]
+        l = mol.mssh[ish]
+        nprim = mol.mnsh[ish]
+        p0 = prim_ptr[ish]
+        p1 = prim_ptr[ish + 1]
+        exps = np.array(mol.expsh[p0:p1])
+        expvals = tuple(np.round(exps, 8))
+        Z = mol.atomic_numbers[atom_idx]
 
-    done_exps = set()
+        if l == -1:
+            # SP shell
+            # --- S part ---
+            nctr_s = len(mol.c1[p0:p1]) // nprim
+            cs = np.array(mol.c1[p0:p1]).reshape(nprim, nctr_s)
+            cs = cs * gto_norm(0, exps).reshape(-1, 1)
+            cs = _nomalize_contracted_ao(0, exps, cs)
 
-    # sort uniques
-    uniques = {k: v for k, v in sorted(uniques.items(), key=lambda item: item[0])}
-    # 5. Process shells for each unique atom type
-    for rep_atom_idx in uniques.values():
-        for shell_id in range(mol.ncshell):
-            if iatsh[shell_id] != rep_atom_idx:
-                continue
-            l = mol.mssh[shell_id]
-            nprim = mol.mnsh[shell_id]
-            p0 = prim_ptr[shell_id]
-            p1 = prim_ptr[shell_id+1]
-            exps = np.array(mol.expsh[p0:p1])
-
-            # Normalize and add the S&P parts if needed
-            if l == -1:
-                # SP shell: split into S(l=0) and P(l=1)
-                # Determine number of contractions for S and P
-                nctr_s = (len(mol.c1[p0:p1]) // nprim)
-                nctr_p = (len(mol.c2[p0:p1]) // nprim)
-                cs = np.array(mol.c1[p0:p1]).reshape(nprim, nctr_s)
-                cp = np.array(mol.c2[p0:p1]).reshape(nprim, nctr_p)
-                # S part
-                cs = cs * gto_norm(0, exps).reshape(-1,1)
-                cs = _nomalize_contracted_ao(0, exps, cs)
+            key_s = (Z, 0, expvals, 'SP_S')
+            if key_s not in basis_block_map:
+                ptr_exp = env_idx
                 env.extend(exps.tolist())
+                env_idx += nprim
+
+                ptr_coeff = env_idx
                 env.extend(cs.T.reshape(-1).tolist())
-                # P part
-                cp = cp * gto_norm(1, exps).reshape(-1,1)
-                cp = _nomalize_contracted_ao(1, exps, cp)
-                env.extend(exps.tolist())
-                env.extend(cp.T.reshape(-1).tolist())
+                env_idx += nprim * nctr_s
+
+                basis_block_map[key_s] = (ptr_exp, ptr_coeff)
             else:
-                # Normal shell (s,p,d,f)
-                # For cartesian d or f (l=-2,-3), treat as l=2,3
-                l0 = abs(l)
-                coeffs = mol.c1[p0:p1]
-                nctr = len(coeffs) // nprim
-                cs = np.array(coeffs).reshape(nprim, nctr)
-                cs = cs * gto_norm(l0, exps).reshape(-1,1)
-                cs = _nomalize_contracted_ao(l0, exps, cs)
-                expvals = tuple(np.round(exps, 8))
-                if expvals not in done_exps:
-                    env.extend(exps.tolist())
-                    done_exps.add(expvals)
-                env.extend(cs.T.reshape(-1).tolist())
+                ptr_exp, ptr_coeff = basis_block_map[key_s]
 
-    return np.array(env, dtype=np.float32)
+            bas.append([
+                atom_idx, 0, nprim, nctr_s, 0,
+                ptr_exp, ptr_coeff, 0
+            ])
+            shell_offsets[atom_idx] += 1
+
+            # --- P part ---
+            nctr_p = len(mol.c2[p0:p1]) // nprim
+            cp = np.array(mol.c2[p0:p1]).reshape(nprim, nctr_p)
+            cp = cp * gto_norm(1, exps).reshape(-1, 1)
+            cp = _nomalize_contracted_ao(1, exps, cp)
+
+            key_p = (Z, 1, expvals, 'SP_P')
+            if key_p not in basis_block_map:
+                ptr_exp = env_idx
+                env.extend(exps.tolist())
+                env_idx += nprim
+
+                ptr_coeff = env_idx
+                env.extend(cp.T.reshape(-1).tolist())
+                env_idx += nprim * nctr_p
+
+                basis_block_map[key_p] = (ptr_exp, ptr_coeff)
+            else:
+                ptr_exp, ptr_coeff = basis_block_map[key_p]
+
+            bas.append([
+                atom_idx, 1, nprim, nctr_p, 0,
+                ptr_exp, ptr_coeff, 0
+            ])
+            shell_offsets[atom_idx] += 1
+
+        else:
+            l0 = abs(l)
+            nctr = len(mol.c1[p0:p1]) // nprim
+            cs = np.array(mol.c1[p0:p1]).reshape(nprim, nctr)
+            cs = cs * gto_norm(l0, exps).reshape(-1, 1)
+            cs = _nomalize_contracted_ao(l0, exps, cs)
+
+            key = (Z, l0, expvals, 'STD')
+            if key not in basis_block_map:
+                ptr_exp = env_idx
+                env.extend(exps.tolist())
+                env_idx += nprim
+
+                ptr_coeff = env_idx
+                env.extend(cs.T.reshape(-1).tolist())
+                env_idx += nprim * nctr
+
+                basis_block_map[key] = (ptr_exp, ptr_coeff)
+            else:
+                ptr_exp, ptr_coeff = basis_block_map[key]
+
+            bas.append([
+                atom_idx, l0, nprim, nctr, 0,
+                ptr_exp, ptr_coeff, 0
+            ])
+            shell_offsets[atom_idx] += 1
+
+    _env = np.array(env, dtype=np.float64)
+    _bas = np.array(bas, dtype=np.int32)
+
+    return _bas, _env
+
 
 def make_atm(mol):
     """Construct _atm array and _env from Mole object manually."""
@@ -278,149 +231,146 @@ def make_atm(mol):
 
     return np.array(_atm, dtype=np.int32)
 
-def make_bas(self):
-    """Construct _bas array from Mole object. Returns _bas array and updated _env."""
-    _bas = []
-    env = list(self._env)  # Start with existing _env
-    ptr = len(env)
-    exp_idx = 0
-
-    for i, atom1 in enumerate(self.iatsh):
-        atom_id = atom1 - 1  # zero-based
-        l_raw = self.mssh[i]
-        nprim = self.mnsh[i]
-        exponents = self.expsh[exp_idx:exp_idx + nprim]
-        coeff1 = self.c1[exp_idx:exp_idx + nprim]
-        coeff2 = self.c2[exp_idx:exp_idx + nprim] if self.c2 is not None else None
-        exp_idx += nprim
-
-        if l_raw == -1:
-            # SP shell: add two basis functions (S and P parts)
-            env.extend(exponents)
-            env.extend(coeff1)
-            env.extend(coeff2)
-            # S shell part
-            _bas.append([
-                atom_id, 0, nprim, 1, int(self.cart),  # l=0
-                ptr, ptr + nprim, 0
-            ])
-            # P shell part
-            _bas.append([
-                atom_id, 1, nprim, 0, int(self.cart),  # l=1
-                ptr, ptr + 2*nprim, 0
-            ])
-            ptr += 3 * nprim
-        else:
-            l = abs(l_raw)
-            env.extend(exponents)
-            env.extend(coeff1)
-            _bas.append([
-                atom_id, l, nprim, 1, 0,
-                ptr, ptr + nprim, 0
-            ])
-            ptr += 2 * nprim  # Exps + Coeffs
-
-    # Update self._env and return _bas
-    return np.array(_bas, dtype=np.int32)
-
-
-import numpy as np
-
 def make_basis(mf):
-    """Generate a basis set string representation from a PySCF-derived MeanField object for NWChem."""
-    output_lines = []
+    """
+    Generate a basis set dictionary from a PySCF-derived MeanField object.
 
-    shell_labels = {
-        0: "S",
-        1: "P",
-        2: "D",
-        3: "F",
-        4: "G",
-        5: "H",
-        -1: "SP",  # SP hybrid shell
-    }
+    The output format is {'atom_symbol': [[l, [exp, c1, c2...], ...], ...], ...}.
 
-    is_global_spherical = any(sh < 0 and sh != -1 for sh in mf.mssh)
-    output_lines.append("basis spherical" if is_global_spherical else "basis cartesian")
+    Args:
+        mf: A PySCF-like mean-field object containing basis set information
+            in flattened arrays (e.g., mssh, mnsh, expsh, c1, c2).
 
-    exp_idx = coeff_idx = 0
+    Returns:
+        A dictionary representing the basis set.
+    """
+    # This intermediate dictionary will store the parsed data in a way
+    # that is easy to transform into the final format.
+    # Structure: { 'He': [{'l': 0, 'primitives': [...]}, ...], ... }
     done_shells = {}
-    first_atom = {}
 
+    # Pointers to the current position in the flat exponent and coefficient arrays.
+    exp_idx = 0
+    coeff_idx = 0
+
+    # This logic ensures that the basis set for an element is only processed once,
+    # using the first occurrence of that element in the molecule.
+    first_atom = {}
     for atom_idx, sym in enumerate(mf.atomic_symbols):
         if sym not in first_atom:
             first_atom[sym] = atom_idx
 
+    # --- Main Parsing Loop ---
+    # This loop iterates through each shell defined in the mf object,
+    # preserving the original function's logic for parsing.
     for i in range(mf.ncshell):
         l_raw = mf.mssh[i]
         l = abs(l_raw)
-        atom_idx = mf.iatsh[i] - 1
+        atom_idx = mf.iatsh[i] - 1  # mf object is 1-based
         sym = mf.atomic_symbols[atom_idx]
         n_prim = mf.mnsh[i]
 
+        # If the basis for this atom type has already been processed,
+        # we must still advance the pointers to skip over its data.
         if atom_idx != first_atom[sym]:
-            # Skip duplicated atoms (not first occurrence)
-            coeffs_per_prim = 2 if l_raw == -1 else (len(mf.c1) - coeff_idx) // n_prim
+            # This section requires calculating the number of coefficients to skip.
+            # It re-uses the same complex logic as the main processing block below.
+            n_contr_to_skip = 0
+            if l_raw == -1: # SP shell
+                 # For SP shells, c1 and c2 are used, but the main array is c1.
+                 # The original function was ambiguous here; a robust implementation
+                 # assumes SP shells have 1 coeff per primitive in c1 and c2.
+                 n_contr_to_skip = 1
+            elif i == mf.ncshell - 1: # Last regular shell
+                n_contr_to_skip = (len(mf.c1) - coeff_idx) // n_prim
+            else: # Other regular shells
+                # This logic assumes subsequent shells are uncontracted to deduce
+                # the size of the current shell's coefficient block.
+                remaining_prims = sum(mf.mnsh[k] for k in range(i + 1, mf.ncshell))
+                remaining_coeffs = len(mf.c1) - coeff_idx - remaining_prims
+                n_contr_to_skip = remaining_coeffs // n_prim
+
             exp_idx += n_prim
-            coeff_idx += coeffs_per_prim * n_prim
+            if l_raw == -1:
+                coeff_idx += n_prim # For SP shells, 1 S-coeff and 1 P-coeff per primitive
+            else:
+                coeff_idx += n_prim * n_contr_to_skip
             continue
 
+        # Initialize the list of shells for a new atom symbol.
         if sym not in done_shells:
             done_shells[sym] = []
 
+        primitives = []
         if l_raw == -1:
-            # SP shell: c1 stores S, c2 stores P
-            primitives = []
+            # Handle SP shells: c1 stores S-coefficients, c2 stores P-coefficients.
+            # Each primitive shares an exponent.
             for _ in range(n_prim):
                 exponent = mf.expsh[exp_idx]
                 coef_s = mf.c1[coeff_idx]
+                # mf.c2 is assumed to exist and be aligned with c1 for SP shells.
                 coef_p = mf.c2[coeff_idx]
                 primitives.append((exponent, coef_s, coef_p))
                 exp_idx += 1
                 coeff_idx += 1
             done_shells[sym].append({"l": -1, "primitives": primitives})
         else:
-            # Regular shell
+            # Handle regular shells (S, P, D, F, etc.).
+            # First, determine the number of contractions for this shell.
             if i == mf.ncshell - 1:
+                # For the last shell, all remaining coefficients belong to it.
                 n_contr = (len(mf.c1) - coeff_idx) // n_prim
             else:
-                next_exp_idx = exp_idx + n_prim
-                remaining_prims = sum(mf.mnsh[i + 1:])
+                # For other shells, deduce n_contr by assuming shells that follow
+                # are uncontracted. This logic is specific to the mf object's structure.
+                remaining_prims = sum(mf.mnsh[k] for k in range(i + 1, mf.ncshell))
                 remaining_coeffs = len(mf.c1) - coeff_idx - remaining_prims
                 n_contr = remaining_coeffs // n_prim
 
-            primitives = []
-            for _ in range(n_prim):
-                exponent = mf.expsh[exp_idx]
-                coefs = mf.c1[coeff_idx:coeff_idx + n_contr]
+            # Extract exponents and coefficients for each primitive in this shell.
+            coeffs_flat = mf.c1[coeff_idx : coeff_idx + n_prim * n_contr]
+            for prim_idx in range(n_prim):
+                exponent = mf.expsh[exp_idx + prim_idx]
+                # Coefficients are stored contiguously for each contraction,
+                # e.g., [p1c1, p2c1, ..., p1c2, p2c2, ...].
+                coefs = [coeffs_flat[j * n_prim + prim_idx] for j in range(n_contr)]
                 primitives.append((exponent, coefs))
-                exp_idx += 1
-                coeff_idx += n_contr
 
+            exp_idx += n_prim
+            coeff_idx += n_prim * n_contr
             done_shells[sym].append({"l": l, "primitives": primitives})
 
-    # Generate output
+    # --- Transformation Step ---
+    # Convert the intermediate `done_shells` dictionary into the final format.
+    final_basis_dict = {}
     for sym, shells in done_shells.items():
-        for shell in shells:
-            l = shell["l"]
-            label = shell_labels.get(l, f"L={l}")
-            output_lines.append(f"{sym}    {label}")
+        final_basis_dict[sym] = []
+        # These will hold primitives for SP-shell decomposition.
+        s_primitives = []
+        p_primitives = []
 
-            if l == -1:
-                # SP: Exponent + S coef + P coef
-                for exp, coef_s, coef_p in shell["primitives"]:
-                    output_lines.append(
-                        f"      {exp: .10E}      {coef_s: .10E}      {coef_p: .10E}"
-                    )
-            else:
-                for exp, coefs in shell["primitives"]:
-                    line = f"      {exp: .10E}"
-                    for c in coefs:
-                        line += f"      {c: .10E}"
-                    output_lines.append(line)
+        for shell_data in shells:
+            l = shell_data["l"]
+            primitives_data = shell_data["primitives"]
 
-    output_lines.append("end")
-    return "\n".join(output_lines)
+            if l == -1:  # Decompose SP shell
+                for exp, coef_s, coef_p in primitives_data:
+                    s_primitives.append([exp, coef_s])
+                    p_primitives.append([exp, coef_p])
+            else:  # Process regular shell
+                new_shell = [l]
+                for exp, coefs in primitives_data:
+                    new_shell.append([exp] + coefs)
+                final_basis_dict[sym].append(new_shell)
+
+        # Add the decomposed S and P shells to the final dictionary if they exist.
+        if s_primitives:
+            final_basis_dict[sym].insert(0, [0] + s_primitives) # Add S shell (l=0)
+        if p_primitives:
+            final_basis_dict[sym].insert(1, [1] + p_primitives) # Add P shell (l=1)
+
+    return final_basis_dict
+
 
 
 def degens(l, cart_flag):
@@ -438,28 +388,35 @@ def degens(l, cart_flag):
     else:
         return 2 * l + 1  # Spherical: 1 (s), 3 (p), 5 (d), etc.
 
-
-class Mole:
+class Mole2:
     def __init__(self, path):
         self.path = path
         self.basis = read_level_theory(self.path)[-1]
+        self._ovlp = None
+        self._read_fchk = True
         self.nalpha = int(read_from_fchk('Number of alpha electrons', self.path)[-1])
         self.nbeta = int(read_from_fchk('Number of beta electrons', self.path)[-1])
+        self.numao = int(read_from_fchk('Number of basis functions', self.path)[-1])
+        self.nummo = int(read_from_fchk('Number of independent functions', self.path)[-1])
         self.charge = int(read_from_fchk('Charge', self.path)[-1])
         self.spin = int(self.nalpha) - int(self.nbeta)
         self.symmetry = read_symmetry(self.path)
         self.nelec = int(read_from_fchk('Number of electrons', self.path)[-1])
+        self.nelectron = self.nelec
         self.charge = int(read_from_fchk('Charge', self.path)[-1])
         self.natoms = int(read_from_fchk('Number of atoms', self.path)[-1])
         self.natm = self.natoms
-        self.nbasis = int(read_from_fchk('Number of basis functions', self.path)[-1])
-        self.nao = self.nbasis
         self.atomic_numbers = [int(i) for i in read_list_from_fchk('Atomic numbers', 'Nuclear charges', self.path)]
         self.atomic_symbols = read_atomic_symbols(self.atomic_numbers)
+        self.atom = self.make_atom()
+        self.nbasis = int(read_from_fchk('Number of basis functions', self.path)[-1])
+        self.nao = self.nbasis
+        self.nbas = int(read_from_fchk('Number of contracted shells', self.path)[-1])
         self.dcart = read_from_fchk("Pure/Cartesian d shells", self.path)[-1]
         self.fcart = read_from_fchk("Pure/Cartesian f shells", self.path)[-1]
         self.cart = self.dcart == 0 or self.fcart == 0
         self.verbose = 0
+        self.numprim = int(read_from_fchk('Number of primitive shells', self.path)[-1])
         self.mssh = read_list_from_fchk('Shell types', 'Number of primitives per shell', self.path)
         self.mssh = [int(i) for i in self.mssh]
         # Number of primitives per shell
@@ -478,47 +435,34 @@ class Mole:
             if 'P(S=P)' in file.read():
                 self.c1 = read_list_from_fchk('Contraction coefficients', 'P(S=P) Contraction coefficients', self.path)
                 self.c2 = read_list_from_fchk('P(S=P) Contraction coefficients', 'Coordinates of each shell', self.path)
+                c1s, c2s = [], []
+                for c in range(len(self.c1)):
+                    c1s.append((2*self.expsh[c]/np.pi)**(0.75) * self.c1[c])
+                    c2s.append((2*self.expsh[c]/np.pi)**(0.75) * self.c2[c])
+                #self.c1 = c1s
+                #self.c2 = c2s
+
             else:
                 self.c1 = read_list_from_fchk('Contraction coefficients', 'Coordinates of each shell', self.path)
+                c1s = []
+                for c in range(len(self.c1)):
+                    c1s.append((2*self.expsh[c]/np.pi)**(0.75) * self.c1[c])
+                #self.c1 = c1s
                 self.c2 = None
 
-        from pyscf import gto
-
         self.ncshell = int(read_from_fchk('Number of contracted shells', self.path)[-1])
-        self.input_basis = str(make_basis(self))
-        print(self.input_basis)
 
-        norm = 0.52917721092
+        self._atm = make_atm(self)
+        self._bas, self._env = make_bas_env(self)
+        self._basis = make_basis(self)
 
-        pyscf_mol = gto.M(
-            atom=[(self.atomic_symbols[i], self.atom_coords()[i]*norm) for i in range(self.natoms)],
-            basis=gto.basis.parse(self.input_basis),
-            spin=self.spin,
-            charge=self.charge,
-            cart=self.cart,
-            symmetry=self.symmetry,
-        )
-        pyscf_mol.build()
-        print(pyscf_mol._basis)
-        print(pyscf_mol.ao_loc_nr())
-        print("hola", pyscf_mol.intor('int1e_ovlp'))
-        print("\n"*20)
-        print(pyscf_mol.atom_coords())
-        print(pyscf_mol.ao_labels())
+        # Ensure iptoat is set for compatibility with build_ovlp and IAO routines
+        process_basis(self)  # This will set self.iptoat and other derived attributes
 
-        self.copy = pyscf_mol
-        self._atm = pyscf_mol._atm
-        self._env = pyscf_mol._env
-        self._bas = pyscf_mol._bas
-        self._basis = pyscf_mol._basis
-        self._add_suffix = pyscf_mol._add_suffix
-        self.nbas = pyscf_mol.nbas
-        print(self._bas)
-        print(self._env)
-        print(self._atm)
-        print(self._basis)
+        #self._add_suffix = pyscf_mol._add_suffix
+        #self.nbas = pyscf_mol.nbas
 
-        self.mf = MeanField(path, self)
+        self.mf = MeanField2(path, self)
         self.iatsh = self.mf.iatsh
         self.mssh = self.mf.mssh
         self.mnsh = self.mf.mnsh
@@ -526,12 +470,88 @@ class Mole:
         self.c1 = self.mf.c1
         self.c2 = self.mf.c2 if hasattr(self.mf, 'c2') and self.mf.c2 is not None else None
         self.ncshell = self.mf.ncshell
+        self.mo_coeff = self.mf.mo_coeff
+        self.mo_occ = self.mf.mo_occ
+
+    def build(self, self_consistent=None, verbose=None, atom=None, basis=None, **kwargs):
+        if atom is not None:
+            self.atom = atom
+
+        if basis is not None:
+            if basis == "minao":
+                from pyscf import gto
+                #norm = 0.52917721092
+
+                pyscf_mol = Mole2(self.path)
+                pyscf_mol.atom=[(self.atomic_symbols[i], self.atom_coords()[i] * norm) for i in range(self.natoms)],
+                pyscf_mol.basis="minao",
+                pyscf_mol.spin=self.spin,
+                pyscf_mol.charge=self.charge,
+                pyscf_mol.cart=self.cart,
+                pyscf_mol.symmetry=self.symmetry,
+
+            else:
+                self.basis = basis
+
+        # Rebuild core GTO fields
+        self._atm = make_atm(self)
+        self._bas, self._env = make_bas_env(self)
+        self._basis = make_basis(self)
+
+        return self
+
+    def _add_suffix(self, intor, cart=None):
+        if not (intor[:4] == 'cint' or
+                intor.endswith(('_sph', '_cart', '_spinor', '_ssc'))):
+            if cart is None:
+                cart = self.cart
+            if cart:
+                intor = intor + '_cart'
+            else:
+                intor = intor + '_sph'
+        return intor
 
     def atom_symbol(self, pos):
-        return self.copy.atom_symbol(pos)
+        """Return the symbol of the atom at position pos."""
+        if pos < 0 or pos >= self.natoms:
+            raise IndexError("Atom index out of range.")
+        return self.atomic_symbols[pos]
+
+    def atom_symbols(self):
+        """Return a list of atomic symbols for all atoms."""
+        return self.atomic_symbols
+
+    def make_atom(self):
+        coords = self.atom_coords()  # shape (natoms, 3)
+        return [(sym, tuple(coord)) for sym, coord in zip(self.atomic_symbols, coords)]
+
+    def copy(self):
+        from copy import deepcopy
+        return deepcopy(self)
 
     def aoslice_by_atom(self, ao_loc=None):
-        return self.copy.aoslice_by_atom()
+        """Return AO slices per atom as (shell_start, shell_stop, ao_start, ao_stop)."""
+        if ao_loc is None:
+            ao_loc = self.ao_loc_nr()
+
+        slices = []
+        ao_start = 0
+        shell_idx = 0
+
+        for atm_id in range(self.natoms):
+            shell_start = shell_idx
+            ao_start = ao_loc[shell_start]
+
+            # Count number of shells for this atom
+            while shell_idx < len(self._bas) and self._bas[shell_idx, 0] == atm_id:
+                shell_idx += 1
+
+            shell_stop = shell_idx
+            ao_stop = ao_loc[shell_stop]
+
+            slices.append((shell_start, shell_stop, ao_start, ao_stop))
+
+        return np.array(slices, dtype=np.int32)
 
     def atom_coords(self):
         coords = read_list_from_fchk('Current cartesian coordinates', 'Number of symbols', self.path)
@@ -539,14 +559,17 @@ class Mole:
 
     def intor_symmetric(self,str):
         if str == 'int1e_ovlp':
-            return self.copy.intor_symmetric('int1e_ovlp', comp=1)
+            if self._ovlp is not None:
+                return self._ovlp
+            print("Building overlap matrix...")
+            from time import time
+            start = time()
+            process_basis(self)
+            self._ovlp = build_ovlp(self)
+            print("Overlap matrix built in {:.2f} seconds.".format(time() - start))
+            return self._ovlp
         else:
             raise ValueError("Invalid integral type: {}".format(str))
-
-    def ao_labels(self):
-        '''Return the labels of the atomic orbitals.
-        '''
-        return self.copy.ao_labels()
 
     def atom_nelec_core(self, atm_id):
         '''Number of core electrons for pseudo potential.'''
@@ -555,12 +578,18 @@ class Mole:
         return core_electrons[atm_id]
 
     def ao_loc_nr(self):
-        return self.copy.ao_loc_nr()
+        # Returns the AO location array as in PySCF, based on shell structure
+        ao_loc = [0]
+        for i in range(self.ncshell):
+            l = abs(self.mssh[i]) if self.mssh[i] != -1 else 1  # SP shells: treat as P
+            nctr = degens(l, self.cart)
+            ao_loc.append(ao_loc[-1] + nctr)
+        return np.array(ao_loc, dtype=np.int32)
 
     def nao_nr(self):
         '''Number of basis functions.
         '''
-        return self.copy.nao_nr()
+        return self.nbasis
 
     def bas_atom(self, atm_id):
         '''Atom id for each basis function.
@@ -580,7 +609,7 @@ class Mole:
     def atom_pure_symbol(self, atm_id):
         '''Atom symbol for each basis function.
         '''
-        return self.copy.atom_pure_symbol(atm_id)
+        return self.atomic_symbols[self.bas_atom(atm_id)]
 
     def has_ecp(self):
         '''Check if the molecule has ECP.
@@ -589,14 +618,25 @@ class Mole:
         nuclear_charges = [int(charge) for charge in nuclear_charges]
         return nuclear_charges != self.atomic_numbers
 
-class MeanField:
+class MeanField2:
     def __init__(self, path, mol):
         self.path = path
         self.mol = mol
+        self.nao = self.mol.nao
+        self.natm = self.mol.natm
+        self.cart = self.mol.cart
+        self.nelec = self.mol.nelec
+        self.nelectron = self.nelec
+        self._ovlp = None # Cache
+        self._read_fchk = True
         self.nalpha = self.mol.nalpha
         self.__class__.__name__ = read_level_theory(self.path)[-2]
-        if 'R' in self.__class__.__name__:
+        try :
+            dummy = read_list_from_fchk("Alpha MO coefficients", "Beta MO coefficients", self.path)
+            wf = 'unrest'
+        except:
             wf = 'rest'
+        if wf == "rest":
             if 'HF' in self.__class__.__name__:
                 self.__class__.__name__ = 'RHF'
             else:
@@ -607,8 +647,7 @@ class MeanField:
                 if num > 0:
                     nocc += 1
             self.mo_occ = np.array([2.] * (int(self.mol.nalpha + self.mol.nbeta) // 2) + [0.] * (len(self.orbital_energies) - (int(self.mol.nalpha+self.mol.nbeta) // 2)))
-        elif 'U' in self.__class__.__name__:
-            wf = 'unrest'
+        elif wf == "unrest":
             if 'HF' in self.__class__.__name__:
                 self.__class__.__name__ = 'UHF'
             else:
@@ -628,6 +667,7 @@ class MeanField:
                         len(self.alpha_orbital_energies) + len(self.beta_orbital_energies) - nocc_alpha - nocc_beta)
         self.e_tot = float(read_from_fchk('SCF Energy', self.path)[-1])
         self.natoms = int(read_from_fchk('Number of atoms', self.path)[-1])
+        self.natm = self.natoms
         self.nbasis = int(read_from_fchk('Number of basis functions', self.path)[-1])
         self.numprim = int(read_from_fchk('Number of primitive shells', self.path)[-1])
         self.atomic_numbers = [int(i) for i in read_list_from_fchk('Atomic numbers', 'Nuclear charges', self.path)]
@@ -664,17 +704,17 @@ class MeanField:
                 self.c2 = None
 
         if wf == 'rest':
-            self.mo_coeff = list(read_list_from_fchk('Alpha MO coefficients', 'Orthonormal basis', self.path))
+            try:
+                self.mo_coeff = list(read_list_from_fchk('Alpha MO coefficients', 'Orthonormal basis', self.path))
+            except:
+                self.mo_coeff = list(read_list_from_fchk('Alpha MO coefficients', 'Total SCF Density', self.path))
             self.mo_coeff = np.array(self.mo_coeff).reshape(self.nummo, self.numao).T
-            self.mo_coeff = reorder_mo_coeff(self)
 
         elif wf == 'unrest':
             self.mo_coeff_alpha = read_list_from_fchk('Alpha MO coefficients', 'Beta MO coefficients', self.path)
             self.mo_coeff_beta = read_list_from_fchk('Beta MO coefficients', 'Orthonormal basis', self.path)
             self.mo_coeff_alpha = np.array(self.mo_coeff_alpha).reshape(self.nummo, self.numao).T
             self.mo_coeff_beta = np.array(self.mo_coeff_beta).reshape(self.nummo, self.numao).T
-            self.mo_coeff_alpha = reorder_mo_coeff(self)
-            self.mo_coeff_beta = reorder_mo_coeff(self)
             self.mo_coeff = [self.mo_coeff_alpha, self.mo_coeff_beta]
 
         # Create custom mf to increase MO coeff precision
@@ -686,19 +726,7 @@ class MeanField:
         data = np.where(self.get_ovlp() < 1e-10, 0, self.get_ovlp())  # Set small values to zero
         df2 = pd.DataFrame(data, dtype=np.float64)
         df2.to_excel('overlap_readfchk.xlsx', index=False)
-        exit()
-
-        from pyscf import scf
-        if 'R' in self.__class__.__name__:
-            mf_pyscf = scf.RHF(self.mol.copy)
-        elif 'U' in self.__class__.__name__:
-            mf_pyscf = scf.UHF(self.mol.copy)
-        mf_pyscf.mo_coeff = self.mo_coeff # Start from the MO coefficients read from FCHK
-        mf_pyscf.mo_occ = self.mo_occ
-        mf_pyscf.verbose = 9
-        mf_pyscf.kernel()
-        # Update the MO coefficients
-        #self.mo_coeff = mf_pyscf.mo_coeff
+        #exit()
 
     def make_rdm1(self):
         """Computes density matrix."""
@@ -718,211 +746,312 @@ class MeanField:
             rdm1_b = np.dot(mo_b_occ, mo_b_occ.T)
             return np.array([rdm1_a, rdm1_b])
 
+    def aoslice_by_atom(self, ao_loc=None):
+        return self.mol.aoslice_by_atom(ao_loc)
+
     def get_ovlp(self):
-        return self.mol.copy.intor_symmetric('int1e_ovlp')
+        if self._ovlp is not None:
+            return self._ovlp
         print("Building overlap matrix...")
         from time import time
         start = time()
         process_basis(self)
-        ovlp = build_ovlp(self)
+        self._ovlp = build_ovlp(self)
         print("Overlap matrix built in {:.2f} seconds.".format(time() - start))
-        return ovlp
+        return self._ovlp
+
+import pyscf.gto.basis.minao as minao_mod
+from pyscf import gto, scf
+
+class MeanFieldMINAO():
+    def __init__(self,  mol):
+        # 2) keep a reference to the molecule
+        self.mol  = mol
+        self.atom_symbols = self.mol.atomic_symbols
+        self.natoms = self.mol.natoms
+        self.natm = self.mol.natm
+        self.cart = self.mol.cart
+        self.coord = self.mol.coord
+        self.atomic_numbers = self.mol.atomic_numbers
+        self.atomic_symbols = self.mol.atomic_symbols
+        self.mo_coeff = self.mol.mo_coeff
+        self.mo_occ = self.mol.mo_occ
+        self.nelec = self.mol.nelec
+        self.nelectron = self.nelec
+        self.nalpha = self.mol.nalpha
+        self.nbeta = self.mol.nbeta
+        self.spin = self.mol.spin
+        self.charge = self.mol.charge
+
+        # 4) load the MINAO data into your SCF object
+        self._load_minao()
+
+        # 5) now you can dynamically rename your class if you want
+        #    (but only AFTER calling the RHF ctor!)
+        self.__class__.__name__ = "RHF_MINAO"
+
+        # 6) any other MeanField2-style bookkeeping:
+        self._ovlp   = None
+        #self.nalpha  = mol.nelectron // 2
+        #self.nbeta   = mol.nelectron // 2
+        process_basis(self)
+        self.nbas = len(self.mssh)
+        self._ovlp = build_ovlp(self)
+
+    def atom_symbols(self):
+        return self.mol.atomic_symbols
+
+    def aoslice_by_atom(self, ao_loc=None):
+        """Return AO slices per atom as (shell_start, shell_stop, ao_start, ao_stop)."""
+        if ao_loc is None:
+            ao_loc = self.ao_loc_nr()
+
+        slices = []
+        shell_idx = 0
+
+        for atm_id in range(self.natoms):
+            shell_start = shell_idx
+
+            # Count number of shells for this atom
+            # Note: self.iatsh stores 1-based atom indices; compare against atm_id+1
+            while shell_idx < len(self.iatsh) and self.iatsh[shell_idx] == atm_id + 1:
+                shell_idx += 1
+
+            shell_stop = shell_idx
+
+            ao_start = ao_loc[shell_start]
+            ao_stop = ao_loc[shell_stop]
+
+            slices.append((shell_start, shell_stop, ao_start, ao_stop))
+
+        return np.array(slices, dtype=np.int32)
+
+    def ao_loc_nr(self):
+        ao_loc = [0]
+        for i in range(self.ncshell):
+            l = abs(self.mssh[i]) if self.mssh[i] != -1 else 0
+            nctr = self.nctr[i]  # number of contracted radial functions
+            deg = 2 * l + 1  # spherical
+            ao_loc.append(ao_loc[-1] + deg * nctr)
+        return np.array(ao_loc, dtype=np.int32)
+
+    def _load_minao(self):
+        # Build contracted-shell lists to match FCHK reader conventions.
+        # For each contracted radial function (each contraction column) create
+        # one contracted shell. Always include all primitives for each contraction.
+        iatsh, mssh, mnsh, expsh, c1, nctr = [], [], [], [], [], []
+        from pyscf.gto.basis import minao
+        for ia, symb in enumerate(self.atomic_symbols):
+            try:
+                basis = getattr(minao, symb)
+            except AttributeError:
+                raise ValueError(f"No MINAO basis for {symb}")
+
+            for shell in basis:
+                l = int(shell[0])
+                prims = np.array([np.atleast_1d(p) for p in shell[1:]], dtype=float)
+                nprim = prims.shape[0]
+                exps = prims[:, 0].astype(float)
+                coeff_block = prims[:, 1:] if prims.shape[1] > 1 else np.ones((nprim, 1))
+                nctr_shell = coeff_block.shape[1]
+                for j in range(nctr_shell):
+                    coeffs = coeff_block[:, j].flatten()
+                    # Always include all primitives for each contraction
+                    sel_exps = exps.copy()
+                    sel_coeffs = coeffs.copy()
+
+                    # Use 1-based atom indices to match FCHK/MeanField2 convention
+                    #to check
+                    iatsh.append(int(ia) + 1)
+                    mssh.append(int(l))
+                    mnsh.append(int(len(sel_exps)))
+                    nctr.append(1)
+                    expsh.extend(sel_exps.tolist())
+                    c1.extend(sel_coeffs.tolist())
+
+        # Store using the same types/conventions as the FCHK reader
+        self.iatsh = np.array(iatsh, dtype=int).tolist()
+        self.mssh = np.array(mssh, dtype=int).tolist()
+        self.mnsh = np.array(mnsh, dtype=int).tolist()
+        self.expsh = np.array(expsh, dtype=float).tolist()
+        self.c1 = np.array(c1, dtype=float).tolist()
+        # Set ncshell to match FCHK logic
+        self.ncshell = len(self.mssh)
+        self.numprim = len(self.expsh)
+        self.nbasis = sum([mult(l) for l in self.mssh])
+        self.nctr = nctr
+
+        # Let the existing pipeline build derived arrays and overlap
+        process_basis(self)
+        self._ovlp = build_ovlp(self)
+        self.numao = int(self._ovlp.shape[0])
+        self.nummo = self.numao
+        self.nao = self.numao
+
+        self.ncshell = len(self.mssh)
+        self.nbasis = sum([mult(l) for l in self.mssh])
+        self.nctr = nctr
 
 
 def mult(shell_type):
-    mult_dict = { #s=1, p=2, d=3, f=4, g=5, sp=-1
+    mult_dict = { #s=0, p=1, d=2, f=3, g=4, h=5, sp=-1, dcart=-2, fcart=-3, gcart=-4, hcart=-5
          0: 1,  1: 3,  2: 6,  3: 10, 4: 15, 5: 21,
          - 5: 11, -4: 9, -3: 7, -2: 5, -1: 4,
     }
     return mult_dict.get(shell_type, 0)
 
-def process_basis(mf):
+import numpy as np
+from scipy.special import factorial
 
-    numprim, nbasis = 0, 0
-    for i in range(mf.ncshell):
-        if mf.mssh[i] < -1:
-            numprim += mult(abs(mf.mssh[i])) * mf.mnsh[i]
-        else:
-            numprim += mult(mf.mssh[i]) * mf.mnsh[i]
-        nbasis += mult(mf.mssh[i])
+def process_basis(mf):
+    mssh_abs = np.abs(mf.mssh)
+    mult_vals = np.array([mult(s) for s in mf.mssh])
+    mult_abs_vals = np.array([mult(s) for s in mssh_abs])
+
+    # Total number of primitives and basis functions
+    numprim = int(np.sum(mult_abs_vals * np.array(mf.mnsh)))
+    nbasis = np.sum(mult_vals)
 
     # Basis to atom map
-    ihold = [0] * nbasis
-    ii = 0
-    for i in range(mf.ncshell):
-        for k in range(mult(mf.mssh[i])):
-            ii += 1
-            ihold[ii - 1] = mf.iatsh[i]
+    ihold = np.repeat(mf.iatsh, mult_vals)
 
-    # Setting basis set limits for Mulliken
+    # Basis set limits
     llim = [1]
     iulim = [0] * mf.natoms
-    iat = 1
+    for iat in range(1, mf.natoms + 1):
+        indices = np.where(ihold == iat)[0]
+        if len(indices) > 0:
+            iulim[iat - 1] = indices[-1] + 1
+            llim.append(indices[-1] + 2)
+    if iulim[-1] == 0:
+        iulim[-1] = nbasis
 
-    for i in range(nbasis):
-        if ihold[i] == iat:
-            if iat - 1 < len(iulim):
-                iulim[iat - 1] = i
-            llim.append(i + 1)
-            iat += 1
-    if iat - 1 < len(iulim):
-        iulim[iat - 1] = nbasis
+    # expp and coefp arrays
+    expp, coefp = [], []
+    jcount = 0
+    for shell_type, nprim in zip(mf.mssh, mf.mnsh):
+        if shell_type == -1:
+            for _ in range(nprim):
+                expp.extend([mf.expsh[jcount]] * 4)
+                coefp.append(mf.c1[jcount])  # S
+                coefp.extend([mf.c2[jcount]] * 3)  # P
+                jcount += 1
+        else:
+            kk = mult(abs(shell_type))
+            for _ in range(nprim):
+                expp.extend([mf.expsh[jcount]] * kk)
+                coefp.extend([mf.c1[jcount]] * kk)
+                jcount += 1
 
-    icount, jcount = 0, 0
-    expp, coefp = [0] * numprim, [0] * numprim
+    expp = np.array(expp)
+    coefp = np.array(coefp)
 
-    for i in range(mf.ncshell):
-        for j in range(mf.mnsh[i]):
-            kk = mult(abs(mf.mssh[i]))
-            if mf.mssh[i] == -1:
-                kk = 4
-            for k in range(kk):
-                expp[icount] = mf.expsh[jcount]
-                if mf.mssh[i] == -1 and k != 0:
-                    coefp[icount] = mf.c2[jcount]
-                else:
-                    coefp[icount] = mf.c1[jcount]
-                icount += 1
-            jcount += 1
-
+    # NLM and normalization
     nlm, iptoat = get_nlm(mf)
-
-    xnorm = np.zeros(numprim)
-
-    for i in range(numprim):
-        nn = nlm[i, 0]
-        ll = nlm[i, 1]
-        mm = nlm[i, 2]
-        fnn = factorial(nn) / factorial(2 * nn)
-        fll = factorial(ll) / factorial(2 * ll)
-        fmm = factorial(mm) / factorial(2 * mm)
-        xnorm[i] = (2.0 * expp[i] / np.pi) ** 0.75 * np.sqrt((8.0 * expp[i]) ** (nn + ll + mm) * fnn * fll * fmm)
+    nn, ll, mm = nlm[:, 0], nlm[:, 1], nlm[:, 2]
+    fnn = factorial(nn) / factorial(2 * nn)
+    fll = factorial(ll) / factorial(2 * ll)
+    fmm = factorial(mm) / factorial(2 * mm)
+    xnorm = (2.0 * expp / np.pi) ** 0.75 * np.sqrt((8.0 * expp) ** (nn + ll + mm) * fnn * fll * fmm)
 
     mf.coefp = coefp
     mf.xnorm = xnorm
-    mf.numprim = numprim
     mf.nbasis = nbasis
+    mf.numprim = numprim
     coefpb, iptob_cartesian = prim_orb_mapping(mf)
 
-    mmax = 0
-    for i in range(mf.ncshell):
-        ii = mf.mnsh[i]
-        if mf.mssh[i] <= -2:
-            ii = 3 * ii
-        if mf.mssh[i] == -4:
-            ii = 2 * ii
-        if ii > mmax:
-            mmax = ii
-    mmax += 1
+    # Maximum primitives per basis function
+    mmax = np.max([
+        3 * n if s <= -2 else (2 * n if s == -4 else n)
+        for s, n in zip(mf.mssh, mf.mnsh)
+    ]) + 1
 
+    # Primitive-to-basis mapping
     nprimbas = np.zeros((mmax, nbasis), dtype=int)
-
     for i in range(nbasis):
-        npb = 0
-        for j in range(numprim):
-            if abs(coefpb[j, i]) > 1.0e-10:
-                nprimbas[npb, i] = j + 1
-                npb += 1
+        prim_indices = np.where(np.abs(coefpb[:, i]) > 1.0e-10)[0] + 1
+        nprimbas[:len(prim_indices), i] = prim_indices
 
     # Updating the mf object
-    mf.numprim = numprim
-    mf.nbasis = nbasis
-    mf.ihold = ihold
+    mf.ihold = ihold.tolist()
     mf.llim = llim
     mf.iulim = iulim
     mf.nlm = nlm
     mf.iptoat = iptoat
-    mf.xnorm = xnorm
     mf.coefpb = coefpb
     mf.iptob_cartesian = iptob_cartesian
     mf.mmax = mmax
     mf.nprimbas = nprimbas
     mf.expp = expp
+    mf.numprim = len(expp)
+
+
+
+import numpy as np
+from scipy.special import factorial  # vectorized factorial
 
 def build_ovlp(mf):
     """
-    Calculates the overlap matrix using partial NumPy vectorization.
-    This is the most efficient pure Python/NumPy approach without Numba/PySCF.
-
-    Args:
-        mf: An object containing molecular information:
-            numprim (int): Number of primitive Gaussian functions.
-            nbasis (int): Number of basis functions.
-            coord (array-like): Atomic coordinates, shape (num_atoms, 3).
-            iptoat (array-like): Mapping from primitive index (1-based) to atom index.
-            nlm (array-like): Angular momentum numbers (lx, ly, lz) for each primitive, shape (numprim, 3).
-            expp (array-like): Exponents for each primitive, shape (numprim,).
-            coefpb (array-like): Contraction coefficients, ASSUMED shape (numprim, nbasis).
-            # nprimbas: Not used if coefpb is the C matrix.
-
-    Returns:
-        np.ndarray: The overlap matrix S, shape (nbasis, nbasis).
+    Builds the overlap matrix for the given molecule.
+    Optimized for Python/NumPy without changing the core Gaussian integral math.
     """
+    if hasattr(mf, '_ovlp') and mf._ovlp is not None:
+        return mf._ovlp
     tol = 1.0e-8
-    numprim = mf.numprim
-    nbasis = mf.nbasis
+    numprim, nbasis = mf.numprim, mf.nbasis
 
+    # Convert to NumPy arrays
     coord = np.asarray(mf.coord)
-    iptoat = np.asarray(mf.iptoat) - 1 # 0-based
-    nlm = np.asarray(mf.nlm)
+    iptoat = np.asarray(mf.iptoat) - 1  # make 0-based
+    nlm = np.asarray(mf.nlm, dtype=int)
     expp = np.asarray(mf.expp)
     coefpb = np.asarray(mf.coefpb)
 
-    # --- Part 1: Calculate Primitive Overlaps (sp) ---
+    # Precompute factorials for all l values in nlm (small integers)
+    max_l = int(np.max(nlm))
+    max_fact_arg = 2 * max_l
+    fact_table = factorial(np.arange(max_fact_arg + 1), exact=True)
 
-    # 1. Vectorized calculation of pairwise distances and exponents
+    def fact(n):  # fast lookup
+        return fact_table[n]
+
+    # --- Part 1: primitive overlap matrix (sp) ---
     coords_p = coord[iptoat]
-    AminusB_xyz = coords_p[:, None, :] - coords_p[None, :, :] # Shape (numprim, numprim, 3)
-    AminusB2_xyz = AminusB_xyz**2
+    AminusB = coords_p[:, None, :] - coords_p[None, :, :]
+    AminusB2 = AminusB**2
 
     expp_ia = expp[:, None]
     expp_ib = expp[None, :]
     gamma_p = expp_ia + expp_ib
-    # Add epsilon if concerned about division by zero, though unlikely for positive exponents
-    # gamma_p = gamma_p + 1e-30
     eta_p = (expp_ia * expp_ib) / gamma_p
+    sp_base = (np.pi / gamma_p)**1.5
 
-    sp_base = (np.pi / gamma_p)**(1.5) # Base overlap factor
-
-    # 2. Loop for the complex angular momentum part (Python loops remain here)
     sp = np.zeros((numprim, numprim))
-    idx_ia, idx_ib = np.triu_indices(numprim) # Efficiently get upper triangle indices
+    idx_ia, idx_ib = np.triu_indices(numprim)
 
     for ia, ib in zip(idx_ia, idx_ib):
-        # Extract pre-calculated values for this pair
-        AmB = AminusB_xyz[ia, ib]
-        AmB2 = AminusB2_xyz[ia, ib]
+        AmB = AminusB[ia, ib]
+        AmB2_pair = AminusB2[ia, ib]
         etap_val = eta_p[ia, ib]
         exp_ia_val = expp[ia]
         exp_ib_val = expp[ib]
-        nlm_ia = nlm[ia]
-        nlm_ib = nlm[ib]
+        l1_vec = nlm[ia]
+        l2_vec = nlm[ib]
 
-        # --- Check for zero overlap (Original logic) ---
-        skip = False
-        for ixyz in range(3):
-            if abs(AmB[ixyz]) < tol and (nlm_ia[ixyz] + nlm_ib[ixyz]) % 2 != 0:
-                skip = True
-                break
-        if skip:
-            # sp[ia, ib] remains 0.0
+        # Zero overlap check
+        if any(abs(AmB[ax]) < tol and (l1_vec[ax] + l2_vec[ax]) % 2 != 0 for ax in range(3)):
             continue
-        # --- End Check ---
 
-        # --- Calculate angular factor product (Innermost loops) ---
         angular_factor_product = 1.0
-        for ixyz in range(3): # Loop x, y, z
-            l1 = nlm_ia[ixyz]
-            l2 = nlm_ib[ixyz]
-            AmB_ax = AmB[ixyz]
+        for ax in range(3):
+            l1 = l1_vec[ax]
+            l2 = l2_vec[ax]
+            AmB_ax = AmB[ax]
 
-            # Use scipy's factorial (or your own if scipy not available)
-            term_xyz = factorial(l1) * factorial(l2) / (2.0**(l1 + l2))
-
+            term_xyz = fact(l1) * fact(l2) / (2.0 ** (l1 + l2))
             if abs(AmB_ax) > tol:
-                term_xyz *= np.exp(-etap_val * AmB2[ixyz])
+                term_xyz *= np.exp(-etap_val * AmB2_pair[ax])
 
-            # --- sum_i calculation (Original loop structure) ---
             sum_i = 0.0
             for i1 in range(l1 // 2 + 1):
                 j1 = l1 - 2 * i1
@@ -930,128 +1059,214 @@ def build_ovlp(mf):
                     j2 = l2 - 2 * i2
                     j = j1 + j2
 
-                    # --- sum_r calculation (Original loop structure & logic) ---
-                    sum_r = 0.0
                     if abs(AmB_ax) > tol:
+                        sum_r = 0.0
                         for ir in range(j // 2 + 1):
-                            fac_ir = factorial(ir)
-                            fac_j_2ir = factorial(j - 2 * ir)
-                            if fac_ir == 0 or fac_j_2ir == 0: continue # Avoid division by zero
-                            den = fac_ir * fac_j_2ir
-
-                            num = (2.0 * AmB_ax)**float(j - 2 * ir)
-                            xfac = etap_val**float(j - ir) * num / den
-
-                            if ir % 2 != 0: xfac = -xfac
+                            den = fact(ir) * fact(j - 2 * ir)
+                            if den == 0:
+                                continue
+                            num = (2.0 * AmB_ax) ** (j - 2 * ir)
+                            xfac = (etap_val ** (j - ir)) * num / den
+                            if ir % 2 != 0:
+                                xfac = -xfac
                             sum_r += xfac
                     elif j % 2 == 0:
                         k_idx = j // 2
-                        fac_k = factorial(k_idx)
-                        if fac_k == 0: continue
-                        sum_r = etap_val**float(k_idx) / fac_k
-                        if k_idx % 2 != 0: sum_r = -sum_r
-                    # --- End sum_r ---
+                        sum_r = (etap_val ** k_idx) / fact(k_idx)
+                        if k_idx % 2 != 0:
+                            sum_r = -sum_r
+                    else:
+                        sum_r = 0.0
 
-                    if j1 % 2 != 0: sum_r_signed = -sum_r
-                    else: sum_r_signed = sum_r
+                    if j1 % 2 != 0:
+                        sum_r = -sum_r
 
-                    fac_i1 = factorial(i1); fac_j1 = factorial(j1)
-                    fac_i2 = factorial(i2); fac_j2 = factorial(j2)
-                    fac_j = factorial(j)
-                    facij_denom_part = (fac_i1 * fac_j1 * fac_i2 * fac_j2)
-                    exp_pow_part = exp_ia_val**float(l1 - i1) * exp_ib_val**float(l2 - i2)
-                    facij_orig = facij_denom_part * exp_pow_part
-
-                    if facij_orig != 0:
-                        sum_i += sum_r_signed * float(fac_j) / facij_orig
-            # --- End sum_i ---
+                    den_fac = fact(i1) * fact(j1) * fact(i2) * fact(j2)
+                    if den_fac != 0:
+                        sum_i += sum_r * fact(j) / (
+                            den_fac * (exp_ia_val ** (l1 - i1)) * (exp_ib_val ** (l2 - i2))
+                        )
             angular_factor_product *= sum_i * term_xyz
-        # --- End angular factor product ---
 
-        # Assign value to sp matrix (upper triangle)
         sp[ia, ib] = sp_base[ia, ib] * angular_factor_product
 
-    # 3. Fill lower triangle for symmetry
+    # Symmetrize
     sp = sp + sp.T - np.diag(np.diag(sp))
 
-
-    # --- Part 2: Vectorized Contraction ---
-    # Replace the slow nested 'while' loops with matrix multiplication
-    # Assumes coefpb IS the contraction matrix C (numprim, nbasis)
-    # s = C^T @ sp @ C
+    # --- Part 2: contraction to basis ---
     s = coefpb.T @ sp @ coefpb
-
+    mf._ovlp = s
     return s
 
-def build_ovlp2(mf):
-    tol = 1.0e-8
-    numprim = mf.numprim
-    nbasis = mf.nbasis
-    coord = np.array(mf.coord)
-    iptoat = np.array(mf.iptoat)
-    nlm = mf.nlm
-    expp = mf.expp
-    coefpb = mf.coefpb
-    nprimbas = mf.nprimbas
+def build_cross_ovlp(mf1, mf2, tol=1.0e-8):
+    """
+    Cross-overlap between basis sets of mf1 and mf2.
+    Same geometry, different bases.
+    """
+    # Cache
+    if hasattr(mf1, "_cross_ovlp_cache") and getattr(mf1, "_cross_ovlp_basis2", None) is mf2:
+        return mf1._cross_ovlp_cache
 
-    sp = np.zeros((numprim, numprim))
-    s = np.zeros((nbasis, nbasis))
+    numprim1, numprim2 = mf1.numprim, mf2.numprim
 
-    for ia in range(numprim):
-        for ib in range(ia+1):
-            sp[ia, ib] = 0.0
-            AminusB = coord[iptoat[ia]-1] - coord[iptoat[ib]-1]
-            for ixyz in range(3):
-                ii = (nlm[ia, ixyz] + nlm[ib, ixyz]) % 2
-                if abs(AminusB[ixyz]) < tol and ii != 0:
-                    break
-            gamma_p = expp[ia] + expp[ib]
-            eta_p = (expp[ia] * expp[ib]) / gamma_p
-            do_ov = np.pi ** (3.0 / 2.0) / gamma_p ** (3.0 / 2.0)
-            for ixyz in range(3):
-                do_ov *= factorial(nlm[ia, ixyz]) * factorial(nlm[ib, ixyz]) / (2.0 ** (nlm[ia, ixyz] + nlm[ib, ixyz]))
-                if abs(AminusB[ixyz]) > tol:
-                    do_ov *= np.exp(-eta_p * AminusB[ixyz] ** 2.0)
+    # Convert to NumPy arrays
+    coord1 = np.asarray(mf1.coord)
+    coord2 = np.asarray(mf2.coord)
+    iptoat1 = np.asarray(mf1.iptoat) - 1
+    iptoat2 = np.asarray(mf2.iptoat) - 1
+    nlm1 = np.asarray(mf1.nlm, dtype=int)
+    nlm2 = np.asarray(mf2.nlm, dtype=int)
+    expp1 = np.asarray(mf1.expp)
+    expp2 = np.asarray(mf2.expp)
+    coefpb1 = np.asarray(mf1.coefpb)
+    coefpb2 = np.asarray(mf2.coefpb)
+
+    # Precompute factorials
+    max_l = max(np.max(nlm1), np.max(nlm2))
+    max_fact_arg = 2 * max_l
+    fact_table = factorial(np.arange(max_fact_arg + 1), exact=True)
+    def fact(n):
+        return fact_table[n]
+
+    # Primitive centers and differences
+    coords_p1 = coord1[iptoat1]
+    coords_p2 = coord2[iptoat2]
+    AminusB = coords_p1[:, None, :] - coords_p2[None, :, :]
+    AminusB2 = AminusB**2
+
+    expp_ia = expp1[:, None]
+    expp_ib = expp2[None, :]
+    gamma_p = expp_ia + expp_ib
+    eta_p = (expp_ia * expp_ib) / gamma_p
+    sp_base = (np.pi / gamma_p)**1.5
+
+    sp = np.zeros((numprim1, numprim2))
+
+    # --- core loop: identical math to build_ovlp ---
+    for ia in range(numprim1):
+        l1_vec = nlm1[ia]
+        exp_ia_val = expp1[ia]
+        for ib in range(numprim2):
+            l2_vec = nlm2[ib]
+            exp_ib_val = expp2[ib]
+            AmB = AminusB[ia, ib]
+            AmB2_pair = AminusB2[ia, ib]
+            etap_val = eta_p[ia, ib]
+
+            # zero overlap check
+            if any(abs(AmB[ax]) < tol and (l1_vec[ax] + l2_vec[ax]) % 2 != 0 for ax in range(3)):
+                continue
+
+            angular_factor_product = 1.0
+            for ax in range(3):
+                l1 = l1_vec[ax]
+                l2 = l2_vec[ax]
+                AmB_ax = AmB[ax]
+                term_xyz = fact(l1) * fact(l2) / (2.0 ** (l1 + l2))
+                if abs(AmB_ax) > tol:
+                    term_xyz *= np.exp(-etap_val * AmB2_pair[ax])
+
                 sum_i = 0.0
-                for i1 in range(nlm[ia, ixyz] // 2 + 1):
-                    j1 = nlm[ia, ixyz] - 2 * i1
-                    for i2 in range(nlm[ib, ixyz] // 2 + 1):
-                        j2 = nlm[ib, ixyz] - 2 * i2
+                for i1 in range(l1 // 2 + 1):
+                    j1 = l1 - 2 * i1
+                    for i2 in range(l2 // 2 + 1):
+                        j2 = l2 - 2 * i2
                         j = j1 + j2
-                        facij = factorial(i1) * factorial(j1) * factorial(i2) * factorial(j2) * expp[ia] ** (nlm[ia, ixyz] - i1) * expp[ib] ** (nlm[ib, ixyz] - i2)
-                        sum_r = 0.0
-                        if abs(AminusB[ixyz]) > tol:
+
+                        if abs(AmB_ax) > tol:
+                            sum_r = 0.0
                             for ir in range(j // 2 + 1):
-                                xfac = eta_p ** (j - ir) * (2.0 * AminusB[ixyz]) ** (j - 2 * ir) / (factorial(ir) * factorial(j - 2 * ir))
+                                den = fact(ir) * fact(j - 2 * ir)
+                                if den == 0:
+                                    continue
+                                num = (2.0 * AmB_ax) ** (j - 2 * ir)
+                                xfac = (etap_val ** (j - ir)) * num / den
                                 if ir % 2 != 0:
                                     xfac = -xfac
                                 sum_r += xfac
                         elif j % 2 == 0:
-                            sum_r = eta_p ** (j // 2) / factorial(j // 2)
-                            if (j // 2) % 2 != 0:
+                            k_idx = j // 2
+                            sum_r = (etap_val ** k_idx) / fact(k_idx)
+                            if k_idx % 2 != 0:
                                 sum_r = -sum_r
+                        else:
+                            sum_r = 0.0
+
                         if j1 % 2 != 0:
                             sum_r = -sum_r
-                        sum_i += sum_r * factorial(j) / facij
-                do_ov *= sum_i
-            sp[ia, ib] = do_ov
-            if ia != ib:
-                sp[ib, ia] = sp[ia, ib]
 
-    for i in range(nbasis):
-        for j in range(i + 1):
-            s[i, j] = 0.0
-            k = 0
-            while nprimbas[k, i] != 0:
-                l = 0
-                while nprimbas[l, j] != 0:
-                    s[i, j] += coefpb[nprimbas[k, i]-1, i] * coefpb[nprimbas[l, j]-1, j] * sp[nprimbas[k, i]-1, nprimbas[l, j]-1]
-                    l += 1
-                k += 1
-            if i != j:
-                s[j, i] = s[i, j]
+                        den_fac = fact(i1) * fact(j1) * fact(i2) * fact(j2)
+                        if den_fac != 0:
+                            sum_i += sum_r * fact(j) / (
+                                den_fac * (exp_ia_val ** (l1 - i1)) * (exp_ib_val ** (l2 - i2))
+                            )
 
-    return np.array(s)
+                angular_factor_product *= sum_i * term_xyz
+
+            sp[ia, ib] = sp_base[ia, ib] * angular_factor_product
+
+    # contract
+    s = coefpb1.T @ sp @ coefpb2
+
+    mf1._cross_ovlp_cache = s
+    mf1._cross_ovlp_basis2 = mf2
+    return s
+
+
+def iao(mf_orig, mf_min, coeffs=None):
+    """
+    Build IAOs using a minimal basis (mf_min) and the original AO basis (mf_orig).
+
+    mf_orig, mf_min:
+        Objects containing:
+        - nbasis, numprim
+        - coefpb, expp, coord, iptoat, nlm
+        - All data needed by build_cross_ovlp()
+
+    mo_coeff:
+        Molecular orbital coefficients in AO basis (nbas_orig × nmo)
+
+    nelectron:
+        Total number of electrons (for closed-shell, we take nocc = nelec//2)
+    """
+
+    # --- Step 1: Overlap matrices ---
+    S1 = build_ovlp(mf_orig)  # AO-AO overlap (square, nbas_orig×nbas_orig)
+    S12 = build_cross_ovlp(mf_orig, mf_min)  # AO-MINAO overlap (nbas_orig×nbas_min)
+    S2  = build_ovlp(mf_min)  # MINAO-MINAO overlap (square, nbas_min×nbas_min)
+
+    # --- Step 2: Occupied space ---
+    nocc = mf_orig.nelec // 2
+    if coeffs is None:
+        coeffs = mf_min.mo_coeff  # (nbas_orig × nmo)
+    C_occ = coeffs[:, :nocc]  # (nbas_orig × nocc)
+
+    # --- Step 3: Build projectors ---
+    S21 = S12.T
+    Ctild_min = np.linalg.solve(S2, S21 @ C_occ)  # (nmin × nocc)
+
+    try:
+        P12 = np.linalg.solve(S1, S12)  # (nbas_orig × nbas_min)
+        Ctild_AO = np.linalg.solve(S1, S12 @ Ctild_min)
+    except np.linalg.LinAlgError:
+        # Fallback to canonical orthonormalization
+        X = scf.addons.canonical_orth_(S1, lindep_threshold=1e-8)
+        P12 = X @ X.T @ S12
+        Ctild_AO = P12 @ Ctild_min
+
+    # --- Step 4: Orthonormalize projected orbitals ---
+    from pyscf.lo.orth import vec_lowdin
+    Ctild = vec_lowdin(Ctild_AO, S1)
+
+    # --- Step 5: PySCF-style IAO projector formula ---
+    P_occ  = C_occ @ C_occ.T @ S1
+    P_proj = Ctild @ Ctild.T @ S1
+    IAOs = P12 + 2 * (P_occ @ P_proj @ P12) - P_occ @ P12 - P_proj @ P12
+
+    # --- Step 6: Orthonormalize IAOs ---
+    IAOs = vec_lowdin(IAOs, S1)
+
+    return IAOs
 
 
 def get_nlm(mf):
@@ -1186,3 +1401,4 @@ def prim_orb_mapping(mf):
         nbasis += mult(mssh[i])
 
     return coefpb, iptob_cartesian
+
