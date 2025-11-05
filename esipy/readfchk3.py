@@ -1,5 +1,159 @@
 import numpy as np
 from scipy.special import factorial
+import os
+
+# Simple in-memory reader cache to avoid reopening and reparsing the fchk file multiple times
+_readers = {}
+
+class FchkReader:
+    """Lightweight parser for formatted checkpoint (.fchk) files with caching of parsed (start_label,end_label) lists and single-line lookups.
+
+    Stores lines and a small cache of parsed (start_label,end_label) lists and single-line lookups.
+    """
+    def __init__(self, path):
+        self.path = path
+        # Read file once into memory
+        with open(path, 'r') as f:
+            self.lines = [ln.rstrip('\n') for ln in f]
+        self.text = '\n'.join(self.lines)
+        self._single_cache = {}   # prefix -> split tokens
+        self._list_cache = {}     # (start,end) -> list of floats
+
+    def find_first(self, prefix):
+        if prefix in self._single_cache:
+            return self._single_cache[prefix]
+        for line in self.lines:
+            if line.startswith(prefix):
+                tokens = line.split()
+                self._single_cache[prefix] = tokens
+                return tokens
+        return None
+
+    def read_list(self, start, end):
+        key = (start, end)
+        if key in self._list_cache:
+            return self._list_cache[key]
+        out = []
+        found = False
+        for line in self.lines:
+            if not found:
+                if line.startswith(start):
+                    found = True
+                    # Skip the starting line entirely (the numeric payload follows on subsequent lines)
+                    continue
+            else:
+                if end in line:
+                    break
+                # collect numeric tokens
+                for tok in line.split():
+                    try:
+                        out.append(float(tok))
+                    except Exception:
+                        pass
+        self._list_cache[key] = out
+        return out
+
+    def level_theory(self):
+        # emulates previous read_level_theory which returned second line tokens after the first
+        # We'll return tokens from the second line of the file if available
+        if len(self.lines) >= 2:
+            return self.lines[1].split()
+        return []
+
+    def has_symmetry(self):
+        # previous implementation skipped 9 lines then checked the next
+        if len(self.lines) > 10:
+            line = self.lines[10].split()
+            for w in line:
+                if 'symm' in w.lower():
+                    return True
+        # fallback: search for 'symm' anywhere
+        return 'symm' in self.text.lower()
+
+    def read_contract_coeff(self):
+        # read contraction coefficients from the single starting line like original
+        # the original function was somewhat broken; we implement a simple version
+        out = []
+        for i, line in enumerate(self.lines):
+            if line.startswith('Contraction coefficients'):
+                parts = line.split()
+                # last token was the count in original code
+                try:
+                    s = int(parts[-1])
+                except Exception:
+                    s = None
+                # collect numeric tokens in the line
+                for tok in parts:
+                    try:
+                        val = float(tok)
+                        out.append(val)
+                    except Exception:
+                        pass
+                # if we didn't get enough and next lines contain values, continue
+                j = i + 1
+                while s is None or len(out) < s:
+                    if j >= len(self.lines):
+                        break
+                    for tok in self.lines[j].split():
+                        try:
+                            out.append(float(tok))
+                        except Exception:
+                            pass
+                    j += 1
+                if s is not None:
+                    out = out[:s]
+                return out
+        return out
+
+class Overlapper:
+    """Tiny helper that centralizes overlap caching.
+
+    Usage: Overlapper(obj).get()
+    - If obj._ovlp (or obj.mol._ovlp) exists, return it.
+    - Otherwise call process_basis(obj) and build_ovlp(obj), store result
+      on obj._ovlp and (if present) obj.mol._ovlp, and return it.
+    """
+    def __init__(self, obj):
+        self.obj = obj
+        self._ovlp = None
+
+    def get(self):
+        # prefer mf-level cache
+        if getattr(self.obj, '_ovlp', None) is not None:
+            return self.obj._ovlp
+        # prefer molecule-level cache if available
+        if hasattr(self.obj, 'mol') and getattr(self.obj.mol, '_ovlp', None) is not None:
+            return self.obj.mol._ovlp
+
+        # Not cached: ensure basis-derived attributes exist and compute
+        if not getattr(self.obj, '_processed', False):
+            process_basis(self.obj)
+            self.obj._processed = True
+        mat = build_ovlp(self.obj)
+
+        try:
+            self.obj._ovlp = mat
+        except Exception:
+            pass
+        # also store on molecule (so Mole2 and MeanField2 share the cache)
+        if hasattr(self.obj, 'mol'):
+            try:
+                self.obj.mol._ovlp = mat
+            except Exception:
+                pass
+        return mat
+
+
+
+def _get_reader(path):
+    path = os.path.abspath(path)
+    if path in _readers:
+        return _readers[path]
+    r = FchkReader(path)
+    _readers[path] = r
+    return r
+
+
 def readfchk(filename):
     """
     Reads the information from a fchk file.
@@ -13,60 +167,32 @@ def readfchk(filename):
     mf = MeanField2(filename, mol)
     return mol, mf
 
+
 def read_from_fchk(to_read, path):
-    with open(path, 'r') as f:
-        for line in f:
-            if line.startswith(to_read):
-                return line.split()
+    r = _get_reader(path)
+    res = r.find_first(to_read)
+    return res
+
 
 def read_level_theory(path):
-    with open(path, 'r') as f:
-        next(f)
-        return next(f).split()
+    r = _get_reader(path)
+    return r.level_theory()
+
 
 def read_symmetry(path):
-    with open(path, 'r') as f:
-        for _ in range(9):
-            next(f)
-        line = next(f).split()
-        if "symm" in line or "Symm" in line:
-            return True
-        else:
-            return False
+    r = _get_reader(path)
+    return r.has_symmetry()
+
 
 def read_contract_coeff(path):
-    l = []
-    with open(path, 'r') as f:
-        found = False
-        for line in f:
-            if found:
-                break
-            if line.startswith('Contraction coefficients'):
-                s = int(line.split()[-1])
-                found = True
-                if found:
-                    for num_str in line.split():
-                        num = float(num_str)
-                        if len(l) < s:
-                            l.append(num)
-                        else:
-                            break
-    return l
+    r = _get_reader(path)
+    return r.read_contract_coeff()
 
 
 def read_list_from_fchk(start, end, path):
-    l = []
-    with open(path, 'r') as f:
-        found = False
-        for line in f:
-            if line.startswith(start):
-                found = True
-                continue
-            if end in line:
-                break
-            if found:
-                l.extend(map(float, line.split()))
-    return l
+    r = _get_reader(path)
+    return r.read_list(start, end)
+
 
 def read_atomic_symbols(z):
     z_to_symbol = {
@@ -456,11 +582,7 @@ class Mole2:
         self._bas, self._env = make_bas_env(self)
         self._basis = make_basis(self)
 
-        # Ensure iptoat is set for compatibility with build_ovlp and IAO routines
-        process_basis(self)  # This will set self.iptoat and other derived attributes
-
-        #self._add_suffix = pyscf_mol._add_suffix
-        #self.nbas = pyscf_mol.nbas
+        process_basis(self)
 
         self.mf = MeanField2(path, self)
         self.iatsh = self.mf.iatsh
@@ -472,6 +594,7 @@ class Mole2:
         self.ncshell = self.mf.ncshell
         self.mo_coeff = self.mf.mo_coeff
         self.mo_occ = self.mf.mo_occ
+        self._processed = False
 
     def build(self, self_consistent=None, verbose=None, atom=None, basis=None, **kwargs):
         if atom is not None:
@@ -483,7 +606,8 @@ class Mole2:
                 #norm = 0.52917721092
 
                 pyscf_mol = Mole2(self.path)
-                pyscf_mol.atom=[(self.atomic_symbols[i], self.atom_coords()[i] * norm) for i in range(self.natoms)],
+                # Use atom coordinates as-is (original 'norm' was undefined/commented out)
+                pyscf_mol.atom=[(self.atomic_symbols[i], tuple(self.atom_coords()[i])) for i in range(self.natoms)],
                 pyscf_mol.basis="minao",
                 pyscf_mol.spin=self.spin,
                 pyscf_mol.charge=self.charge,
@@ -631,11 +755,10 @@ class MeanField2:
         self._read_fchk = True
         self.nalpha = self.mol.nalpha
         self.__class__.__name__ = read_level_theory(self.path)[-2]
-        try :
-            dummy = read_list_from_fchk("Alpha MO coefficients", "Beta MO coefficients", self.path)
-            wf = 'unrest'
-        except:
-            wf = 'rest'
+        if self.nalpha != self.mol.nbeta:
+            wf = "unrest"
+        else:
+            wf = "rest"
         if wf == "rest":
             if 'HF' in self.__class__.__name__:
                 self.__class__.__name__ = 'RHF'
@@ -713,6 +836,10 @@ class MeanField2:
         elif wf == 'unrest':
             self.mo_coeff_alpha = read_list_from_fchk('Alpha MO coefficients', 'Beta MO coefficients', self.path)
             self.mo_coeff_beta = read_list_from_fchk('Beta MO coefficients', 'Orthonormal basis', self.path)
+            print(self.mo_coeff_alpha[0:10])
+            # now last 10
+            print(self.mo_coeff_alpha[-10:])
+            exit()
             self.mo_coeff_alpha = np.array(self.mo_coeff_alpha).reshape(self.nummo, self.numao).T
             self.mo_coeff_beta = np.array(self.mo_coeff_beta).reshape(self.nummo, self.numao).T
             self.mo_coeff = [self.mo_coeff_alpha, self.mo_coeff_beta]
@@ -727,6 +854,7 @@ class MeanField2:
         df2 = pd.DataFrame(data, dtype=np.float64)
         df2.to_excel('overlap_readfchk.xlsx', index=False)
         #exit()
+        self._processed = False
 
     def make_rdm1(self):
         """Computes density matrix."""
@@ -752,16 +880,18 @@ class MeanField2:
     def get_ovlp(self):
         if hasattr(self.mol, '_ovlp') and self.mol._ovlp is not None:
             return self.mol._ovlp
-        if hasattr(self, 'minao') and self.minao:
+        use_minao = getattr(self, 'minao', False)
+        if use_minao:
             print("Building overlap matrix for minimal basis...")
         else:
             print("Building overlap matrix...")
         from time import time
         start = time()
-        process_basis(self)
-        self._ovlp = build_ovlp(self)
+        # Use Overlapper to compute and cache the overlap
+        ovlp = Overlapper(self).get()
+        self._ovlp = ovlp
         print("Overlap matrix built in {:.2f} seconds.".format(time() - start))
-        return self._ovlp
+        return ovlp
 
 import pyscf.gto.basis.minao as minao_mod
 from pyscf import gto, scf
@@ -782,9 +912,9 @@ class MeanFieldMINAO():
         self.nelec = self.mol.nelec
         self.nelectron = self.nelec
         self.nalpha = self.mol.nalpha
-        self.nbeta = self.mol.nbeta
-        self.spin = self.mol.spin
-        self.charge = self.mol.charge
+        self.nbeta = self.mol.nalpha
+        self.spin = 0
+        self.charge = 0
 
         # 4) load the MINAO data into your SCF object
         self._load_minao()
@@ -801,6 +931,7 @@ class MeanFieldMINAO():
         self.minao = True
         self.nbas = len(self.mssh)
         self._ovlp = build_ovlp(self)
+        self._processed = False
 
     def atom_symbols(self):
         return self.mol.atomic_symbols

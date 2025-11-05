@@ -1,4 +1,14 @@
-from os import environ
+import os
+_env = os.environ
+# Only set defaults if the user/program hasn't already set them (don't overwrite explicit choices)
+_env.setdefault("NUMEXPR_NUM_THREADS", "1")
+_env.setdefault("OMP_NUM_THREADS", "1")
+_env.setdefault("MKL_NUM_THREADS", "1")
+_env.setdefault("OPENBLAS_NUM_THREADS", "1")
+# Allow OpenBLAS to not bind the main thread (helps some multi-threaded setups)
+_env.setdefault("OPENBLAS_MAIN_FREE", "1")
+_env.setdefault("GOTO_NUM_THREADS", "1")
+_env.setdefault("PYTHONBUFFERED", "1")
 from copy import deepcopy
 import numpy as np
 from time import time
@@ -1108,10 +1118,9 @@ class ESI:
 
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
-                 homerrefs=None, connectivity=None, geom=None, molinfo={},
+                 homerrefs=None, connectivity=None, geom=None, molinfo=None,
                  ncores=1, save=None, readpath='.', read=False,
-                 maxlen=12, minlen=6, rings_thres=0.3,
-                 ):
+                 maxlen=12, minlen=6, rings_thres=0.3):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
@@ -1139,13 +1148,18 @@ class ESI:
         self.read = read
         # For finding rings
         self.fragmap = {}
-        self.rings_thres = rings_thres
         self.maxlen = maxlen
         self.minlen = minlen
+        self.rings_thres = rings_thres
         self._printedrings = False
         self._connec = None
         self.done_connec = False
         self.filtrings = []
+        # Handle NOMCI and NOAV1245
+        if hasattr(self, 'nomci') and self.nomci:
+            self._mci = False
+        if hasattr(self, 'noav1245') and self.noav1245:
+            self._av1245 = False
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
@@ -1540,8 +1554,3 @@ class ESI:
                     av1245=self.av1245,
                     flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap,)
 
-
-environ["NUMEXPR_NUM_THREADS"] = "1"
-environ["OMP_NUM_THREADS"] = "1"
-environ["MKL_NUM_THREADS"] = "1"
-environ["PYTHONBUFFERED"] = "1"

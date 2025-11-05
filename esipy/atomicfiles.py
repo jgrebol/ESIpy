@@ -110,7 +110,7 @@ def read_aoms(path='.'):
 
 ########### WRITING THE INPUT FOR THE ESI-3D CODE FROM THE AOMS ###########
 
-def write_aoms(mol, mf, name, aom, ring=[], partition=None):
+def write_aoms(mol, mf, name, aom, ring=None, partition=None):
     """
         Writes the input for the ESI-3D code from the AOMs.
 
@@ -138,12 +138,20 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
     """
     from copy import deepcopy
 
+    # If partition is a list, process each partition value one at a time
+    if isinstance(partition, list):
+        for part in partition:
+            write_aoms(mol, mf, name, aom, ring, part)
+        return
+
     if isinstance(aom, str):
         aom = load_file(aom)
     if ring is None:
-        pass
+        ringcopy = []
     elif isinstance(ring[0], int):
-        ring = [ring]
+        ringcopy = [ring]
+    else:
+        ringcopy = deepcopy(ring)
 
     wf = wf_type(aom)
     if wf == "no":
@@ -172,7 +180,7 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
     ringcopy = deepcopy(ring)
 
     # Mark fragments in the order they are defined
-    if ring:
+    if ringcopy:
         for i, sublist in enumerate(ringcopy):
             for j, element in enumerate(sublist):
                 if isinstance(element, set):

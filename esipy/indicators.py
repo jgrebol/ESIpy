@@ -2,6 +2,13 @@ import numpy as np
 
 from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_distances, av1245_pairs
 
+# Try importing C implementation
+try:
+    from ._c_mci import has_c_module, compute_mci_restricted_mulliken, compute_mci_restricted_pruned, compute_mci_no_mulliken, compute_mci_no_pruned
+    _HAS_C_MCI = has_c_module()
+except Exception:
+    _HAS_C_MCI = False
+
 
 ########## Iring ###########
 
@@ -50,6 +57,31 @@ def compute_iring_no(arr, aom):
 
 ########### MCI ###########
 
+# New C-backed MCI wrappers
+
+def compute_mci_c(aom_for_ring, partition='mulliken'):
+    """
+    Compute MCI using the C implementation for restricted case (no natural orbitals).
+    aom_for_ring: list/array of n matrices (numpy arrays) already ordered according to ring connectivity
+    partition: 'mulliken' or others
+    """
+    if not _HAS_C_MCI:
+        raise RuntimeError('C MCI module not available')
+    return compute_mci_c_py(aom_for_ring, occ=None, partition=partition)
+
+
+def compute_mci_no_c(aom_for_ring, occ, partition='mulliken'):
+    """
+    Compute MCI using the C implementation for correlated case (with occ matrix).
+    aom_for_ring: list/array of n matrices (numpy arrays) already ordered according to ring connectivity
+    occ: numpy array m x m
+    partition: 'mulliken' or others
+    """
+    if not _HAS_C_MCI:
+        raise RuntimeError('C MCI module not available')
+    return compute_mci_c_py(aom_for_ring, occ=occ, partition=partition)
+
+
 def sequential_mci(arr, aom, partition):
     """
     Computes the MCI sequentially by computing the Iring without storing the permutations.
@@ -65,6 +97,18 @@ def sequential_mci(arr, aom, partition):
     :returns: MCI value for the given ring.
     :rtype: float
     """
+
+    # If C module is available and aom is a list/array of matrices, prepare aom_for_ring and call C implementation
+    if _HAS_C_MCI:
+        # aom may be a list where aom[i-1] corresponds to atom i -> build ordered list for ring arr
+        aom_for_ring = [aom[i - 1] for i in arr]
+        try:
+            if partition == 'mulliken' or partition == 'non-symmetric':
+                return compute_mci_restricted_mulliken(aom_for_ring)
+            else:
+                return compute_mci_restricted_pruned(aom_for_ring)
+        except Exception:
+            pass
 
     from math import factorial
     from itertools import permutations, islice
@@ -95,6 +139,18 @@ def sequential_mci_no(arr, aom, partition):
     :returns: MCI value for the given ring.
     :rtype: float
     """
+
+    if _HAS_C_MCI:
+        # aom is expected to be (aom_list, occ) for correlated case
+        aom_list, occ = aom
+        aom_for_ring = [aom_list[i - 1] for i in arr]
+        try:
+            if partition == 'mulliken' or partition == 'non-symmetric':
+                return compute_mci_no_mulliken(aom_for_ring, occ)
+            else:
+                return compute_mci_no_pruned(aom_for_ring, occ)
+        except Exception:
+            pass
 
     from math import factorial
     from itertools import permutations, islice

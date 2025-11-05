@@ -536,15 +536,16 @@ def iao(mf_orig, coeffs):
     nelectron:
         Total number of electrons (for closed-shell, we take nocc = nelec//2)
     """
-    from esipy.readfchk2 import build_ovlp, build_cross_ovlp, MeanFieldMINAO
+    from esipy.readfchk3 import process_basis, build_cross_ovlp, MeanFieldMINAO, Overlapper
     from pyscf.lo.orth import vec_lowdin
-    from pyscf.gto.mole import intor_cross
     mf_min = MeanFieldMINAO(mf_orig)
 
     # --- Step 1: Overlap matrices ---
-    S1 = build_ovlp(mf_orig)  # AO-AO overlap (square, nbas_orig×nbas_orig)
+    print(mf_orig._processed)
+    exit()
+    S1 = Overlapper(mf_orig).get()
+    S2 = Overlapper(mf_min).get()
     S12 = build_cross_ovlp(mf_orig, mf_min)  # AO-MINAO overlap (nbas_orig×nbas_min)
-    S2  = build_ovlp(mf_min)  # MINAO-MINAO overlap (square, nbas_min×nbas_min)
 
     # --- Step 2: Occupied space ---
     nocc = mf_orig.nelec // 2
@@ -575,4 +576,3 @@ def iao(mf_orig, coeffs):
     #IAOs = vec_lowdin(IAOs, S1)
 
     return IAOs
-

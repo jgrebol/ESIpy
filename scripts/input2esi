@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+from esipy.input import ESIInput
+from esipy.readfchk3 import readfchk
+from esipy import ESI
+import sys
+import os
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: input2esi <inputfile>")
+        sys.exit(1)
+    inputfile = sys.argv[1]
+    inp = ESIInput.from_file(inputfile)
+    if not inp.fchk_file:
+        print("No fchk file specified in input.")
+        sys.exit(1)
+    if not os.path.isfile(inp.fchk_file):
+        print(f"Error: The file '{inp.fchk_file}' does not exist.")
+        sys.exit(1)
+    mol, mf = readfchk(inp.fchk_file)
+    # Convert FLUREF and HOMAREF to dicts if needed
+    flurefs = None
+    if inp.fluref:
+        flurefs = {f"REF{i+1}": v for i, v in enumerate(inp.fluref)}
+    homarefs = None
+    if inp.homaref:
+        homarefs = {f"REF{i+1}": v for i, v in enumerate(inp.homaref)}
+    # Partition
+    partitions = inp.partition if inp.partition else ['meta_lowdin']
+    # MCI and AV1245
+    mci = not inp.nomci
+    av1245 = not inp.noav1245
+    # Save
+    save = inp.save
+    # Findrings
+    findrings = inp.findrings
+    # Minlen/Maxlen
+    minlen = inp.minlen if inp.minlen else 6
+    maxlen = inp.maxlen if inp.maxlen else 12
+    # Rings
+    rings = inp.rings if inp.rings else None
+    print('Parsed rings:', rings)
+    print('Parsed fragments:', inp.fragments)
+    if rings is None and inp.fragments:
+        rings = inp.fragments.copy()
+        print('Rings set to fragments:', rings)
+    # If fragments are present, replace matching atom indices in rings with sets
+    if rings and inp.fragments:
+        def replace_fragments(ring, fragments):
+            result = []
+            for atom in ring:
+                found = False
+                for frag in fragments:
+                    if atom in frag:
+                        result.append(frag)
+                        found = True
+                        break
+                if not found:
+                    result.append(atom)
+            return result
+        if isinstance(rings[0], list):
+            rings = [replace_fragments(ring, inp.fragments) for ring in rings]
+        else:
+            rings = replace_fragments(rings, inp.fragments)
+    # Construct ESI for each partition
+    for partition in partitions:
+        esi = ESI(mol=mol, mf=mf, rings=rings, partition=partition, flurefs=flurefs, homarefs=homarefs,
+                  mci=mci, av1245=av1245, save=save, minlen=minlen, maxlen=maxlen)
+        esi.print()
+        if save:
+            esi.writeaoms(save)
+if __name__ == "__main__":
+    main()

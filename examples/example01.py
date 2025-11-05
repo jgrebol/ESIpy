@@ -34,7 +34,7 @@ name = "example01"
 
 for part in ["m", "lowdin", "meta_lowdin", "nao", "iao"]:
     save = name + '_' + part
-    arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, saveaoms=save + '.aoms', savemolinfo=save + '.molinfo',
-                     name=name, mci=False, av1245=True)
+    arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, save=save,
+                     mci=True, av1245=True)
     arom.print()
     arom.writeaoms(name + '_' + part)
