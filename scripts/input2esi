@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from esipy.input import ESIInput
-from esipy.readfchk3 import readfchk
+from esipy.readfchk import readfchk
 from esipy import ESI
 import sys
 import os
