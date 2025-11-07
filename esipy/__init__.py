@@ -1155,7 +1155,6 @@ class ESI:
         self._connec = None
         self.done_connec = False
         self.filtrings = []
-        # Handle NOMCI and NOAV1245
         if hasattr(self, 'nomci') and self.nomci:
             self._mci = False
         if hasattr(self, 'noav1245') and self.noav1245:

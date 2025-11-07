@@ -1,36 +1,35 @@
-# Minimal C-backed MCI shim for esipy
-# Exposes: has_c_module(), compute_mci_restricted_mulliken(aom_for_ring),
-#          compute_mci_restricted_pruned(aom_for_ring), compute_mci_no_mulliken(aom_for_ring, occ),
-#          compute_mci_no_pruned(aom_for_ring, occ)
-
 import os
 import ctypes
 from ctypes import c_int, c_double, POINTER
 import numpy as np
 
-# Try to locate shared library in package directory
-_here = os.path.dirname(__file__)
-_LIB_PATH = None
-_cands = [os.path.join(_here, 'libmci.so'), os.path.join(_here, 'libc_mci.so'), os.path.join(_here, 'libmci.dylib')]
 _lib = None
-for p in _cands:
-    if os.path.exists(p):
-        try:
-            _lib = ctypes.CDLL(p)
-            _LIB_PATH = p
-            break
-        except Exception:
-            _lib = None
-# If not found in package, try to load by name (system path / cwd)
-if _lib is None:
-    try:
-        _lib = ctypes.CDLL('libmci.so')
-        _LIB_PATH = 'libmci.so'
-    except Exception:
-        _lib = None
+_LIB_PATH = None
 
-# Configure prototypes if library present
-if _lib is not None:
+# Try to import compiled extension (esipy/libmci.*)
+try:
+    import esipy.mci as libmci_ext  # type: ignore
+    _lib = libmci_ext
+    _LIB_PATH = getattr(libmci_ext, '__file__', None)
+except Exception:
+    _lib = None
+    _LIB_PATH = None
+
+# If not, try to find shared object in package dir
+if _lib is None:
+    here = os.path.dirname(__file__)
+    candidates = [os.path.join(here, 'libmci.so'), os.path.join(here, 'libmci.dylib'), os.path.join(here, 'libc_mci.so')]
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                _lib = ctypes.CDLL(p)
+                _LIB_PATH = p
+                break
+            except Exception:
+                _lib = None
+
+# 3) If loaded a ctypes CDLL, set the prototypes for the functions we expect
+if _lib is not None and isinstance(_lib, ctypes.CDLL):
     try:
         _lib.compute_mci_sym.restype = c_double
         _lib.compute_mci_sym.argtypes = [POINTER(c_int), c_int, POINTER(c_double), c_int, c_int]
@@ -44,20 +43,16 @@ if _lib is not None:
         _lib.compute_mci_natorbs_nosym.restype = c_double
         _lib.compute_mci_natorbs_nosym.argtypes = [POINTER(c_int), c_int, POINTER(c_double), c_int, c_int, POINTER(c_double)]
     except Exception:
-        # If anything goes wrong, don't crash import; mark lib as unavailable
+        # If prototypes fail to set, discard the library reference to force Python fallback
         _lib = None
 
 
 def has_c_module():
-    """Return True if the C shared library was found and loaded."""
     return _lib is not None
 
 
+# Stack helper for C implementation
 def _stack_aoms(aom_list):
-    """Stack a list of (m,m) numpy arrays into a 1D column-major buffer expected by C.
-    Each matrix is stored in column-major order consecutively: mat0, mat1, ...
-    Returns a contiguous 1D np.float64 array.
-    """
     if len(aom_list) == 0:
         raise ValueError('aom_list must be non-empty')
     m = int(np.asarray(aom_list[0]).shape[0])
@@ -70,29 +65,9 @@ def _stack_aoms(aom_list):
         stacked[i * m * m : (i + 1) * m * m] = Af.ravel(order='F')
     return stacked
 
-
-# Public API wrappers expected by indicators.py
-
-def compute_mci_restricted_mulliken(aom_for_ring):
-    """Compute MCI for restricted (no occ) Mulliken-like partition using the C backend.
-    aom_for_ring: list/sequence of n numpy arrays (m x m) already ordered for the ring.
-    Returns float.
-    """
-    if not has_c_module():
-        raise RuntimeError('C MCI module not available')
-    n = len(aom_for_ring)
-    if n < 2:
-        return 0.0
-    m = int(np.asarray(aom_for_ring[0]).shape[0])
-    ring = (c_int * n)(*range(n))  # 0..n-1 (aom_for_ring is already ordered)
-    stacked = _stack_aoms(aom_for_ring)
-    stacked_ptr = stacked.ctypes.data_as(POINTER(c_double))
-    return float(_lib.compute_mci_sym(ring, c_int(n), stacked_ptr, c_int(n), c_int(m)))
-
-
-def compute_mci_restricted_pruned(aom_for_ring):
-    """Non-symmetric/pruned variant for restricted case."""
-    if not has_c_module():
+# MCI for symmetric AOMs (Mulliken and QTAIM)
+def compute_mci_nosym(aom_for_ring):
+    if _lib is None:
         raise RuntimeError('C MCI module not available')
     n = len(aom_for_ring)
     if n < 2:
@@ -101,12 +76,17 @@ def compute_mci_restricted_pruned(aom_for_ring):
     ring = (c_int * n)(*range(n))
     stacked = _stack_aoms(aom_for_ring)
     stacked_ptr = stacked.ctypes.data_as(POINTER(c_double))
-    return float(_lib.compute_mci_nosym(ring, c_int(n), stacked_ptr, c_int(n), c_int(m)))
+    if isinstance(_lib, ctypes.CDLL):
+        # call the non-symmetric C symbol
+        return float(_lib.compute_mci_nosym(ring, c_int(n), stacked_ptr, c_int(n), c_int(m)))
+    else:
+        # if imported as Python extension that exposes C-callable functions
+        return float(_lib.compute_mci_sym(ring, n, stacked, n, m))
 
 
-def compute_mci_no_mulliken(aom_for_ring, occ):
-    """Compute MCI for correlated (with occ) Mulliken variant."""
-    if not has_c_module():
+# MCI for symmetric AOMs
+def compute_mci_sym(aom_for_ring):
+    if _lib is None:
         raise RuntimeError('C MCI module not available')
     n = len(aom_for_ring)
     if n < 2:
@@ -115,14 +95,15 @@ def compute_mci_no_mulliken(aom_for_ring, occ):
     ring = (c_int * n)(*range(n))
     stacked = _stack_aoms(aom_for_ring)
     stacked_ptr = stacked.ctypes.data_as(POINTER(c_double))
-    occ_f = np.asfortranarray(np.asarray(occ, dtype=np.float64))
-    occ_ptr = occ_f.ravel(order='F').ctypes.data_as(POINTER(c_double))
-    return float(_lib.compute_mci_natorbs_sym(ring, c_int(n), stacked_ptr, c_int(n), c_int(m), occ_ptr))
+    if isinstance(_lib, ctypes.CDLL):
+        return float(_lib.compute_mci_sym(ring, c_int(n), stacked_ptr, c_int(n), c_int(m)))
+    else:
+        return float(_lib.compute_mci_nosym(ring, n, stacked, n, m))
 
 
-def compute_mci_no_pruned(aom_for_ring, occ):
-    """Compute MCI for correlated (with occ) pruned/non-symmetric variant."""
-    if not has_c_module():
+# MCI with natural orbitals for symmetric AOMs (Mulliken and QTAIM)
+def compute_mci_natorbs_sym(aom_for_ring, occ):
+    if _lib is None:
         raise RuntimeError('C MCI module not available')
     n = len(aom_for_ring)
     if n < 2:
@@ -133,20 +114,37 @@ def compute_mci_no_pruned(aom_for_ring, occ):
     stacked_ptr = stacked.ctypes.data_as(POINTER(c_double))
     occ_f = np.asfortranarray(np.asarray(occ, dtype=np.float64))
     occ_ptr = occ_f.ravel(order='F').ctypes.data_as(POINTER(c_double))
-    return float(_lib.compute_mci_natorbs_nosym(ring, c_int(n), stacked_ptr, c_int(n), c_int(m), occ_ptr))
+    if isinstance(_lib, ctypes.CDLL):
+        return float(_lib.compute_mci_natorbs_sym(ring, c_int(n), stacked_ptr, c_int(n), c_int(m), occ_ptr))
+    else:
+        return float(_lib.compute_mci_natorbs_sym(ring, n, stacked, n, m, occ))
 
-# Minimal convenience aliases matching previous naming used elsewhere (optional)
-compute_mci_sym = compute_mci_restricted_mulliken
-compute_mci_nosym = compute_mci_restricted_pruned
-compute_mci_natorbs_sym = compute_mci_no_mulliken
-compute_mci_natorbs_nosym = compute_mci_no_pruned
 
-# Export the raw CDLL handle and print a one-line status message on import
-_LIB_HANDLE = _lib
-if _LIB_HANDLE is None:
-    print('C MCI library not found: using Python implementations for MCI')
-else:
-    try:
-        print(f'C MCI library loaded from: {_LIB_PATH}')
-    except Exception:
-        print('C MCI library loaded')
+# MCI with natural orbitals for non-symmetric AOMs
+def compute_mci_natorbs_nosym(aom_for_ring, occ):
+    if _lib is None:
+        raise RuntimeError('C MCI module not available')
+    n = len(aom_for_ring)
+    if n < 2:
+        return 0.0
+    m = int(np.asarray(aom_for_ring[0]).shape[0])
+    ring = (c_int * n)(*range(n))
+    stacked = _stack_aoms(aom_for_ring)
+    stacked_ptr = stacked.ctypes.data_as(POINTER(c_double))
+    occ_f = np.asfortranarray(np.asarray(occ, dtype=np.float64))
+    occ_ptr = occ_f.ravel(order='F').ctypes.data_as(POINTER(c_double))
+    if isinstance(_lib, ctypes.CDLL):
+        return float(_lib.compute_mci_natorbs_nosym(ring, c_int(n), stacked_ptr, c_int(n), c_int(m), occ_ptr))
+    else:
+        return float(_lib.compute_mci_natorbs_nosym(ring, n, stacked, n, m, occ))
+
+
+# Export libhandle info
+#_LIB_HANDLE = _lib
+#if _LIB_HANDLE is None:
+#    print('C MCI library not found: using Python implementations for MCI')
+#else:
+#    try:
+#        print(f'C MCI library loaded from: {_LIB_PATH}')
+#    except Exception:
+#        print('C MCI library loaded')

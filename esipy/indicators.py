@@ -4,10 +4,26 @@ from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_d
 
 # Try importing C implementation
 try:
-    from ._c_mci import has_c_module, compute_mci_restricted_mulliken, compute_mci_restricted_pruned, compute_mci_no_mulliken, compute_mci_no_pruned
+    from ._c_mci import has_c_module, compute_mci_sym, compute_mci_nosym, compute_mci_natorbs_sym, compute_mci_natorbs_nosym
     _HAS_C_MCI = has_c_module()
 except Exception:
     _HAS_C_MCI = False
+
+
+# Small helper to call a function while temporarily setting OMP_NUM_THREADS (minimal helper)
+def _call_with_omp(ncores, fn, *args, **kwargs):
+    """Temporarily set OMP_NUM_THREADS to ncores if not already set, call fn and restore previous value."""
+    import os
+    prev = os.environ.get("OMP_NUM_THREADS")
+    if prev is None:
+        os.environ["OMP_NUM_THREADS"] = str(ncores)
+    try:
+        return fn(*args, **kwargs)
+    finally:
+        if prev is None:
+            os.environ.pop("OMP_NUM_THREADS", None)
+        else:
+            os.environ["OMP_NUM_THREADS"] = prev
 
 
 ########## Iring ###########
@@ -59,29 +75,6 @@ def compute_iring_no(arr, aom):
 
 # New C-backed MCI wrappers
 
-def compute_mci_c(aom_for_ring, partition='mulliken'):
-    """
-    Compute MCI using the C implementation for restricted case (no natural orbitals).
-    aom_for_ring: list/array of n matrices (numpy arrays) already ordered according to ring connectivity
-    partition: 'mulliken' or others
-    """
-    if not _HAS_C_MCI:
-        raise RuntimeError('C MCI module not available')
-    return compute_mci_c_py(aom_for_ring, occ=None, partition=partition)
-
-
-def compute_mci_no_c(aom_for_ring, occ, partition='mulliken'):
-    """
-    Compute MCI using the C implementation for correlated case (with occ matrix).
-    aom_for_ring: list/array of n matrices (numpy arrays) already ordered according to ring connectivity
-    occ: numpy array m x m
-    partition: 'mulliken' or others
-    """
-    if not _HAS_C_MCI:
-        raise RuntimeError('C MCI module not available')
-    return compute_mci_c_py(aom_for_ring, occ=occ, partition=partition)
-
-
 def sequential_mci(arr, aom, partition):
     """
     Computes the MCI sequentially by computing the Iring without storing the permutations.
@@ -104,12 +97,13 @@ def sequential_mci(arr, aom, partition):
         aom_for_ring = [aom[i - 1] for i in arr]
         try:
             if partition == 'mulliken' or partition == 'non-symmetric':
-                return compute_mci_restricted_mulliken(aom_for_ring)
+                return compute_mci_nosym(aom_for_ring)
             else:
-                return compute_mci_restricted_pruned(aom_for_ring)
+                return compute_mci_sym(aom_for_ring)
         except Exception:
             pass
 
+    # If does not find C module, fallback to pure Python
     from math import factorial
     from itertools import permutations, islice
 
@@ -146,12 +140,13 @@ def sequential_mci_no(arr, aom, partition):
         aom_for_ring = [aom_list[i - 1] for i in arr]
         try:
             if partition == 'mulliken' or partition == 'non-symmetric':
-                return compute_mci_no_mulliken(aom_for_ring, occ)
+                return compute_mci_natorbs_sym(aom_for_ring, occ)
             else:
-                return compute_mci_no_pruned(aom_for_ring, occ)
+                return compute_mci_natorbs_nosym(aom_for_ring, occ)
         except Exception:
             pass
 
+    # If does not find C module, fallback to pure Python
     from math import factorial
     from itertools import permutations, islice
 
@@ -182,6 +177,18 @@ def multiprocessing_mci(arr, aom, ncores, partition):
        :returns: MCI value for the given ring.
        :rtype: float
     """
+
+    # If a C implementation is available, prefer it
+    # We set OMP_NUM_THREADS to ncores only if the user hasn't already set it.
+    if _HAS_C_MCI:
+        aom_for_ring = [aom[i - 1] for i in arr]
+        try:
+            if partition == 'mulliken' or partition == 'non-symmetric':
+                return _call_with_omp(ncores, compute_mci_nosym, aom_for_ring)
+            else:
+                return _call_with_omp(ncores, compute_mci_sym, aom_for_ring)
+        except Exception:
+            pass
 
     from multiprocessing import Pool
     from math import factorial
@@ -218,6 +225,18 @@ def multiprocessing_mci_no(arr, aom, ncores, partition):
        :returns: MCI value for the given ring.
        :rtype: float
     """
+
+    # If a C implementation is available, prefer it
+    if _HAS_C_MCI:
+        aom_list, occ = aom
+        aom_for_ring = [aom_list[i - 1] for i in arr]
+        try:
+            if partition == 'mulliken' or partition == 'non-symmetric':
+                return _call_with_omp(ncores, compute_mci_natorbs_sym, aom_for_ring, occ)
+            else:
+                return _call_with_omp(ncores, compute_mci_natorbs_nosym, aom_for_ring, occ)
+        except Exception:
+            pass
 
     from multiprocessing import Pool
     from math import factorial

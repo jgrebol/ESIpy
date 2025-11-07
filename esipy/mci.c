@@ -1,4 +1,4 @@
-/*
+/**
  mci.c
 
  Four functions exported (C API):
@@ -27,6 +27,7 @@
   - For the "nosym" variants we apply the path[1] < path[-1] filter at leaf nodes to remove reversed permutations.
   - For regular Iring we apply the factor 2^(n-1) to the trace (matching your original Python).
 */
+
 
 #include <stdlib.h>
 #include <string.h>

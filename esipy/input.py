@@ -15,7 +15,7 @@ class ESIInput:
         self.findrings = False
         self.minlen = None
         self.maxlen = None
-        self.nomci = False
+        self.nomci = True
         self.noav1245 = False
         self.save = False
 
@@ -72,8 +72,8 @@ class ESIInput:
                 i += 1
                 obj.maxlen = int(lines[i])
             elif line.startswith('$NOMCI'):
-                obj.nomci = True
-            elif line.startswith('$NOAV1245'):
+                obj.nomci = False
+            elif line.startswith('$AV1245'):
                 obj.noav1245 = True
             elif line.startswith('$SAVE'):
                 obj.save = True
@@ -100,4 +100,4 @@ class ESIInput:
     def __repr__(self):
         return (f"ESIInput(fchk_file={self.fchk_file}, rings={self.rings}, partition={self.partition}, fragments={self.fragments}, "
                 f"fluref={self.fluref}, homaref={self.homaref}, findrings={self.findrings}, "
-                f"minlen={self.minlen}, maxlen={self.maxlen}, nomci={self.nomci}, noav1245={self.noav1245}, save={self.save})")
+                f"minlen={self.minlen}, maxlen={self.maxlen}, mci={self.mci}, av1245={self.av1245}, save={self.save})")

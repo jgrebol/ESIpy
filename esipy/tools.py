@@ -520,7 +520,7 @@ def find_node_distances(connec):
 
    return distances
 
-def iao(mf_orig, coeffs):
+def iao(mf_orig, mf_min, coeffs=None):
     """
     Build IAOs using a minimal basis (mf_min) and the original AO basis (mf_orig).
 
@@ -536,19 +536,17 @@ def iao(mf_orig, coeffs):
     nelectron:
         Total number of electrons (for closed-shell, we take nocc = nelec//2)
     """
-    from esipy.readfchk3 import process_basis, build_cross_ovlp, MeanFieldMINAO, Overlapper
-    from pyscf.lo.orth import vec_lowdin
-    mf_min = MeanFieldMINAO(mf_orig)
 
     # --- Step 1: Overlap matrices ---
-    print(mf_orig._processed)
-    exit()
+    from esipy.readfchk import Overlapper, build_cross_ovlp, process_basis
     S1 = Overlapper(mf_orig).get()
     S2 = Overlapper(mf_min).get()
-    S12 = build_cross_ovlp(mf_orig, mf_min)  # AO-MINAO overlap (nbas_orig×nbas_min)
+    S12 = build_cross_ovlp(mf_orig, mf_min)
 
     # --- Step 2: Occupied space ---
     nocc = mf_orig.nelec // 2
+    if coeffs is None:
+        coeffs = mf_min.mo_coeff  # (nbas_orig × nmo)
     C_occ = coeffs[:, :nocc]  # (nbas_orig × nocc)
 
     # --- Step 3: Build projectors ---
@@ -556,7 +554,7 @@ def iao(mf_orig, coeffs):
     Ctild_min = np.linalg.solve(S2, S21 @ C_occ)  # (nmin × nocc)
 
     try:
-        P12 = np.linalg.solve(S1, S12)  # (nbas_orig × nbas_min)
+        P12 = np.linalg.solve(S1, S12)  # (nbas_orig × nbasis_min)
         Ctild_AO = np.linalg.solve(S1, S12 @ Ctild_min)
     except np.linalg.LinAlgError:
         # Fallback to canonical orthonormalization
@@ -565,6 +563,7 @@ def iao(mf_orig, coeffs):
         Ctild_AO = P12 @ Ctild_min
 
     # --- Step 4: Orthonormalize projected orbitals ---
+    from pyscf.lo.orth import vec_lowdin
     Ctild = vec_lowdin(Ctild_AO, S1)
 
     # --- Step 5: PySCF-style IAO projector formula ---
@@ -573,6 +572,6 @@ def iao(mf_orig, coeffs):
     IAOs = P12 + 2 * (P_occ @ P_proj @ P12) - P_occ @ P12 - P_proj @ P12
 
     # --- Step 6: Orthonormalize IAOs ---
-    #IAOs = vec_lowdin(IAOs, S1)
+    IAOs = vec_lowdin(IAOs, S1)
 
     return IAOs
