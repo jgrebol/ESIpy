@@ -1273,12 +1273,18 @@ class ESI:
             if not self._printedrings:
                 print(" | Finding rings...")
             startrings = time()
+            if (self.partition == "mulliken" or self.partition == "lowdin") and self.read:
+                print(f" | WARNING: Could not find rings for {self.partition} partition. Mulliken and Lowdin bond orders cannot be used to build the connectivity matrix.")
+                print(f" | Skipping ring analysis for {self.partition} partition.")
+                self._rings = None
             if self.connec:
                 graph = self.connec
             else:
                 graph = self.molinfo.get("connec")
             if not graph:
-                raise ValueError(" | Could not find the connectivity matrix. ")
+                print(f" | WARNING: Could not find the connectivity matrix for {self.partition} partition.")
+                print(f" | Skipping ring analysis for {self.partition} partition.")
+                self._rings = None
 
             self._rings = find_rings(graph, self.minlen, self.maxlen)
             endrings = time()
@@ -1286,7 +1292,7 @@ class ESI:
             if not self._rings:
                 raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
             elif not self._printedrings:
-                print(f" | Found {len(self._rings)} rings in {endrings-startrings} seconds:")
+                print(f" | Found {len(self._rings)} rings in {endrings-startrings:.4f} seconds:")
                 print(" | -------------------------------")
                 print(" | rings = [")
                 for i in self._rings:
@@ -1330,15 +1336,19 @@ class ESI:
             return self._molinfo
         if not self._molinfo:
             if self.partition in ['mulliken', 'lowdin']:
-                print(" | Building meta-Lowdin AOMs to compute connectivity.")
+                print(" | Building NAO AOMs to compute connectivity.")
                 if self.mol is None or self.mf is None:
-                    raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build meta-Lowdin AOMs.")
-                mat = make_aoms(self.mol, self.mf, partition="meta_lowdin", save=None, myhf=self.myhf)
+                    raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs.")
+                mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf)
             else:
                 mat = self.aom
             graph = build_connectivity(mat=mat, threshold=self.rings_thres)
-            self._molinfo = mol_info(self.mol, self.mf, self.savemolinfo, self._partition, graph)
-
+            if self.save:
+                os.makedirs(self.save, exist_ok=True)
+                molinfo_path = os.path.join(self.save, os.path.basename(self.savemolinfo))
+            else:
+                molinfo_path = self.savemolinfo
+            self._molinfo = mol_info(self.mol, self.mf, molinfo_path, self._partition, graph)
         return self._molinfo
 
     @property
@@ -1359,21 +1369,25 @@ class ESI:
             self._aom_loaded = True
             aom = self.readaoms()
             if self.save:
-                import os
-                save_file(aom, os.path.join(self.readpath, self.saveaoms))
-                save_file(read_molinfo(self.readpath), os.path.join(self.readpath, self.savemolinfo))
-                print(f" | Saved the AOMs in the {self.saveaoms} file")
-                print(f" | Saved the molinfo in the {self.savemolinfo} file")
-            return aom
+                # save_file will create subdirectory based on molecule name (from self.save)
+                # Files will be saved as: moleculename/moleculename_partition.aoms
+                os.makedirs(self.save, exist_ok=True)
+                save_file(aom, os.path.join(self.save, os.path.basename(self.saveaoms)))
+                save_file(self.molinfo, os.path.join(self.save, os.path.basename(self.savemolinfo)))
+                print(f" | Saved the AOMs in {self.save}/{os.path.basename(self.saveaoms)}")
+                print(f" | Saved the molinfo in {self.save}/{os.path.basename(self.savemolinfo)}")
         if self._aom is None:
             if isinstance(self.partition, list):
                 raise ValueError(
                     " | Only one partition at a time. Partition should be a string, not a list.\n | Please consider looping through the partitions before calling the function")
             if self.mol and self.mf and self.partition:
                 self._aom_loaded = True
-                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=self.saveaoms, myhf=self.myhf)
+                # Don't save in make_aoms, we'll save it ourselves in the subdirectory
+                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf)
                 if self.saveaoms:
-                    print(f" | Saved the AOMs in the {self.saveaoms} file")
+                    os.makedirs(self.save, exist_ok=True)
+                    save_file(self._aom, os.path.join(self.save, os.path.basename(self.saveaoms)))
+                    print(f" | Saved the AOMs in {self.save}/{os.path.basename(self.saveaoms)}")
             else:
                 raise ValueError(" | Missing variables 'mol', 'mf', or 'partition'")
         return self._aom
@@ -1411,10 +1425,10 @@ class ESI:
                 return self._connec
 
             if self.partition in ['mulliken', 'lowdin']:
-                print(" | Building meta-Lowdin AOMs to compute connectivity.")
+                print(" | Building NAO AOMs to compute connectivity.")
                 if self.mol is None or self.mf is None:
-                    raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build meta-Lowdin AOMs.")
-                mat = make_aoms(self.mol, self.mf, partition="meta_lowdin", save=None, myhf=self.myhf)
+                    raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs.")
+                mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf)
             else:
                 mat = self.aom
             self._connec = build_connectivity(mat=mat, threshold=self.rings_thres)
@@ -1496,7 +1510,8 @@ class ESI:
                     f" | Missing required attribute '{attr}'. Please define it before calling ESI.writeaoms")
 
         write_aoms(self.mol, self.mf, file, self.aom, self.rings, self.partition)
-        print(f" | Written the AOMs in {self.readpath}/{file}_{self.partition}.aoms")
+        # file may already include subdirectory prefix
+        print(f" | Written the AOMs in {file}_{self.partition}_atomicfiles/")
 
     def print(self):
         """

@@ -35,24 +35,45 @@ def read_symmetry(path):
             return False
 
 def read_contract_coeff(path):
-    l = []
+    # Robustly read the 'Contraction coefficients' block.
+    # The header line commonly includes the number of coefficients; collect exactly that many floats
     with open(path, 'r') as f:
-        found = False
-        for line in f:
-            if found:
-                break
-            if line.startswith('Contraction coefficients'):
-                s = int(line.split()[-1])
-                found = True
-                if found:
-                    for num_str in line.split():
-                        num = float(num_str)
-                        if len(l) < s:
-                            l.append(num)
-                        else:
-                            break
-    return l
+        lines = f.readlines()
 
+    for i, line in enumerate(lines):
+        if line.startswith('Contraction coefficients'):
+            parts = line.split()
+            # Try to parse count from last token
+            try:
+                count = int(parts[-1])
+            except Exception:
+                count = None
+
+            nums = []
+            # Collect numeric tokens from the remainder of the header line (excluding non-numeric words)
+            for tok in parts:
+                try:
+                    nums.append(float(tok))
+                except Exception:
+                    continue
+
+            # Continue to next lines until we have 'count' numbers (if known) or until a blank line
+            j = i + 1
+            while (count is None or len(nums) < count) and j < len(lines):
+                if lines[j].strip() == '':
+                    # stop at blank line (safety)
+                    break
+                for tok in lines[j].split():
+                    try:
+                        nums.append(float(tok))
+                    except Exception:
+                        pass
+                j += 1
+
+            if count is not None:
+                return nums[:count]
+            return nums
+    return []
 
 def read_list_from_fchk(start, end, path):
     l = []
@@ -433,8 +454,9 @@ class Mole2:
 
         with open(path, 'r') as file:
             if 'P(S=P)' in file.read():
-                self.c1 = read_list_from_fchk('Contraction coefficients', 'P(S=P) Contraction coefficients', self.path)
-                self.c2 = read_list_from_fchk('P(S=P) Contraction coefficients', 'Coordinates of each shell', self.path)
+                # Ensure c1/c2 are flat lists of floats (no nested lists)
+                self.c1 = [float(x) for x in read_list_from_fchk('Contraction coefficients', 'P(S=P) Contraction coefficients', self.path)]
+                self.c2 = [float(x) for x in read_list_from_fchk('P(S=P) Contraction coefficients', 'Coordinates of each shell', self.path)]
                 c1s, c2s = [], []
                 for c in range(len(self.c1)):
                     c1s.append((2*self.expsh[c]/np.pi)**(0.75) * self.c1[c])
@@ -443,7 +465,7 @@ class Mole2:
                 #self.c2 = c2s
 
             else:
-                self.c1 = read_list_from_fchk('Contraction coefficients', 'Coordinates of each shell', self.path)
+                self.c1 = [float(x) for x in read_list_from_fchk('Contraction coefficients', 'Coordinates of each shell', self.path)]
                 c1s = []
                 for c in range(len(self.c1)):
                     c1s.append((2*self.expsh[c]/np.pi)**(0.75) * self.c1[c])
@@ -697,10 +719,11 @@ class MeanField2:
 
         with open(path, 'r') as file:
             if 'P(S=P)' in file.read():
-                self.c1 = read_list_from_fchk('Contraction coefficients', 'P(S=P) Contraction coefficients', self.path)
-                self.c2 = read_list_from_fchk('P(S=P) Contraction coefficients', 'Coordinates of each shell', self.path)
+                # Ensure flat float lists for contraction coefficients
+                self.c1 = [float(x) for x in read_list_from_fchk('Contraction coefficients', 'P(S=P) Contraction coefficients', self.path)]
+                self.c2 = [float(x) for x in read_list_from_fchk('P(S=P) Contraction coefficients', 'Coordinates of each shell', self.path)]
             else:
-                self.c1 = read_list_from_fchk('Contraction coefficients', 'Coordinates of each shell', self.path)
+                self.c1 = [float(x) for x in read_list_from_fchk('Contraction coefficients', 'Coordinates of each shell', self.path)]
                 self.c2 = None
 
         if wf == 'rest':
@@ -862,16 +885,22 @@ class MeanFieldMINAO():
                     coeffs = coeff_block[:, j].flatten()
                     # Always include all primitives for each contraction
                     sel_exps = exps.copy()
-                    sel_coeffs = coeffs.copy()
+                    # Normalize primitive coefficients and contracted AO normalization
+                    from pyscf.gto.mole import gto_norm, _nomalize_contracted_ao
+                    cs = np.array(coeffs, dtype=float).reshape(nprim, 1)
+                    try:
+                        cs = cs * gto_norm(l, sel_exps).reshape(-1, 1)
+                        cs = _nomalize_contracted_ao(l, sel_exps, cs)
+                        sel_coeffs = cs.flatten(order='C')
+                    except Exception:
+                        sel_coeffs = coeffs.copy()
 
-                    # Use 1-based atom indices to match FCHK/MeanField2 convention
-                    #to check
                     iatsh.append(int(ia) + 1)
                     mssh.append(int(l))
                     mnsh.append(int(len(sel_exps)))
                     nctr.append(1)
                     expsh.extend(sel_exps.tolist())
-                    c1.extend(sel_coeffs.tolist())
+                    c1.extend(np.asarray(sel_coeffs, dtype=float).flatten().tolist())
 
         # Store using the same types/conventions as the FCHK reader
         self.iatsh = np.array(iatsh, dtype=int).tolist()
@@ -930,28 +959,36 @@ def process_basis(mf):
     if iulim[-1] == 0:
         iulim[-1] = nbasis
 
-    # expp and coefp arrays
-    expp, coefp = [], []
+    # Build expp and coefp efficiently using local references
+    expsh = mf.expsh
+    c1 = mf.c1
+    c2 = getattr(mf, 'c2', None)
+
+    expp_list = []
+    coefp_list = []
     jcount = 0
-    for shell_type, nprim in zip(mf.mssh, mf.mnsh):
+    for shell_type, nprim in zip(mssh, mnsh):
         if shell_type == -1:
             for _ in range(nprim):
-                expp.extend([mf.expsh[jcount]] * 4)
-                coefp.append(mf.c1[jcount])  # S
-                coefp.extend([mf.c2[jcount]] * 3)  # P
+                expp_list.extend([expsh[jcount]] * 4)
+                coefp_list.append(c1[jcount])  # S
+                coefp_list.extend([c2[jcount]] * 3)  # P
                 jcount += 1
         else:
-            kk = mult(abs(shell_type))
+            kk = mult_map[abs(shell_type)]
             for _ in range(nprim):
-                expp.extend([mf.expsh[jcount]] * kk)
-                coefp.extend([mf.c1[jcount]] * kk)
+                expp_list.extend(expsh[jcount] * kk)
+                coefp_list.extend([c1[jcount]] * kk)
                 jcount += 1
 
-    expp = np.array(expp)
-    coefp = np.array(coefp)
+    expp = np.array(expp_list)
+    coefp = np.array(coefp_list)
+    print(len(coefp))
+    exit()
 
-    # NLM and normalization
+    # NLM and normalization (unchanged math)
     nlm, iptoat = get_nlm(mf)
+    # NLM and normalization
     nn, ll, mm = nlm[:, 0], nlm[:, 1], nlm[:, 2]
     fnn = factorial(nn) / factorial(2 * nn)
     fll = factorial(ll) / factorial(2 * ll)
@@ -1413,5 +1450,4 @@ def prim_orb_mapping(mf):
         nbasis += mult(mssh[i])
 
     return coefpb, iptob_cartesian
-
 

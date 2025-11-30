@@ -1,6 +1,6 @@
 import numpy as np
 from pyscf.lo import nao
-from pyscf.lo.orth import lowdin, restore_ao_character
+from pyscf.lo.orth import lowdin, orth_ao
 
 from esipy.tools import save_file, format_partition, get_natorbs, build_eta
 
@@ -26,8 +26,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
     partition = format_partition(partition)
     # UNRESTRICTED
-    if (
-            mf.__class__.__name__ == "UHF" or mf.__class__.__name__ == "UKS" or mf.__class__.__name__ == "SymAdaptedUHF" or mf.__class__.__name__ == "SymAdaptedUKS"):
+    if mf.__class__.__name__ in ("UHF", "UKS", "SymAdaptedUHF", "SymAdaptedUKS"):
         # Getting specific information
         S = mf.get_ovlp()
         nocc_alpha = mf.mo_occ[0].astype(int)
@@ -37,14 +36,17 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
         # Building the Atomic Overlap Matrices
 
-        aom_alpha = []
-        aom_beta = []
-
-        if partition == "lowdin" or partition == "meta_lowdin" or partition == "nao":
+        aom_alpha, aom_beta = [], []
+        if partition in ("lowdin", "meta_lowdin", "nao"):
             if partition == "lowdin":
                 U_inv = lowdin(S)
             elif partition == "meta_lowdin":
-                pre_orth_ao = restore_ao_character(mol, "ANO")
+                if hasattr(mol, '_read_fchk'):
+                    from esipy.tools import restore_ao_character
+                    pre_orth_ao = restore_ao_character(mol, "ANO")
+                else:
+                    from pyscf.lo.orth import restore_ao_character
+                    pre_orth_ao = restore_ao_character(mol, "ANO")
                 w = np.ones(pre_orth_ao.shape[0])
                 U_inv = nao._nao_sub(mol, w, pre_orth_ao, S)
             elif partition == "nao":
@@ -52,12 +54,11 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             U = np.linalg.inv(U_inv)
 
             eta = build_eta(mol)
-
             for i in range(mol.natm):
-                SCR_alpha = np.linalg.multi_dot((coeff_alpha.T, U.T, eta[i]))
-                SCR_beta = np.linalg.multi_dot((coeff_beta.T, U.T, eta[i]))
-                aom_alpha.append(np.dot(SCR_alpha, SCR_alpha.T))
-                aom_beta.append(np.dot(SCR_beta, SCR_beta.T))
+                SCR_a = coeff_alpha.T @ U.T @ eta[i]
+                SCR_b = coeff_beta.T @ U.T @ eta[i]
+                aom_alpha.append(SCR_a @ SCR_a.T)
+                aom_beta.append(SCR_b @ SCR_b.T)
 
         # Special case IAO
         elif partition == "iao":
@@ -110,8 +111,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
     # RESTRICTED
 
-    elif (
-            mf.__class__.__name__ == "RHF" or mf.__class__.__name__ == "RKS" or mf.__class__.__name__ == "SymAdaptedRHF" or mf.__class__.__name__ == "SymAdaptedRKS"):
+    elif mf.__class__.__name__ in ("RHF", "RKS", "SymAdaptedRHF", "SymAdaptedRKS"):
         # Getting specific information
         S = mf.get_ovlp()
         coeff = mf.mo_coeff[:, mf.mo_occ > 0]
@@ -119,23 +119,26 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         # Building the Atomic Overlap Matrices
 
         aom = []
-
-        if partition == "lowdin" or partition == "meta_lowdin" or partition == "nao":
+        if partition in ("lowdin", "meta_lowdin", "nao"):
             if partition == "lowdin":
                 U_inv = lowdin(S)
             elif partition == "meta_lowdin":
+                from pyscf.lo.orth import restore_ao_character
                 pre_orth_ao = restore_ao_character(mol, "ANO")
-                w = np.ones(pre_orth_ao.shape[0])
+                if hasattr(mol, '_read_fchk'):
+                    from esipy.tools import permute_aos
+                w = np.ones(pre_orth_ao.shape[1])
                 U_inv = nao._nao_sub(mol, w, pre_orth_ao, S)
             elif partition == "nao":
                 U_inv = nao.nao(mol, mf, S)
+
             U = np.linalg.inv(U_inv)
 
             eta = build_eta(mol)
 
             for i in range(mol.natm):
-                SCR = np.linalg.multi_dot((coeff.T, U.T, eta[i]))
-                aom.append(np.dot(SCR, SCR.T))
+                SCR = coeff.T @ U.T @ eta[i]
+                aom.append(SCR @ SCR.T)
 
         # Special case IAO
         elif partition == "iao":
@@ -184,12 +187,17 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             occ, coeff = get_natorbs(mf, S)
 
         aom = []
-        if partition == "lowdin" or partition == "meta_lowdin" or partition == "nao":
+        if partition in ("lowdin", "meta_lowdin", "nao"):
             if partition == "lowdin":
                 U_inv = lowdin(S)
             elif partition == "meta_lowdin":
-                # Borrowed from PySCF's meta-Lowdin routine
-                pre_orth_ao = restore_ao_character(mol, "ANO")
+                # For FCHK-based molecules, use custom ANO in Gaussian ordering
+                if hasattr(mol, '_read_fchk'):
+                    from esipy.tools import restore_ao_character
+                    pre_orth_ao = restore_ao_character(mol, "ANO")
+                else:
+                    from pyscf.lo.orth import restore_ao_character
+                    pre_orth_ao = restore_ao_character(mol, "ANO")
                 w = np.ones(pre_orth_ao.shape[0])
                 U_inv = nao._nao_sub(mol, w, pre_orth_ao, S)
             elif partition == "nao":
@@ -199,8 +207,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             eta = build_eta(mol)
 
             for i in range(mol.natm):
-                SCR = np.linalg.multi_dot((coeff.T, U.T, eta[i]))
-                aom.append(np.dot(SCR, SCR.T))
+                SCR = coeff.T @ U.T @ eta[i]
+                aom.append(SCR @ SCR.T)
 
             # Special case IAO
         elif partition == "iao":

@@ -11,13 +11,46 @@ def main():
         sys.exit(1)
     inputfile = sys.argv[1]
     inp = ESIInput.from_file(inputfile)
-    if not inp.fchk_file:
-        print("No fchk file specified in input.")
+
+    mol = None
+    mf = None
+    molname = None  # molecule/calculation name for subdirectory
+    aom = None
+    molinfo = None
+
+    if inp.mode == 'fchk':
+        if not inp.fchk_file:
+            print("No fchk file specified in input.")
+            sys.exit(1)
+        if not os.path.isfile(inp.fchk_file):
+            print(f"Error: The file '{inp.fchk_file}' does not exist.")
+            sys.exit(1)
+        mol, mf = readfchk(inp.fchk_file)
+        # Extract molecule name from fchk file (strip extension)
+        molname = os.path.splitext(os.path.basename(inp.fchk_file))[0]
+
+    elif inp.mode == 'readint':
+        # read AOMs (.int files) from a directory
+        if not inp.readpath:
+            print("No directory specified for $READINT.")
+            sys.exit(1)
+        mol, mf = None, None
+        # The readpath should be the base name (e.g., "test1")
+        # We'll construct the full path with partition later: test1_partition_atomicfiles
+        molname = inp.readpath
+
+    elif inp.mode == 'readaoms':
+        # use provided base name to load .aoms and .molinfo
+        if not inp.aomname:
+            print("No AOM base name specified for $READAOMS.")
+            sys.exit(1)
+        molname = inp.aomname
+        mol, mf = None, None
+
+    else:
+        print(f"Unknown input mode: {inp.mode}")
         sys.exit(1)
-    if not os.path.isfile(inp.fchk_file):
-        print(f"Error: The file '{inp.fchk_file}' does not exist.")
-        sys.exit(1)
-    mol, mf = readfchk(inp.fchk_file)
+
     # Convert FLUREF and HOMAREF to dicts if needed
     flurefs = None
     if inp.fluref:
@@ -27,23 +60,34 @@ def main():
         homarefs = {f"REF{i+1}": v for i, v in enumerate(inp.homaref)}
     # Partition
     partitions = inp.partition if inp.partition else ['meta_lowdin']
-    # MCI and AV1245
-    mci = not inp.nomci
-    av1245 = not inp.noav1245
-    # Save
-    save = inp.save
+    # MCI: Only set to False if $NOMCI is explicitly specified, otherwise let ESI decide
+    mci_kwargs = {'mci': False} if not inp.domci else {}
+    # AV1245
+    av1245 = not inp.doav1245
+    # Save: inp.save can be False, True (boolean), or a string (molecule name)
+    # If it's True (boolean not converted), use molname. If it's a string, use that. Otherwise None.
+    if inp.save is True:
+        save_name = molname
+    elif inp.save:
+        save_name = inp.save
+    else:
+        save_name = None
     # Findrings
     findrings = inp.findrings
     # Minlen/Maxlen
     minlen = inp.minlen if inp.minlen else 6
     maxlen = inp.maxlen if inp.maxlen else 12
     # Rings
-    rings = inp.rings if inp.rings else None
+    if findrings:
+        rings = "find"
+    elif inp.rings:
+        rings = inp.rings
+    elif inp.fragments:
+        rings = inp.fragments.copy()
+    else:
+        rings = None
     print('Parsed rings:', rings)
     print('Parsed fragments:', inp.fragments)
-    if rings is None and inp.fragments:
-        rings = inp.fragments.copy()
-        print('Rings set to fragments:', rings)
     # If fragments are present, replace matching atom indices in rings with sets
     if rings and inp.fragments:
         def replace_fragments(ring, fragments):
@@ -62,12 +106,39 @@ def main():
             rings = [replace_fragments(ring, inp.fragments) for ring in rings]
         else:
             rings = replace_fragments(rings, inp.fragments)
+
     # Construct ESI for each partition
     for partition in partitions:
-        esi = ESI(mol=mol, mf=mf, rings=rings, partition=partition, flurefs=flurefs, homarefs=homarefs,
-                  mci=mci, av1245=av1245, save=save, minlen=minlen, maxlen=maxlen)
+        if partition == "mulliken" or partition == "lowdin" and inp.mode in ['readint', 'readaoms'] and rings == "find":
+            print(f" Could not build graph to find rings with partition {partition.upper()}. Input manually or use other schemes.")
+            continue
+        if inp.mode == 'readaoms':
+            # Construct aom and molinfo filenames with partition name
+            aom = inp.aomname + '_' + partition + '.aoms'
+            molinfo = inp.aomname + '_' + partition + '.molinfo'
+            # pass aom and molinfo strings so ESI will load them
+            esi = ESI(aom=aom, rings=rings, partition=partition, molinfo=molinfo,
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, **mci_kwargs)
+        elif inp.mode == 'readint':
+            # Construct the directory path with SHORT partition name: name_shortpart_atomicfiles
+            from esipy.tools import format_short_partition
+            shortpart = format_short_partition(partition)
+            partition_dir = inp.readpath + '_' + shortpart + '_atomicfiles'
+            # tell ESI to read from the partition-specific directory
+            esi = ESI(read=True, readpath=partition_dir, rings=rings, partition=partition,
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, **mci_kwargs)
+            # explicitly read the AOMs now (this will populate esi._aom)
+            esi.readaoms()
+        else:  # fchk
+            esi = ESI(mol=mol, mf=mf, rings=rings, partition=partition, flurefs=flurefs, homarefs=homarefs,
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, **mci_kwargs)
         esi.print()
-        if save:
-            esi.writeaoms(save)
+        # Write AOMs if $WRITEAOMS keyword is present
+        # Use save_name if available (from $SAVE), otherwise use molname
+        if inp.writeaoms:
+            write_name = save_name if save_name else molname
+            if write_name:
+                esi.writeaoms(write_name)
+
 if __name__ == "__main__":
     main()
