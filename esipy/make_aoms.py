@@ -41,11 +41,17 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             if partition == "lowdin":
                 U_inv = lowdin(S)
             elif partition == "meta_lowdin":
+                from pyscf.lo.orth import restore_ao_character
                 if hasattr(mol, '_read_fchk'):
-                    from esipy.tools import restore_ao_character
+                    prev_reorder = getattr(mol, '_reorder', True)
+                    mol._reorder = False
+                    # Force recompute of overlap if present
+                    if hasattr(mol, '_ovlp'):
+                        mol._ovlp = None
                     pre_orth_ao = restore_ao_character(mol, "ANO")
+                    mol._reorder = prev_reorder
+                    mol._ovlp = None
                 else:
-                    from pyscf.lo.orth import restore_ao_character
                     pre_orth_ao = restore_ao_character(mol, "ANO")
                 w = np.ones(pre_orth_ao.shape[0])
                 U_inv = nao._nao_sub(mol, w, pre_orth_ao, S)
@@ -62,18 +68,11 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
         # Special case IAO
         elif partition == "iao":
-            if hasattr(mf, "_read_fchk"):
-                from esipy.tools import iao
-                from esipy.readfchk3 import MeanFieldMINAO
-                pmol = MeanFieldMINAO(mol)
-                U_alpha_iao_nonortho = iao(mf, coeff_alpha)
-                U_beta_iao_nonortho = iao(mf, coeff_beta)
-            else:
-                from pyscf.lo.iao import iao
-                from pyscf.lo.iao import reference_mol
-                U_alpha_iao_nonortho = iao(mol, coeff_alpha)
-                U_beta_iao_nonortho = iao(mol, coeff_beta)
-                pmol = reference_mol(mol)
+            from pyscf.lo.iao import iao
+            from pyscf.lo.iao import reference_mol
+            U_alpha_iao_nonortho = iao(mol, coeff_alpha)
+            U_beta_iao_nonortho = iao(mol, coeff_beta)
+            pmol = reference_mol(mol)
             U_alpha_inv = np.dot(U_alpha_iao_nonortho, lowdin(
                 np.linalg.multi_dot((U_alpha_iao_nonortho.T, S, U_alpha_iao_nonortho))))
             U_beta_inv = np.dot(U_beta_iao_nonortho, lowdin(
@@ -111,10 +110,12 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
     # RESTRICTED
 
-    elif mf.__class__.__name__ in ("RHF", "RKS", "SymAdaptedRHF", "SymAdaptedRKS"):
+    elif mf.__class__.__name__ in ("RHF", "RKS", "SymAdaptedRHF", "SymAdaptedRKS") or mf.__name__ == "RHF":
         # Getting specific information
         S = mf.get_ovlp()
         coeff = mf.mo_coeff[:, mf.mo_occ > 0]
+        print(coeff)
+        #exit()
 
         # Building the Atomic Overlap Matrices
 
@@ -124,9 +125,18 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 U_inv = lowdin(S)
             elif partition == "meta_lowdin":
                 from pyscf.lo.orth import restore_ao_character
-                pre_orth_ao = restore_ao_character(mol, "ANO")
                 if hasattr(mol, '_read_fchk'):
-                    from esipy.tools import permute_aos
+                    mol._reorder = False
+                    mol._ovlp = None
+                    s1 = mol.intor_symmetric("int1e_ovlp")
+                    pre_orth_ao = restore_ao_character(mol, "ANO")
+                    from esipy.tools import permute_aos_cols, permute_aos_rows
+                    pre_orth_ao = permute_aos_rows(pre_orth_ao, mol)
+                    mol._reorder = True
+                    mol._ovlp = None
+                    s2 = mol.intor_symmetric("int1e_ovlp")
+                else:
+                    pre_orth_ao = restore_ao_character(mol, "ANO")
                 w = np.ones(pre_orth_ao.shape[1])
                 U_inv = nao._nao_sub(mol, w, pre_orth_ao, S)
             elif partition == "nao":
@@ -142,15 +152,9 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
         # Special case IAO
         elif partition == "iao":
-            if hasattr(mf, "_read_fchk"):
-                from esipy.readfchk import MeanFieldMINAO
-                from esipy.tools import iao
-                pmol = MeanFieldMINAO(mol)
-                U_iao_nonortho = iao(mf, pmol)
-            else:
-                from pyscf.lo.iao import iao, reference_mol
-                pmol = reference_mol(mol)
-                U_iao_nonortho = iao(mol, coeff)
+            from pyscf.lo.iao import iao, reference_mol
+            pmol = reference_mol(mol)
+            U_iao_nonortho = iao(mol, coeff)
             U_inv = np.dot(U_iao_nonortho, lowdin(
                 np.linalg.multi_dot((U_iao_nonortho.T, S, U_iao_nonortho))))
             U = np.dot(S, U_inv)
@@ -191,10 +195,24 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             if partition == "lowdin":
                 U_inv = lowdin(S)
             elif partition == "meta_lowdin":
-                # For FCHK-based molecules, use custom ANO in Gaussian ordering
+                # For FCHK-based molecules we need the overlap built in the
+                # original Gaussian ordering (no automatic PySCF reordering).
                 if hasattr(mol, '_read_fchk'):
+                    # Temporarily disable reordering and invalidate any cached
+                    # overlap so restore_ao_character() and downstream code
+                    # will build S in Gaussian order.
+                    prev_reorder = getattr(mol, '_reorder', True)
+                    mol._reorder = False
+                    # Force recompute of overlap if present
+                    if hasattr(mol, '_ovlp'):
+                        mol._ovlp = None
                     from esipy.tools import restore_ao_character
                     pre_orth_ao = restore_ao_character(mol, "ANO")
+                    # Restore reorder flag and invalidate cached overlap so
+                    # subsequent calls use the normal ordering unless the
+                    # caller explicitly requested otherwise.
+                    mol._reorder = prev_reorder
+                    mol._ovlp = None
                 else:
                     from pyscf.lo.orth import restore_ao_character
                     pre_orth_ao = restore_ao_character(mol, "ANO")

@@ -28,8 +28,7 @@ def info_rest(aom, molinfo, nfrags=0):
         print(" | Functional:              ", molinfo["xc"])
 
     if isinstance(molinfo["basisset"], dict):
-        for key in molinfo["basisset"]:
-            print(" | Basis set for {:>2}:         {}".format(key, molinfo["basisset"][key].upper()))
+        print(" | Basis set:                GEN")
     elif isinstance(molinfo["basisset"], str):
         print(" | Basis set:               ", molinfo["basisset"].upper())
     if isinstance(molinfo["energy"], str):
