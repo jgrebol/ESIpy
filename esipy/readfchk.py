@@ -292,7 +292,11 @@ class MeanField2:
                 raise RuntimeError('No MO coefficients found in FCHK')
             mo_arr = np.array(mo_flat, dtype=float).reshape(self.nummo, self.numao).T
             mo_arr = permute_aos_rows(mo_arr, self.mole2)
+            s = self.mole2.intor("int1e_ovlp")
             self.mo_coeff = mo_arr
+            mo_arr = mo_arr[:, :int((self.nalpha + self.nbeta) // 2)]
+            print(2*np.trace(mo_arr @ mo_arr.T @ s))
+            exit()
             self.mo_occ = np.array([2.] * (int(self.nalpha + self.nbeta) // 2) + [0.] * (self.nao - (int(self.nalpha + self.nbeta) // 2)))
         else:
             # For simplicity, only handle alpha coefficients then beta similarly
@@ -374,8 +378,14 @@ class FchkMolecule:
 
 def make_basis(mf):
     """
-    Generate a basis dict from a PySCF-derived mf object.
-    Output format: {'C': [[l, [exp, c1, c2...], ...], ...], ...}
+    Generate a PySCF-compatible basis dict from a PySCF-derived FCHK object.
+
+    Output format:
+        {'C': [[l, [exp, c1, c2...], ...], ...], ...}
+
+    Assumes:
+      - mf.atomic_symbols
+      - mf.fchk.{ncshell, mssh, mnsh, iatsh, expsh, c1, c2 (optional)}
     """
     atomic_symbols = mf.atomic_symbols
     ncshell = mf.fchk.ncshell
@@ -385,31 +395,30 @@ def make_basis(mf):
     expsh = mf.fchk.expsh
     c1 = mf.fchk.c1
     c2 = mf.fchk.c2 if hasattr(mf.fchk, 'c2') else None
-    done_shells = {}
 
+    done_shells = {}
     exp_idx = 0
     coeff_idx = 0
 
+    # track first atom of each element
     first_atom = {}
-    for atom_idx, sym in enumerate(mf.atomic_symbols):
+    for atom_idx, sym in enumerate(atomic_symbols):
         if sym not in first_atom:
             first_atom[sym] = atom_idx
 
-    # --- Main Parsing Loop (unchanged from your version) ---
+    # --- Parse shells ---
     for i in range(ncshell):
         l_raw = mssh[i]
         atom_idx = iatsh[i] - 1
         sym = atomic_symbols[atom_idx]
         n_prim = mnsh[i]
 
-        # Skip appearance if not the first atom of this element type
+        # Skip if not the first atom of this element
         if atom_idx != first_atom[sym]:
-            # Advance exp/coeff pointers by same logic as your original code
             exp_idx += n_prim
             if l_raw == -1:
                 coeff_idx += n_prim
             else:
-                # deduce number of contractions for non-SP shells
                 if i == ncshell - 1:
                     n_contr_to_skip = (len(c1) - coeff_idx) // n_prim
                 else:
@@ -423,8 +432,9 @@ def make_basis(mf):
             done_shells[sym] = []
 
         primitives = []
+
         if l_raw == -1:
-            # SP shell: c1 -> S, c2 -> P; we store tuples (exponent, c_s, c_p)
+            # SP shell
             for _ in range(n_prim):
                 exponent = expsh[exp_idx]
                 coef_s = c1[coeff_idx]
@@ -433,8 +443,9 @@ def make_basis(mf):
                 exp_idx += 1
                 coeff_idx += 1
             done_shells[sym].append({"l": -1, "primitives": primitives})
+
         else:
-            # Regular shell: deduce n_contr as you did
+            # regular shell
             if i == ncshell - 1:
                 n_contr = (len(c1) - coeff_idx) // n_prim if n_prim else 0
             else:
@@ -443,53 +454,56 @@ def make_basis(mf):
                 n_contr = (remaining_coeffs // n_prim) if n_prim else 0
 
             coeffs_flat = c1[coeff_idx : coeff_idx + n_prim * n_contr]
+
             for prim_idx in range(n_prim):
                 exponent = expsh[exp_idx + prim_idx]
                 coefs = [coeffs_flat[j * n_prim + prim_idx] for j in range(n_contr)]
                 primitives.append((exponent, coefs))
+
             exp_idx += n_prim
             coeff_idx += n_prim * n_contr
             done_shells[sym].append({"l": abs(l_raw), "primitives": primitives})
 
-    # --- TRANSFORMATION: build per-l lists preserving original encounter order ---
-    final_basis_dict = {}
-    for sym, shells in done_shells.items():
-        # lists_by_l will gather shells in encounter order per angular momentum
-        lists_by_l = {}  # maps l -> list of shells (each shell is [l, [exp, coefs...], ...])
+    # --- Convert parsed shells into PySCF basis format ---
+    def order_shells(shell_list):
+        """Convert shell dicts into PySCF [[l,[exp,c1,c2...],...],...]"""
+        lists_by_l = {}
         max_l = 0
-
-        for shell_data in shells:
+        for shell_data in shell_list:
             l = shell_data["l"]
-            primitives_data = shell_data["primitives"]
-
+            prims = shell_data["primitives"]
             if l == -1:
-                # (In your parse l==-1 shells were stored as tuple (exp, c_s, c_p))
-                # create S-shell (l=0) and P-shell (l=1) and append them to their lists
+                # SP shell → split
                 s_shell = [0]
                 p_shell = [1]
-                for exp, cs, cp in primitives_data:
+                for exp, cs, cp in prims:
                     s_shell.append([exp, cs])
                     p_shell.append([exp, cp])
                 lists_by_l.setdefault(0, []).append(s_shell)
                 lists_by_l.setdefault(1, []).append(p_shell)
                 max_l = max(max_l, 1)
             else:
-                # regular shell: primitives_data entries are (exp, [coefs...])
-                new_shell = [l]
-                for exp, coefs in primitives_data:
-                    new_shell.append([exp] + (coefs if isinstance(coefs, list) else [coefs]))
-                lists_by_l.setdefault(l, []).append(new_shell)
+                sh = [l]
+                for exp, coefs in prims:
+                    if isinstance(coefs, list):
+                        sh.append([exp] + coefs)
+                    else:
+                        sh.append([exp, coefs])
+                lists_by_l.setdefault(l, []).append(sh)
                 max_l = max(max_l, l)
-
-        # concatenate in l order: 0,1,2,...
+        # concatenate in L order
         final_list = []
         for L in range(max_l + 1):
             if L in lists_by_l:
                 final_list.extend(lists_by_l[L])
+        return final_list
 
-        final_basis_dict[sym] = final_list
+    final_basis_dict = {}
+    for sym, shells in done_shells.items():
+        final_basis_dict[sym] = order_shells(shells)
 
     return final_basis_dict
+
 
 def readfchk(path):
     """Convenience function to read FCHK and return Mole2 and MeanField2 objects.

@@ -900,41 +900,47 @@ import numpy as np
 
 def permute_aos_rows(mat, mole2):
     """
-    Permute FCHK AO/MO columns into PySCF AO order.
+    Simplified, robust permutation of FCHK (Gaussian) AO ordering -> PySCF AO ordering.
 
-    Requirements on mole2:
-      - mole2.pyscf_mol  : pyscf.gto.Mole instance (built)
-      - mole2.fchk_basis_arrays : dict with keys 'iatsh' (1-based) and 'mssh'
-      - mole2.coord or mole2.fchk_coords : Nx3 array (FCHK atom coords, same units as pyscf.mol.atom?)
-      - mole2.cart : boolean (True if FCHK was written with cartesian high-L shells)
+    mat : ndarray
+      MO coefficients shaped (nao, nmo) or (nmo, nao) or (nspin, nmo, nao)
+      The function will permute the AO axis to match PySCF order.
+    mole2 : object
+      Must provide:
+        - mole2.pyscf_mol    : built pyscf.gto.Mole
+        - mole2.fchk_basis_arrays: dict with keys 'iatsh' (1-based) and 'mssh'
+        - mole2.coord : optional FCHK coordinates (for atom remapping)
+        - mole2.cart  : bool flag whether FCHK used Cartesian high-L shells
     """
-
     mol = mole2.pyscf_mol
     cart_pyscf = bool(getattr(mol, 'cart', False))
     cart_fchk  = bool(getattr(mole2, 'cart', False))
 
-    # --- per-shell local reorder maps (Gaussian -> PySCF)
+    # local reorder maps (Gaussian-order -> PySCF-order)
+    # Spherical (negative keys) and Cartesian (positive keys).
+    # These maps cover L=2..4; for L=0,1 mapping is trivial.
     MAPS = {
-        # spherical keys (negative l)
-        -2: [0, 1, 2, 3, 4],
-        -3: [0, 2, 1, 4, 3, 5, 6],
-        -4: [0, 2, 1, 4, 3, 6, 5, 8, 7],
-        # cartesian keys (positive l)
-        2: [0, 3, 5, 1, 4, 2],
-        3: [0, 5, 7, 1, 3, 8, 4, 6, 2, 9],
-        4: [0, 5, 9, 1, 6, 10, 2, 7, 11, 3, 8, 12, 4, 13, 14],
+        # spherical: we assume Gaussian spherical ordering maps to PySCF spherical ordering
+        -2: [0, 1, 2, 3, 4],                 # d(sph) identity
+        -3: [0, 2, 1, 4, 3, 5, 6],           # f(sph)
+        -4: [0, 2, 1, 4, 3, 6, 5, 8, 7],     # g(sph)
+
+        # cartesian: Gaussian interfacing order -> PySCF cartesian order
+        2: [0, 3, 4, 1, 5, 2],               # d(cart): XX,YY,ZZ,XY,XZ,YZ -> XX,XY,XZ,YY,YZ,ZZ
+        3: [0, 3, 4, 1, 5, 2, 6, 7, 8, 9],   # f(cart)
+        4: [0, 4, 5, 6, 1, 7, 8, 2, 9,10, 3,11,12,13,14],  # g(cart)
     }
 
-    # --- Build FCHK gaussian shell list: list of (atom0, l, start_index, nfuncs) ---
-    iatsh = mole2.fchk_basis_arrays['iatsh']  # 1-based
-    mssh  = mole2.fchk_basis_arrays['mssh']
+    # --- build FCHK (Gaussian) shell list: (atom0, l, start_idx, nfuncs) ---
+    iatsh = np.asarray(mole2.fchk_basis_arrays['iatsh'])
+    mssh  = np.asarray(mole2.fchk_basis_arrays['mssh'])
     g_shells = []
     ptr = 0
     for iat, mst in zip(iatsh, mssh):
         atom0 = int(iat) - 1
         mst = int(mst)
         if mst == -1:
-            entries = [(0,1),(1,3)]
+            entries = [(0,1),(1,3)]   # SP -> S then P
         elif mst == 0:
             entries = [(0,1)]
         elif mst == 1:
@@ -944,115 +950,94 @@ def permute_aos_rows(mat, mole2):
             if mst < 0 or not cart_fchk:
                 n = 2*l + 1
             else:
-                n = (l + 1) * (l + 2) // 2
+                n = (l + 1)*(l + 2)//2
             entries = [(l, n)]
         for l, n in entries:
             g_shells.append((atom0, l, ptr, int(n)))
             ptr += int(n)
     total_fchk_funcs = ptr
 
-    # --- Map FCHK atom indices -> PySCF atom indices by matching coordinates ---
-    # Use coordinates to map (robust vs differing atom orderings). Expect mole2.coord exists.
+    # --- map FCHK atoms -> PySCF atoms using coordinates (Hungarian) ---
     if hasattr(mole2, 'coord'):
         fcoords = np.asarray(mole2.coord)
-    elif hasattr(mole2, 'fchk_coords'):
-        fcoords = np.asarray(mole2.fchk_coords)
-    else:
-        # fallback: assume atom numbering matches
-        fcoords = None
-
-    if fcoords is not None:
-        pyscf_coords = np.asarray(mol.atom_coords())
-        # compute distance matrix and greedily match nearest neighbors
-        dmat = np.linalg.norm(fcoords[:,None,:] - pyscf_coords[None,:,:], axis=2)
-        # Hungarian matching ensures one-to-one
+        pcoords = np.asarray(mol.atom_coords())
+        dmat = np.linalg.norm(fcoords[:,None,:] - pcoords[None,:,:], axis=2)
         try:
             from scipy.optimize import linear_sum_assignment
             row, col = linear_sum_assignment(dmat)
-            fchk_to_pyscf = {int(r): int(c) for r,c in zip(row, col)}
+            fchk_to_pyscf = {int(r): int(c) for r, c in zip(row, col)}
         except Exception:
-            # greedy fallback
             fchk_to_pyscf = {}
             used = set()
             for i in range(dmat.shape[0]):
                 j = int(np.argmin(dmat[i]))
-                # if collision, find next best
                 if j in used:
-                    order = np.argsort(dmat[i])
-                    for cand in order:
+                    for cand in np.argsort(dmat[i]):
                         if cand not in used:
-                            j = int(cand); break
+                            j = int(cand)
+                            break
                 used.add(j)
                 fchk_to_pyscf[i] = j
     else:
-        # assume direct mapping
-        fchk_to_pyscf = {i:i for i in range(max(1, mol.natm))}
+        fchk_to_pyscf = {i:i for i in range(mol.natm)}
 
-    # Now translate g_shells atom index from FCHK atom to PySCF atom index
-    g_shells_mapped = [(fchk_to_pyscf.get(atom, atom), l, start, n) for (atom,l,start,n) in g_shells]
+    # remap Gaussian shells' atom index to PySCF atom index
+    g_shells_mapped = [(fchk_to_pyscf.get(atom, atom), l, start, n) for (atom, l, start, n) in g_shells]
 
-    # Build an index: for each (atom,l) list of starts in gaussian order
+    # group Gaussian shells by (atom, l) in encountered (Gaussian) order
     g_reg = {}
     for atom, l, start, n in g_shells_mapped:
         g_reg.setdefault((atom, l), []).append((start, n))
 
-    # --- Walk PySCF shells in their order and consume from g_reg ---
+    # Build permutation: for each PySCF shell (in PySCF order) choose next Gaussian shell for same (atom,l)
     perm = []
     consumed = {}
     for ib in range(mol.nbas):
         atom_idx = int(mol.bas_atom(ib))
         l_val = int(mol.bas_angular(ib))
 
-        # pyscf number of components for this shell
+        # expected number of components in PySCF for this shell
         if l_val == 0:
             n_pyscf = 1
         elif l_val == 1:
             n_pyscf = 3
         else:
-            n_pyscf = (l_val + 1)*(l_val + 2)//2 if cart_pyscf else 2*l_val + 1
+            n_pyscf = (l_val+1)*(l_val+2)//2 if cart_pyscf else 2*l_val + 1
 
         key = (atom_idx, l_val)
         consumed.setdefault(key, 0)
         c = consumed[key]
 
         if key not in g_reg or c >= len(g_reg[key]):
-            raise ValueError(f"Missing Gaussian shell for atom={atom_idx}, L={l_val}: have {len(g_reg.get(key,[]))}, needed #{c+1}")
+            raise ValueError(f"Missing Gaussian shell for atom={atom_idx} L={l_val}; needed #{c+1}")
 
         start, n_fchk = g_reg[key][c]
         consumed[key] += 1
 
-        # verify counts (typical error: spherical<->cart mismatch)
         if n_fchk != n_pyscf:
-            raise ValueError(
-                f"Mismatch component counts for atom {atom_idx} L={l_val}: "
-                f"FCHK has {n_fchk}, PySCF expects {n_pyscf} (mol.cart={cart_pyscf}, fchk.cart={cart_fchk})."
-            )
+            raise ValueError(f"Component count mismatch atom={atom_idx} L={l_val}: FCHK {n_fchk} vs PySCF {n_pyscf} (fchk.cart={cart_fchk}, pyscf.cart={cart_pyscf})")
 
-        # choose local map: spherical -> MAPS[-l], cart -> MAPS[l]
+        # pick local map: spherical if PySCF uses spherical, else cartesian
         map_key = -l_val if not cart_pyscf else l_val
-        local_map = MAPS.get(map_key, None)
-        if local_map is None:
-            local_map = list(range(n_pyscf))
+        local_map = MAPS.get(map_key, list(range(n_pyscf)))
 
         if len(local_map) != n_pyscf:
-            raise RuntimeError(f"Local MAP length mismatch for L={l_val}: {len(local_map)} != {n_pyscf}")
+            raise RuntimeError(f"Local map length mismatch L={l_val}: got {len(local_map)} expected {n_pyscf}")
 
+        # append Gaussian indices in the order that corresponds to PySCF components
         for idx in local_map:
-            perm.append(start + idx)
+            perm.append(start + int(idx))
 
-    # final sanity
     if len(perm) != total_fchk_funcs:
         raise RuntimeError(f"Permutation length {len(perm)} != total FCHK functions {total_fchk_funcs}")
 
-    perm = np.asarray(perm, int)
+    perm = np.asarray(perm, dtype=int)
 
-    # Apply permutation to mat (supports typical shapes)
+    # apply permutation to mat
     if mat.ndim == 2 and mat.shape[1] == len(perm):
         return mat[:, perm]
     if mat.ndim == 2 and mat.shape[0] == len(perm):
         return mat[perm, :]
     if mat.ndim == 3 and mat.shape[2] == len(perm):
         return mat[:, :, perm]
-
     raise ValueError("Matrix shape incompatible with AO permutation length.")
-

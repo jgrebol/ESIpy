@@ -85,51 +85,104 @@ static double *create_identity(int m) {
     return I;
 }
 
-/* ---------- Internal recursive DFS for remaining positions ---------- */
-/* We implement the recursion as a function pointer so we can use same code
-   for regular and NO variants (with precomputed matrices in per_atom_mat). */
+/* ---------- Internal DFS variants (specialized for each API) ---------- */
 
-/* dfs_recursive arguments:
-   - ring: original ring array of length n
-   - n: ring_len
-   - m: matrix dimension
-   - used: boolean array length n indicating which ring positions are used
-   - perm: current permutation array length n (int)
-   - pos: current filled length (pos >= 2 for callers here)
-   - product: current product matrix (column-major) m*m
-   - per_atom_mat: precomputed matrices for each ring position (pointer to matrices for ring entries)
-   - sum_acc: pointer to per-thread accumulator to add computed Irings
-   - check_reverse_filter: if true, apply the path[1] < path[-1] rule at leaves
-   - iring_factor: multiply trace by this factor for regular Iring (2^(n-1)) or 1.0 for NO version
-*/
-static void dfs_recursive(const int *ring, int n, int m, char *used, int *perm, int pos,
-                          const double *product, const double *per_atom_mat, double *sum_acc,
-                          int check_reverse_filter, double iring_factor)
+/* dfs_sym: symmetric regular Iring (multiply trace by iring_factor; no reverse-filter) */
+static void dfs_sym(const int *ring, int n, int m, char *used, int *perm, int pos,
+                    const double *product, const double *per_atom_mat, double *sum_acc,
+                    double iring_factor)
 {
     if (pos == n) {
-        /* leaf */
-        if (check_reverse_filter) {
-            if (!(perm[1] < perm[n-1])) return;
-        }
         double tr = mat_trace(product, m);
         *sum_acc += iring_factor * tr;
         return;
     }
-    /* For each unused ring position (index in ring array) */
-    for (int j = 1; j < n; ++j) { /* j=1..n-1 are candidates (0 is fixed) */
+    for (int j = 1; j < n; ++j) {
         if (!used[j]) {
             used[j] = 1;
-            perm[pos] = ring[j]; /* store index value (0-based atom index) */
-            /* compute new_product = product * per_atom_mat for ring[j] */
+            perm[pos] = ring[j];
             double *new_product = (double*)malloc(sizeof(double)*m*m);
-            if (!new_product) {
-                /* malloc failed: bail quietly (not ideal) */
-                used[j] = 0;
-                continue;
-            }
+            if (!new_product) { used[j] = 0; continue; }
             const double *mat_for_atom = per_atom_mat + ((size_t)j * (size_t)m * (size_t)m);
             multiply_and_advance(product, mat_for_atom, new_product, m);
-            dfs_recursive(ring, n, m, used, perm, pos+1, new_product, per_atom_mat, sum_acc, check_reverse_filter, iring_factor);
+            dfs_sym(ring, n, m, used, perm, pos+1, new_product, per_atom_mat, sum_acc, iring_factor);
+            free(new_product);
+            used[j] = 0;
+        }
+    }
+}
+
+/* dfs_nosym: non-symmetric regular Iring (apply reverse-filter path[1] < path[n-1]) */
+static void dfs_nosym(const int *ring, int n, int m, char *used, int *perm, int pos,
+                      const double *product, const double *per_atom_mat, double *sum_acc,
+                      double iring_factor)
+{
+    if (pos == n) {
+        if (!(perm[1] < perm[n-1])) return;
+        double tr = mat_trace(product, m);
+        *sum_acc += iring_factor * tr;
+        return;
+    }
+    for (int j = 1; j < n; ++j) {
+        if (!used[j]) {
+            used[j] = 1;
+            perm[pos] = ring[j];
+            double *new_product = (double*)malloc(sizeof(double)*m*m);
+            if (!new_product) { used[j] = 0; continue; }
+            const double *mat_for_atom = per_atom_mat + ((size_t)j * (size_t)m * (size_t)m);
+            multiply_and_advance(product, mat_for_atom, new_product, m);
+            dfs_nosym(ring, n, m, used, perm, pos+1, new_product, per_atom_mat, sum_acc, iring_factor);
+            free(new_product);
+            used[j] = 0;
+        }
+    }
+}
+
+/* dfs_natorb_sym: symmetric natural-orbitals variant (per_atom_mat already contains occ*aom) */
+static void dfs_natorb_sym(const int *ring, int n, int m, char *used, int *perm, int pos,
+                           const double *product, const double *per_atom_mat, double *sum_acc,
+                           double iring_factor)
+{
+    if (pos == n) {
+        double tr = mat_trace(product, m);
+        *sum_acc += iring_factor * tr;
+        return;
+    }
+    for (int j = 1; j < n; ++j) {
+        if (!used[j]) {
+            used[j] = 1;
+            perm[pos] = ring[j];
+            double *new_product = (double*)malloc(sizeof(double)*m*m);
+            if (!new_product) { used[j] = 0; continue; }
+            const double *mat_for_atom = per_atom_mat + ((size_t)j * (size_t)m * (size_t)m);
+            multiply_and_advance(product, mat_for_atom, new_product, m);
+            dfs_natorb_sym(ring, n, m, used, perm, pos+1, new_product, per_atom_mat, sum_acc, iring_factor);
+            free(new_product);
+            used[j] = 0;
+        }
+    }
+}
+
+/* dfs_natorb_nosym: non-symmetric natural-orbitals variant (apply reverse filter) */
+static void dfs_natorb_nosym(const int *ring, int n, int m, char *used, int *perm, int pos,
+                              const double *product, const double *per_atom_mat, double *sum_acc,
+                              double iring_factor)
+{
+    if (pos == n) {
+        if (!(perm[1] < perm[n-1])) return;
+        double tr = mat_trace(product, m);
+        *sum_acc += iring_factor * tr;
+        return;
+    }
+    for (int j = 1; j < n; ++j) {
+        if (!used[j]) {
+            used[j] = 1;
+            perm[pos] = ring[j];
+            double *new_product = (double*)malloc(sizeof(double)*m*m);
+            if (!new_product) { used[j] = 0; continue; }
+            const double *mat_for_atom = per_atom_mat + ((size_t)j * (size_t)m * (size_t)m);
+            multiply_and_advance(product, mat_for_atom, new_product, m);
+            dfs_natorb_nosym(ring, n, m, used, perm, pos+1, new_product, per_atom_mat, sum_acc, iring_factor);
             free(new_product);
             used[j] = 0;
         }
@@ -217,7 +270,7 @@ double compute_mci_sym(const int *ring, int ring_len, const double *aoms_stacked
 
         double local_sum = 0.0;
         /* dfs on remaining positions */
-        dfs_recursive(ring, n, m, used, perm, 2, product2, per_atom_mat, &local_sum, 0 /* no reverse filter for sym case */, iring_factor);
+        dfs_sym(ring, n, m, used, perm, 2, product2, per_atom_mat, &local_sum, iring_factor);
 
         result += local_sum;
 
@@ -270,7 +323,7 @@ double compute_mci_natorbs_sym(const int *ring, int ring_len, const double *aoms
         multiply_and_advance(first_prod, matj, product2, m);
 
         double local_sum = 0.0;
-        dfs_recursive(ring, n, m, used, perm, 2, product2, per_atom_mat, &local_sum, 0, iring_factor);
+        dfs_natorb_sym(ring, n, m, used, perm, 2, product2, per_atom_mat, &local_sum, iring_factor);
         result += local_sum;
 
         free(product2);
@@ -320,7 +373,7 @@ double compute_mci_nosym(const int *ring, int ring_len, const double *aoms_stack
         multiply_and_advance(first_prod, matj, product2, m);
 
         double local_sum = 0.0;
-        dfs_recursive(ring, n, m, used, perm, 2, product2, per_atom_mat, &local_sum, 1 /* apply reverse filter */, iring_factor);
+        dfs_nosym(ring, n, m, used, perm, 2, product2, per_atom_mat, &local_sum, iring_factor);
         result += local_sum;
 
         free(product2);
@@ -368,7 +421,7 @@ double compute_mci_natorbs_nosym(const int *ring, int ring_len, const double *ao
         multiply_and_advance(first_prod, matj, product2, m);
 
         double local_sum = 0.0;
-        dfs_recursive(ring, n, m, used, perm, 2, product2, per_atom_mat, &local_sum, 1 /* apply reverse filter */, iring_factor);
+        dfs_natorb_nosym(ring, n, m, used, perm, 2, product2, per_atom_mat, &local_sum, iring_factor);
         result += local_sum;
 
         free(product2);
@@ -387,4 +440,3 @@ double compute_mci_natorbs_nosym(const int *ring, int ring_len, const double *ao
 #if defined(__GNUC__)
     /* no-op: functions are global by default */
 #endif
-
