@@ -295,8 +295,8 @@ class MeanField2:
             s = self.mole2.intor("int1e_ovlp")
             self.mo_coeff = mo_arr
             mo_arr = mo_arr[:, :int((self.nalpha + self.nbeta) // 2)]
-            print(2*np.trace(mo_arr @ mo_arr.T @ s))
-            exit()
+            #print(2*np.trace(mo_arr @ mo_arr.T @ s))
+            #exit()
             self.mo_occ = np.array([2.] * (int(self.nalpha + self.nbeta) // 2) + [0.] * (self.nao - (int(self.nalpha + self.nbeta) // 2)))
         else:
             # For simplicity, only handle alpha coefficients then beta similarly

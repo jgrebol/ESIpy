@@ -39,12 +39,14 @@ class BuildCLibrary(build_ext):
         build_temp = Path(self.build_temp)
         build_temp.mkdir(parents=True, exist_ok=True)
 
-        output_dir = Path(self.get_ext_fullpath(ext.name)).parent
-        output_dir.mkdir(parents=True, exist_ok=True)
+        # Force the compiled shared library to be placed in the project `src/`
+        # directory (user requested location). Create the directory if missing.
+        out_dir = Path('src')
+        out_dir.mkdir(parents=True, exist_ok=True)
 
         src = Path(ext.sources[0])
         lib_name = "libmci.so"  # You could also name it .dylib on macOS
-        out_path = output_dir / lib_name
+        out_path = out_dir / lib_name
 
         cc = shutil.which("gcc") or shutil.which("cc") or shutil.which("clang")
         if not cc:
@@ -58,7 +60,8 @@ class BuildCLibrary(build_ext):
 
 
 # --- Define a dummy Extension to trigger our build command ---
-mci_ext = Extension("esipy._mci_placeholder", sources=["esipy/mci.c"])
+# Use the new C source location under src/mci.c
+mci_ext = Extension("esipy._mci_placeholder", sources=["src/mci.c"])
 
 
 # --- Setup configuration ---
@@ -91,4 +94,3 @@ setup(
     package_data={"esipy": ["libmci.so", "*.c"]},
     include_package_data=True,
 )
-

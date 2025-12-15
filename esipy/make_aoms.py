@@ -113,8 +113,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
     elif mf.__class__.__name__ in ("RHF", "RKS", "SymAdaptedRHF", "SymAdaptedRKS") or mf.__name__ == "RHF":
         # Getting specific information
         S = mf.get_ovlp()
+        print(mf.mo_coeff)
         coeff = mf.mo_coeff[:, mf.mo_occ > 0]
-        print(coeff)
         #exit()
 
         # Building the Atomic Overlap Matrices

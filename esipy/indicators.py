@@ -1,13 +1,9 @@
 import numpy as np
 
 from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_distances, av1245_pairs
+from esipy._c_mci import has_c_module, compute_mci_sym, compute_mci_nosym, compute_mci_natorbs_sym, compute_mci_natorbs_nosym
 
-# Try importing C implementation
-try:
-    from ._c_mci import has_c_module, compute_mci_sym, compute_mci_nosym, compute_mci_natorbs_sym, compute_mci_natorbs_nosym
-    _HAS_C_MCI = has_c_module()
-except Exception:
-    _HAS_C_MCI = False
+_HAS_C_MCI = has_c_module()
 
 
 # Small helper to call a function while temporarily setting OMP_NUM_THREADS (minimal helper)
@@ -73,8 +69,6 @@ def compute_iring_no(arr, aom):
 
 ########### MCI ###########
 
-# New C-backed MCI wrappers
-
 def sequential_mci(arr, aom, partition):
     """
     Computes the MCI sequentially by computing the Iring without storing the permutations.
@@ -92,6 +86,7 @@ def sequential_mci(arr, aom, partition):
     """
 
     # If C module is available and aom is a list/array of matrices, prepare aom_for_ring and call C implementation
+    _HAS_C_MCI = True
     if _HAS_C_MCI:
         # aom may be a list where aom[i-1] corresponds to atom i -> build ordered list for ring arr
         aom_for_ring = [aom[i - 1] for i in arr]
@@ -101,6 +96,7 @@ def sequential_mci(arr, aom, partition):
             else:
                 return compute_mci_sym(aom_for_ring)
         except Exception:
+            # if the C call fails, fall back to Python implementation below
             pass
 
     # If does not find C module, fallback to pure Python
@@ -144,6 +140,7 @@ def sequential_mci_no(arr, aom, partition):
             else:
                 return compute_mci_natorbs_nosym(aom_for_ring, occ)
         except Exception:
+            # if the C call fails, fall back to Python implementation below
             pass
 
     # If does not find C module, fallback to pure Python
@@ -180,6 +177,7 @@ def multiprocessing_mci(arr, aom, ncores, partition):
 
     # If a C implementation is available, prefer it
     # We set OMP_NUM_THREADS to ncores only if the user hasn't already set it.
+    _HAS_C_MCI = True
     if _HAS_C_MCI:
         aom_for_ring = [aom[i - 1] for i in arr]
         try:
@@ -188,6 +186,7 @@ def multiprocessing_mci(arr, aom, ncores, partition):
             else:
                 return _call_with_omp(ncores, compute_mci_sym, aom_for_ring)
         except Exception:
+            # if the C call fails, fall back to Python implementation below
             pass
 
     from multiprocessing import Pool
@@ -236,6 +235,7 @@ def multiprocessing_mci_no(arr, aom, ncores, partition):
             else:
                 return _call_with_omp(ncores, compute_mci_natorbs_nosym, aom_for_ring, occ)
         except Exception:
+            # if the C call fails, fall back to Python implementation below
             pass
 
     from multiprocessing import Pool
@@ -430,14 +430,13 @@ def compute_flu(arr, molinfo, aom, flurefs=None, partition=None):
     flu_value, flu_polar = 0, 0
     symbols = molinfo["symbols"]
     atom_symbols = [symbols[int(i) - 1] for i in arr]
-    bond_types = ["".join(sorted([atom_symbols[i].upper(), atom_symbols[(i + 1) % len(arr)].upper()]))
+    bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]]))
                   for i in range(len(arr))]
 
     # Setting and update of the reference values
     flu_refs = find_flurefs(partition)
     if flurefs is not None:
         flu_refs.update(flurefs)
-    flu_refs = {key.upper(): value for key, value in flu_refs.items()}
 
     dis = find_dis(arr, aom)
     lis = find_lis(arr, aom)
@@ -598,7 +597,6 @@ def compute_homa(arr, molinfo, homarefs=None):
     }
     if homarefs is not None:
         refs.update(homarefs)
-    refs = {key.upper(): value for key, value in refs.items()}
 
     geom = molinfo["geom"]
     if geom is None:
@@ -606,7 +604,7 @@ def compute_homa(arr, molinfo, homarefs=None):
     symbols = molinfo["symbols"]
 
     atom_symbols = [symbols[int(i) - 1] for i in arr]
-    bond_types = ["".join(sorted([atom_symbols[i].upper(), atom_symbols[(i + 1) % len(arr)].upper()]))
+    bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]]))
                   for i in range(len(arr))]
 
     for i in range(len(arr)):
@@ -615,8 +613,8 @@ def compute_homa(arr, molinfo, homarefs=None):
             return None
 
     distances = find_distances(arr, geom)
-    alpha = refs["ALPHA"]
-    r_opt = refs["R_OPT"]
+    alpha = refs["alpha"]
+    r_opt = refs["r_opt"]
 
     ravs, bonds = [], []
     for i in range(len(arr)):
