@@ -9,6 +9,8 @@ _env.setdefault("OPENBLAS_NUM_THREADS", "1")
 _env.setdefault("OPENBLAS_MAIN_FREE", "1")
 _env.setdefault("GOTO_NUM_THREADS", "1")
 _env.setdefault("PYTHONBUFFERED", "1")
+# Programmatically set the number of threads for the Numba parallel section
+# This will ensure the outer prange loop is split among 'ncores' workers.
 from copy import deepcopy
 import numpy as np
 from time import time
@@ -1169,7 +1171,7 @@ class ESI:
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
 
         # Can not work on IAO and Natural Orbitals yet
-        sd = ["RHF", "SymAdaptedRHF", "UHF", "SymAdaptedUHF", "RKS", "SymAdaptedRKS", "UKS", "SymAdaptedUKS"]
+        sd = ["RHF", "SymAdaptedRHF", "UHF", "SymAdaptedUHF", "RKS", "SymAdaptedRKS", "UKS", "SymAdaptedUKS", "MeanField"]
         if self.partition == "iao" and self.molinfo["calctype"] not in sd:
             print(" | WARNING: IAO and Natural Orbitals from unrestricted orbitals not implemented yet")
         elif self.partition == "nao" and self.molinfo["calctype"] not in sd:

@@ -26,7 +26,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
     partition = format_partition(partition)
     # UNRESTRICTED
-    if mf.__class__.__name__ in ("UHF", "UKS", "SymAdaptedUHF", "SymAdaptedUKS"):
+    if mf.__class__.__name__ in ("UHF", "UKS", "SymAdaptedUHF", "SymAdaptedUKS") or (hasattr(mf, "__name__") and mf.__name__ == "UHF"):
         # Getting specific information
         S = mf.get_ovlp()
         nocc_alpha = mf.mo_occ[0].astype(int)
@@ -110,12 +110,10 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
     # RESTRICTED
 
-    elif mf.__class__.__name__ in ("RHF", "RKS", "SymAdaptedRHF", "SymAdaptedRKS") or mf.__name__ == "RHF":
+    elif mf.__class__.__name__ in ("RHF", "RKS", "SymAdaptedRHF", "SymAdaptedRKS") or (hasattr(mf, "__name__") and mf.__name__ == "RHF"):
         # Getting specific information
         S = mf.get_ovlp()
-        print(mf.mo_coeff)
         coeff = mf.mo_coeff[:, mf.mo_occ > 0]
-        #exit()
 
         # Building the Atomic Overlap Matrices
 
@@ -125,18 +123,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 U_inv = lowdin(S)
             elif partition == "meta_lowdin":
                 from pyscf.lo.orth import restore_ao_character
-                if hasattr(mol, '_read_fchk'):
-                    mol._reorder = False
-                    mol._ovlp = None
-                    s1 = mol.intor_symmetric("int1e_ovlp")
-                    pre_orth_ao = restore_ao_character(mol, "ANO")
-                    from esipy.tools import permute_aos_cols, permute_aos_rows
-                    pre_orth_ao = permute_aos_rows(pre_orth_ao, mol)
-                    mol._reorder = True
-                    mol._ovlp = None
-                    s2 = mol.intor_symmetric("int1e_ovlp")
-                else:
-                    pre_orth_ao = restore_ao_character(mol, "ANO")
+                pre_orth_ao = restore_ao_character(mol, "ANO")
                 w = np.ones(pre_orth_ao.shape[1])
                 U_inv = nao._nao_sub(mol, w, pre_orth_ao, S)
             elif partition == "nao":
@@ -195,27 +182,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             if partition == "lowdin":
                 U_inv = lowdin(S)
             elif partition == "meta_lowdin":
-                # For FCHK-based molecules we need the overlap built in the
-                # original Gaussian ordering (no automatic PySCF reordering).
-                if hasattr(mol, '_read_fchk'):
-                    # Temporarily disable reordering and invalidate any cached
-                    # overlap so restore_ao_character() and downstream code
-                    # will build S in Gaussian order.
-                    prev_reorder = getattr(mol, '_reorder', True)
-                    mol._reorder = False
-                    # Force recompute of overlap if present
-                    if hasattr(mol, '_ovlp'):
-                        mol._ovlp = None
-                    from esipy.tools import restore_ao_character
-                    pre_orth_ao = restore_ao_character(mol, "ANO")
-                    # Restore reorder flag and invalidate cached overlap so
-                    # subsequent calls use the normal ordering unless the
-                    # caller explicitly requested otherwise.
-                    mol._reorder = prev_reorder
-                    mol._ovlp = None
-                else:
-                    from pyscf.lo.orth import restore_ao_character
-                    pre_orth_ao = restore_ao_character(mol, "ANO")
+                from pyscf.lo.orth import restore_ao_character
+                pre_orth_ao = restore_ao_character(mol, "ANO")
                 w = np.ones(pre_orth_ao.shape[0])
                 U_inv = nao._nao_sub(mol, w, pre_orth_ao, S)
             elif partition == "nao":
@@ -231,7 +199,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             # Special case IAO
         elif partition == "iao":
             # HF instance required to build the orthogonalization matrix
-            if myhf is None or hasattr(mf, "_read_fchk") is True:
+            if myhf is None:
                 raise NameError(
                     " | Could not calculate partition from Natural Orbitals calculation \n | Please provide HF reference object in 'myhf'")
             from pyscf.lo.iao import iao

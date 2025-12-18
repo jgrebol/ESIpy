@@ -1,25 +1,7 @@
 import numpy as np
 
-from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_distances, av1245_pairs
-from esipy._c_mci import has_c_module, compute_mci_sym, compute_mci_nosym, compute_mci_natorbs_sym, compute_mci_natorbs_nosym
-
-_HAS_C_MCI = has_c_module()
-
-
-# Small helper to call a function while temporarily setting OMP_NUM_THREADS (minimal helper)
-def _call_with_omp(ncores, fn, *args, **kwargs):
-    """Temporarily set OMP_NUM_THREADS to ncores if not already set, call fn and restore previous value."""
-    import os
-    prev = os.environ.get("OMP_NUM_THREADS")
-    if prev is None:
-        os.environ["OMP_NUM_THREADS"] = str(ncores)
-    try:
-        return fn(*args, **kwargs)
-    finally:
-        if prev is None:
-            os.environ.pop("OMP_NUM_THREADS", None)
-        else:
-            os.environ["OMP_NUM_THREADS"] = prev
+from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_distances, av1245_pairs, wf_type
+from esipy import mci as _mci
 
 
 ########## Iring ###########
@@ -73,189 +55,35 @@ def sequential_mci(arr, aom, partition):
     """
     Computes the MCI sequentially by computing the Iring without storing the permutations.
     Default option if no number of cores is specified.
-
-    :param arr: Contains the indices defining the ring connectivity.
-    :type arr: list of int
-    :param aom: Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
-    :type partition: str
-
-    :returns: MCI value for the given ring.
-    :rtype: float
     """
 
-    # If C module is available and aom is a list/array of matrices, prepare aom_for_ring and call C implementation
-    _HAS_C_MCI = True
-    if _HAS_C_MCI:
-        # aom may be a list where aom[i-1] corresponds to atom i -> build ordered list for ring arr
-        aom_for_ring = [aom[i - 1] for i in arr]
-        try:
-            if partition == 'mulliken' or partition == 'non-symmetric':
-                return compute_mci_nosym(aom_for_ring)
-            else:
-                return compute_mci_sym(aom_for_ring)
-        except Exception:
-            # if the C call fails, fall back to Python implementation below
-            pass
-
-    # If does not find C module, fallback to pure Python
-    from math import factorial
-    from itertools import permutations, islice
-
-    iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
-    if partition == 'mulliken' or partition == "non-symmetric":
-        # We account for twice the value for symmetric AOMs
-        val = 0.5 * sum(compute_iring(p, aom) for p in iterable2)
-        return val
-    else:  # Remove reversed permutations
-        iterable2 = (x for x in iterable2 if x[1] < x[-1])
-        val = sum(compute_iring(p, aom) for p in iterable2)
-        return val
-
+    # Delegate to esipy.mci.compute_mci with single core
+    return _mci.compute_mci(arr, aom, partition=partition, n_cores=1)
 
 def sequential_mci_no(arr, aom, partition):
     """
     Computes the MCI for correlated wavefunctions sequentially by computing the Iring without storing the permutations.
-    Default option if no number of cores is specified.
-
-    :param arr: Contains the indices defining the ring connectivity.
-    :type arr: list of int
-    :param aom: Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
-    :type partition: str
-
-    :returns: MCI value for the given ring.
-    :rtype: float
     """
 
-    if _HAS_C_MCI:
-        # aom is expected to be (aom_list, occ) for correlated case
-        aom_list, occ = aom
-        aom_for_ring = [aom_list[i - 1] for i in arr]
-        try:
-            if partition == 'mulliken' or partition == 'non-symmetric':
-                return compute_mci_natorbs_sym(aom_for_ring, occ)
-            else:
-                return compute_mci_natorbs_nosym(aom_for_ring, occ)
-        except Exception:
-            # if the C call fails, fall back to Python implementation below
-            pass
-
-    # If does not find C module, fallback to pure Python
-    from math import factorial
-    from itertools import permutations, islice
-
-    iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
-    if partition == 'mulliken' or partition == "non-symmetric":
-        # We account for twice the value for symmetric AOMs
-        val = 0.5 * sum(compute_iring_no(p, aom) for p in iterable2)
-        return val
-    else:  # Remove reversed permutations
-        iterable2 = (x for x in iterable2 if x[1] < x[-1])
-        val = sum(compute_iring_no(p, aom) for p in iterable2)
-        return val
+    # Delegate to esipy.mci.compute_mci (it handles NO preprocessing)
+    return _mci.compute_mci(arr, aom, partition=partition, n_cores=1)
 
 
 def multiprocessing_mci(arr, aom, ncores, partition):
     """
        Computes the MCI by generating all the permutations for a later distribution along the specified number of cores.
-
-       :param arr: Contains the indices defining the ring connectivity.
-       :type arr: list of int
-       :param aom: Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-       :type aom: list of matrices
-       :param ncores: Specifies the number of cores for multi-processing MCI calculation.
-       :type ncores: int
-       :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
-       :type partition: str
-
-       :returns: MCI value for the given ring.
-       :rtype: float
     """
 
-    # If a C implementation is available, prefer it
-    # We set OMP_NUM_THREADS to ncores only if the user hasn't already set it.
-    _HAS_C_MCI = True
-    if _HAS_C_MCI:
-        aom_for_ring = [aom[i - 1] for i in arr]
-        try:
-            if partition == 'mulliken' or partition == 'non-symmetric':
-                return _call_with_omp(ncores, compute_mci_nosym, aom_for_ring)
-            else:
-                return _call_with_omp(ncores, compute_mci_sym, aom_for_ring)
-        except Exception:
-            # if the C call fails, fall back to Python implementation below
-            pass
+    # Delegate to centralized compute_mci with requested number of cores
+    return _mci.compute_mci(arr, aom, partition=partition, n_cores=ncores)
 
-    from multiprocessing import Pool
-    from math import factorial
-    from functools import partial
-    from itertools import permutations, islice
-
-    pool = Pool(processes=ncores)
-    dumb = partial(compute_iring, aom=aom)
-    chunk_size = 50000
-
-    iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
-    if partition == 'mulliken' or partition == "non-symmetric":
-        # We account for twice the value for symmetric AOMs
-        val = 0.5 * sum(pool.imap(dumb, iterable2, chunk_size))
-        return val
-    else:  # Remove reversed permutations
-        iterable2 = (x for x in iterable2 if x[1] < x[-1])
-        val = sum(pool.imap(dumb, iterable2, chunk_size))
-        return val
 
 def multiprocessing_mci_no(arr, aom, ncores, partition):
     """
        Computes the MCI for correlated wavefunctions by generating all the permutations for a later distribution along the specified number of cores.
-
-       :param arr: Contains the indices defining the ring connectivity.
-       :type arr: list of int
-       :param aom: Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-       :type aom: list of matrices
-       :param ncores: Specifies the number of cores for multi-processing MCI calculation.
-       :type ncores: int
-       :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
-       :type partition: str
-
-       :returns: MCI value for the given ring.
-       :rtype: float
     """
 
-    # If a C implementation is available, prefer it
-    if _HAS_C_MCI:
-        aom_list, occ = aom
-        aom_for_ring = [aom_list[i - 1] for i in arr]
-        try:
-            if partition == 'mulliken' or partition == 'non-symmetric':
-                return _call_with_omp(ncores, compute_mci_natorbs_sym, aom_for_ring, occ)
-            else:
-                return _call_with_omp(ncores, compute_mci_natorbs_nosym, aom_for_ring, occ)
-        except Exception:
-            # if the C call fails, fall back to Python implementation below
-            pass
-
-    from multiprocessing import Pool
-    from math import factorial
-    from functools import partial
-    from itertools import permutations, islice
-
-    pool = Pool(processes=ncores)
-    dumb = partial(compute_iring_no, aom=aom)
-    chunk_size = 50000
-
-    iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
-    if partition == "mulliken":
-        # We account for twice the value for symmetric AOMs
-        val = 0.5 * sum(pool.imap(dumb, iterable2, chunk_size))
-        return val
-    else:  # Remove reversed permutations
-        iterable2 = (x for x in iterable2 if x[1] < x[-1])
-        val = sum(pool.imap(dumb, iterable2, chunk_size))
-        return val
+    return _mci.compute_mci(arr, aom, partition=partition, n_cores=ncores)
 
 ########### AV1245 ###########
 

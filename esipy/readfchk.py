@@ -141,20 +141,15 @@ def read_atomic_symbols(z):
 class Mole2:
     """Light wrapper: parse FCHK using existing parser, build a PySCF Mole.
 
-    Attributes:
-      path: fchk path
-      fchk: parsed `rchk.Mole2` instance (the original parser's object)
-      pyscf_mol: the pyscf.gto.Mole built from the fchk info
-      _bas/_env/_atm: taken from pyscf_mol after build()
-      natm, nao, atomic_symbols, atomic_numbers, coord, basis, charge, spin
+    Now supports the .build() lifecycle method.
     """
 
     def __init__(self, path):
         self.path = path
-        # Parse FCHK using local reader and build a small FCHK-side molecule
+        # 1. Parse FCHK using local reader
         self.fchk = FchkMolecule(path)
 
-        # Extract basic metadata from the parsed FCHK object
+        # 2. Extract basic metadata
         self.atomic_numbers = getattr(self.fchk, 'atomic_numbers', None)
         self.atomic_symbols = getattr(self.fchk, 'atomic_symbols', None)
         self.natm = int(getattr(self.fchk, 'natoms', getattr(self.fchk, 'natm', len(self.atomic_numbers))))
@@ -164,15 +159,16 @@ class Mole2:
         self.nelec = int(getattr(self.fchk, 'nelec', self.nalpha + self.nbeta))
         self.spin = int(getattr(self.fchk, 'spin', self.nalpha - self.nbeta))
         self.cart = bool(getattr(self.fchk, 'cart', False))
-        coords = np.asarray(self.fchk.coord)
-        self.coord = coords
         self.nummo = int(getattr(self.fchk, 'nummo', 0))
         self.numao = int(getattr(self.fchk, 'numao', 0))
-
-        # basis name string from FCHK header (if present) -> use to instruct PySCF
         basis_tokens = read_level_theory(self.path)
         basis_name = basis_tokens[-1] if basis_tokens else None
         self.basis = basis_name
+
+        coords = np.asarray(self.fchk.coord)
+        self.coord = coords
+
+        # 3. Construct Basis Dictionary
         self.fchk_basis_arrays = {
             'mssh': getattr(self.fchk, 'mssh', None),
             'mnsh': getattr(self.fchk, 'mnsh', None),
@@ -182,39 +178,60 @@ class Mole2:
             'c2': getattr(self.fchk, 'c2', None),
             'ncshell': getattr(self.fchk, 'ncshell', None),
         }
-        self.basis = make_basis(self)
+        # Note: self.basis becomes the dictionary PySCF needs
+        self._basis = make_basis(self)
 
-        # Building the PySCF Mole from the FCHK info
-        pyscf_mol = gto.M()
+        # 4. Initialize pyscf.gto.M but DO NOT build yet
+        self.pyscf_mol = gto.Mole()
+
         atom_list = []
         for sym, xyz in zip(self.atomic_symbols, coords):
             atom_list.append((sym, (float(xyz[0]), float(xyz[1]), float(xyz[2]))))
 
-        pyscf_mol.atom = atom_list
-        pyscf_mol.basis = self.basis
+        self.pyscf_mol.atom = atom_list
+        self.pyscf_mol.basis = self._basis
+        self.pyscf_mol.charge = int(self.charge)
+        self.pyscf_mol.spin = int(self.spin)
+        self.pyscf_mol.cart = self.cart
+        self.pyscf_mol.unit = 'Bohr'
+        self.pyscf_mol.verbose = 0
+        self.pyscf_mol.symmetry = False
 
-        # preserve spin/charge
-        pyscf_mol.charge = int(self.charge)
-        pyscf_mol.spin = int(self.spin) if hasattr(self, 'spin') else 0
-        pyscf_mol.cart = getattr(self.fchk, 'cart', False)
-        pyscf_mol.unit = 'Bohr'
-        pyscf_mol.verbose = 0
-        # avoid symmetry auto-detection that may reorder things
-        pyscf_mol.symmetry = False
+        # Expose atom list on self to match PySCF API before build
+        self.atom = self.pyscf_mol.atom
 
-        pyscf_mol.build()
+        # Placeholders for build-dependent attributes
+        self._bas = None
+        self._env = None
+        self._atm = None
+        self.nao = 0
+        self.nbas = 0
 
-        self.pyscf_mol = pyscf_mol
+    def build(self, *args, **kwargs):
+        """
+        Finalize the PySCF Mole construction.
+        Calculates integrals setup (_bas, _env) and returns self.
+        """
+        # Forward arguments to the internal PySCF build
+        self.pyscf_mol.build(*args, **kwargs)
 
-        # PySCF-internal bas/env/atm (may be in PySCF ordering)
-        self._bas = getattr(pyscf_mol, '_bas', None)
-        self._env = getattr(pyscf_mol, '_env', None)
-        self._atm = getattr(pyscf_mol, '_atm', None)
-        self.nao = int(getattr(pyscf_mol, 'nao_nr', lambda: pyscf_mol.nao)()) if hasattr(pyscf_mol, 'nao_nr') else int(getattr(pyscf_mol, 'nao', 0))
-        self.nbas = int(getattr(pyscf_mol, 'nbas', 0))
-        # keep a reference to original fchk arrays in case they are needed
+        # Sync internal attributes from the built PySCF object to this wrapper
+        self._bas = getattr(self.pyscf_mol, '_bas', None)
+        self._env = getattr(self.pyscf_mol, '_env', None)
+        self._atm = getattr(self.pyscf_mol, '_atm', None)
 
-    # Convenience methods used by code expecting Mole-like API
+        # Helper to safely get nao
+        get_nao = getattr(self.pyscf_mol, 'nao_nr', lambda: self.pyscf_mol.nao)
+        self.nao = int(get_nao())
+        self.nbas = int(getattr(self.pyscf_mol, 'nbas', 0))
+
+        # Update atoms in case build() did anything to them (though symmetry is Off)
+        self.atom = self.pyscf_mol.atom
+
+        return self
+
+    # --- Convenience methods (proxy to internal pyscf_mol) ---
+
     def atom_coords(self):
         return self.pyscf_mol.atom_coords()
 
@@ -250,6 +267,17 @@ class Mole2:
 
     def nao_nr(self):
         return self.pyscf_mol.nao_nr()
+
+    def copy(self):
+        from copy import deepcopy
+        return deepcopy(self)
+
+    def has_ecp(self):
+        return self.pyscf_mol.has_ecp()
+
+    def _add_suffix(self, intor):
+        return self.pyscf_mol._add_suffix(intor)
+
 
 class MeanField2:
     """Thin wrapper that exposes SCF object built by PySCF, but uses MO coeffs
@@ -504,10 +532,10 @@ def make_basis(mf):
 
     return final_basis_dict
 
-
 def readfchk(path):
     """Convenience function to read FCHK and return Mole2 and MeanField2 objects.
     """
     mol2 = Mole2(path)
+    mol2.build()
     mf2 = MeanField2(path, mol2)
     return mol2, mf2

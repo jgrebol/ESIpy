@@ -1,6 +1,7 @@
 import os
 import re
 import numpy as np
+
 from esipy.tools import wf_type, format_short_partition, load_file
 
 
@@ -66,27 +67,18 @@ def read_aoms(path='.'):
                         if not line:
                             break
                         mat_lines.extend([float(num) for num in line.split()])
-                        print(len(mat_lines))
 
                     # We first get the number of shape of the alpha-alpha matrix
-                    print(mat_lines)
-                    print(len(mat_lines))
                     na, nb = read_orbs(intfile_path)
                     nt = na + nb
-                    print(na, nb, nt)
 
                     # Mulliken works on non-symmetric, square AOMs
-                    if na != nb:
-                        shape = nt
-                    else:
-                        shape = na
-
                     if mul:
-                        matrix = np.array(mat_lines).reshape((shape, shape))
+                        matrix = np.array(mat_lines).reshape((nt, nt))
                     # Symmetric AOMs work on lower-triangular matrices
                     else:
-                        low_matrix = np.zeros((shape, shape))
-                        low_matrix[np.tril_indices(shape)] = mat_lines
+                        low_matrix = np.zeros((nt, nt))
+                        low_matrix[np.tril_indices(nt)] = mat_lines
                         matrix = low_matrix + low_matrix.T - np.diag(low_matrix.diagonal())
 
                     if wf == "rest" or wf == "no":
@@ -110,7 +102,7 @@ def read_aoms(path='.'):
 
 ########### WRITING THE INPUT FOR THE ESI-3D CODE FROM THE AOMS ###########
 
-def write_aoms(mol, mf, name, aom, ring=None, partition=None):
+def write_aoms(mol, mf, name, aom, ring=[], partition=None):
     """
         Writes the input for the ESI-3D code from the AOMs.
 
@@ -138,20 +130,12 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
     """
     from copy import deepcopy
 
-    # If partition is a list, process each partition value one at a time
-    if isinstance(partition, list):
-        for part in partition:
-            write_aoms(mol, mf, name, aom, ring, part)
-        return
-
     if isinstance(aom, str):
         aom = load_file(aom)
     if ring is None:
-        ringcopy = []
+        pass
     elif isinstance(ring[0], int):
-        ringcopy = [ring]
-    else:
-        ringcopy = deepcopy(ring)
+        ring = [ring]
 
     wf = wf_type(aom)
     if wf == "no":
@@ -159,6 +143,8 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
 
     # Obtaining information for the files
 
+    symbols = [mol.atom_symbol(i) for i in range(mol.natm)]
+    atom_numbers = [i + 1 for i in range(mol.natm)]
     if wf == "unrest":
         nalpha = [np.trace(aom_alpha) for aom_alpha in aom[0]]
         nbeta = [np.trace(aom_beta) for aom_beta in aom[1]]
@@ -171,7 +157,6 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
 
     # Creating a new directory for the calculation
 
-    atom_numbers = [i + 1 for i in range(mol.natm)]
     symbols = [mol.atom_symbol(i) for i in range(mol.natm)]
     fragidx = mol.natm + 1
     fragmap = {}
@@ -180,7 +165,7 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
     ringcopy = deepcopy(ring)
 
     # Mark fragments in the order they are defined
-    if ringcopy:
+    if ring:
         for i, sublist in enumerate(ringcopy):
             for j, element in enumerate(sublist):
                 if isinstance(element, set):
@@ -192,7 +177,7 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
 
     shortpart = format_short_partition(partition)
 
-    new_dir_name = name + "_" + shortpart + "_atomicfiles"
+    new_dir_name = name + "_" + shortpart
     symbols = [s.lower() for s in symbols]
     titles = [symbols[i] + str(atom_numbers[i]) for i in range(mol.natm)]  # Setting the title of the files
     new_dir_path = os.path.join(os.getcwd(), new_dir_name)
@@ -379,6 +364,8 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
             if not domci:
                 f.write("$NOMCI\n")
             if dofrag:
+                if len(ring) != 1:
+                    raise ValueError(" | To write fragments, only one ring can be specified.")
                 f.write("$FRAGMENTS\n")
                 f.write(f"{len(fragmap)}\n")
                 for fragatm in fragmap.keys():
@@ -390,8 +377,7 @@ def write_aoms(mol, mf, name, aom, ring=None, partition=None):
                 f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
                 for sublist in ring:
                     f.write(str(len(sublist)) + "\n")
-                    mapped = [fragmap.get(tuple(x), x) if isinstance(x, set) else x for x in sublist]
-                    f.write(" ".join(str(value) for value in mapped))
+                    f.write(" ".join(str(value) for value in sublist))
                     f.write("\n")
             f.write("$AV1245\n")
             f.write("$FULLOUT\n")
@@ -506,7 +492,7 @@ def read_molinfo(path):
                 found_energy = True
     molinfo["symbols"] = symbs
     molinfo["atom_numbers"] = atm_nums
-    molinfo["geom"] = read_wfx_info(path) if any(f.endswith('.wfx') for f in os.listdir(path)) else None
+    molinfo["geom"] = read_wfx_info(path)
 
     return molinfo
 

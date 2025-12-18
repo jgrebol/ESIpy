@@ -109,9 +109,9 @@ def main():
 
     # Construct ESI for each partition
     for partition in partitions:
-        if partition == "mulliken" or partition == "lowdin" and inp.mode in ['readint', 'readaoms'] and rings == "find":
-            print(f" Could not build graph to find rings with partition {partition.upper()}. Input manually or use other schemes.")
-            continue
+        #if partition == "mulliken" or partition == "lowdin" and inp.mode in ['readint', 'readaoms'] and rings == "find":
+        #    print(f" Could not build graph to find rings with partition {partition.upper()}. Input manually or use other schemes.")
+        #    continue
         if inp.mode == 'readaoms':
             # Construct aom and molinfo filenames with partition name
             aom = inp.aomname + '_' + partition + '.aoms'
