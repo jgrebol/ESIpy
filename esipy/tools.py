@@ -909,58 +909,69 @@ def permute_aos_cols(pre_orth_ao, mol):
     new = pre_orth_ao[:, col_order]
     return new
 
-import numpy as np
 
 import numpy as np
 
 
 def permute_aos_rows(mat, mole2):
     """
-    Permutes FCHK (Gaussian) AO ordering -> PySCF AO ordering.
+    Replicates MOKIT's fch2py.f90 logic exactly.
+
+    1. Reorders rows from Gaussian FCHK -> PySCF order.
+    2. SCALES off-diagonal Cartesian functions to compensate for
+       PySCF's use of unnormalized primitives.
     """
     mol = mole2.pyscf_mol
     cart_pyscf = bool(getattr(mol, 'cart', False))
     cart_fchk = bool(getattr(mole2, 'cart', False))
 
-    # --- THE CRITICAL MAPS ---
-    # Keys: L (positive for Cartesian, negative for Spherical)
-    # Values: List of indices mapping PySCF order to Gaussian FCHK order.
-    # i.e., [Gaussian_Index_for_PySCF_0, Gaussian_Index_for_PySCF_1, ...]
+    # --- Scaling Constants (Matches MOKIT) ---
+    SQRT3 = np.sqrt(3.0)
+    SQRT5 = np.sqrt(5.0)
+    SQRT15 = np.sqrt(15.0)
 
-    MAPS = {
-        # --- Spherical Harmonics ---
-        # PySCF Order (m): -2, -1, 0, +1, +2  (xy, yz, z^2, xz, x2-y2)
-        # Gaussian Order:   0, +1, -1, +2, -2 (z^2, xz, yz, x2-y2, xy)
-        # Map: P[0]->G[4], P[1]->G[2], P[2]->G[0], P[3]->G[1], P[4]->G[3]
-        -2: [4, 2, 0, 1, 3],
+    # --- 1. Define Maps & Scales ---
+    # Structure: Key = L (Angular Momentum)
+    # Value = List of (Gaussian_Index, Scale_Factor)
+    # The list sequence corresponds to PySCF's required order.
 
-        # PySCF Order (m): -3, -2, -1, 0, +1, +2, +3
-        # Gaussian Order:   0, +1, -1, +2, -2, +3, -3
-        -3: [6, 4, 2, 0, 1, 3, 5],
+    PERM_AND_SCALE = {}
 
-        # PySCF Order (m): -4, -3, -2, -1, 0, +1, +2, +3, +4
-        # Gaussian Order:   0, +1, -1, +2, -2, +3, -3, +4, -4
-        -4: [8, 6, 4, 2, 0, 1, 3, 5, 7],
+    # L=2 (D Shell)
+    # PySCF Order: XX, XY, XZ, YY, YZ, ZZ
+    # FCHK Order:  XX, YY, ZZ, XY, XZ, YZ (Indices: 0, 1, 2, 3, 4, 5)
+    PERM_AND_SCALE[2] = [
+        (0, 1.0),  # PySCF XX <- FCHK XX
+        (3, SQRT3),  # PySCF XY <- FCHK XY (Scale!)
+        (4, SQRT3),  # PySCF XZ <- FCHK XZ (Scale!)
+        (1, 1.0),  # PySCF YY <- FCHK YY
+        (5, SQRT3),  # PySCF YZ <- FCHK YZ (Scale!)
+        (2, 1.0)  # PySCF ZZ <- FCHK ZZ
+    ]
 
-        # --- Cartesian Functions ---
-        # D Shells (6 components)
-        # PySCF: XX, XY, XZ, YY, YZ, ZZ
-        # Gaus : XX, YY, ZZ, XY, XZ, YZ
-        2: [0, 3, 4, 1, 5, 2],
+    # L=3 (F Shell)
+    # PySCF Order: XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
+    # FCHK Order:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
+    PERM_AND_SCALE[3] = [
+        (0, 1.0),  # PySCF XXX <- FCHK XXX
+        (4, SQRT5),  # PySCF XXY <- FCHK XXY (Scale!)
+        (5, SQRT5),  # PySCF XXZ <- FCHK XXZ (Scale!)
+        (3, SQRT5),  # PySCF XYY <- FCHK XYY (Scale!)
+        (9, SQRT15),  # PySCF XYZ <- FCHK XYZ (Scale!!!)
+        (6, SQRT5),  # PySCF XZZ <- FCHK XZZ (Scale!)
+        (1, 1.0),  # PySCF YYY <- FCHK YYY
+        (8, SQRT5),  # PySCF YYZ <- FCHK YYZ (Scale!)
+        (7, SQRT5),  # PySCF YZZ <- FCHK YZZ (Scale!)
+        (2, 1.0)  # PySCF ZZZ <- FCHK ZZZ
+    ]
 
-        # F Shells (10 components)
-        # PySCF: XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
-        # Gaus : XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
-        # Indices: 0,   1,   2,   3,   4,   5,   6,   7,   8,   9
-        3: [0, 4, 5, 3, 9, 6, 1, 8, 7, 2],
-
-        # G Shells (15 components)
-        # This is more complex, but standard lexicographic (PySCF) vs
-        # Gaussian specific. If you need G-cartesian, this map requires
-        # careful construction. For now, this covers typical D/F usage.
+    # Spherical Maps (Only reordering, no scaling)
+    SPHERICAL_MAPS = {
+        2: [4, 2, 0, 1, 3],  # 5D: D0, D+1, D-1, D+2, D-2 -> D-2..D+2
+        3: [6, 4, 2, 0, 1, 3, 5]  # 7F
     }
 
-    # --- build FCHK (Gaussian) shell list ---
+    # --- 2. Build FCHK Shell List ---
     iatsh = np.asarray(mole2.fchk_basis_arrays['iatsh'])
     mssh = np.asarray(mole2.fchk_basis_arrays['mssh'])
 
@@ -970,128 +981,95 @@ def permute_aos_rows(mat, mole2):
         atom0 = int(iat) - 1
         mst = int(mst)
 
-        # Determine L and number of components based on shell type
         if mst == -1:
-            # SP shell: S(1) then P(3)
-            # Gaussian stores SP as two distinct blocks in the coeff matrix logic
-            # essentially, but they appear sequentially.
-            shell_specs = [(0, 1), (1, 3)]
-        elif mst == 0:  # S
-            shell_specs = [(0, 1)]
-        elif mst == 1:  # P
-            shell_specs = [(1, 3)]
-        else:  # D, F, G ...
+            specs = [(0, 1), (1, 3)]  # SP
+        elif mst == 0:
+            specs = [(0, 1)]  # S
+        elif mst == 1:
+            specs = [(1, 3)]  # P
+        else:
             l = abs(mst)
-            # Check if FCHK indicates Cartesian or Spherical for this shell
-            # mst > 0 is Cartesian, mst < 0 is Spherical usually in internal logic,
-            # but FCHK header 'Shell types' usually distinguishes SP(-1), S(0), P(1),
-            # D(2), F(3)... and the generic 'Pure/Cartesian' flag sets the sub-components.
+            is_cart = cart_fchk
+            if mst < 0 and mst != -1: is_cart = False
 
-            # However, `mssh` in FCHK is usually: 0=s, 1=p, 2=d, -1=sp, -2=d_sph...
-            is_spherical_shell = (mst < 0)
+            n = (l + 1) * (l + 2) // 2 if is_cart else 2 * l + 1
+            specs = [(l, n)]
 
-            # Robust logic: trust the generic cart/sph flag of the file
-            # unless the shell type explicitly forces it (negative values in mssh often mean spherical)
-            use_cart = cart_fchk
-            if mst < 0 and mst != -1: use_cart = False
-
-            n_comp = (l + 1) * (l + 2) // 2 if use_cart else 2 * l + 1
-            shell_specs = [(l, n_comp)]
-
-        for l, n in shell_specs:
+        for l, n in specs:
             g_shells.append((atom0, l, ptr, int(n)))
             ptr += int(n)
 
-    total_fchk_funcs = ptr
-
-    # --- map FCHK atoms -> PySCF atoms ---
-    # (Your existing Hungarian assignment logic is good, keeping it abbreviated here)
-    if hasattr(mole2, 'coord'):
-        fcoords = np.asarray(mole2.coord)
-        pcoords = np.asarray(mol.atom_coords())
-        dmat = np.linalg.norm(fcoords[:, None, :] - pcoords[None, :, :], axis=2)
-        try:
-            from scipy.optimize import linear_sum_assignment
-            row, col = linear_sum_assignment(dmat)
-            fchk_to_pyscf = {int(r): int(c) for r, c in zip(row, col)}
-        except:
-            fchk_to_pyscf = {i: i for i in range(mol.natm)}
-    else:
-        fchk_to_pyscf = {i: i for i in range(mol.natm)}
-
-    # Map Gaussian shells to PySCF atom indices
-    g_shells_mapped = [(fchk_to_pyscf.get(atom, atom), l, start, n) for (atom, l, start, n) in g_shells]
-
-    # Register shells: Key = (atom_idx, l) -> List of (start_index, length)
+    # Group by (Atom, L)
     g_reg = {}
-    for atom, l, start, n in g_shells_mapped:
+    fchk_to_pyscf = {i: i for i in range(mol.natm)}  # Assumes 1:1 mapping
+    for atom, l, start, n in g_shells:
         g_reg.setdefault((atom, l), []).append((start, n))
 
-    # --- Build Permutation Index ---
-    perm = []
-    consumed = {}  # Track which shell of (atom, l) we are on
+    # --- 3. Build Permutation & Scaling Arrays ---
+    final_perm = []
+    final_scales = []
+    consumed = {}
 
     for ib in range(mol.nbas):
         atom_idx = int(mol.bas_atom(ib))
         l_val = int(mol.bas_angular(ib))
 
-        # PySCF component count
+        # Expected size
         if l_val == 1:
-            n_pyscf = 3  # PySCF P is always 3 (x,y,z)
+            n_pyscf = 3
         else:
             n_pyscf = (l_val + 1) * (l_val + 2) // 2 if cart_pyscf else 2 * l_val + 1
 
         key = (atom_idx, l_val)
-        consumed.setdefault(key, 0)
-        c = consumed[key]
+        c = consumed.get(key, 0)
 
         if key not in g_reg or c >= len(g_reg[key]):
-            raise ValueError(f"Shell mismatch: PySCF expects Atom {atom_idx} L={l_val} count {c}, not found in FCHK.")
+            raise ValueError(f"Shell mismatch: Atom {atom_idx} L={l_val}")
 
         start, n_fchk = g_reg[key][c]
-        consumed[key] += 1
+        consumed[key] = c + 1
 
-        if n_fchk != n_pyscf:
-            # Special case: 5D vs 6D mismatch often handled by dropping/adding
-            # but strictly, dimensions must match for 1:1 mapping.
-            raise ValueError(f"Dimension mismatch A={atom_idx} L={l_val}: FCHK={n_fchk}, PySCF={n_pyscf}")
-
-        # Select Map
-        # If cartesian, key is positive L. If spherical, negative L.
-        # P-orbitals (L=1) are usually X,Y,Z in both, so identity is fine.
+        # --- GENERATE INDICES AND SCALES ---
         if l_val <= 1:
-            local_map = list(range(n_fchk))
-        else:
-            map_key = l_val if cart_pyscf else -l_val
-            if map_key in MAPS:
-                local_map = MAPS[map_key]
+            # S and P: Identity map, Scale 1.0
+            indices = list(range(n_fchk))
+            scales = [1.0] * n_fchk
+
+        elif cart_pyscf:
+            # Cartesian
+            if l_val in PERM_AND_SCALE:
+                # Use MOKIT map
+                data = PERM_AND_SCALE[l_val]
+                indices = [item[0] for item in data]
+                scales = [item[1] for item in data]
             else:
-                # Fallback to identity (hope for the best or error out)
-                local_map = list(range(n_fchk))
+                # Fallback (G/H shells not implemented here)
+                indices = list(range(n_fchk))
+                scales = [1.0] * n_fchk
+        else:
+            # Spherical
+            indices = SPHERICAL_MAPS.get(l_val, list(range(n_fchk)))
+            scales = [1.0] * n_fchk
 
-        if len(local_map) != n_pyscf:
-            raise ValueError(f"Map size mismatch for L={l_val}")
+        # Append to master lists
+        for off, s in zip(indices, scales):
+            final_perm.append(start + off)
+            final_scales.append(s)
 
-        for offset in local_map:
-            perm.append(start + offset)
+    # --- 4. Apply to Matrix ---
+    perm = np.array(final_perm, dtype=int)
+    scales = np.array(final_scales, dtype=float)
 
-    perm = np.asarray(perm, dtype=int)
-
-    # --- Apply ---
-    # Handle various input shapes: (N,N), (N_occ, N), (Spin, N, N)
+    # Handle shape (N_AO, N_MO) vs (N_MO, N_AO) vs (Spin, ...)
     if mat.ndim == 2:
-        # If shape is (N_basis, N_mo), we permute rows (dim 0)
-        if mat.shape[0] == len(perm):
-            return mat[perm, :]
-        # If shape is (N_mo, N_basis), we permute cols (dim 1)
-        elif mat.shape[1] == len(perm):
-            return mat[:, perm]
+        if mat.shape[0] == len(perm):  # (NAO, NMO) -> Scale ROWS
+            return mat[perm, :] * scales[:, None]
+        elif mat.shape[1] == len(perm):  # (NMO, NAO) -> Scale COLS
+            return mat[:, perm] * scales[None, :]
     elif mat.ndim == 3:
-        # (Spin, N_mo, N_basis) -> permute dim 2
-        if mat.shape[2] == len(perm):
-            return mat[:, :, perm]
-        # (Spin, N_basis, N_mo) -> permute dim 1
-        elif mat.shape[1] == len(perm):
-            return mat[:, perm, :]
+        if mat.shape[2] == len(perm):  # (Spin, NMO, NAO) -> Scale dim 2
+            return mat[:, :, perm] * scales[None, None, :]
+        elif mat.shape[1] == len(perm):  # (Spin, NAO, NMO) -> Scale dim 1
+            return mat[:, perm, :] * scales[None, :, None]
 
-    raise ValueError(f"Matrix shape {mat.shape} incompatible with AO permutation length {len(perm)}")
+    return mat

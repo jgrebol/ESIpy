@@ -21,12 +21,14 @@ This module intentionally makes minimal changes and is a compatibility shim.
 import os
 import numpy as np
 from pyscf import gto, scf
+from scipy.linalg import fractional_matrix_power
 
 # Re-use parsing helpers from the original readfchk module
 from esipy.tools import permute_aos_rows
 
 # --- Embedded lightweight FCHK reader helpers (taken/adapted from readfchk.py) ---
 _readers = {}
+
 
 class FchkReader:
     def __init__(self, path):
@@ -136,6 +138,7 @@ def read_atomic_symbols(z):
     }
     return [z_to_symbol[int(i)] for i in z]
 
+
 # --- End embedded reader helpers ---
 
 class Mole2:
@@ -158,12 +161,16 @@ class Mole2:
         self.nbeta = int(getattr(self.fchk, 'nbeta', getattr(self.fchk, 'nbeta', 0)))
         self.nelec = int(getattr(self.fchk, 'nelec', self.nalpha + self.nbeta))
         self.spin = int(getattr(self.fchk, 'spin', self.nalpha - self.nbeta))
-        self.cart = bool(getattr(self.fchk, 'cart', False))
+
+        # Propagate cartesian setting detected in FchkMolecule
+        self.cart = getattr(self.fchk, 'cart', False)
+
         self.nummo = int(getattr(self.fchk, 'nummo', 0))
         self.numao = int(getattr(self.fchk, 'numao', 0))
         basis_tokens = read_level_theory(self.path)
         basis_name = basis_tokens[-1] if basis_tokens else None
         self.basis = basis_name
+        self.verbose = 0
 
         coords = np.asarray(self.fchk.coord)
         self.coord = coords
@@ -289,21 +296,16 @@ class MeanField2:
         self.mole2 = mole2
         self.mol = mole2.pyscf_mol
 
-        # Determine whether closed or open shell from FCHK
-        self.nbasis = self.mole2.nao
+        # Basic dimensions
+        self.nao = self.mole2.numao  # AOs (Basis functions)
+        self.nummo = self.mole2.nummo  # Independent functions
+
         self.natm = self.mole2.natm
-        self.cart = getattr(self.mole2.fchk, 'cart', False)
-        self.nao = self.mole2.numao
         self.nalpha = int(getattr(self.mole2.fchk, 'nalpha', 0))
         self.nbeta = int(getattr(self.mole2.fchk, 'nbeta', 0))
-        self.nummo = int(getattr(self.mole2.fchk, 'nummo', 0))
-        self.numao = int(getattr(self.mole2.fchk, 'numao', 0))
-        nalpha = self.nalpha
-        nbeta = self.nbeta
-        nocc_alpha = nalpha // 2.
-        nocc_beta = nbeta // 2.
         self.e_tot = float(getattr(self.mole2.fchk, 'total_energy', 0.0))
-        if nalpha == nbeta:
+
+        if self.nalpha == self.nbeta:
             # Restricted
             self._scf = scf.RHF(self.mol)
             self.__name__ = "RHF"
@@ -311,35 +313,47 @@ class MeanField2:
             self._scf = scf.UHF(self.mol)
             self.__name__ = "UHF"
 
-
         # Read MO coefficients from FCHK (Gaussian order) and reshape
-        wf = 'rest' if nalpha == nbeta else 'unrest'
+        wf = 'rest' if self.nalpha == self.nbeta else 'unrest'
         if wf == 'rest':
             mo_flat = read_list_from_fchk('Alpha MO coefficients', path)
             if len(mo_flat) == 0:
                 raise RuntimeError('No MO coefficients found in FCHK')
-            mo_arr = np.array(mo_flat, dtype=float).reshape(self.nummo, self.numao).T
+            # Reshape based on declared independent functions
+            mo_arr = np.array(mo_flat, dtype=float).reshape(self.nummo, self.nao).T
             mo_arr = permute_aos_rows(mo_arr, self.mole2)
-            s = self.mole2.intor("int1e_ovlp")
-            self.mo_coeff = mo_arr
-            mo_arr = mo_arr[:, :int((self.nalpha + self.nbeta) // 2)]
-            #print(2*np.trace(mo_arr @ mo_arr.T @ s))
-            #exit()
-            self.mo_occ = np.array([2.] * (int(self.nalpha + self.nbeta) // 2) + [0.] * (self.nao - (int(self.nalpha + self.nbeta) // 2)))
+            s = self.mol.intor_symmetric("int1e_ovlp")
+            self.mo_coeff = self._orthogonalize(mo_arr, s)
+
+            # Use self.nummo for occupancy vector length
+            nocc = (self.nalpha + self.nbeta) // 2
+            self.mo_occ = np.zeros(self.nummo)
+            self.mo_occ[:nocc] = 2.0
         else:
             # For simplicity, only handle alpha coefficients then beta similarly
             mo_flat_a = read_list_from_fchk('Alpha MO coefficients', path)
             mo_flat_b = read_list_from_fchk('Beta MO coefficients', path)
-            nummo = int(getattr(self.mole2.fchk, 'nummo', len(mo_flat_a) // int(self.mole2.nao)))
-            numao = int(self.mole2.nao)
-            mo_arr_a = np.array(mo_flat_a, dtype=float).reshape(nummo, numao).T
-            mo_arr_b = np.array(mo_flat_b, dtype=float).reshape(nummo, numao).T
+
+            mo_arr_a = np.array(mo_flat_a, dtype=float).reshape(self.nummo, self.nao).T
+            mo_arr_b = np.array(mo_flat_b, dtype=float).reshape(self.nummo, self.nao).T
             mo_arr_a = permute_aos_rows(mo_arr_a, self.mole2)
             mo_arr_b = permute_aos_rows(mo_arr_b, self.mole2)
             mo_arr = [mo_arr_a, mo_arr_b]
             self.mo_coeff = mo_arr
-            self.mo_occ = [1] * nocc_alpha + [1] * nocc_beta + [0] * (
-                    len(self.alpha_orbital_energies) + self.nao - nocc_alpha - nocc_beta)
+
+            self.mo_occ = [np.zeros(self.nummo), np.zeros(self.nummo)]
+            self.mo_occ[0][:self.nalpha] = 1.0
+            self.mo_occ[1][:self.nbeta] = 1.0
+
+    def _orthogonalize(self, c, s):
+        """
+        Performs Löwdin Orthogonalization.
+        Transforms coefficients C such that C.T @ S @ C = Identity.
+        """
+        s_mo = np.dot(c.T, np.dot(s, c))
+        x = fractional_matrix_power(s_mo, -0.5)
+
+        return np.dot(c, x)
 
     def make_rdm1(self, ao_repr=True):
         # Simple density from mo_coeff and mo_occ if available (RHF case)
@@ -348,27 +362,18 @@ class MeanField2:
         if isinstance(self.mo_coeff, list):
             # UHF
             ca, cb = self.mo_coeff
-            occ_a = np.asarray(self.mo_occ[0]) if isinstance(self.mo_occ, (list, tuple, np.ndarray)) else np.ones(ca.shape[1])
-            occ_b = np.asarray(self.mo_occ[1]) if isinstance(self.mo_occ, (list, tuple, np.ndarray)) else np.ones(cb.shape[1])
-            Da = ca[:, :np.count_nonzero(occ_a)].dot(ca[:, :np.count_nonzero(occ_a)].T)
-            Db = cb[:, :np.count_nonzero(occ_b)].dot(cb[:, :np.count_nonzero(occ_b)].T)
-            return np.array([Da, Db])
+            # Ensure broadcast shape match
+            da = np.dot(ca * self.mo_occ[0], ca.T)
+            db = np.dot(cb * self.mo_occ[1], cb.T)
+            return np.array([da, db])
         else:
-            occ = np.asarray(self.mo_occ) if self.mo_occ is not None else None
-            if occ is None:
-                # try to infer closed-shell occupancy: highest nelec/2 orbitals occupied
-                nocc = int(getattr(self.mole2, 'nelec', 0) // 2)
-                C = self.mo_coeff[:, :nocc]
-                return 2.0 * C.dot(C.T)
-            else:
-                occupied = np.where(np.asarray(occ) > 0)[0]
-                C = self.mo_coeff[:, occupied]
-                if C.size == 0:
-                    return np.zeros((self.nao, self.nao))
-                return 2.0 * C.dot(C.T)
+            # RHF
+            c = self.mo_coeff
+            return np.dot(c * self.mo_occ, c.T)
 
     def get_ovlp(self):
         return self.mol.intor_symmetric('int1e_ovlp')
+
 
 # Custom object that just reads the FCHK file
 class FchkMolecule:
@@ -386,6 +391,23 @@ class FchkMolecule:
 
         # shell arrays
         self.mssh = [int(i) for i in read_list_from_fchk('Shell types', path)]
+
+        # --- MIXED BASIS SAFETY CHECK ---
+        # 0=s, 1=p, -1=sp.
+        # Cartesian >= 2. Spherical <= -2.
+        has_cart_high_l = any(x >= 2 for x in self.mssh)
+        has_pure_high_l = any(x <= -2 for x in self.mssh)
+
+        if has_cart_high_l and has_pure_high_l:
+            raise ValueError(
+                "Mixed Cartesian/Spherical basis sets detected in FCHK (e.g. 6D and 7F, or 5D and 10F). "
+                "PySCF 'mol.cart' is a global setting and cannot handle mixed shell types. "
+                "Please regenerate FCHK with consistent shell definitions."
+            )
+
+        # Set cartesian flag if ANY high-L shell is cartesian
+        self.cart = True if has_cart_high_l else False
+
         self.mnsh = [int(i) for i in read_list_from_fchk('Number of primitives per shell', path)]
         self.iatsh = [int(i) for i in read_list_from_fchk('Shell to atom map', path)]
         self.expsh = read_list_from_fchk('Primitive exponents', path)
@@ -404,17 +426,13 @@ class FchkMolecule:
         self.nummo = int(read_from_fchk('Number of independent functions', path)[-1])
         self.numao = int(read_from_fchk('Number of basis functions', path)[-1])
 
+
 def make_basis(mf):
     """
     Generate a PySCF-compatible basis dict from a PySCF-derived FCHK object.
-
-    Output format:
-        {'C': [[l, [exp, c1, c2...], ...], ...], ...}
-
-    Assumes:
-      - mf.atomic_symbols
-      - mf.fchk.{ncshell, mssh, mnsh, iatsh, expsh, c1, c2 (optional)}
+    Output format: {'C': [[l, [exp, c1, c2...], ...], ...], ...}
     """
+    cart = hasattr(mf, "cart") and mf.cart
     atomic_symbols = mf.atomic_symbols
     ncshell = mf.fchk.ncshell
     mssh = mf.fchk.mssh
@@ -481,7 +499,7 @@ def make_basis(mf):
                 remaining_coeffs = len(c1) - coeff_idx - remaining_prims
                 n_contr = (remaining_coeffs // n_prim) if n_prim else 0
 
-            coeffs_flat = c1[coeff_idx : coeff_idx + n_prim * n_contr]
+            coeffs_flat = c1[coeff_idx: coeff_idx + n_prim * n_contr]
 
             for prim_idx in range(n_prim):
                 exponent = expsh[exp_idx + prim_idx]
@@ -532,10 +550,19 @@ def make_basis(mf):
 
     return final_basis_dict
 
+
 def readfchk(path):
     """Convenience function to read FCHK and return Mole2 and MeanField2 objects.
     """
     mol2 = Mole2(path)
     mol2.build()
     mf2 = MeanField2(path, mol2)
+    c = mf2.mo_coeff
+    s = mol2.intor_symmetric("int1e_ovlp")
+    np.set_printoptions(precision=5, suppress=True, threshold=np.inf)
+    #c1 = c.T @ s @ c
+    #print(c1[:5, :])
+    #print(np.diag(c1))
+    #print(np.trace(c1))
+    #exit()
     return mol2, mf2

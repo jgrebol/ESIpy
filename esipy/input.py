@@ -16,7 +16,8 @@ class ESIInput:
         self.minlen = None
         self.maxlen = None
         self.domci = True
-        self.doav1245 = False
+        self.mci = None
+        self.av1245 = None
         self.save = False
         self.writeaoms = False
         # input mode: 'fchk' (default), 'readint', 'readaoms'
@@ -25,6 +26,8 @@ class ESIInput:
         self.readpath = None
         # for readaoms: base name (without extension) to construct aoms/molinfo per partition
         self.aomname = None
+        # number of cores requested by the input (None if not provided)
+        self.ncores = None
 
     @staticmethod
     def from_string(input_str):
@@ -82,15 +85,27 @@ class ESIInput:
             elif line.startswith('$FLUREF'):
                 i += 1
                 obj.fluref = []
-                while i < len(lines) and re.match(r'^[-+]?[0-9]*\.?[0-9]+$', lines[i]):
-                    obj.fluref.append(float(lines[i]))
+                # Read subsequent lines until next keyword (starts with $) or EOF
+                while i < len(lines) and not lines[i].startswith('$'):
+                    # split the line into tokens and try to parse floats (allow scientific notation)
+                    for tok in lines[i].split():
+                        try:
+                            obj.fluref.append(float(tok))
+                        except Exception:
+                            # ignore tokens that cannot be parsed as float
+                            pass
                     i += 1
                 i -= 1
             elif line.startswith('$HOMAREF'):
                 i += 1
                 obj.homaref = []
-                while i < len(lines) and re.match(r'^[-+]?[0-9]*\.?[0-9]+$', lines[i]):
-                    obj.homaref.append(float(lines[i]))
+                # Read subsequent lines until next keyword (starts with $) or EOF
+                while i < len(lines) and not lines[i].startswith('$'):
+                    for tok in lines[i].split():
+                        try:
+                            obj.homaref.append(float(tok))
+                        except Exception:
+                            pass
                     i += 1
                 i -= 1
             elif line.startswith('$FINDRINGS'):
@@ -101,10 +116,21 @@ class ESIInput:
             elif line.startswith('$MAXLEN'):
                 i += 1
                 obj.maxlen = int(lines[i])
+            elif line.startswith('$MCI'):
+                obj.mci = True
             elif line.startswith('$NOMCI'):
-                obj.domci = False
+                obj.mci = False
             elif line.startswith('$AV1245'):
-                obj.doav1245 = True
+                obj.av1245 = True
+            elif line.startswith('$NCORES'):
+                # next line: integer number of cores
+                i += 1
+                if i < len(lines):
+                    try:
+                        obj.ncores = int(lines[i])
+                    except Exception:
+                        # leave as None if parsing fails
+                        obj.ncores = None
             elif line.startswith('$SAVE'):
                 obj.save = True
                 # Determine molecule name based on input mode
@@ -164,5 +190,5 @@ class ESIInput:
         return (f"ESIInput(mode={self.mode}, fchk_file={self.fchk_file}, readpath={self.readpath}, aomname={self.aomname}, "
                 f"rings={self.rings}, partition={self.partition}, fragments={self.fragments}, "
                 f"fluref={self.fluref}, homaref={self.homaref}, findrings={self.findrings}, "
-                f"minlen={self.minlen}, maxlen={self.maxlen}, domci={self.domci}, doav1245={self.doav1245}, "
-                f"save={self.save}, writeaoms={self.writeaoms})")
+                f"minlen={self.minlen}, maxlen={self.maxlen}, mci={self.mci}, av1245={self.av1245}, "
+                f"save={self.save}, writeaoms={self.writeaoms}, ncores={self.ncores}")

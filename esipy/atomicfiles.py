@@ -177,7 +177,7 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
 
     shortpart = format_short_partition(partition)
 
-    new_dir_name = name + "_" + shortpart
+    new_dir_name = name + "_" + shortpart + "_atomicfiles"
     symbols = [s.lower() for s in symbols]
     titles = [symbols[i] + str(atom_numbers[i]) for i in range(mol.natm)]  # Setting the title of the files
     new_dir_path = os.path.join(os.getcwd(), new_dir_name)
