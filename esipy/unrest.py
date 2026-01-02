@@ -26,7 +26,7 @@ def info_unrest(aom, molinfo, nfrags=0):
     if "dft" in molinfo["method"] and molinfo["xc"] is not None:
         print(" | Functional:              ", molinfo["xc"])
 
-    if isinstance(molinfo["basisset"], dict) or isinstance(molinfo["basisset", list]):
+    if isinstance(molinfo["basisset"], dict) or isinstance(molinfo["basisset"], list):
         print(" | Basis set:                GEN")
     elif isinstance(molinfo["basisset"], str):
         print(" | Basis set:               ", molinfo["basisset"].upper())
