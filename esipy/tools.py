@@ -497,6 +497,8 @@ def find_rings(connec, minlen=6, maxlen=6):
     return all_paths
 
 def filter_connec(connec):
+    if len(connec) < 2: # With two elements we can not filter
+        return connec
     filtered_connec = {}
     for key, values in connec.items():
         if len(values) > 1:
@@ -915,161 +917,133 @@ import numpy as np
 
 def permute_aos_rows(mat, mole2):
     """
-    Replicates MOKIT's fch2py.f90 logic exactly.
-
-    1. Reorders rows from Gaussian FCHK -> PySCF order.
-    2. SCALES off-diagonal Cartesian functions to compensate for
-       PySCF's use of unnormalized primitives.
+    Reorders FCHK AO rows to match PySCF's internal layout AND applies
+    Mokit-style normalization scaling for Cartesian basis sets.
     """
     mol = mole2.pyscf_mol
-    cart_pyscf = bool(getattr(mol, 'cart', False))
-    cart_fchk = bool(getattr(mole2, 'cart', False))
+    is_cart = bool(getattr(mol, 'cart', False))
 
-    # --- Scaling Constants (Matches MOKIT) ---
-    SQRT3 = np.sqrt(3.0)
-    SQRT5 = np.sqrt(5.0)
-    SQRT15 = np.sqrt(15.0)
+    # --- 1. Define Mokit Scaling Constants (Sdiag) ---
+    # These map Gaussian Cartesian norms to PySCF Cartesian norms
+    PI = np.pi
+    p1 = 2.0 * np.sqrt(PI / 15.0)
+    p2 = 2.0 * np.sqrt(PI / 5.0)
+    p3 = 2.0 * np.sqrt(PI / 7.0)
+    p4 = 2.0 * np.sqrt(PI / 35.0)
+    p5 = 2.0 * np.sqrt(PI / 105.0)
+    p6 = (2.0 / 3.0) * np.sqrt(PI)
+    p7 = (2.0 / 3.0) * np.sqrt(PI / 7.0)
+    p8 = (2.0 / 3.0) * np.sqrt(PI / 35.0)
+    p9 = 2.0 * np.sqrt(PI / 11.0)
+    p10 = (2.0 / 3.0) * np.sqrt(PI / 11.0)
+    p11 = 2.0 * np.sqrt(PI / 231.0)
+    p12 = (2.0 / 3.0) * np.sqrt(PI / 77.0)
+    p13 = 2.0 * np.sqrt(PI / 1155.0)
 
-    # --- 1. Define Maps & Scales ---
-    # Structure: Key = L (Angular Momentum)
-    # Value = List of (Gaussian_Index, Scale_Factor)
-    # The list sequence corresponds to PySCF's required order.
+    # Scaling arrays ordered according to PySCF Internal Order
+    # Mokit logic: coeff_pyscf = coeff_fchk / Sdiag
+    SDIAG = {
+        # 6D: XX, XY, XZ, YY, YZ, ZZ
+        2: [p2, p1, p1, p2, p1, p2],
 
-    PERM_AND_SCALE = {}
+        # 10F: XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
+        3: [p3, p4, p4, p4, p5, p4, p3, p4, p4, p3],
 
-    # L=2 (D Shell)
-    # PySCF Order: XX, XY, XZ, YY, YZ, ZZ
-    # FCHK Order:  XX, YY, ZZ, XY, XZ, YZ (Indices: 0, 1, 2, 3, 4, 5)
-    PERM_AND_SCALE[2] = [
-        (0, 1.0),  # PySCF XX <- FCHK XX
-        (3, SQRT3),  # PySCF XY <- FCHK XY (Scale!)
-        (4, SQRT3),  # PySCF XZ <- FCHK XZ (Scale!)
-        (1, 1.0),  # PySCF YY <- FCHK YY
-        (5, SQRT3),  # PySCF YZ <- FCHK YZ (Scale!)
-        (2, 1.0)  # PySCF ZZ <- FCHK ZZ
-    ]
+        # 15G: XXXX ... ZZZZ
+        4: [p6, p7, p7, p5, p8, p5, p7, p8, p8, p7, p6, p7, p5, p7, p6],
 
-    # L=3 (F Shell)
-    # PySCF Order: XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
-    # FCHK Order:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
-    PERM_AND_SCALE[3] = [
-        (0, 1.0),  # PySCF XXX <- FCHK XXX
-        (4, SQRT5),  # PySCF XXY <- FCHK XXY (Scale!)
-        (5, SQRT5),  # PySCF XXZ <- FCHK XXZ (Scale!)
-        (3, SQRT5),  # PySCF XYY <- FCHK XYY (Scale!)
-        (9, SQRT15),  # PySCF XYZ <- FCHK XYZ (Scale!!!)
-        (6, SQRT5),  # PySCF XZZ <- FCHK XZZ (Scale!)
-        (1, 1.0),  # PySCF YYY <- FCHK YYY
-        (8, SQRT5),  # PySCF YYZ <- FCHK YYZ (Scale!)
-        (7, SQRT5),  # PySCF YZZ <- FCHK YZZ (Scale!)
-        (2, 1.0)  # PySCF ZZZ <- FCHK ZZZ
-    ]
-
-    # Spherical Maps (Only reordering, no scaling)
-    SPHERICAL_MAPS = {
-        2: [4, 2, 0, 1, 3],  # 5D: D0, D+1, D-1, D+2, D-2 -> D-2..D+2
-        3: [6, 4, 2, 0, 1, 3, 5]  # 7F
+        # 21H
+        5: [p9, p10, p10, p11, p12, p11, p11, p13, p13, p11, p10, p12,
+            p13, p12, p10, p9, p10, p11, p11, p10, p9]
     }
 
-    # --- 2. Build FCHK Shell List ---
-    iatsh = np.asarray(mole2.fchk_basis_arrays['iatsh'])
-    mssh = np.asarray(mole2.fchk_basis_arrays['mssh'])
+    # --- 2. Define Permutation Maps ---
+    MAPS = {
+        # Cartesian (Gaussian -> PySCF)
+        2: [0, 3, 4, 1, 5, 2],
+        3: [0, 4, 5, 3, 9, 6, 1, 8, 7, 2],
+        4: [0, 4, 5, 3, 14, 6, 11, 13, 12, 9, 1, 8, 7, 10, 2],
+        5: [0, 5, 6, 4, 20, 7, 15, 19, 18, 11, 10, 14, 13, 17, 16, 1, 9, 8, 12, 11, 2],
+        6: [0, 6, 7, 5, 27, 8, 19, 26, 25, 13, 15, 22, 21, 24, 23, 10, 18, 17, 20, 19, 16, 1, 10, 9, 14, 13, 11, 2],
 
-    g_shells = []
-    ptr = 0
-    for iat, mst in zip(iatsh, mssh):
-        atom0 = int(iat) - 1
-        mst = int(mst)
+        # Spherical (Gaussian -> PySCF)
+        -2: [4, 2, 0, 1, 3],
+        -3: [6, 4, 2, 0, 1, 3, 5],
+        -4: [8, 6, 4, 2, 0, 1, 3, 5, 7],
+        -5: [10, 8, 6, 4, 2, 0, 1, 3, 5, 7, 9],
+        -6: [12, 10, 8, 6, 4, 2, 0, 1, 3, 5, 7, 9, 11]
+    }
 
-        if mst == -1:
-            specs = [(0, 1), (1, 3)]  # SP
-        elif mst == 0:
-            specs = [(0, 1)]  # S
-        elif mst == 1:
-            specs = [(1, 3)]  # P
+    # --- 3. Build Permutation and Scaling Lists ---
+    atom_map = np.asarray(mole2.fchk_basis_arrays['iatsh']) - 1
+    shell_types = np.asarray(mole2.fchk_basis_arrays['mssh'])
+
+    registry = {}
+    cursor = 0
+    for iat, st in zip(atom_map, shell_types):
+        if st == -1:
+            subs = [(0, 1), (1, 3)]
+        elif st >= 0:
+            subs = [(st, (st + 1) * (st + 2) // 2 if st > 1 else (3 if st == 1 else 1))]
         else:
-            l = abs(mst)
-            is_cart = cart_fchk
-            if mst < 0 and mst != -1: is_cart = False
+            l = abs(st)
+            subs = [(l, 2 * l + 1)]
 
-            n = (l + 1) * (l + 2) // 2 if is_cart else 2 * l + 1
-            specs = [(l, n)]
+        for l, n in subs:
+            key = (iat, l)
+            if key not in registry: registry[key] = []
+            registry[key].append({'start': cursor, 'count': n})
+            cursor += n
 
-        for l, n in specs:
-            g_shells.append((atom0, l, ptr, int(n)))
-            ptr += int(n)
+    idx_list = []
+    scale_list = []  # Stores 1.0 or 1.0/Sdiag for every AO
+    usage = {}
 
-    # Group by (Atom, L)
-    g_reg = {}
-    fchk_to_pyscf = {i: i for i in range(mol.natm)}  # Assumes 1:1 mapping
-    for atom, l, start, n in g_shells:
-        g_reg.setdefault((atom, l), []).append((start, n))
+    for b in range(mol.nbas):
+        iat, l = int(mol.bas_atom(b)), int(mol.bas_angular(b))
+        key = (iat, l)
+        count = usage.get(key, 0)
+        target = registry[key][count]
+        usage[key] = count + 1
 
-    # --- 3. Build Permutation & Scaling Arrays ---
-    final_perm = []
-    final_scales = []
-    consumed = {}
-
-    for ib in range(mol.nbas):
-        atom_idx = int(mol.bas_atom(ib))
-        l_val = int(mol.bas_angular(ib))
-
-        # Expected size
-        if l_val == 1:
-            n_pyscf = 3
+        if l <= 1:
+            # S and P: Identity map, Scale = 1.0
+            indices = [target['start'] + i for i in range(target['count'])]
+            scales = [1.0] * target['count']
         else:
-            n_pyscf = (l_val + 1) * (l_val + 2) // 2 if cart_pyscf else 2 * l_val + 1
+            # High-L
+            lookup = l if is_cart else -l
+            order = MAPS.get(lookup, list(range(target['count'])))
+            indices = [target['start'] + i for i in order]
 
-        key = (atom_idx, l_val)
-        c = consumed.get(key, 0)
-
-        if key not in g_reg or c >= len(g_reg[key]):
-            raise ValueError(f"Shell mismatch: Atom {atom_idx} L={l_val}")
-
-        start, n_fchk = g_reg[key][c]
-        consumed[key] = c + 1
-
-        # --- GENERATE INDICES AND SCALES ---
-        if l_val <= 1:
-            # S and P: Identity map, Scale 1.0
-            indices = list(range(n_fchk))
-            scales = [1.0] * n_fchk
-
-        elif cart_pyscf:
-            # Cartesian
-            if l_val in PERM_AND_SCALE:
-                # Use MOKIT map
-                data = PERM_AND_SCALE[l_val]
-                indices = [item[0] for item in data]
-                scales = [item[1] for item in data]
+            # Apply Mokit Scaling if Cartesian and we have constants for it
+            if is_cart and l in SDIAG:
+                # Mokit: coeff = coeff / Sdiag
+                # We implement multiplication by (1.0 / Sdiag)
+                scales = [1.0 / s for s in SDIAG[l]]
             else:
-                # Fallback (G/H shells not implemented here)
-                indices = list(range(n_fchk))
-                scales = [1.0] * n_fchk
-        else:
-            # Spherical
-            indices = SPHERICAL_MAPS.get(l_val, list(range(n_fchk)))
-            scales = [1.0] * n_fchk
+                scales = [1.0] * target['count']
 
-        # Append to master lists
-        for off, s in zip(indices, scales):
-            final_perm.append(start + off)
-            final_scales.append(s)
+        idx_list.extend(indices)
+        scale_list.extend(scales)
 
     # --- 4. Apply to Matrix ---
-    perm = np.array(final_perm, dtype=int)
-    scales = np.array(final_scales, dtype=float)
+    p = np.array(idx_list)
+    s = np.array(scale_list)
 
-    # Handle shape (N_AO, N_MO) vs (N_MO, N_AO) vs (Spin, ...)
+    # mat shape is typically (NAO, NMO) or (NMO, NAO) or (Spin, ...).
+    # We detect dimension matching `len(p)` to find the AO axis.
+
     if mat.ndim == 2:
-        if mat.shape[0] == len(perm):  # (NAO, NMO) -> Scale ROWS
-            return mat[perm, :] * scales[:, None]
-        elif mat.shape[1] == len(perm):  # (NMO, NAO) -> Scale COLS
-            return mat[:, perm] * scales[None, :]
-    elif mat.ndim == 3:
-        if mat.shape[2] == len(perm):  # (Spin, NMO, NAO) -> Scale dim 2
-            return mat[:, :, perm] * scales[None, None, :]
-        elif mat.shape[1] == len(perm):  # (Spin, NAO, NMO) -> Scale dim 1
-            return mat[:, perm, :] * scales[None, :, None]
+        if mat.shape[0] == len(p):  # (NAO, NMO) - Permute rows
+            return mat[p] * s[:, None]
+        else:  # (NMO, NAO) - Permute cols
+            return mat[:, p] * s[None, :]
+
+    if mat.ndim == 3:  # (Spin, NAO, NMO) or similar
+        if mat.shape[1] == len(p):
+            return mat[:, p, :] * s[None, :, None]
+        else:
+            return mat[:, :, p] * s[None, None, :]
 
     return mat

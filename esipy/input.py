@@ -7,8 +7,11 @@ import re
 class ESIInput:
     def __init__(self):
         self.fchk_file = None
-        self.rings = []
-        self.partition = []
+        # None means "not specified in input"; empty list means user provided an empty block
+        self.rings = None
+        # If set True by explicit $NORING, user requested no ring finding
+        self.noring = False
+        self.partition = None
         self.fragments = []  # List of sets
         self.fluref = []
         self.homaref = []
@@ -110,6 +113,11 @@ class ESIInput:
                 i -= 1
             elif line.startswith('$FINDRINGS'):
                 obj.findrings = True
+            elif line.startswith('$NORING'):
+                # Explicit request: do not find rings and leave rings as None
+                obj.noring = True
+                obj.findrings = False
+                obj.rings = None
             elif line.startswith('$MINLEN'):
                 i += 1
                 obj.minlen = int(lines[i])
@@ -164,6 +172,8 @@ class ESIInput:
             i += 1
 
         # Finalize save name if $SAVE was set but molecule name not yet determined
+        # Set sensible defaults before finalizing save name.
+        obj._finalize_defaults()
         obj._finalize_save_name()
         return obj
 
@@ -178,8 +188,27 @@ class ESIInput:
             elif self.mode == 'readaoms' and self.aomname:
                 self.save = self.aomname
             else:
-                # No valid name found, keep as True (will be handled by caller)
+                # No valid name found
                 pass
+
+    def _finalize_defaults(self):
+        """Apply light defaults when some input blocks are omitted.
+
+        - If no partition lines were provided, default to the robust set:
+          meta_lowdin, nao and iao.
+        - If no explicit rings were provided and neither $FINDRINGS nor $NORING
+          were set by the user, enable automatic ring finding by default.
+        """
+        # No partition provided. Will use robust by default
+        if self.partition is None or len(self.partition) == 0:
+            self.partition = ['meta_lowdin', 'nao', 'iao']
+
+        # No rings provided. Will find rings using default settings (min=6, max=12)
+        # Only enable automatic ring finding when the user did not explicitly
+        # request no ring finding ($NORING) and did not request findrings.
+        if self.rings is None and not self.findrings and not self.noring:
+            self.findrings = True
+            self.rings = []
 
     @staticmethod
     def from_file(filepath):
@@ -188,7 +217,7 @@ class ESIInput:
 
     def __repr__(self):
         return (f"ESIInput(mode={self.mode}, fchk_file={self.fchk_file}, readpath={self.readpath}, aomname={self.aomname}, "
-                f"rings={self.rings}, partition={self.partition}, fragments={self.fragments}, "
+                f"rings={self.rings}, noring={self.noring}, partition={self.partition}, fragments={self.fragments}, "
                 f"fluref={self.fluref}, homaref={self.homaref}, findrings={self.findrings}, "
                 f"minlen={self.minlen}, maxlen={self.maxlen}, mci={self.mci}, av1245={self.av1245}, "
-                f"save={self.save}, writeaoms={self.writeaoms}, ncores={self.ncores}")
+                f"save={self.save}, writeaoms={self.writeaoms}, ncores={self.ncores})")

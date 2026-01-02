@@ -1266,6 +1266,8 @@ class ESI:
 
     @property
     def rings(self):
+        if self.mol.natm <= 1:
+            self._rings = None
         if not self._rings:
             self.totalaom = self.aom
             self.nfrags = 0

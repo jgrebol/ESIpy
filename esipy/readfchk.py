@@ -159,7 +159,6 @@ class Mole2:
         self.charge = int(getattr(self.fchk, 'charge', 0))
         self.nalpha = int(getattr(self.fchk, 'nalpha', getattr(self.fchk, 'nalpha', 0)))
         self.nbeta = int(getattr(self.fchk, 'nbeta', getattr(self.fchk, 'nbeta', 0)))
-        self.nelec = int(getattr(self.fchk, 'nelec', self.nalpha + self.nbeta))
         self.spin = int(getattr(self.fchk, 'spin', self.nalpha - self.nbeta))
 
         # Propagate cartesian setting detected in FchkMolecule
@@ -213,6 +212,7 @@ class Mole2:
         self._atm = None
         self.nao = 0
         self.nbas = 0
+        self.nelec = self.pyscf_mol.nelec
 
     def build(self, *args, **kwargs):
         """
@@ -303,7 +303,8 @@ class MeanField2:
         self.natm = self.mole2.natm
         self.nalpha = int(getattr(self.mole2.fchk, 'nalpha', 0))
         self.nbeta = int(getattr(self.mole2.fchk, 'nbeta', 0))
-        self.e_tot = float(getattr(self.mole2.fchk, 'total_energy', 0.0))
+        self.e_tot = float(getattr(self.mole2.fchk, 'e_tot', 0.0))
+        self.charge = int(getattr(self.mole2.fchk, 'charge', 0))
 
         if self.nalpha == self.nbeta:
             # Restricted
@@ -321,9 +322,7 @@ class MeanField2:
                 raise RuntimeError('No MO coefficients found in FCHK')
             # Reshape based on declared independent functions
             mo_arr = np.array(mo_flat, dtype=float).reshape(self.nummo, self.nao).T
-            mo_arr = permute_aos_rows(mo_arr, self.mole2)
-            s = self.mol.intor_symmetric("int1e_ovlp")
-            self.mo_coeff = self._orthogonalize(mo_arr, s)
+            self.mo_coeff = permute_aos_rows(mo_arr, self.mole2)
 
             # Use self.nummo for occupancy vector length
             nocc = (self.nalpha + self.nbeta) // 2
@@ -345,15 +344,12 @@ class MeanField2:
             self.mo_occ[0][:self.nalpha] = 1.0
             self.mo_occ[1][:self.nbeta] = 1.0
 
-    def _orthogonalize(self, c, s):
-        """
-        Performs Löwdin Orthogonalization.
-        Transforms coefficients C such that C.T @ S @ C = Identity.
-        """
-        s_mo = np.dot(c.T, np.dot(s, c))
-        x = fractional_matrix_power(s_mo, -0.5)
-
-        return np.dot(c, x)
+        # --- IMPORTANT FIX: Inject coefficients into the actual PySCF object ---
+        # This allows external modules (like nao) to recognize it as a valid
+        # SCF object and calculate densities correctly via its internal methods.
+        self._scf.mo_coeff = self.mo_coeff
+        self._scf.mo_occ = self.mo_occ
+        self._scf.e_tot = self.e_tot
 
     def make_rdm1(self, ao_repr=True):
         # Simple density from mo_coeff and mo_occ if available (RHF case)
@@ -374,6 +370,8 @@ class MeanField2:
     def get_ovlp(self):
         return self.mol.intor_symmetric('int1e_ovlp')
 
+    def bas_len(self, ib):
+        return self.pyscf_mol.bas_len(ib)
 
 # Custom object that just reads the FCHK file
 class FchkMolecule:
@@ -381,13 +379,20 @@ class FchkMolecule:
         self.path = path
         # basic scalars
         self.nalpha = int(read_from_fchk('Number of alpha electrons', path)[-1])
-        self.nbeta = int(read_from_fchk('Number of beta electrons', path)[-1])
+        self.mult = int(read_from_fchk('Multiplicity', path)[-1])
+        if self.mult != 1:
+            self.nbeta = int(read_from_fchk('Number of beta electrons', path)[-1])
+        else:
+            self.nbeta = self.nalpha
+        self.nelec = (self.nalpha, self.nbeta)
         self.natoms = int(read_from_fchk('Number of atoms', path)[-1])
         self.ncshell = int(read_from_fchk('Number of contracted shells', path)[-1])
+        self.charge = int(read_from_fchk('Charge', path)[-1])
 
         self.atomic_numbers = [int(i) for i in read_list_from_fchk('Atomic numbers', path)]
         self.atomic_symbols = read_atomic_symbols(self.atomic_numbers)
         self.coord = np.array(read_list_from_fchk('Current cartesian coordinates', path)).reshape(self.natoms, 3)
+        self.e_tot = float(read_from_fchk('Total Energy', path)[-1])
 
         # shell arrays
         self.mssh = [int(i) for i in read_list_from_fchk('Shell types', path)]
@@ -557,12 +562,15 @@ def readfchk(path):
     mol2 = Mole2(path)
     mol2.build()
     mf2 = MeanField2(path, mol2)
-    c = mf2.mo_coeff
-    s = mol2.intor_symmetric("int1e_ovlp")
-    np.set_printoptions(precision=5, suppress=True, threshold=np.inf)
+    #c = mf2.mo_coeff
+    #s = mol2.intor_symmetric("int1e_ovlp")
+    #np.set_printoptions(precision=5, suppress=True, threshold=np.inf)
     #c1 = c.T @ s @ c
     #print(c1[:5, :])
     #print(np.diag(c1))
     #print(np.trace(c1))
     #exit()
-    return mol2, mf2
+
+    # Return the internal PySCF object (mf2._scf) which is of correct type (RHF/UHF)
+    # and has the coefficients injected.
+    return mol2, mf2._scf

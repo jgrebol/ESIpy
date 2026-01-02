@@ -319,7 +319,7 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
             f.write(name + "\n")
             f.write("$TYPE\n")
             if wf == "unrest":
-                f.write("uhf\n{}\n".format(mol.nelec[0] + 1))
+                f.write("uhf\n{}\n".format(str(mol.nelec[0] + 1)))
             else:
                 f.write("hf\n")
             if not domci:

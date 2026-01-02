@@ -68,8 +68,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
         # Special case IAO
         elif partition == "iao":
-            from pyscf.lo.iao import iao
-            from pyscf.lo.iao import reference_mol
+            from pyscf.lo.iao import iao, reference_mol
             U_alpha_iao_nonortho = iao(mol, coeff_alpha)
             U_beta_iao_nonortho = iao(mol, coeff_beta)
             pmol = reference_mol(mol)
