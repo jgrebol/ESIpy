@@ -1053,6 +1053,16 @@ class IndicatorsNatorb:
         """
         return self._homas()[2]
 
+    @property
+    def homer(self):
+        """
+        Get the HOMER value.
+
+        :returns: The HOMER value.
+        :rtype: float
+        """
+        return compute_homer(self._rings, self._mol, self._homerrefs)
+
     def _blas(self):
         """
         Compute the BLA and BLA_c values.
@@ -1144,6 +1154,8 @@ class ESI:
         # For other tools
         self.ncores = ncores
         self.save = save
+        # Directory where files will be written. Use <save>_esipy to avoid cluttering working dir
+        self.save_dir = save + '_esipy' if save else None
         self.saveaoms = save + '_' + self.partition + ".aoms" if save else None
         self.savemolinfo = save + '_' + self.partition + ".molinfo" if save else None
         self.readpath = readpath
@@ -1266,7 +1278,11 @@ class ESI:
 
     @property
     def rings(self):
-        if self.mol.natm <= 1:
+        if hasattr(self, "mol") and self.mol:
+            natms = self.mol.natm
+        else:
+            natms = len(self.molinfo.get("symbols"))
+        if natms <= 1:
             self._rings = None
         if not self._rings:
             self.totalaom = self.aom
@@ -1348,8 +1364,8 @@ class ESI:
                 mat = self.aom
             graph = build_connectivity(mat=mat, threshold=self.rings_thres)
             if self.save:
-                os.makedirs(self.save, exist_ok=True)
-                molinfo_path = os.path.join(self.save, os.path.basename(self.savemolinfo))
+                os.makedirs(self.save_dir, exist_ok=True)
+                molinfo_path = os.path.join(self.save_dir, os.path.basename(self.savemolinfo))
             else:
                 molinfo_path = self.savemolinfo
             self._molinfo = mol_info(self.mol, self.mf, molinfo_path, self._partition, graph)
@@ -1375,11 +1391,11 @@ class ESI:
             if self.save:
                 # save_file will create subdirectory based on molecule name (from self.save)
                 # Files will be saved as: moleculename/moleculename_partition.aoms
-                os.makedirs(self.save, exist_ok=True)
-                save_file(aom, os.path.join(self.save, os.path.basename(self.saveaoms)))
-                save_file(self.molinfo, os.path.join(self.save, os.path.basename(self.savemolinfo)))
-                print(f" | Saved the AOMs in {self.save}/{os.path.basename(self.saveaoms)}")
-                print(f" | Saved the molinfo in {self.save}/{os.path.basename(self.savemolinfo)}")
+                os.makedirs(self.save_dir, exist_ok=True)
+                save_file(aom, os.path.join(self.save_dir, os.path.basename(self.saveaoms)))
+                save_file(self.molinfo, os.path.join(self.save_dir, os.path.basename(self.savemolinfo)))
+                print(f" | Saved the AOMs in {self.save_dir}/{os.path.basename(self.saveaoms)}")
+                print(f" | Saved the molinfo in {self.save_dir}/{os.path.basename(self.savemolinfo)}")
         if self._aom is None:
             if isinstance(self.partition, list):
                 raise ValueError(
@@ -1389,9 +1405,9 @@ class ESI:
                 # Don't save in make_aoms, we'll save it ourselves in the subdirectory
                 self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf)
                 if self.saveaoms:
-                    os.makedirs(self.save, exist_ok=True)
-                    save_file(self._aom, os.path.join(self.save, os.path.basename(self.saveaoms)))
-                    print(f" | Saved the AOMs in {self.save}/{os.path.basename(self.saveaoms)}")
+                    os.makedirs(self.save_dir, exist_ok=True)
+                    save_file(self._aom, os.path.join(self.save_dir, os.path.basename(self.saveaoms)))
+                    print(f" | Saved the AOMs in {self.save_dir}/{os.path.basename(self.saveaoms)}")
             else:
                 raise ValueError(" | Missing variables 'mol', 'mf', or 'partition'")
         return self._aom
@@ -1431,7 +1447,7 @@ class ESI:
             if self.partition in ['mulliken', 'lowdin']:
                 print(" | Building NAO AOMs to compute connectivity.")
                 if self.mol is None or self.mf is None:
-                    raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs.")
+                    raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs to get connectivity matrix.")
                 mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf)
             else:
                 mat = self.aom

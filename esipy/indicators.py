@@ -257,7 +257,7 @@ def compute_flu(arr, molinfo, aom, flurefs=None, partition=None):
 
     flu_value, flu_polar = 0, 0
     symbols = molinfo["symbols"]
-    atom_symbols = [symbols[int(i) - 1] for i in arr]
+    atom_symbols = [str(symbols[int(i) - 1]).strip().capitalize() for i in arr]
     bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]]))
                   for i in range(len(arr))]
 
@@ -375,7 +375,8 @@ def compute_homer(arr, molinfo, homerrefs=None):
     if homerrefs is not None:
         refs.update(homerrefs)
 
-    atom_symbols = molinfo["symbols"]
+    symbols = molinfo["symbols"]
+    atom_symbols = [str(symbols[int(i) - 1]).strip().capitalize() for i in arr]
     bond_types = ["".join(sorted([atom_symbols[arr[i] - 1], atom_symbols[arr[(i + 1) % len(arr)] - 1]]))
                   for i in range(len(arr))]
 
@@ -430,8 +431,7 @@ def compute_homa(arr, molinfo, homarefs=None):
     if geom is None:
         return None
     symbols = molinfo["symbols"]
-
-    atom_symbols = [symbols[int(i) - 1] for i in arr]
+    atom_symbols = [str(symbols[int(i) - 1]).strip().capitalize() for i in arr]
     bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]]))
                   for i in range(len(arr))]
 

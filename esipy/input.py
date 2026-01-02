@@ -201,7 +201,7 @@ class ESIInput:
         """
         # No partition provided. Will use robust by default
         if self.partition is None or len(self.partition) == 0:
-            self.partition = ['meta_lowdin', 'nao', 'iao']
+            self.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
 
         # No rings provided. Will find rings using default settings (min=6, max=12)
         # Only enable automatic ring finding when the user did not explicitly

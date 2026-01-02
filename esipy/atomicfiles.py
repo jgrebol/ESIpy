@@ -70,10 +70,16 @@ def read_aoms(path='.'):
 
                     # We first get the number of shape of the alpha-alpha matrix
                     na, nb = read_orbs(intfile_path)
-                    nt = na + nb
+                    if na == nb:
+                        nt = na
+                    else:
+                        nt = na + nb
 
                     # Mulliken works on non-symmetric, square AOMs
                     if mul:
+                        print(mat_lines)
+                        print(np.shape(mat_lines))
+                        print(nt)
                         matrix = np.array(mat_lines).reshape((nt, nt))
                     # Symmetric AOMs work on lower-triangular matrices
                     else:
@@ -301,148 +307,14 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
             f.write(i + ".int\n")
         f.close()
 
-    # Writing the file containing the title of the atomic .int files
-    domci = False
-    if ring:
-        if isinstance(ring[0], int):
-            ring = [ring]
-        for r in ring:
-            if len(r) < 10:
-                domci = True
+    # Always write .wfx file (use occ if available)
+    occ_local = occ if 'occ' in locals() else None
+    try:
+        write_wfx(new_dir_path, name, mol, mf, aom, wf, occ_local)
+    except Exception:
+        # best-effort: do not fail the main write_aoms flow if wfx writing errors
+        pass
 
-    # Single-determinant input file
-    if wf == "rest" or wf == "unrest":
-        # Creating the input for the ESI-3D code
-        filename = os.path.join(new_dir_path, name + ".bad")
-        with open(filename, "w") as f:
-            f.write("$TITLE\n")
-            f.write(name + "\n")
-            f.write("$TYPE\n")
-            if wf == "unrest":
-                f.write("uhf\n{}\n".format(str(mol.nelec[0] + 1)))
-            else:
-                f.write("hf\n")
-            if not domci:
-                f.write("$NOMCI\n")
-            if dofrag:
-                f.write("$FRAGMENTS\n")
-                f.write(f"{len(fragmap)}\n")
-                for fragatm in fragmap.keys():
-                    f.write(f"{len(fragatm)}\n")
-                    f.write(" ".join(str(value) for value in fragatm))
-                    f.write("\n")
-            if ring:
-                f.write("$RING\n")
-                f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
-                for sublist in ring:
-                    f.write(str(len(sublist)) + "\n")
-                    mapped = [fragmap.get(tuple(x), x) if isinstance(x, set) else x for x in sublist]
-                    f.write(" ".join(str(value) for value in mapped))
-                    f.write("\n")
-            f.write("$ATOMS\n")
-            f.write(str(mol.natm) + "\n")
-            for title in titles:
-                f.write(title + ".int\n")
-            f.write("$BASIS\n")
-            if wf == "unrest":
-                f.write(str(int(np.shape(aom[0])[1]) + int(np.shape(aom[1])[1])) + "\n")
-            else:
-                f.write(str(np.shape(aom)[1]) + "\n")
-            f.write("$AV1245\n")
-            f.write("$FULLOUT\n")
-            if partition == "mulliken":
-                f.write("$MULLIKEN\n")
-            f.close()
-
-    # Natural orbitals input file
-    elif wf == "no":
-        # Creating the input for the ESI-3D code
-        filename = os.path.join(new_dir_path, name + ".bad")
-        with open(filename, "w") as f:
-            f.write("$READWFN\n")
-            f.write(name + ".wfx\n")
-            if not domci:
-                f.write("$NOMCI\n")
-            if dofrag:
-                if len(ring) != 1:
-                    raise ValueError(" | To write fragments, only one ring can be specified.")
-                f.write("$FRAGMENTS\n")
-                f.write(f"{len(fragmap)}\n")
-                for fragatm in fragmap.keys():
-                    f.write(f"{len(fragatm)}\n")
-                    f.write(" ".join(str(value) for value in fragatm))
-                    f.write("\n")
-            if ring:
-                f.write("$RING\n")
-                f.write("{}\n".format(len(ring)))  # If two or more rings are specified as a list of lists
-                for sublist in ring:
-                    f.write(str(len(sublist)) + "\n")
-                    f.write(" ".join(str(value) for value in sublist))
-                    f.write("\n")
-            f.write("$AV1245\n")
-            f.write("$FULLOUT\n")
-            if partition == "mulliken":
-                f.write("$MULLIKEN\n")
-            f.close()
-
-        # Creating a custom .wfx file for the ESI-3D code with the occupation numbers
-        filename = os.path.join(new_dir_path, name + ".wfx")
-        with open(filename, "w") as f:
-            f.write('<Number of Nuclei>\n')
-            f.write(f" {mol.natm}\n")
-            f.write('</Number of Nuclei>\n')
-
-            f.write('<Number of Occupied Molecular Orbitals>\n')
-            f.write(f" {str(len(mf.mo_coeff))}\n")
-            f.write('</Number of Occupied Molecular Orbitals>\n')
-
-            f.write('<Number of Electrons>\n')
-            f.write(f" {sum(mol.nelec)}\n")
-            f.write('</Number of Electrons>\n')
-
-            f.write('<Number of Core Electrons>\n')
-            f.write(f" {0}\n")
-            f.write('</Number of Core Electrons>\n')
-
-            nalpha, nbeta = mol.nelec
-            f.write('<Number of Alpha Electrons>\n')
-            f.write(f" {nalpha}\n")
-            f.write('</Number of Alpha Electrons>\n')
-            f.write('<Number of Beta Electrons>\n')
-            f.write(f" {nbeta}\n")
-            f.write('</Number of Beta Electrons>\n')
-
-            f.write("<Electronic Spin Multiplicity>\n")
-            mult = 2 * mol.spin + 1
-            f.write(f" {str(mult)}\n")
-            f.write("</Electronic Spin Multiplicity>\n")
-
-            f.write("<Nuclear Names>\n")
-            for i in titles:
-                f.write(f" {i.upper()}\n")
-            f.write("</Nuclear Names>\n")
-
-            f.write("<Nuclear Cartesian Coordinates>\n")
-            for coord in mol.atom_coords():
-                f.write(" {: .12e} {: .12e} {: .12e}\n".format(coord[0], coord[1], coord[2]))
-            f.write("</Nuclear Cartesian Coordinates>\n")
-
-            f.write("<Molecular Orbital Occupation Numbers>\n")
-            for occupation in np.diag(occ):
-                f.write(f"  {occupation:.12e}\n")
-            f.write("</Molecular Orbital Occupation Numbers>\n")
-
-            f.write("<Molecular Orbital Spin Types>\n")
-            for i in range(0, len(aom[0])):
-                f.write(" Alpha and Beta\n")
-            f.write("</Molecular Orbital Spin Types>\n")
-
-            f.write("<Molecular Orbital Energies>\n")
-            for i in range(0, len(aom[0])):
-                f.write("  0.000000000000e+00\n")
-            f.write("</Molecular Orbital Energies>\n")
-
-            f.close()
 
 def read_molinfo(path):
     """
@@ -508,12 +380,26 @@ def read_wfx_info(path):
     :returns: NumPy array with <symbol> <x> <y> <z>.
     :rtype: numpy.ndarray
     """
-    # Look for a .wfx file in the current path
-    wfx_files = [f for f in os.listdir(path) if f.endswith('.wfx')]
+    # Look for a .wfx file in the given path (guard against empty or non-existing paths)
+    if not path:
+        path = os.getcwd()
+
+    if os.path.isdir(path):
+        wfx_files = [f for f in os.listdir(path) if f.endswith('.wfx')]
+    else:
+        wfx_files = []
+
     if not wfx_files or len(wfx_files) > 1:
-        # Try the previous path if no .wfx file is found
+        # Try the previous path (parent directory) if no .wfx file is found
         previous_path = os.path.dirname(path)
-        wfx_files = [f for f in os.listdir(previous_path) if f.endswith('.wfx')]
+        if not previous_path:
+            previous_path = os.getcwd()
+
+        if os.path.isdir(previous_path):
+            wfx_files = [f for f in os.listdir(previous_path) if f.endswith('.wfx')]
+        else:
+            wfx_files = []
+
         if not wfx_files or len(wfx_files) > 1:
             print(" | Could not find .wfx file in", path, "\n | or", previous_path)
             return None
@@ -634,3 +520,135 @@ def read_orbs(file_path):
                     else:
                        raise ValueError("Invalid spin type in the input file.")
     return nalpha, nbeta
+
+def write_wfx(path, name, mol, mf, aom, wf, occ=None):
+    """
+    Minimal helper to write a .wfx file for ESIpy. This writes a compact WFX-like
+    file named <name>.wfx into the provided path. If `occ` is provided it will be
+    used for the MO occupations (expected as a diagonal matrix); otherwise a sensible
+    default is built from `wf` and `aom`.
+    """
+    filename = os.path.join(path, name + ".wfx")
+    # Determine occupations matrix
+    try:
+        if wf == 'no' and occ is not None:
+            occ_mat = np.asarray(occ, dtype=float)
+        elif wf == 'rest':
+            # for restricted, assume doubly-occupied MOs
+            if isinstance(aom, list):
+                m = np.asarray(aom[0]).shape[0]
+            else:
+                m = np.asarray(aom).shape[0]
+            occ_mat = np.diag([2.0] * m)
+        elif wf == 'unrest':
+            # for unrestricted, build alpha+beta occupancy vector
+            if isinstance(aom, list) and len(aom) == 2:
+                m = np.asarray(aom[0]).shape[0] + np.asarray(aom[1]).shape[0]
+            else:
+                m = np.asarray(aom).shape[0]
+            occ_mat = np.diag([1.0] * m)
+        else:
+            # fallback: infer size from first AOM block
+            if isinstance(aom, list):
+                m = np.asarray(aom[0]).shape[0]
+            else:
+                m = np.asarray(aom).shape[0]
+            occ_mat = np.diag([2.0] * m)
+    except Exception:
+        m = 0
+        occ_mat = np.array([[]])
+
+    # build titles list locally (same format as write_aoms uses)
+    symbols = [mol.atom_symbol(i) for i in range(mol.natm)]
+    atom_numbers = [i + 1 for i in range(mol.natm)]
+    titles = [symbols[i].lower() + str(atom_numbers[i]) for i in range(mol.natm)]
+
+    with open(filename, 'w') as f:
+        f.write('<Number of Nuclei>\n')
+        f.write(f" {mol.natm}\n")
+        f.write('</Number of Nuclei>\n')
+
+        # number of occupied MOs: try mf.mo_coeff then fall back to AOM size
+        nocc = None
+        if mf is not None and hasattr(mf, 'mo_coeff') and getattr(mf, 'mo_coeff') is not None:
+            try:
+                nocc = int(len(mf.mo_coeff))
+            except Exception:
+                nocc = None
+        if nocc is None:
+            try:
+                nocc = int(np.asarray(occ_mat).shape[0])
+            except Exception:
+                nocc = 0
+
+        f.write('<Number of Occupied Molecular Orbitals>\n')
+        f.write(f" {nocc}\n")
+        f.write('</Number of Occupied Molecular Orbitals>\n')
+
+        f.write('<Number of Electrons>\n')
+        try:
+            f.write(f" {sum(mol.nelec)}\n")
+        except Exception:
+            f.write(' 0\n')
+        f.write('</Number of Electrons>\n')
+
+        f.write('<Number of Core Electrons>\n')
+        f.write(f" {0}\n")
+        f.write('</Number of Core Electrons>\n')
+
+        try:
+            nalpha, nbeta = mol.nelec
+            f.write('<Number of Alpha Electrons>\n')
+            f.write(f" {nalpha}\n")
+            f.write('</Number of Alpha Electrons>\n')
+            f.write('<Number of Beta Electrons>\n')
+            f.write(f" {nbeta}\n")
+            f.write('</Number of Beta Electrons>\n')
+        except Exception:
+            pass
+
+        f.write('<Electronic Spin Multiplicity>\n')
+        try:
+            mult = 2 * mol.spin + 1
+            f.write(f" {str(mult)}\n")
+        except Exception:
+            f.write(' 1\n')
+        f.write('</Electronic Spin Multiplicity>\n')
+
+        f.write('<Nuclear Names>\n')
+        for t in titles:
+            f.write(f" {t.upper()}\n")
+        f.write('</Nuclear Names>\n')
+
+        f.write('<Nuclear Cartesian Coordinates>\n')
+        try:
+            for coord in mol.atom_coords():
+                f.write(" {: .12e} {: .12e} {: .12e}\n".format(coord[0], coord[1], coord[2]))
+        except Exception:
+            pass
+        f.write('</Nuclear Cartesian Coordinates>\n')
+
+        f.write('<Molecular Orbital Occupation Numbers>\n')
+        try:
+            for occupation in np.diag(occ_mat):
+                f.write(f"  {occupation:.12e}\n")
+        except Exception:
+            pass
+        f.write('</Molecular Orbital Occupation Numbers>\n')
+
+        f.write('<Molecular Orbital Spin Types>\n')
+        try:
+            for i in range(0, max(1, int(np.asarray(occ_mat).shape[0]))):
+                f.write(' Alpha and Beta\n')
+        except Exception:
+            pass
+        f.write('</Molecular Orbital Spin Types>\n')
+
+        f.write('<Molecular Orbital Energies>\n')
+        try:
+            for i in range(0, max(1, int(np.asarray(occ_mat).shape[0]))):
+                f.write('  0.000000000000e+00\n')
+        except Exception:
+            pass
+        f.write('</Molecular Orbital Energies>\n')
+        f.close()
