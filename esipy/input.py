@@ -2,7 +2,6 @@
 Input parser for ESIpy custom input blocks.
 Supports keywords: $READFCHK, $RING, $PARTITION, $FLUREF, $HOMAREF, $FINDRINGS, $MINLEN, $MAXLEN
 """
-import re
 
 class ESIInput:
     def __init__(self):
@@ -75,14 +74,16 @@ class ESIInput:
                 while i < len(lines) and not lines[i].startswith('$'):
                     partitions = lines[i].split()
                     for p in partitions:
-                        if p.upper() == 'ALL':
-                            # Expand ALL to all available partitions
+                        pup = p.upper()
+                        if pup == 'ALL':
+                            # Expand ALL to all available partitions (lowercase tokens)
                             obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
-                        elif p.upper() == 'ROBUST':
+                        elif pup == 'ROBUST':
                             # Expand ROBUST to robust partitions
                             obj.partition.extend(['meta_lowdin', 'nao', 'iao'])
                         else:
-                            obj.partition.append(p)
+                            # normalize token to lowercase for consistent filename generation
+                            obj.partition.append(p.strip().lower())
                     i += 1
                 i -= 1
             elif line.startswith('$FLUREF'):
@@ -202,6 +203,10 @@ class ESIInput:
         # No partition provided. Will use robust by default
         if self.partition is None or len(self.partition) == 0:
             self.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
+
+        # Normalize partition tokens to lowercase to ensure consistent filename generation
+        from esipy.tools import format_partition
+        self.partition = [format_partition(p) for p in self.partition]
 
         # No rings provided. Will find rings using default settings (min=6, max=12)
         # Only enable automatic ring finding when the user did not explicitly

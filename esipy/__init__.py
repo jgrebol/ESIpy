@@ -1438,6 +1438,8 @@ class ESI:
         """
         if self._connec is not None:
             return self._connec
+        if hasattr(self, "molinfo") and self.molinfo.get("connec") is not None:
+            return self.molinfo.get("connec")
         if not hasattr(self, 'done_connec') or not self.done_connec:
             if self.molinfo.get("connec") is not None:
                 self._connec = self.molinfo.get("connec")

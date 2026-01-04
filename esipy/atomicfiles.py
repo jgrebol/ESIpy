@@ -77,9 +77,6 @@ def read_aoms(path='.'):
 
                     # Mulliken works on non-symmetric, square AOMs
                     if mul:
-                        print(mat_lines)
-                        print(np.shape(mat_lines))
-                        print(nt)
                         matrix = np.array(mat_lines).reshape((nt, nt))
                     # Symmetric AOMs work on lower-triangular matrices
                     else:
@@ -309,11 +306,8 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
 
     # Always write .wfx file (use occ if available)
     occ_local = occ if 'occ' in locals() else None
-    try:
-        write_wfx(new_dir_path, name, mol, mf, aom, wf, occ_local)
-    except Exception:
-        # best-effort: do not fail the main write_aoms flow if wfx writing errors
-        pass
+    # Write the WFX-like file always (extension .wfx)
+    write_wfx(new_dir_path, name, mol, mf, aom, wf, occ_local)
 
 
 def read_molinfo(path):
@@ -384,8 +378,9 @@ def read_wfx_info(path):
     if not path:
         path = os.getcwd()
 
+    # Prefer the .wfx files we write; fallback to legacy .wfx
     if os.path.isdir(path):
-        wfx_files = [f for f in os.listdir(path) if f.endswith('.wfx')]
+        wfx_files = [f for f in os.listdir(path) if f.endswith('.wfx') or f.endswith('.wfx')]
     else:
         wfx_files = []
 
@@ -396,7 +391,7 @@ def read_wfx_info(path):
             previous_path = os.getcwd()
 
         if os.path.isdir(previous_path):
-            wfx_files = [f for f in os.listdir(previous_path) if f.endswith('.wfx')]
+            wfx_files = [f for f in os.listdir(previous_path) if f.endswith('.wfx') or f.endswith('.wfx')]
         else:
             wfx_files = []
 
@@ -528,6 +523,7 @@ def write_wfx(path, name, mol, mf, aom, wf, occ=None):
     used for the MO occupations (expected as a diagonal matrix); otherwise a sensible
     default is built from `wf` and `aom`.
     """
+    # Use a custom extension to avoid confusion with other WFX writers
     filename = os.path.join(path, name + ".wfx")
     # Determine occupations matrix
     try:

@@ -229,7 +229,8 @@ def mol_info(mol=None, mf=None, save=None, partition=None, connec=None):
         else:
             info.update({"xc": "None"})
 
-    if not connec:
+    # Include connectivity if a value was passed (allow empty dicts)
+    if connec is not None:
         info.update({"connec": connec})
 
     if save:
