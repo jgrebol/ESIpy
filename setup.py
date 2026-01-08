@@ -23,7 +23,7 @@ setup(
         "numpy<=1.23.3",
         "pyscf<=2.4",
         "sphinx",
-        "numba<=0.56.4",
+        "urllib3>=2.6.3",
     ],
     requires_python=">=3.7, <3.12",
 )

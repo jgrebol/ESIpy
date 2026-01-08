@@ -30,6 +30,7 @@ class ESIInput:
         self.aomname = None
         # number of cores requested by the input (None if not provided)
         self.ncores = None
+        self.mciaprox = []
 
     @staticmethod
     def from_string(input_str):
@@ -125,6 +126,19 @@ class ESIInput:
             elif line.startswith('$MAXLEN'):
                 i += 1
                 obj.maxlen = int(lines[i])
+            elif line.startswith('$MCIALG'):
+                i += 1
+                while i < len(lines) and not lines[i].startswith('$'):
+                    parts = lines[i].split()
+                    if len(parts) >= 2:
+                        try:
+                            alg = int(parts[0])
+                            dist = int(parts[1])
+                            obj.mciaprox.append((alg, dist))
+                        except ValueError:
+                            pass
+                    i += 1
+                i -= 1
             elif line.startswith('$MCI'):
                 obj.mci = True
             elif line.startswith('$NOMCI'):
