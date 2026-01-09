@@ -26,7 +26,6 @@ from esipy.make_aoms import make_aoms
 from esipy.tools import (mol_info, format_partition, load_file, format_short_partition, wf_type, save_file,
                          build_connec_rest, build_connec_unrest, build_connec_no, find_rings, process_fragments, build_connectivity)
 
-
 class IndicatorsRest:
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None,
                  flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, molinfo=None, ncores=1):
@@ -1247,11 +1246,6 @@ class ESI:
             if self.read is not True and type(self._aom) != str:
                 if self.mf is None:
                     raise ValueError(" | Missing variable 'mf'.")
-                if np.ndim(self.mf.make_rdm1(ao_repr=True)) == 3:
-                    if self.partition == "nao":
-                        raise ValueError(" | Can not compute Natural Orbitals and NAO from unrestricted orbitals YET.")
-                    elif self.partition == "iao":
-                        raise ValueError(" | Can not compute Natural Orbitals and IAO from unrestricted orbitals YET.")
             aom, occ = self.aom
             self.fragaom, self.fragmap = list(process_fragments(aom, self.rings, False))
             if self.fragaom:
@@ -1590,17 +1584,13 @@ class ESI:
                     av1245=self.av1245,
                     flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap,)
 
-    def mciaprox(self, mcialg=None, d=None):
+    def mciaprox(self, mcialg=0, d=1):
         from esipy.mci import aproxmci
-        from esipy.tools import wf_type
-        import numpy as np  # Move import to top level or method level
-
         self.mcialg = mcialg
         self.d = d
-
         print(" | Module to compute approximations for the MCI")
         print(' -------------------------------------------------')
-        if getattr(self, "partition", None) is None:
+        if getattr(self, "partition") is None:
             print(" | No partition specified. Will assume non-symmetric AOMs")
 
         if self.ncores == 1:
@@ -1608,67 +1598,45 @@ class ESI:
         else:
             print(f" | Using MCI's multi-core algorithm for {self.ncores} cores")
 
-        # Algorithm description
         if self.mcialg == 0:
-            print(" | Exact MCI calculation")
+            print(" | Exact MCI calcualtion")
         elif self.mcialg == 1:
             print(f" | Approximate MCI. Algorithm 1.\n | All permutations having a maximum distance of {self.d}")
         elif self.mcialg == 2:
             print(f" | Approximate MCI. Algorithm 2.\n | Only permutations having a maximum distance of {self.d}")
         elif self.mcialg == 3:
-            print(
-                f" | Approximate MCI. Algorithm 3.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any even distance between two vertices")
+            print(f" | Approximate MCI. Algorithm 3.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any even distance between two vertices")
         elif self.mcialg == 4:
-            print(
-                f" | Approximate MCI. Algorithm 4.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any odd distance between two vertices")
+            print(f" | Approximate MCI. Algorithm 4.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any odd distance between two vertices")
         print(' -------------------------------------------------')
 
-        # Call aproxmci for each ring
+        # Call aproxmci for each ring (self.rings is a list of rings). Aggregate results.
         for i, ring in enumerate(self.rings):
             print(" | Ring  {} ({}):   {}".format(i + 1, len(ring), "  ".join(str(num) for num in ring)))
             print(' -------------------------------------------------')
-
             val = 0.0
             nperms = 0
             t = 0.0
             kind = wf_type(self.aom)
-
             if kind == "rest":
-                # Restricted: Compute spatial part and multiply by 2 (alpha + beta)
-                val, nperms, t = aproxmci(
-                    ring, self.aom, self.partition, self.mcialg, self.d, self.ncores
-                )
+                val, nperms, t = aproxmci(ring, self.aom, self.partition, self.mcialg, self.d, self.ncores)
                 val = 2 * val
-
             elif kind == "unrest":
-                # Unrestricted: Sum Alpha and Beta contributions
-                # Note: aproxmci handles one spin channel at a time here
-                val_a, nperms_a, t_a = aproxmci(
-                    ring, self.aom[0], self.partition, self.mcialg, self.d, self.ncores
-                )
-                val_b, nperms_b, t_b = aproxmci(
-                    ring, self.aom[1], self.partition, self.mcialg, self.d, self.ncores
-                )
+                val_a, nperms_a, t_a = aproxmci(ring, self.aom[0], self.partition, self.mcialg, self.d, self.ncores)
+                val_b, nperms_b, t_b = aproxmci(ring, self.aom[1], self.partition, self.mcialg, self.d, self.ncores)
                 val = val_a + val_b
                 nperms = nperms_a + nperms_b
                 t = t_a + t_b
 
-            else:
-                # Correlated / Natural Orbitals (Tuple input)
-                # aproxmci handles the tuple (matrices, occ) internally
-                val, nperms, t = aproxmci(
-                    ring, self.aom, self.partition, self.mcialg, self.d, self.ncores
-                )
-
             print(f" | Number of permutations:           {nperms:.14g}")
+
             print(f" | Time for the MCI calculation:     {t:.5f} seconds")
             print(f" | MCI(mcialg={self.mcialg}, d={self.d}):               {val:.8f}")
-
-            # Root calculation
-            exponent = 1.0 / len(ring)
             if val > 0:
-                print(f" | MCI(mcialg={self.mcialg}, d={self.d})**(1/n):        {val ** exponent:.8f}")
+                print(f" | MCI(mcialg={self.mcialg}, d={self.d})**(1/n):        {val ** (1/len(ring)):.8f}")
             else:
-                print(f" | MCI(mcialg={self.mcialg}, d={self.d})**(1/n):        -{np.abs(val) ** exponent:.8f}")
-
+                from numpy import abs
+                print(f" | MCI(mcialg={self.mcialg}, d={self.d})**(1/n):        -{abs(val) ** (1 / len(ring)):.8f}")
             print(' -------------------------------------------------')
+
+

@@ -374,6 +374,7 @@ def get_natorbs(mf, S):
 
     from scipy.linalg import eigh
     import numpy as _np
+    print(" | Obtaining Natural Orbitals from the 1-RDM...")
 
     # Ask the mean-field object for the 1-RDM in AO representation
     rdm1 = mf.make_rdm1(ao_repr=True)
@@ -382,8 +383,8 @@ def get_natorbs(mf, S):
     rdm1_arr = _np.asarray(rdm1)
 
     if rdm1_arr.ndim == 3:
-        raise NotImplementedError(" | Natural Orbitals for unrestricted calculations are not implemented yet.")
-        #D = _np.sum(rdm1_arr, axis=0)
+        #raise NotImplementedError(" | Natural Orbitals for unrestricted calculations are not implemented yet.")
+        D = _np.sum(rdm1_arr, axis=0)
     elif rdm1_arr.ndim == 2:
         D = rdm1_arr
     else:
