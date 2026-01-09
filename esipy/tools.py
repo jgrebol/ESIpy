@@ -263,7 +263,6 @@ def build_connectivity(mat=None, threshold=None):
 
     return graph
 
-# Add this function to `esipy/tools.py`
 def process_fragments(aom, rings, done=False):
     """
     Processes fragments by combining AOMs and updating rings.
@@ -435,6 +434,7 @@ def build_connec_rest(Smo, thres=0.25):
         for j in range(1, natoms + 1):
             if i != j:
                 if 2 * find_di(Smo, i, j) >= thres:
+                    print("Connecting", i, j, 2 * find_di(Smo, i, j))
                     if i not in connec_dict:
                         connec_dict[i] = []
                     connec_dict[i].append(j)

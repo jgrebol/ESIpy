@@ -6,8 +6,7 @@ from functools import partial
 
 # Imports from your library
 from esipy.tools import (
-    wf_type, mapping, build_connec_rest, build_connec_unrest,
-    build_connec_no, filter_connec, find_node_distances
+    wf_type, mapping, filter_connec, find_node_distances, build_connectivity
 )
 
 
@@ -251,7 +250,7 @@ def multiprocessing_mci_no(arr, aom, ncores, partition='mulliken'):
 # MAIN FUNCTION 2: APPROX MCI (Optimized Integration)
 # ==============================================================================
 
-def aproxmci(arr, aom, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen=6, rings_thres=0.3):
+def aproxmci(arr, aom, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen=6, rings_thres=0.3, connec=None):
     start = time()
 
     # ---------------------------------------------------------
@@ -276,14 +275,14 @@ def aproxmci(arr, aom, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen
     # 1. Connectivity & Distance Setup
     # ---------------------------------------------------------
     # Build full connectivity map
-    if wf_type(aom) == 'rest':
-        connec = build_connec_rest(aom, rings_thres)
-    elif wf_type(aom) == 'unrest':
-        connec = build_connec_unrest(aom, rings_thres)
-    else:
-        connec = build_connec_no(aom, rings_thres)
+    print(connec)
+    if not connec:
+        connec = build_connectivity(aom, rings_thres)
 
+    print(connec)
     connec = filter_connec(connec)
+    print(connec)
+    exit()
     full_distances = find_node_distances(connec)
 
     # Extract only the subgraph distances relevant to 'arr'

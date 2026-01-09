@@ -1618,12 +1618,14 @@ class ESI:
             nperms = 0
             t = 0.0
             kind = wf_type(self.aom)
+            print("hola", self.connec)
+            #exit()
             if kind == "rest":
-                val, nperms, t = aproxmci(ring, self.aom, self.partition, self.mcialg, self.d, self.ncores)
+                val, nperms, t = aproxmci(ring, self.aom, self.partition, self.mcialg, self.d, self.ncores, connec=self.connec)
                 val = 2 * val
             elif kind == "unrest":
-                val_a, nperms_a, t_a = aproxmci(ring, self.aom[0], self.partition, self.mcialg, self.d, self.ncores)
-                val_b, nperms_b, t_b = aproxmci(ring, self.aom[1], self.partition, self.mcialg, self.d, self.ncores)
+                val_a, nperms_a, t_a = aproxmci(ring, self.aom[0], self.partition, self.mcialg, self.d, self.ncores, connec=self.connec)
+                val_b, nperms_b, t_b = aproxmci(ring, self.aom[1], self.partition, self.mcialg, self.d, self.ncores, connec=self.connec)
                 val = val_a + val_b
                 nperms = nperms_a + nperms_b
                 t = t_a + t_b
