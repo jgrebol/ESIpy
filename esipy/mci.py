@@ -275,14 +275,10 @@ def aproxmci(arr, aom, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen
     # 1. Connectivity & Distance Setup
     # ---------------------------------------------------------
     # Build full connectivity map
-    print(connec)
     if not connec:
         connec = build_connectivity(aom, rings_thres)
 
-    print(connec)
     connec = filter_connec(connec)
-    print(connec)
-    exit()
     full_distances = find_node_distances(connec)
 
     # Extract only the subgraph distances relevant to 'arr'

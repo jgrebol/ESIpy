@@ -1618,8 +1618,6 @@ class ESI:
             nperms = 0
             t = 0.0
             kind = wf_type(self.aom)
-            print("hola", self.connec)
-            #exit()
             if kind == "rest":
                 val, nperms, t = aproxmci(ring, self.aom, self.partition, self.mcialg, self.d, self.ncores, connec=self.connec)
                 val = 2 * val
