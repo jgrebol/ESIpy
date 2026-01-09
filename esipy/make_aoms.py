@@ -187,10 +187,13 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 U_inv = nao._nao_sub(mol, w, pre_orth_ao, S)
             elif partition == "nao":
                 # NAOs must be built from HF reference
+                coeff_hf = myhf.mo_coeff
+                if len(np.shape(coeff_hf)) == 3:
+                    coeff_hf = np.sum(coeff_hf, axis=0)
                 if myhf is None:
                     raise NameError(
                         " | Could not calculate partition from Natural Orbitals calculation \n | Please provide HF reference object in 'myhf'")
-                U_inv = nao.nao(mol, myhf, S)
+                U_inv = nao.nao(mol, mf, S)
             U = np.linalg.inv(U_inv)
 
             eta = build_eta(mol)
