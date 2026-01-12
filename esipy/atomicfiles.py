@@ -4,6 +4,9 @@ import numpy as np
 
 from esipy.tools import wf_type, format_short_partition, load_file
 
+# Print the missing .wfx diagnostic at most once per process
+wfxnotfound = False
+
 
 def read_aoms(path='.'):
     """
@@ -367,13 +370,15 @@ def read_wfx_info(path):
     Searches for a .wfx file in the given path or the previous path, reads the coordinates and charges,
     and stores them in molinfo["geom"].
 
-    :param path: Path to search for the .wfx file.
+    :param path: Directory path containing the file.
     :type path: str
     :param molinfo: Dictionary to store molecular information.
     :type molinfo: dict
     :returns: NumPy array with <symbol> <x> <y> <z>.
     :rtype: numpy.ndarray
     """
+    global wfxnotfound
+
     # Look for a .wfx file in the given path (guard against empty or non-existing paths)
     if not path:
         path = os.getcwd()
@@ -396,7 +401,10 @@ def read_wfx_info(path):
             wfx_files = []
 
         if not wfx_files or len(wfx_files) > 1:
-            print(" | Could not find .wfx file in", path, "\n | or", previous_path)
+            # Print the diagnostic message at most once per process
+            if not wfxnotfound:
+                print(" | Could not find .wfx file in", path, "\n | or", previous_path)
+                wfxnotfound = True
             return None
 
         path = previous_path

@@ -1164,7 +1164,7 @@ class ESI:
         self.maxlen = maxlen
         self.minlen = minlen
         self.rings_thres = rings_thres
-        self._printedrings = False
+        #self._printedrings = False
         self._connec = None
         self.done_connec = False
         self.filtrings = []
@@ -1284,8 +1284,8 @@ class ESI:
             self.fragmap = {}
             return None
         if self._rings == "find" or self._rings == "f":
-            if not self._printedrings:
-                print(" | Finding rings...")
+            #if not self._printedrings:
+            #    print(" | Finding rings...")
             startrings = time()
             if (self.partition == "mulliken" or self.partition == "lowdin") and self.read:
                 print(f" | WARNING: Could not find rings for {self.partition} partition. Mulliken and Lowdin bond orders cannot be used to build the connectivity matrix.")
@@ -1305,15 +1305,15 @@ class ESI:
 
             if not self._rings:
                 raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
-            elif not self._printedrings:
-                print(f" | Found {len(self._rings)} rings in {endrings-startrings:.4f} seconds:")
-                print(" | -------------------------------")
-                print(" | rings = [")
-                for i in self._rings:
-                    print(" | ", i, ",")
-                print(" | ]")
-                print(" | -------------------------------")
-                self._printedrings = True
+            #elif not self._printedrings:
+            #    print(f" | Found {len(self._rings)} rings in {endrings-startrings:.4f} seconds:")
+            #    print(" | -------------------------------")
+            #    print(" | rings = [")
+            #    for i in self._rings:
+            #        print(" | ", i, ",")
+            #    print(" | ]")
+            #    print(" | -------------------------------")
+            #    self._printedrings = True
         if isinstance(self._rings[0], (int, set)):
             self._rings = [self._rings]
 
@@ -1638,5 +1638,6 @@ class ESI:
                 from numpy import abs
                 print(f" | MCI(mcialg={self.mcialg}, d={self.d})**(1/n):        -{abs(val) ** (1 / len(ring)):.8f}")
             print(' -------------------------------------------------')
+
 
 
