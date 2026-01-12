@@ -137,7 +137,10 @@ def main():
             # Construct the directory path with SHORT partition name: name_shortpart_atomicfiles
             from esipy.tools import format_short_partition
             shortpart = format_short_partition(partition)
-            partition_dir = inp.readpath + '_' + shortpart + '_atomicfiles'
+            if partition == "qtaim": # From AIMAll it is the name and the _atomicfiles. For ESIpy we include the partition
+                partition_dir = inp.readpath + '_atomicfiles'
+            else:
+                partition_dir = inp.readpath + '_' + shortpart + '_atomicfiles'
             # tell ESI to read from the partition-specific directory
             esi = ESI(read=True, readpath=partition_dir, rings=rings, partition=partition,
                       av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, **mci_kwargs, **extra_kwargs)
