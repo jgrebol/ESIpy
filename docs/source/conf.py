@@ -58,6 +58,9 @@ html_logo = "_static/logoesipy.png"
 html_title = "ESIpy"
 bibtex_bibfiles = ["_static/references.bib"]
 bibtex_encoding = 'latin'
+html_theme_options = {
+    "logo": "logoesipy.png", # Some themes look directly into the static folder
+}
 
 favicons = [
     "favicon-16x16.png",
