@@ -75,7 +75,7 @@ Number of atoms in fragment 1, Atom indices in fragment 1, Number of atoms in fr
 Example input file
 ------------------
 
-In the following, we provide a set of input files using the previous tools:
+In the following, we provide a set of input files using the previous tools.
 
 The most basic input file, where the rings are defined manually and the density matrix is read from a FCHK file:
 
