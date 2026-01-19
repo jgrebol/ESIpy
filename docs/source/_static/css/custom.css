@@ -106,7 +106,8 @@ h3, h4, h5, h6 {
   margin-right: .25em;
   position: relative;
   background-color: #18997D;
-  height: auto;
+  height: fit-content;
+  align-self: flex-start;
   max-height: None;
   padding-bottom: .25em;
 
