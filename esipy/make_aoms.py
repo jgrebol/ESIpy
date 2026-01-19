@@ -1,8 +1,8 @@
 import numpy as np
 from pyscf.lo import nao
-from pyscf.lo.orth import lowdin, orth_ao
+from pyscf.lo.orth import lowdin
 
-from esipy.tools import save_file, format_partition, get_natorbs, build_eta, autosad
+from esipy.tools import save_file, format_partition, get_natorbs, build_eta
 
 def make_aoms(mol, mf, partition, myhf=None, save=None):
     """
