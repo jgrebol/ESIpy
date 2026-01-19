@@ -16,11 +16,14 @@ setup(
     scripts=[
         "scripts/int2esi",
         "scripts/aom2esi",
+        "scripts/fchk2esi",
+        "scripts/esipy",
     ],
     install_requires=[
         "numpy<=1.23.3",
         "pyscf<=2.4",
         "sphinx",
+        "numba<=0.56.4",
     ],
     requires_python=">=3.7, <3.12",
 )

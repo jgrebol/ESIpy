@@ -1,6 +1,7 @@
 import numpy as np
 
-from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_distances, av1245_pairs
+from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_distances, av1245_pairs, wf_type
+from esipy import mci as _mci
 
 
 ########## Iring ###########
@@ -54,133 +55,35 @@ def sequential_mci(arr, aom, partition):
     """
     Computes the MCI sequentially by computing the Iring without storing the permutations.
     Default option if no number of cores is specified.
-
-    :param arr: Contains the indices defining the ring connectivity.
-    :type arr: list of int
-    :param aom: Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
-    :type partition: str
-
-    :returns: MCI value for the given ring.
-    :rtype: float
     """
 
-    from math import factorial
-    from itertools import permutations, islice
-
-    iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
-    if partition == 'mulliken' or partition == "non-symmetric":
-        # We account for twice the value for symmetric AOMs
-        val = 0.5 * sum(compute_iring(p, aom) for p in iterable2)
-        return val
-    else:  # Remove reversed permutations
-        iterable2 = (x for x in iterable2 if x[1] < x[-1])
-        val = sum(compute_iring(p, aom) for p in iterable2)
-        return val
-
+    # Delegate to esipy.mci.compute_mci with single core
+    return _mci.compute_mci(arr, aom, partition=partition, n_cores=1)
 
 def sequential_mci_no(arr, aom, partition):
     """
     Computes the MCI for correlated wavefunctions sequentially by computing the Iring without storing the permutations.
-    Default option if no number of cores is specified.
-
-    :param arr: Contains the indices defining the ring connectivity.
-    :type arr: list of int
-    :param aom: Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
-    :type partition: str
-
-    :returns: MCI value for the given ring.
-    :rtype: float
     """
 
-    from math import factorial
-    from itertools import permutations, islice
-
-    iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
-    if partition == 'mulliken' or partition == "non-symmetric":
-        # We account for twice the value for symmetric AOMs
-        val = 0.5 * sum(compute_iring_no(p, aom) for p in iterable2)
-        return val
-    else:  # Remove reversed permutations
-        iterable2 = (x for x in iterable2 if x[1] < x[-1])
-        val = sum(compute_iring_no(p, aom) for p in iterable2)
-        return val
+    # Delegate to esipy.mci.compute_mci (it handles NO preprocessing)
+    return _mci.compute_mci(arr, aom, partition=partition, n_cores=1)
 
 
 def multiprocessing_mci(arr, aom, ncores, partition):
     """
        Computes the MCI by generating all the permutations for a later distribution along the specified number of cores.
-
-       :param arr: Contains the indices defining the ring connectivity.
-       :type arr: list of int
-       :param aom: Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-       :type aom: list of matrices
-       :param ncores: Specifies the number of cores for multi-processing MCI calculation.
-       :type ncores: int
-       :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
-       :type partition: str
-
-       :returns: MCI value for the given ring.
-       :rtype: float
     """
 
-    from multiprocessing import Pool
-    from math import factorial
-    from functools import partial
-    from itertools import permutations, islice
+    # Delegate to centralized compute_mci with requested number of cores
+    return _mci.compute_mci(arr, aom, partition=partition, n_cores=ncores)
 
-    pool = Pool(processes=ncores)
-    dumb = partial(compute_iring, aom=aom)
-    chunk_size = 50000
-
-    iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
-    if partition == 'mulliken' or partition == "non-symmetric":
-        # We account for twice the value for symmetric AOMs
-        val = 0.5 * sum(pool.imap(dumb, iterable2, chunk_size))
-        return val
-    else:  # Remove reversed permutations
-        iterable2 = (x for x in iterable2 if x[1] < x[-1])
-        val = sum(pool.imap(dumb, iterable2, chunk_size))
-        return val
 
 def multiprocessing_mci_no(arr, aom, ncores, partition):
     """
        Computes the MCI for correlated wavefunctions by generating all the permutations for a later distribution along the specified number of cores.
-
-       :param arr: Contains the indices defining the ring connectivity.
-       :type arr: list of int
-       :param aom: Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
-       :type aom: list of matrices
-       :param ncores: Specifies the number of cores for multi-processing MCI calculation.
-       :type ncores: int
-       :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
-       :type partition: str
-
-       :returns: MCI value for the given ring.
-       :rtype: float
     """
 
-    from multiprocessing import Pool
-    from math import factorial
-    from functools import partial
-    from itertools import permutations, islice
-
-    pool = Pool(processes=ncores)
-    dumb = partial(compute_iring_no, aom=aom)
-    chunk_size = 50000
-
-    iterable2 = islice(permutations(arr), factorial(len(arr) - 1))
-    if partition == "mulliken":
-        # We account for twice the value for symmetric AOMs
-        val = 0.5 * sum(pool.imap(dumb, iterable2, chunk_size))
-        return val
-    else:  # Remove reversed permutations
-        iterable2 = (x for x in iterable2 if x[1] < x[-1])
-        val = sum(pool.imap(dumb, iterable2, chunk_size))
-        return val
+    return _mci.compute_mci(arr, aom, partition=partition, n_cores=ncores)
 
 ########### AV1245 ###########
 
@@ -354,15 +257,14 @@ def compute_flu(arr, molinfo, aom, flurefs=None, partition=None):
 
     flu_value, flu_polar = 0, 0
     symbols = molinfo["symbols"]
-    atom_symbols = [symbols[int(i) - 1] for i in arr]
-    bond_types = ["".join(sorted([atom_symbols[i].upper(), atom_symbols[(i + 1) % len(arr)].upper()]))
+    atom_symbols = [str(symbols[int(i) - 1]).strip().capitalize() for i in arr]
+    bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]]))
                   for i in range(len(arr))]
 
     # Setting and update of the reference values
     flu_refs = find_flurefs(partition)
-    if flurefs:
-        flu_refs.update({k.upper(): v for k, v in flurefs.items()})
-    flu_refs = {key.upper(): value for key, value in flu_refs.items()}
+    if flurefs is not None:
+        flu_refs.update(flurefs)
 
     dis = find_dis(arr, aom)
     lis = find_lis(arr, aom)
@@ -473,7 +375,8 @@ def compute_homer(arr, molinfo, homerrefs=None):
     if homerrefs is not None:
         refs.update(homerrefs)
 
-    atom_symbols = molinfo["symbols"]
+    symbols = molinfo["symbols"]
+    atom_symbols = [str(symbols[int(i) - 1]).strip().capitalize() for i in arr]
     bond_types = ["".join(sorted([atom_symbols[arr[i] - 1], atom_symbols[arr[(i + 1) % len(arr)] - 1]]))
                   for i in range(len(arr))]
 
@@ -523,15 +426,13 @@ def compute_homa(arr, molinfo, homarefs=None):
     }
     if homarefs is not None:
         refs.update(homarefs)
-    refs = {key.upper(): value for key, value in refs.items()}
 
     geom = molinfo["geom"]
     if geom is None:
         return None
     symbols = molinfo["symbols"]
-
-    atom_symbols = [symbols[int(i) - 1] for i in arr]
-    bond_types = ["".join(sorted([atom_symbols[i].upper(), atom_symbols[(i + 1) % len(arr)].upper()]))
+    atom_symbols = [str(symbols[int(i) - 1]).strip().capitalize() for i in arr]
+    bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]]))
                   for i in range(len(arr))]
 
     for i in range(len(arr)):
@@ -540,8 +441,8 @@ def compute_homa(arr, molinfo, homarefs=None):
             return None
 
     distances = find_distances(arr, geom)
-    alpha = refs["ALPHA"]
-    r_opt = refs["R_OPT"]
+    alpha = refs["alpha"]
+    r_opt = refs["r_opt"]
 
     ravs, bonds = [], []
     for i in range(len(arr)):

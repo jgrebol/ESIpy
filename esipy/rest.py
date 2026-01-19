@@ -10,7 +10,7 @@ def info_rest(aom, molinfo, nfrags=0):
     :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
     :type aom: list of matrices
     :param molinfo: Information about the molecule and the calculation.
-    :type molinfo: dict
+    :type: molinfo: dict
     """
     partition = format_partition(molinfo["partition"])
 
@@ -27,9 +27,8 @@ def info_rest(aom, molinfo, nfrags=0):
     if "dft" in molinfo["method"] and molinfo["xc"] is not None:
         print(" | Functional:              ", molinfo["xc"])
 
-    if isinstance(molinfo["basisset"], dict):
-        for key in molinfo["basisset"]:
-            print(" | Basis set for {:>2}:         {}".format(key, molinfo["basisset"][key].upper()))
+    if isinstance(molinfo["basisset"], dict) or isinstance(molinfo["basisset"], list):
+        print(" | Basis set:                GEN")
     elif isinstance(molinfo["basisset"], str):
         print(" | Basis set:               ", molinfo["basisset"].upper())
     if isinstance(molinfo["energy"], str):
