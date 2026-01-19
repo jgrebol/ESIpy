@@ -1,33 +1,18 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
-
-# -- Project information -----------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-
 import os
 import sys
 
+# -- Path setup --------------------------------------------------------------
 sys.path.insert(0, os.path.abspath("../"))
 sys.path.insert(0, os.path.abspath("./"))
 sys.path.insert(0, os.path.abspath("../../"))
 
-def setup(app):
-    app.add_css_file("css/custom.css")
-
-html_context = {
-    "css_files": ["_static/css/custom.css"],
-}
-
+# -- Project information -----------------------------------------------------
 project = 'ESIpy'
 copyright = '2024, Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador'
 author = 'Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador'
 release = '1.0.6'
 
 # -- General configuration ---------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
-
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx_copybutton',
@@ -50,26 +35,42 @@ extensions = [
 templates_path = ["_templates"]
 exclude_patterns = []
 pygments_style = "sphinx"
-mathjax_path="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+
+# Updated MathJax path to a more reliable CDN
+mathjax_path = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
 master_doc = "index"
 
 # -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-
 html_theme = "insegel"
-html_static_path = ["_static"]
-html_css_files = ["custom.css"]
-html_logo = "logoesipy.png"
 html_title = "ESIpy"
+
+# Path to your static files
+html_static_path = ["_static"]
+
+# Sphinx automatically looks inside the folders in html_static_path
+# This points to _static/css/custom.css
+html_css_files = ["css/custom.css"]
+
+# Path to logo relative to conf.py
+html_logo = "_static/logoesipy.png"
+
+# Insegel theme-specific options (often helps if html_logo isn't picked up)
+html_theme_options = {
+    "logo": "logoesipy.png",
+}
+
+# BibTeX configuration
 bibtex_bibfiles = ["_static/references.bib"]
 bibtex_encoding = 'latin'
 
+# Favicon configuration (pointing to files inside _static)
 favicons = [
-    "favicon-16x16.png",
-    "favicon-32x32.png",
-    "favicon.ico",
+    "_static/favicon-16x16.png",
+    "_static/favicon-32x32.png",
+    "_static/favicon.ico",
 ]
 
+# -- Extension configuration -------------------------------------------------
 autodoc_typehints = "description"
 autodoc_class_signature = "separated"
 autoapi_dirs = ["../../esipy"]
