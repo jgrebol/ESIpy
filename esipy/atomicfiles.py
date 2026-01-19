@@ -4,6 +4,8 @@ import numpy as np
 
 from esipy.tools import wf_type, format_short_partition, load_file
 
+# Print the missing .wfx diagnostic only once
+wfxnotfound = False
 
 def read_aoms(path='.'):
     """
@@ -129,7 +131,7 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
         - A '.int' file for each atom with its corresponding AOM.
         - A 'name.files' file with a list of the names of the '.int' files.
         - A 'name.bad' file with a standard input for the ESI-3D code.
-        - For Natural Orbitals, a 'name.wfx' file with the occupancies for the ESI-3D code.
+        - A 'name.wfx' file with the occupancies for the ESI-3D code.
     """
     from copy import deepcopy
 
@@ -367,13 +369,15 @@ def read_wfx_info(path):
     Searches for a .wfx file in the given path or the previous path, reads the coordinates and charges,
     and stores them in molinfo["geom"].
 
-    :param path: Path to search for the .wfx file.
+    :param path: Directory path containing the file.
     :type path: str
     :param molinfo: Dictionary to store molecular information.
     :type molinfo: dict
     :returns: NumPy array with <symbol> <x> <y> <z>.
     :rtype: numpy.ndarray
     """
+    global wfxnotfound
+
     # Look for a .wfx file in the given path (guard against empty or non-existing paths)
     if not path:
         path = os.getcwd()
@@ -396,7 +400,10 @@ def read_wfx_info(path):
             wfx_files = []
 
         if not wfx_files or len(wfx_files) > 1:
-            print(" | Could not find .wfx file in", path, "\n | or", previous_path)
+            # Print the diagnostic message at most once per process
+            if not wfxnotfound:
+                print(" | Could not find .wfx file in", path, "\n | or", previous_path)
+                wfxnotfound = True
             return None
 
         path = previous_path
@@ -526,33 +533,29 @@ def write_wfx(path, name, mol, mf, aom, wf, occ=None):
     # Use a custom extension to avoid confusion with other WFX writers
     filename = os.path.join(path, name + ".wfx")
     # Determine occupations matrix
-    try:
-        if wf == 'no' and occ is not None:
-            occ_mat = np.asarray(occ, dtype=float)
-        elif wf == 'rest':
-            # for restricted, assume doubly-occupied MOs
-            if isinstance(aom, list):
-                m = np.asarray(aom[0]).shape[0]
-            else:
-                m = np.asarray(aom).shape[0]
-            occ_mat = np.diag([2.0] * m)
-        elif wf == 'unrest':
-            # for unrestricted, build alpha+beta occupancy vector
-            if isinstance(aom, list) and len(aom) == 2:
-                m = np.asarray(aom[0]).shape[0] + np.asarray(aom[1]).shape[0]
-            else:
-                m = np.asarray(aom).shape[0]
-            occ_mat = np.diag([1.0] * m)
+    if wf == 'no' and occ is not None:
+        occ_mat = np.asarray(occ, dtype=float)
+    elif wf == 'rest':
+        # for restricted, assume doubly-occupied MOs
+        if isinstance(aom, list):
+            m = np.asarray(aom[0]).shape[0]
         else:
-            # fallback: infer size from first AOM block
-            if isinstance(aom, list):
-                m = np.asarray(aom[0]).shape[0]
-            else:
-                m = np.asarray(aom).shape[0]
-            occ_mat = np.diag([2.0] * m)
-    except Exception:
-        m = 0
-        occ_mat = np.array([[]])
+            m = np.asarray(aom).shape[0]
+        occ_mat = np.diag([2.0] * m)
+    elif wf == 'unrest':
+        # for unrestricted, build alpha+beta occupancy vector
+        if isinstance(aom, list) and len(aom) == 2:
+            m = np.asarray(aom[0]).shape[0] + np.asarray(aom[1]).shape[0]
+        else:
+            m = np.asarray(aom).shape[0]
+        occ_mat = np.diag([1.0] * m)
+    else:
+        # fallback: infer size from first AOM block
+        if isinstance(aom, list):
+            m = np.asarray(aom[0]).shape[0]
+        else:
+            m = np.asarray(aom).shape[0]
+        occ_mat = np.diag([2.0] * m)
 
     # build titles list locally (same format as write_aoms uses)
     symbols = [mol.atom_symbol(i) for i in range(mol.natm)]

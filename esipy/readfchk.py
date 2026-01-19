@@ -1,34 +1,9 @@
-"""
-A slim FCHK loader that re-uses the existing FCHK parser and lets PySCF build
-most internals. This file provides two lightweight classes:
-
-- Mole2(path): parses FCHK via the existing reader, then creates a pyscf.gto.Mole
-  from the geometry and the basis string found in the FCHK header. The pyscf
-  Mole is built and exposed through `pyscf_mol` attribute; convenience attributes
-  (_bas, _env, _atm, natm, nao, ...) are set from the pyscf object.
-
-- MeanField2(path, mole2): builds a pyscf SCF object appropriate for the
-  calculation (RHF/RKS/UHF/UKS) but DOES NOT run SCF. The MO coefficients are
-  read from the FCHK and then permuted using `permute_aos_rows()` from
-  esipy.tools to align Gaussian FCHK ordering with PySCF ordering.
-
-This keeps parsing minimal and relies on PySCF to construct the low-level
-_integral machinery (bas/env/atm) while preserving the FCHK reader logic.
-
-This module intentionally makes minimal changes and is a compatibility shim.
-"""
-
 import os
 import numpy as np
 from pyscf import gto, scf
-from scipy.linalg import fractional_matrix_power
-
-# Re-use parsing helpers from the original readfchk module
 from esipy.tools import permute_aos_rows
 
-# --- Embedded lightweight FCHK reader helpers (taken/adapted from readfchk.py) ---
 _readers = {}
-
 
 class FchkReader:
     def __init__(self, path):
@@ -93,7 +68,6 @@ class FchkReader:
         self._list_cache[key] = out[:count] if count is not None else out
         return self._list_cache[key]
 
-
 def _get_reader(path):
     path = os.path.abspath(path)
     if path in _readers:
@@ -139,20 +113,15 @@ def read_atomic_symbols(z):
     return [z_to_symbol[int(i)] for i in z]
 
 
-# --- End embedded reader helpers ---
-
 class Mole2:
-    """Light wrapper: parse FCHK using existing parser, build a PySCF Mole.
-
-    Now supports the .build() lifecycle method.
+    """Builds a PySCF Mole object from a Gaussian FCHK file.
     """
 
     def __init__(self, path):
         self.path = path
-        # 1. Parse FCHK using local reader
+        # Object with the information from the file
         self.fchk = FchkMolecule(path)
 
-        # 2. Extract basic metadata
         self.atomic_numbers = getattr(self.fchk, 'atomic_numbers', None)
         self.atomic_symbols = getattr(self.fchk, 'atomic_symbols', None)
         self.natm = int(getattr(self.fchk, 'natoms', getattr(self.fchk, 'natm', len(self.atomic_numbers))))
@@ -161,7 +130,6 @@ class Mole2:
         self.nbeta = int(getattr(self.fchk, 'nbeta', getattr(self.fchk, 'nbeta', 0)))
         self.spin = int(getattr(self.fchk, 'spin', self.nalpha - self.nbeta))
 
-        # Propagate cartesian setting detected in FchkMolecule
         self.cart = getattr(self.fchk, 'cart', False)
 
         self.nummo = int(getattr(self.fchk, 'nummo', 0))
@@ -174,7 +142,6 @@ class Mole2:
         coords = np.asarray(self.fchk.coord)
         self.coord = coords
 
-        # 3. Construct Basis Dictionary
         self.fchk_basis_arrays = {
             'mssh': getattr(self.fchk, 'mssh', None),
             'mnsh': getattr(self.fchk, 'mnsh', None),
@@ -184,10 +151,10 @@ class Mole2:
             'c2': getattr(self.fchk, 'c2', None),
             'ncshell': getattr(self.fchk, 'ncshell', None),
         }
-        # Note: self.basis becomes the dictionary PySCF needs
+        # Creates the mol._basis from PySCF. Considers sp shells, cartesians, etc.
         self._basis = make_basis(self)
 
-        # 4. Initialize pyscf.gto.M but DO NOT build yet
+        # Initialize the empty PySCF Mole object
         self.pyscf_mol = gto.Mole()
 
         atom_list = []
@@ -203,10 +170,8 @@ class Mole2:
         self.pyscf_mol.verbose = 0
         self.pyscf_mol.symmetry = False
 
-        # Expose atom list on self to match PySCF API before build
         self.atom = self.pyscf_mol.atom
 
-        # Placeholders for build-dependent attributes
         self._bas = None
         self._env = None
         self._atm = None
@@ -222,22 +187,18 @@ class Mole2:
         # Forward arguments to the internal PySCF build
         self.pyscf_mol.build(*args, **kwargs)
 
-        # Sync internal attributes from the built PySCF object to this wrapper
+        # Match internal attributes
         self._bas = getattr(self.pyscf_mol, '_bas', None)
         self._env = getattr(self.pyscf_mol, '_env', None)
         self._atm = getattr(self.pyscf_mol, '_atm', None)
 
-        # Helper to safely get nao
         get_nao = getattr(self.pyscf_mol, 'nao_nr', lambda: self.pyscf_mol.nao)
         self.nao = int(get_nao())
         self.nbas = int(getattr(self.pyscf_mol, 'nbas', 0))
 
-        # Update atoms in case build() did anything to them (though symmetry is Off)
         self.atom = self.pyscf_mol.atom
 
         return self
-
-    # --- Convenience methods (proxy to internal pyscf_mol) ---
 
     def atom_coords(self):
         return self.pyscf_mol.atom_coords()
@@ -287,8 +248,8 @@ class Mole2:
 
 
 class MeanField2:
-    """Thin wrapper that exposes SCF object built by PySCF, but uses MO coeffs
-    read from the FCHK file (permuted to PySCF AO order).
+    """
+    Builds a PySCF MeanField object from a Gaussian FCHK file.
     """
 
     def __init__(self, path, mole2: Mole2):
@@ -296,9 +257,8 @@ class MeanField2:
         self.mole2 = mole2
         self.mol = mole2.pyscf_mol
 
-        # Basic dimensions
         self.nao = self.mole2.numao  # AOs (Basis functions)
-        self.nummo = self.mole2.nummo  # Independent functions
+        self.nummo = self.mole2.nummo  # MOs (Independent functions)
 
         self.natm = self.mole2.natm
         self.nalpha = int(getattr(self.mole2.fchk, 'nalpha', 0))
@@ -320,16 +280,14 @@ class MeanField2:
             mo_flat = read_list_from_fchk('Alpha MO coefficients', path)
             if len(mo_flat) == 0:
                 raise RuntimeError('No MO coefficients found in FCHK')
-            # Reshape based on declared independent functions
             mo_arr = np.array(mo_flat, dtype=float).reshape(self.nummo, self.nao).T
             self.mo_coeff = permute_aos_rows(mo_arr, self.mole2)
 
-            # Use self.nummo for occupancy vector length
             nocc = (self.nalpha + self.nbeta) // 2
             self.mo_occ = np.zeros(self.nummo)
             self.mo_occ[:nocc] = 2.0
         else:
-            # For simplicity, only handle alpha coefficients then beta similarly
+            # For Unrestricted, treat alpha and beta separately
             mo_flat_a = read_list_from_fchk('Alpha MO coefficients', path)
             mo_flat_b = read_list_from_fchk('Beta MO coefficients', path)
 
@@ -344,9 +302,6 @@ class MeanField2:
             self.mo_occ[0][:self.nalpha] = 1.0
             self.mo_occ[1][:self.nbeta] = 1.0
 
-        # --- IMPORTANT FIX: Inject coefficients into the actual PySCF object ---
-        # This allows external modules (like nao) to recognize it as a valid
-        # SCF object and calculate densities correctly via its internal methods.
         self._scf.mo_coeff = self.mo_coeff
         self._scf.mo_occ = self.mo_occ
         self._scf.e_tot = self.e_tot
@@ -358,7 +313,6 @@ class MeanField2:
         if isinstance(self.mo_coeff, list):
             # UHF
             ca, cb = self.mo_coeff
-            # Ensure broadcast shape match
             da = np.dot(ca * self.mo_occ[0], ca.T)
             db = np.dot(cb * self.mo_occ[1], cb.T)
             return np.array([da, db])
@@ -394,30 +348,24 @@ class FchkMolecule:
         self.coord = np.array(read_list_from_fchk('Current cartesian coordinates', path)).reshape(self.natoms, 3)
         self.e_tot = float(read_from_fchk('Total Energy', path)[-1])
 
-        # shell arrays
         self.mssh = [int(i) for i in read_list_from_fchk('Shell types', path)]
 
-        # --- MIXED BASIS SAFETY CHECK ---
-        # 0=s, 1=p, -1=sp.
-        # Cartesian >= 2. Spherical <= -2.
         has_cart_high_l = any(x >= 2 for x in self.mssh)
         has_pure_high_l = any(x <= -2 for x in self.mssh)
 
         if has_cart_high_l and has_pure_high_l:
             raise ValueError(
                 "Mixed Cartesian/Spherical basis sets detected in FCHK (e.g. 6D and 7F, or 5D and 10F). "
-                "PySCF 'mol.cart' is a global setting and cannot handle mixed shell types. "
-                "Please regenerate FCHK with consistent shell definitions."
+                "Could not handle this case. All must be either Cartesian or Spherical. "
             )
 
-        # Set cartesian flag if ANY high-L shell is cartesian
         self.cart = True if has_cart_high_l else False
 
         self.mnsh = [int(i) for i in read_list_from_fchk('Number of primitives per shell', path)]
         self.iatsh = [int(i) for i in read_list_from_fchk('Shell to atom map', path)]
         self.expsh = read_list_from_fchk('Primitive exponents', path)
 
-        # contraction coeffs
+        # Contraction coefficients
         with open(path, 'r') as f:
             filetext = f.read()
         if 'P(S=P)' in filetext:
@@ -427,7 +375,6 @@ class FchkMolecule:
             self.c1 = read_list_from_fchk('Contraction coefficients', path)
             self.c2 = None
 
-        # numbers
         self.nummo = int(read_from_fchk('Number of independent functions', path)[-1])
         self.numao = int(read_from_fchk('Number of basis functions', path)[-1])
 
@@ -451,13 +398,13 @@ def make_basis(mf):
     exp_idx = 0
     coeff_idx = 0
 
-    # track first atom of each element
+    # Track first atom of each element. No repeated shells on other atoms.
     first_atom = {}
     for atom_idx, sym in enumerate(atomic_symbols):
         if sym not in first_atom:
             first_atom[sym] = atom_idx
 
-    # --- Parse shells ---
+    # Loop through the shells
     for i in range(ncshell):
         l_raw = mssh[i]
         atom_idx = iatsh[i] - 1
@@ -490,13 +437,13 @@ def make_basis(mf):
                 exponent = expsh[exp_idx]
                 coef_s = c1[coeff_idx]
                 coef_p = c2[coeff_idx] if c2 is not None else 0.0
-                primitives.append((exponent, coef_s, coef_p))
+                primitives.append((exponent, coef_s, coef_p)) # Same exponent, two coefficients for s and p
                 exp_idx += 1
                 coeff_idx += 1
             done_shells[sym].append({"l": -1, "primitives": primitives})
 
         else:
-            # regular shell
+            # Regular shell
             if i == ncshell - 1:
                 n_contr = (len(c1) - coeff_idx) // n_prim if n_prim else 0
             else:
@@ -515,7 +462,6 @@ def make_basis(mf):
             coeff_idx += n_prim * n_contr
             done_shells[sym].append({"l": abs(l_raw), "primitives": primitives})
 
-    # --- Convert parsed shells into PySCF basis format ---
     def order_shells(shell_list):
         """Convert shell dicts into PySCF [[l,[exp,c1,c2...],...],...]"""
         lists_by_l = {}
@@ -524,7 +470,7 @@ def make_basis(mf):
             l = shell_data["l"]
             prims = shell_data["primitives"]
             if l == -1:
-                # SP shell → split
+                # SP shell
                 s_shell = [0]
                 p_shell = [1]
                 for exp, cs, cp in prims:
@@ -534,6 +480,7 @@ def make_basis(mf):
                 lists_by_l.setdefault(1, []).append(p_shell)
                 max_l = max(max_l, 1)
             else:
+                # Regular shell
                 sh = [l]
                 for exp, coefs in prims:
                     if isinstance(coefs, list):
@@ -542,7 +489,7 @@ def make_basis(mf):
                         sh.append([exp, coefs])
                 lists_by_l.setdefault(l, []).append(sh)
                 max_l = max(max_l, l)
-        # concatenate in L order
+        # Concatenate in L order
         final_list = []
         for L in range(max_l + 1):
             if L in lists_by_l:
@@ -559,18 +506,15 @@ def make_basis(mf):
 def readfchk(path):
     """Convenience function to read FCHK and return Mole2 and MeanField2 objects.
     """
+    print(" | Reading FCHK file:", path)
     mol2 = Mole2(path)
     mol2.build()
     mf2 = MeanField2(path, mol2)
     #c = mf2.mo_coeff
     #s = mol2.intor_symmetric("int1e_ovlp")
-    #np.set_printoptions(precision=5, suppress=True, threshold=np.inf)
     #c1 = c.T @ s @ c
-    #print(c1[:5, :])
     #print(np.diag(c1))
-    #print(np.trace(c1))
     #exit()
 
-    # Return the internal PySCF object (mf2._scf) which is of correct type (RHF/UHF)
-    # and has the coefficients injected.
+    # Return _scf to inherit PySCF class, so PySCF methods work
     return mol2, mf2._scf

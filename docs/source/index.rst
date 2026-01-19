@@ -1,3 +1,5 @@
+:title: Index
+
 .. image:: ./logoesipy.png
    :alt: ESIpy Logo
    :align: center
@@ -16,7 +18,7 @@ This program has been developed by Joan Grèbol-Tomàs under the supervision of 
    Theoretical Background <theory>
    Getting started <get-started>
    Advanced utilities <advanced>
-   Scripts <scripts>
+   ESIpy from a FCHK file <fchk>
    MCI Timings <mci-timings>
    API Reference <api>
 

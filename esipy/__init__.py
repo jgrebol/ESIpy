@@ -26,7 +26,6 @@ from esipy.make_aoms import make_aoms
 from esipy.tools import (mol_info, format_partition, load_file, format_short_partition, wf_type, save_file,
                          build_connec_rest, build_connec_unrest, build_connec_no, find_rings, process_fragments, build_connectivity)
 
-
 class IndicatorsRest:
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None, mci=None, av1245=None,
                  flurefs=None, homarefs=None, homerrefs=None, connectivity=None, geom=None, molinfo=None, ncores=1):
@@ -1164,7 +1163,7 @@ class ESI:
         self.maxlen = maxlen
         self.minlen = minlen
         self.rings_thres = rings_thres
-        self._printedrings = False
+        #self._printedrings = False
         self._connec = None
         self.done_connec = False
         self.filtrings = []
@@ -1248,11 +1247,6 @@ class ESI:
             if self.read is not True and type(self._aom) != str:
                 if self.mf is None:
                     raise ValueError(" | Missing variable 'mf'.")
-                if np.ndim(self.mf.make_rdm1(ao_repr=True)) == 3:
-                    if self.partition == "nao":
-                        raise ValueError(" | Can not compute Natural Orbitals and NAO from unrestricted orbitals YET.")
-                    elif self.partition == "iao":
-                        raise ValueError(" | Can not compute Natural Orbitals and IAO from unrestricted orbitals YET.")
             aom, occ = self.aom
             self.fragaom, self.fragmap = list(process_fragments(aom, self.rings, False))
             if self.fragaom:
@@ -1291,8 +1285,8 @@ class ESI:
             self.fragmap = {}
             return None
         if self._rings == "find" or self._rings == "f":
-            if not self._printedrings:
-                print(" | Finding rings...")
+            #if not self._printedrings:
+            #    print(" | Finding rings...")
             startrings = time()
             if (self.partition == "mulliken" or self.partition == "lowdin") and self.read:
                 print(f" | WARNING: Could not find rings for {self.partition} partition. Mulliken and Lowdin bond orders cannot be used to build the connectivity matrix.")
@@ -1312,15 +1306,15 @@ class ESI:
 
             if not self._rings:
                 raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
-            elif not self._printedrings:
-                print(f" | Found {len(self._rings)} rings in {endrings-startrings:.4f} seconds:")
-                print(" | -------------------------------")
-                print(" | rings = [")
-                for i in self._rings:
-                    print(" | ", i, ",")
-                print(" | ]")
-                print(" | -------------------------------")
-                self._printedrings = True
+            #elif not self._printedrings:
+            #    print(f" | Found {len(self._rings)} rings in {endrings-startrings:.4f} seconds:")
+            #    print(" | -------------------------------")
+            #    print(" | rings = [")
+            #    for i in self._rings:
+            #        print(" | ", i, ",")
+            #    print(" | ]")
+            #    print(" | -------------------------------")
+            #    self._printedrings = True
         if isinstance(self._rings[0], (int, set)):
             self._rings = [self._rings]
 
@@ -1391,7 +1385,7 @@ class ESI:
             aom = self.readaoms()
             if self.save:
                 # save_file will create subdirectory based on molecule name (from self.save)
-                # Files will be saved as: moleculename/moleculename_partition.aoms
+                # Files will be saved as: moleculename_esipy/moleculename_partition.aoms
                 os.makedirs(self.save_dir, exist_ok=True)
                 save_file(aom, os.path.join(self.save_dir, os.path.basename(self.saveaoms)))
                 save_file(self.molinfo, os.path.join(self.save_dir, os.path.basename(self.savemolinfo)))
@@ -1417,7 +1411,7 @@ class ESI:
     def partition(self):
         """
         Get the partition scheme for the Hilbert-space. Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao'.
-        Some variations of these names are also available.
+        Some variations of these names are also available. Only one partition at a time.
 
         :returns: The partition scheme for the Hilbert-space calculation.
         :rtype: str
@@ -1431,8 +1425,8 @@ class ESI:
     def connec(self):
         """
         Get the connectivity matrix. If the partition is 'mulliken' or 'lowdin',
-        build the meta-Lowdin AOMs and compute the connectivity matrix from there.
-        The computation is controlled by the 'done_connec' flag.
+        build the NAO AOMs and compute the connectivity matrix from there.
+        The computation is controlled by the 'done_connec' flag. Based on the DIs.
 
         :returns: The connectivity matrix.
         :rtype: dict
@@ -1472,7 +1466,7 @@ class ESI:
             maxring = max(len(ring) for ring in self.rings)
         else:
             maxring = len(self.rings)
-        return maxring < 12
+        return maxring <= 12 # Will compute MCI if ring size <= 12
 
     @mci.setter
     def mci(self, value):
@@ -1492,7 +1486,7 @@ class ESI:
             maxring = max(len(ring) for ring in self.rings)
         else:
             maxring = len(self.rings)
-        return maxring > 9
+        return maxring > 9 # Will compute AV1245 if ring size is 10 or more
 
     @av1245.setter
     def av1245(self, value):
@@ -1524,7 +1518,7 @@ class ESI:
             - A '.int' file for each atom with its corresponding AOM.
             - A 'name.files' with a list of the names of the '.int' files.
             - A 'name.bad' with a standard input for the ESI-3D code.
-            - For Natural Orbitals, a 'name.wfx' with the occupancies for the ESI-3D code.
+            - A 'name.wfx' with the occupancies for the ESI-3D code.
         """
 
         for attr in ['mol', 'mf', 'aom', 'partition']:
@@ -1590,4 +1584,61 @@ class ESI:
                 arom_no(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                     av1245=self.av1245,
                     flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap,)
+
+    def mciaprox(self, mcialg=0, d=1):
+        from esipy.mci import aproxmci
+        self.mcialg = mcialg
+        self.d = d
+        print(" | Module to compute approximations for the MCI")
+        print(' -------------------------------------------------')
+        if getattr(self, "partition") is None:
+            print(" | No partition specified. Will assume non-symmetric AOMs")
+
+        if self.ncores == 1:
+            print(" | Using MCI's single-core algorithm")
+        else:
+            print(f" | Using MCI's multi-core algorithm for {self.ncores} cores")
+
+        if self.mcialg == 0:
+            print(" | Exact MCI calcualtion")
+        elif self.mcialg == 1:
+            print(f" | Approximate MCI. Algorithm 1.\n | All permutations having a maximum distance of {self.d}")
+        elif self.mcialg == 2:
+            print(f" | Approximate MCI. Algorithm 2.\n | Only permutations having a maximum distance of {self.d}")
+        elif self.mcialg == 3:
+            print(f" | Approximate MCI. Algorithm 3.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any even distance between two vertices")
+        elif self.mcialg == 4:
+            print(f" | Approximate MCI. Algorithm 4.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any odd distance between two vertices")
+        print(' -------------------------------------------------')
+
+        # Call aproxmci for each ring (self.rings is a list of rings). Aggregate results.
+        for i, ring in enumerate(self.rings):
+            print(" | Ring  {} ({}):   {}".format(i + 1, len(ring), "  ".join(str(num) for num in ring)))
+            print(' -------------------------------------------------')
+            val = 0.0
+            nperms = 0
+            t = 0.0
+            kind = wf_type(self.aom)
+            if kind == "rest":
+                val, nperms, t = aproxmci(ring, self.aom, self.partition, self.mcialg, self.d, self.ncores, connec=self.connec)
+                val = 2 * val
+            elif kind == "unrest":
+                val_a, nperms_a, t_a = aproxmci(ring, self.aom[0], self.partition, self.mcialg, self.d, self.ncores, connec=self.connec)
+                val_b, nperms_b, t_b = aproxmci(ring, self.aom[1], self.partition, self.mcialg, self.d, self.ncores, connec=self.connec)
+                val = val_a + val_b
+                nperms = nperms_a + nperms_b
+                t = t_a + t_b
+
+            print(f" | Number of permutations:           {nperms:.14g}")
+
+            print(f" | Time for the MCI calculation:     {t:.5f} seconds")
+            print(f" | MCI(mcialg={self.mcialg}, d={self.d}):               {val:.8f}")
+            if val > 0:
+                print(f" | MCI(mcialg={self.mcialg}, d={self.d})**(1/n):        {val ** (1/len(ring)):.8f}")
+            else:
+                from numpy import abs
+                print(f" | MCI(mcialg={self.mcialg}, d={self.d})**(1/n):        -{abs(val) ** (1 / len(ring)):.8f}")
+            print(' -------------------------------------------------')
+
+
 
