@@ -1,6 +1,6 @@
 :title: Index
 
-.. image:: ./logoesipy.png
+.. image:: _static/logoesipy.png
    :alt: ESIpy Logo
    :align: center
 
