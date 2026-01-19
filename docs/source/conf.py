@@ -11,7 +11,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../"))
 sys.path.insert(0, os.path.abspath("./"))
-sys.path.insert(0, os.path.abspath("../../"))
+#sys.path.insert(0, os.path.abspath("../../"))
 
 project = 'ESIpy'
 copyright = '2024, Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador'
@@ -54,7 +54,7 @@ html_static_path = ["_static"]
 
 html_css_files = ["css/custom.css"]
 
-html_logo = "logoesipy.png"
+html_logo = "_static/logoesipy.png"
 html_title = "ESIpy"
 bibtex_bibfiles = ["_static/references.bib"]
 bibtex_encoding = 'latin'

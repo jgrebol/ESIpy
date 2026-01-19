@@ -18,7 +18,7 @@ This program has been developed by Joan Grèbol-Tomàs under the supervision of 
    Theoretical Background <theory>
    Getting started <get-started>
    Advanced utilities <advanced>
-   ESIpy from a FCHK file <fchk>
+   ESIpy from FCHK <fchk>
    MCI Timings <mci-timings>
    API Reference <api>
 
