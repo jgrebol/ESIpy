@@ -2,6 +2,7 @@
 from esipy.input import ESIInput
 from esipy.readfchk import readfchk
 from esipy import ESI
+from esipy.tools import format_partition
 import sys
 import os
 
@@ -117,6 +118,7 @@ def main():
     for partition in partitions:
         if inp.mode == 'readaoms':
             # Construct aom and molinfo filenames with partition name
+            partition = format_partition(partition)
             aom = inp.aomname + '_' + partition + '.aoms'
             molinfo = inp.aomname + '_' + partition + '.molinfo'
             # pass aom and molinfo strings so ESI will load them
