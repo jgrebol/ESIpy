@@ -21,7 +21,7 @@ jobs:
         run: python --version
 
       - name: Clear pip cache
-        run: python -m pip cache purge # This explicitly clears pip's cache
+        run: python -m pip cache purge
 
       - name: Upgrade pip, setuptools, wheel, pip-tools
         run: |
@@ -39,6 +39,11 @@ jobs:
       - name: Install Sphinx and doc dependencies
         run: |
           python -m pip install --no-cache-dir -r docs/source/requirements.txt
+
+      - name: Build Documentation
+        run: |
+          # Builds the docs from docs/source into docs/build/html
+          sphinx-build -b html docs/source docs/build/html
 
       - name: Run tests
         run: |
