@@ -111,4 +111,3 @@ def multiprocessing_mci(arr, aom, ncores, partition='mulliken'):
 # Aliases for Natural Orbitals
 sequential_mci_no = sequential_mci
 multiprocessing_mci_no = multiprocessing_mci
-aproxmci = mci_approx
