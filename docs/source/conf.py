@@ -13,6 +13,13 @@ sys.path.insert(0, os.path.abspath("../"))
 sys.path.insert(0, os.path.abspath("./"))
 sys.path.insert(0, os.path.abspath("../../"))
 
+def setup(app):
+    app.add_css_file("css/custom.css")
+
+html_context = {
+    "css_files": ["_static/css/custom.css"],
+}
+
 project = 'ESIpy'
 copyright = '2024, Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador'
 author = 'Joan Grèbol-Tomàs, Eduard Matito, Pedro Salvador'
@@ -43,7 +50,7 @@ extensions = [
 templates_path = ["_templates"]
 exclude_patterns = []
 pygments_style = "sphinx"
-mathjax_path = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+mathjax_path="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
 master_doc = "index"
 
 # -- Options for HTML output -------------------------------------------------
@@ -51,9 +58,7 @@ master_doc = "index"
 
 html_theme = "insegel"
 html_static_path = ["_static"]
-
-html_css_files = ["css/custom.css"]
-
+html_css_files = ["custom.css"]
 html_logo = "logoesipy.png"
 html_title = "ESIpy"
 bibtex_bibfiles = ["_static/references.bib"]
