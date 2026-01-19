@@ -136,7 +136,7 @@ def main():
             # Read the AOMs now
             esi.readaoms()
         else:  # fchk
-            esi = ESI(mol=mol, mf=mf, rings=rings, partition=partition, flurefs=flurefs, homarefs=homarefs,
+            esi = ESI(mol=mol, mf=mf, rings=rings, partition=partition, flurefs=flurefs,
                       av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, **mci_kwargs, **extra_kwargs)
         esi.print()
 

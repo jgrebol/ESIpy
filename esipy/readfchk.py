@@ -305,7 +305,7 @@ class MeanField2:
         self._scf.mo_coeff = self.mo_coeff
         self._scf.mo_occ = self.mo_occ
         self._scf.e_tot = self.e_tot
-        self._scf._class__.__name__ = self.__name__
+        self._scf.__class__.__name__ = self.__name__
 
     def make_rdm1(self, ao_repr=True):
         # Simple density from mo_coeff and mo_occ if available (RHF case)

@@ -56,7 +56,7 @@ def _prep_matrices(arr, aom):
     return [aom[idx - 1] for idx in arr]
 
 
-def mci(arr, aom, partition='mulliken', n_cores=None):
+def compute_mci(arr, aom, partition='mulliken', n_cores=None):
     """
     Computes Exact MCI using DFS.
 
