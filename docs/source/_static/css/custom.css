@@ -100,13 +100,16 @@ h3, h4, h5, h6 {
 
 #side-menu-container {
   border-radius: 12px;
-  width: 370px;
+  width: fit-content;
+  min-width: 250px;
+  max-width: 80vw;
   margin-right: .25em;
   position: relative;
   background-color: #18997D;
   height: auto;
-  max-height: 150vh;
-    padding-bottom: .25em;
+  max-height: None;
+  padding-bottom: .25em;
+
 }
 
 a.reference.internal .xref.py.py-mod.docutils.literal.notranslate {
