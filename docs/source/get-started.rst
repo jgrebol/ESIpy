@@ -62,9 +62,10 @@ the output of which provides the indices split into orbital contributions.
 Dealing with AOMs
 ^^^^^^^^^^^^^^^^^^
 In order to avoid the single-point calculation, the `save` attribute will save the AOMs and a dictionary
-containing information about the molecule and calculation into a binary file in disk. It should contain only the title of
-the calculation, and ESIpy will add the used partition scheme and the extension (`.aoms` and `.molinfo`). Hereafter, these will be accessible
-at any time. It is also recommended to use a for-loop scheme for all the partitions, as the computational time to generate
+containing information about the molecule and calculation into a binary file in disk. There will be a  directory created
+with the name of the calculation and the _esipy/ extension, and all the `.aoms` and `.molinfo` files will be saved there.
+It should contain only the title of the calculation, and ESIpy will add the used partition scheme and the extension (`.aoms` and `.molinfo`).
+Hereafter, these will be accessible at any time. It is also recommended to use a for-loop scheme for all the partitions, as the computational time to generate
 the matrices is minimal and independent to the chosen scheme.
 
 .. code-block:: python
