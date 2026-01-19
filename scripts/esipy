@@ -11,7 +11,6 @@ def main():
         print("Usage: input2esi <inputfile>")
         sys.exit(1)
     inputfile = sys.argv[1]
-    print(" | Reading input file:", inputfile)
     inp = ESIInput.from_file(inputfile)
 
     mol = None
