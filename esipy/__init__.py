@@ -1384,7 +1384,7 @@ class ESI:
             aom = self.readaoms()
             if self.save:
                 # save_file will create subdirectory based on molecule name (from self.save)
-                # Files will be saved as: moleculename/moleculename_partition.aoms
+                # Files will be saved as: moleculename_esipy/moleculename_partition.aoms
                 os.makedirs(self.save_dir, exist_ok=True)
                 save_file(aom, os.path.join(self.save_dir, os.path.basename(self.saveaoms)))
                 save_file(self.molinfo, os.path.join(self.save_dir, os.path.basename(self.savemolinfo)))
@@ -1410,7 +1410,7 @@ class ESI:
     def partition(self):
         """
         Get the partition scheme for the Hilbert-space. Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao'.
-        Some variations of these names are also available.
+        Some variations of these names are also available. Only one partition at a time.
 
         :returns: The partition scheme for the Hilbert-space calculation.
         :rtype: str
@@ -1424,8 +1424,8 @@ class ESI:
     def connec(self):
         """
         Get the connectivity matrix. If the partition is 'mulliken' or 'lowdin',
-        build the meta-Lowdin AOMs and compute the connectivity matrix from there.
-        The computation is controlled by the 'done_connec' flag.
+        build the NAO AOMs and compute the connectivity matrix from there.
+        The computation is controlled by the 'done_connec' flag. Based on the DIs.
 
         :returns: The connectivity matrix.
         :rtype: dict
@@ -1465,7 +1465,7 @@ class ESI:
             maxring = max(len(ring) for ring in self.rings)
         else:
             maxring = len(self.rings)
-        return maxring < 12
+        return maxring <= 12 # Will compute MCI if ring size <= 12
 
     @mci.setter
     def mci(self, value):
@@ -1485,7 +1485,7 @@ class ESI:
             maxring = max(len(ring) for ring in self.rings)
         else:
             maxring = len(self.rings)
-        return maxring > 9
+        return maxring > 9 # Will compute AV1245 if ring size is 10 or more
 
     @av1245.setter
     def av1245(self, value):
@@ -1517,7 +1517,7 @@ class ESI:
             - A '.int' file for each atom with its corresponding AOM.
             - A 'name.files' with a list of the names of the '.int' files.
             - A 'name.bad' with a standard input for the ESI-3D code.
-            - For Natural Orbitals, a 'name.wfx' with the occupancies for the ESI-3D code.
+            - A 'name.wfx' with the occupancies for the ESI-3D code.
         """
 
         for attr in ['mol', 'mf', 'aom', 'partition']:

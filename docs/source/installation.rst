@@ -36,3 +36,7 @@ To install ESIpy from source, follow these steps:
     cd ESIpy
 
 2. Install the package:
+
+.. code-block:: bash
+
+    pip install .

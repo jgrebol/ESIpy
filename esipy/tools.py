@@ -1,6 +1,5 @@
-from os import environ
-import numpy as np
 from collections import deque, defaultdict
+import numpy as np
 
 def wf_type(aom):
     """
@@ -71,9 +70,7 @@ def save_file(file, save):
     :type save: str
     :returns: None
     """
-    import os
     from pickle import dump
-    # Ensure parent directory exists
     with open(save, "wb") as f:
         dump(file, f)
 
@@ -229,7 +226,7 @@ def mol_info(mol=None, mf=None, save=None, partition=None, connec=None):
         else:
             info.update({"xc": "None"})
 
-    # Include connectivity if a value was passed (allow empty dicts)
+    # Include connectivity if a value was passed
     if connec is not None:
         info.update({"connec": connec})
 
@@ -372,39 +369,32 @@ def get_natorbs(mf, S):
     """
 
     from scipy.linalg import eigh
-    import numpy as _np
+    import numpy as np
     print(" | Obtaining Natural Orbitals from the 1-RDM...")
 
-    # Ask the mean-field object for the 1-RDM in AO representation
     rdm1 = mf.make_rdm1(ao_repr=True)
-
-    # Convert to numpy and handle a few possible shapes/types
-    rdm1_arr = _np.asarray(rdm1)
+    rdm1_arr = np.asarray(rdm1)
 
     if rdm1_arr.ndim == 3:
-        #raise NotImplementedError(" | Natural Orbitals for unrestricted calculations are not implemented yet.")
-        D = _np.sum(rdm1_arr, axis=0)
+        raise NotImplementedError(" | Natural Orbitals for unrestricted calculations are not implemented yet.")
+        #D = np.sum(rdm1_arr, axis=0)
     elif rdm1_arr.ndim == 2:
         D = rdm1_arr
     else:
         raise ValueError(" | Could not find dimensions for the 1-RDM")
 
-    # Symmetrize S as well and coerce to float
-    S = _np.asarray(S, dtype=float)
+    # Ensure S is symmetric, which by default should be
+    S = np.asarray(S, dtype=float)
     S = 0.5 * (S + S.T)
 
     # Solve generalized eigenproblem to obtain NOs and occupancies
-    occ, coeff = eigh(_np.linalg.multi_dot((S, D, S)), b=S)
+    occ, coeff = eigh(np.linalg.multi_dot((S, D, S)), b=S)
 
     # Order descending
     coeff = coeff[:, ::-1]
     occ = occ[::-1]
-
-    # Zero out tiny negative occupancies
-    occ[occ < 1e-12] = 0.0
-
-    # Return occupations as diagonal matrix (keeps previous API)
-    occ_diag = _np.diag(occ)
+    occ[occ < 1e-12] = 0.0 # Small values set to zero
+    occ_diag = np.diag(occ)
     return occ_diag, coeff
 
 
@@ -554,19 +544,18 @@ def iao(mf_orig, mf_min, coeffs=None):
         Total number of electrons (for closed-shell, we take nocc = nelec//2)
     """
 
-    # --- Step 1: Overlap matrices ---
     from pyscf.gto.mole import intor_cross
     S1 = mf_orig.get_ovlp()  # (nbas_orig × nbas_orig)
     S2 = mf_min.get_ovlp()   # (nbas_min × nbas_min)
     S12 = intor_cross("int1e_ovlp", mf_orig.mol, mf_min.mol)  # (nbas_orig × nbas_min)
 
-    # --- Step 2: Occupied space ---
+    # Define the occupied space
     nocc = mf_orig.nelec // 2
     if coeffs is None:
         coeffs = mf_min.mo_coeff  # (nbas_orig × nmo)
     C_occ = coeffs[:, :nocc]  # (nbas_orig × nocc)
 
-    # --- Step 3: Build projectors ---
+    # Build projectors
     S21 = S12.T
     Ctild_min = np.linalg.solve(S2, S21 @ C_occ)  # (nmin × nocc)
 
@@ -580,369 +569,43 @@ def iao(mf_orig, mf_min, coeffs=None):
         P12 = X @ X.T @ S12
         Ctild_AO = P12 @ Ctild_min
 
-    # --- Step 4: Orthonormalize projected orbitals ---
+    # Lowdin orthonormalization
     from pyscf.lo.orth import vec_lowdin
     Ctild = vec_lowdin(Ctild_AO, S1)
 
-    # --- Step 5: PySCF-style IAO projector formula ---
     P_occ  = C_occ @ C_occ.T @ S1
     P_proj = Ctild @ Ctild.T @ S1
     IAOs = P12 + 2 * (P_occ @ P_proj @ P12) - P_occ @ P12 - P_proj @ P12
 
-    # --- Step 6: Orthonormalize IAOs ---
+    # Orthonormalize IAOs ---
     IAOs = vec_lowdin(IAOs, S1)
 
     return IAOs
 
-# NOT IN USE YET
-from pyscf.lo.nao import _sph_average_mat, _cart_average_mat, _core_val_ryd_list
-from pyscf.lo.orth import weight_orth
-from scipy.linalg import eigh
-def get_shell_L_indices(mol):
-    """
-    Return a list of AO-index arrays grouped per-atom and per-angular-momentum L.
-
-    For each atom, this function collects all shells (rows in mol._bas) belonging to
-    that atom and for each angular momentum L it concatenates the AO indices of all
-    shells with that L (this reproduces PySCF's grouping used by the spherical/cartesian
-    averaging helpers). SP shells in `mol._bas` are already split into l=0 and l=1
-    entries by `make_bas_env`, so they will be treated as separate L groups here.
-    """
-    import numpy as _np
-
-    # Use mol._bas and mol.ao_loc_nr() (PySCF-style). This respects the actual AO ordering
-    # used elsewhere in the code and naturally groups multiple contracted shells per L.
-    bas = _np.asarray(getattr(mol, '_bas'))
-
-    # bas columns: [ATOM_OF, ANG_OF, NPRIM_OF, NCTR_OF, KAPPA_OF, PTR_EXP, PTR_COEFF, UNUSED]
-    atom_of = bas[:, 0].astype(int)
-    ang_of = bas[:, 1].astype(int)
-
-    # Build ao_loc from _bas to ensure consistency with contraction counts
-    ao_loc_list = [0]
-    for ish in range(len(bas)):
-        ang = int(ang_of[ish])
-        nctr = int(bas[ish, 3]) if bas.shape[1] > 3 else 1
-        if nctr <= 0:
-            nctr = 1
-        # degeneracy per angular momentum (cartesian vs spherical)
-        if hasattr(mol, 'cart') and mol.cart:
-            degen_shell = (ang + 1) * (ang + 2) // 2
-        else:
-            degen_shell = 2 * ang + 1
-        if degen_shell <= 0:
-            degen_shell = 1
-        ao_loc_list.append(ao_loc_list[-1] + nctr * degen_shell)
-    ao_loc = _np.array(ao_loc_list, dtype=int)
-
-    shell_idx_list = []
-    # iterate atoms in order
-    for ia in range(mol.natm):
-        # find shell indices for this atom
-        shells = [ish for ish in range(len(bas)) if atom_of[ish] == ia]
-        if not shells:
-            continue
-        # collect L values present for this atom in ascending order
-        Ls = sorted({int(ang_of[ish]) for ish in shells})
-        for L in Ls:
-            # collect AO indices from all shells on this atom with angular momentum L
-            idx = []
-            for ish in shells:
-                if int(ang_of[ish]) != L:
-                    continue
-                start = int(ao_loc[ish])
-                end = int(ao_loc[ish + 1])
-                idx.extend(range(start, end))
-            shell_idx_list.append(_np.array(idx, dtype=int))
-
-    return shell_idx_list
-
-def get_shell_L_indices_fchk(mol):
-    """
-    Build AO-index groups per-atom and angular momentum L following the original
-    Gaussian FCHK shell ordering (i.e., using `mol.mssh`/`mol.mnsh`/`mol.iatsh`).
-
-    Returns a list of numpy arrays where each array is the AO indices (in FCHK
-    AO ordering) corresponding to one atomic-L block (same semantics as
-    PySCF's grouping but using FCHK ordering).
-    """
-    import numpy as _np
-
-    # Number of shells and basic arrays from the FCHK reader
-    shell_types = [int(x) for x in mol.mssh]
-    mnsh = [int(x) for x in mol.mnsh]
-    shell_atom = _np.array([int(x) for x in mol.iatsh], dtype=int)
-    natm = int(mol.natm)
-
-    # Convert 1-based atom indices (common in FCHK) to 0-based
-    if shell_atom.min() == 1 and shell_atom.max() <= natm:
-        shell_atom = shell_atom - 1
-
-    # map shell_type -> number of AOs contributed by that contracted shell
-    mult_map = {0: 1, 1: 3, 2: 6, 3: 10, 4: 15, 5: 21,
-                -1: 4, -2: 5, -3: 7, -4: 9, -5: 11}
-
-    nbas = len(shell_types)
-
-    # Build primitive pointer (primitives per shell) like earlier functions
-    prim_ptr = [0]
-    for n in mnsh:
-        prim_ptr.append(prim_ptr[-1] + n)
-
-    # Build AO start offsets per shell following FCHK ordering
-    ao_loc_shell = [0]
-    for ish in range(nbas):
-        st = shell_types[ish]
-        # number of primitives in this contracted shell
-        p0 = prim_ptr[ish]
-        p1 = prim_ptr[ish + 1]
-        nprim = p1 - p0 if (p1 > p0) else 1
-
-        if st == -1:
-            # SP shell: S coefficients in c1, P in c2 (if present)
-            try:
-                nctr_s = (len(mol.c1[p0:p1]) // nprim) if hasattr(mol, 'c1') and mol.c1 is not None else 1
-            except Exception:
-                nctr_s = 1
-            try:
-                nctr_p = (len(mol.c2[p0:p1]) // nprim) if hasattr(mol, 'c2') and mol.c2 is not None else 0
-            except Exception:
-                nctr_p = 0
-            nfunc = int(nctr_s * 1 + nctr_p * 3)
-        else:
-            # regular shell: number of contraction columns inferred from c1 slice length
-            try:
-                nctr = (len(mol.c1[p0:p1]) // nprim) if hasattr(mol, 'c1') and mol.c1 is not None else 1
-            except Exception:
-                nctr = 1
-            degen = mult_map.get(st, mult_map.get(abs(st), 0))
-            nfunc = int(nctr * degen)
-
-        ao_loc_shell.append(ao_loc_shell[-1] + nfunc)
-    ao_loc_shell = _np.array(ao_loc_shell, dtype=int)
-
-    # Now group per atom and per L (treat SP (-1) as two groups: L=0 (first AO) and L=1 (remaining))
-    shell_idx_list = []
-    for ia in range(natm):
-        # shells on this atom in FCHK order
-        shells = [ish for ish in range(nbas) if shell_atom[ish] == ia]
-        if not shells:
-            continue
-        # collect L values present (use absolute value except keep -1 to split)
-        Lset = set()
-        for ish in shells:
-            st = shell_types[ish]
-            if st == -1:
-                Lset.update([0, 1])
-            else:
-                Lset.add(abs(st))
-        for L in sorted(Lset):
-            idx = []
-            for ish in shells:
-                st = shell_types[ish]
-                start = int(ao_loc_shell[ish])
-                end = int(ao_loc_shell[ish + 1])
-                if st == -1:
-                    # SP: S is first AO, P are remaining
-                    if L == 0:
-                        idx.extend(range(start, start + 1))
-                    elif L == 1:
-                        idx.extend(range(start + 1, end))
-                else:
-                    if abs(st) == L:
-                        idx.extend(range(start, end))
-            shell_idx_list.append(_np.array(idx, dtype=int))
-
-    return shell_idx_list
-
-def aoslice_by_atom_from_bas(m):
-    """Return list of (iat, dummy, ao_start, ao_end) following m._bas order."""
-    bas = np.asarray(m._bas)
-    # ao_loc in the same order as _bas (start index per shell)
-    if hasattr(m, 'ao_loc'):
-        ao_loc = np.asarray(m.ao_loc)
-    else:
-        ao_loc = np.asarray(m.ao_loc_nr())
-
-    # group shells by atom (assumes bas[:,0] uses 0-based atom indices)
-    shells_by_atom = {}
-    for ish, brow in enumerate(bas):
-        iat = int(brow[0])
-        shells_by_atom.setdefault(iat, []).append(ish)
-
-    slices = []
-    natm = int(getattr(m, 'natm', getattr(m, 'natoms', None)))
-    for iat in range(natm):
-        shells = shells_by_atom.get(iat, [])
-        if not shells:
-            slices.append((iat, 0, 0, 0))
-            continue
-        p0 = int(ao_loc[shells[0]])
-        p1 = int(ao_loc[shells[-1] + 1])
-        slices.append((iat, 0, p0, p1))
-    return slices
-
-
-import numpy as np
-from functools import reduce
-
-import numpy as np
-
-def permute_aos(mat, mol):
-    cart_flag = getattr(mol, 'cart', False)
-
-    # choose the _bas that corresponds to the matrix:
-    # if this is MINAO object use its _bas, else use underlying mol._bas
-    bas = mol._bas
-
-    final_order = []
-    offset = 0
-
-    for basrow in bas:
-        l = int(basrow[1])
-        nctr = int(basrow[3])   # number of contractions for this shell
-
-        if cart_flag:
-            per_ctr = (l + 1) * (l + 2) // 2
-            key = l
-        else:
-            per_ctr = 2 * l + 1
-            key = -l
-
-        mapping = MAPS.get(key)
-
-        # total functions contributed by this shell:
-        total_funcs = per_ctr * nctr
-
-        if mapping is None:
-            # identity: include all functions for all contractions
-            final_order.extend(range(offset, offset + total_funcs))
-        else:
-            # mapping describes reorder for ONE contraction block of length per_ctr.
-            # apply the mapping for each contraction block, shifted by per_ctr*k
-            for k in range(nctr):
-                block_offset = offset + k * per_ctr
-                # invert mapping: mapping[old] = new; we need inv[new] = old
-                inv = [0] * per_ctr
-                for old, new in enumerate(mapping):
-                    inv[new] = old
-                for idx in inv:
-                    final_order.append(block_offset + idx)
-
-        offset += total_funcs
-
-    if len(final_order) != mat.shape[0]:
-        raise ValueError(f"permute_aos: final_order length {len(final_order)} != matrix dim {mat.shape[0]}. "
-                         "Use the same _bas that was used to build the matrix.")
-
-    return mat[np.ix_(final_order, final_order)]
-
-def permute_aos_cross(mat, mol1, mol2):
-    """Permute rows/columns of cross-overlap matrix for mf1 and mf2 independently."""
-    def make_order(mol):
-        cart_flag = getattr(mol, 'cart', False)
-        bas = mol._bas if getattr(mol, "minao", False) else mol.mol._bas
-        final_order = []
-        offset = 0
-        for basrow in bas:
-            l = int(basrow[1])
-            nctr = int(basrow[3])
-            per_ctr = (l + 1) * (l + 2) // 2 if cart_flag else 2 * l + 1
-            key = l if cart_flag else -l
-            mapping = MAPS.get(key)
-            total_funcs = per_ctr * nctr
-            if mapping is None:
-                final_order.extend(range(offset, offset + total_funcs))
-            else:
-                for k in range(nctr):
-                    block_offset = offset + k * per_ctr
-                    inv = [0] * per_ctr
-                    for old, new in enumerate(mapping):
-                        inv[new] = old
-                    for idx in inv:
-                        final_order.append(block_offset + idx)
-            offset += total_funcs
-        return final_order
-
-    row_order = make_order(mol1)
-    col_order = make_order(mol2)
-    return mat[np.ix_(row_order, col_order)]
-
-def permute_aos_cols(pre_orth_ao, mol):
-    """
-    Return a copy of pre_orth_ao where, for each shell in mol._bas (or mol.mol._bas
-    if using MoleANO/minao), the functions belonging to that shell have their
-    *columns* permuted according to MAPS (applied per contraction block).
-    Rows are left untouched.
-    """
-    bas = mol._bas
-    cart_flag = getattr(mol, 'cart', False)
-
-    col_order = []
-    offset = 0
-
-    for basrow in bas:
-        l = int(basrow[1])
-        nctr = int(basrow[3])   # number of contractions for this shell
-
-        if cart_flag:
-            per_ctr = (l + 1) * (l + 2) // 2
-            key = l
-        else:
-            per_ctr = 2 * l + 1
-            key = -l
-
-        mapping = MAPS.get(key)
-        total_funcs = per_ctr * nctr
-
-        if mapping is None:
-            col_order.extend(range(offset, offset + total_funcs))
-        else:
-            inv = [0] * per_ctr
-            for old, new in enumerate(mapping):
-                inv[new] = old
-            for k in range(nctr):
-                block_offset = offset + k * per_ctr
-                for idx in inv:
-                    col_order.append(block_offset + idx)
-
-        offset += total_funcs
-
-    # Apply permutation to columns ONLY:
-    new = pre_orth_ao[:, col_order]
-    return new
-
-
-import numpy as np
-
-
 def permute_aos_rows(mat, mole2):
     """
     Reorders FCHK AO rows to match PySCF's internal layout AND applies
-    Mokit-style normalization scaling for Cartesian basis sets.
+    normalization scaling for Cartesian basis sets.
     """
     mol = mole2.pyscf_mol
     is_cart = bool(getattr(mol, 'cart', False))
 
-    # --- 1. Define Mokit Scaling Constants (Sdiag) ---
-    # These map Gaussian Cartesian norms to PySCF Cartesian norms
-    PI = np.pi
-    p1 = 2.0 * np.sqrt(PI / 15.0)
-    p2 = 2.0 * np.sqrt(PI / 5.0)
-    p3 = 2.0 * np.sqrt(PI / 7.0)
-    p4 = 2.0 * np.sqrt(PI / 35.0)
-    p5 = 2.0 * np.sqrt(PI / 105.0)
-    p6 = (2.0 / 3.0) * np.sqrt(PI)
-    p7 = (2.0 / 3.0) * np.sqrt(PI / 7.0)
-    p8 = (2.0 / 3.0) * np.sqrt(PI / 35.0)
-    p9 = 2.0 * np.sqrt(PI / 11.0)
-    p10 = (2.0 / 3.0) * np.sqrt(PI / 11.0)
-    p11 = 2.0 * np.sqrt(PI / 231.0)
-    p12 = (2.0 / 3.0) * np.sqrt(PI / 77.0)
-    p13 = 2.0 * np.sqrt(PI / 1155.0)
+    # Scalings for Cartesian basis functions
+    pi = np.pi
+    p1 = 2.0 * np.sqrt(pi / 15.0)
+    p2 = 2.0 * np.sqrt(pi / 5.0)
+    p3 = 2.0 * np.sqrt(pi / 7.0)
+    p4 = 2.0 * np.sqrt(pi / 35.0)
+    p5 = 2.0 * np.sqrt(pi / 105.0)
+    p6 = (2.0 / 3.0) * np.sqrt(pi)
+    p7 = (2.0 / 3.0) * np.sqrt(pi / 7.0)
+    p8 = (2.0 / 3.0) * np.sqrt(pi / 35.0)
+    p9 = 2.0 * np.sqrt(pi / 11.0)
+    p10 = (2.0 / 3.0) * np.sqrt(pi / 11.0)
+    p11 = 2.0 * np.sqrt(pi / 231.0)
+    p12 = (2.0 / 3.0) * np.sqrt(pi / 77.0)
+    p13 = 2.0 * np.sqrt(pi / 1155.0)
 
-    # Scaling arrays ordered according to PySCF Internal Order
-    # Mokit logic: coeff_pyscf = coeff_fchk / Sdiag
     SDIAG = {
         # 6D: XX, XY, XZ, YY, YZ, ZZ
         2: [p2, p1, p1, p2, p1, p2],
@@ -958,16 +621,16 @@ def permute_aos_rows(mat, mole2):
             p13, p12, p10, p9, p10, p11, p11, p10, p9]
     }
 
-    # --- 2. Define Permutation Maps ---
+    # Mapping from FCHK to PySCF ordering
     MAPS = {
-        # Cartesian (Gaussian -> PySCF)
+        # Cartesian
         2: [0, 3, 4, 1, 5, 2],
         3: [0, 4, 5, 3, 9, 6, 1, 8, 7, 2],
         4: [0, 4, 5, 3, 14, 6, 11, 13, 12, 9, 1, 8, 7, 10, 2],
         5: [0, 5, 6, 4, 20, 7, 15, 19, 18, 11, 10, 14, 13, 17, 16, 1, 9, 8, 12, 11, 2],
         6: [0, 6, 7, 5, 27, 8, 19, 26, 25, 13, 15, 22, 21, 24, 23, 10, 18, 17, 20, 19, 16, 1, 10, 9, 14, 13, 11, 2],
 
-        # Spherical (Gaussian -> PySCF)
+        # Spherical
         -2: [4, 2, 0, 1, 3],
         -3: [6, 4, 2, 0, 1, 3, 5],
         -4: [8, 6, 4, 2, 0, 1, 3, 5, 7],
@@ -975,7 +638,6 @@ def permute_aos_rows(mat, mole2):
         -6: [12, 10, 8, 6, 4, 2, 0, 1, 3, 5, 7, 9, 11]
     }
 
-    # --- 3. Build Permutation and Scaling Lists ---
     atom_map = np.asarray(mole2.fchk_basis_arrays['iatsh']) - 1
     shell_types = np.asarray(mole2.fchk_basis_arrays['mssh'])
 
@@ -1028,12 +690,8 @@ def permute_aos_rows(mat, mole2):
         idx_list.extend(indices)
         scale_list.extend(scales)
 
-    # --- 4. Apply to Matrix ---
     p = np.array(idx_list)
     s = np.array(scale_list)
-
-    # mat shape is typically (NAO, NMO) or (NMO, NAO) or (Spin, ...).
-    # We detect dimension matching `len(p)` to find the AO axis.
 
     if mat.ndim == 2:
         if mat.shape[0] == len(p):  # (NAO, NMO) - Permute rows

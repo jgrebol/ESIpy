@@ -2,356 +2,241 @@ import numpy as np
 import multiprocessing as mp
 from math import factorial
 from time import time
-from functools import partial
 
-# Imports from your library
 from esipy.tools import (
     wf_type, mapping, filter_connec, find_node_distances, build_connectivity
 )
 
+def _kernel_exact(args):
+    """DFS worker for exact MCI."""
+    mats, j, sym_prune = args
+    n = len(mats)
 
-# ==============================================================================
-# WORKER 1: EXACT MCI (Original, Unchanged)
-# ==============================================================================
+    # Init path: 0 -> j
+    P = np.dot(mats[0], mats[j])
+    mask = (1 << 0) | (1 << j)
 
-def _mci_worker(args):
-    """
-    Worker function to compute the partial trace sum.
-    Efficiently handles both standard and correlated (NO) cases.
-    """
-    matrices, second_idx, prune_reversed = args
-    n = len(matrices)
-
-    # 1. Initialize DFS path: [0, second_idx]
-    # Product = M[0] @ M[second_idx]
-    current_prod = np.dot(matrices[0], matrices[second_idx])
-    visited_mask = (1 << 0) | (1 << second_idx)
-
-    # Stack: (depth, visited_mask, current_matrix_product)
-    stack = [(2, visited_mask, current_prod)]
-
-    local_trace_sum = 0.0
+    # Stack: (depth, visited_mask, current_product)
+    stack = [(2, mask, P)]
+    tr_sum = 0.0
 
     while stack:
-        depth, mask, prod = stack.pop()
+        depth, mask, P = stack.pop()
 
-        # BASE CASE: One node remaining (Leaf)
+        # Leaf node
         if depth == n - 1:
             # Find the single unvisited node index
-            rem_node = -1
-            for i in range(n):
-                if not (mask & (1 << i)):
-                    rem_node = i
-                    break
+            rem = 0
+            while (mask >> rem) & 1:
+                rem += 1
 
-            # PRUNING (For Symmetric Partition)
-            # Ensure we only count one direction (e.g., second < last)
-            if prune_reversed and (second_idx > rem_node):
+            # For symmetric AOMs, consider only those with the second node index less than the last
+            if sym_prune and (j > rem):
                 continue
 
-            # TRACE TRICK (O(N^2) instead of O(N^3))
-            # Trace(A @ B) = Sum(A * B.T)
-            # This works even for non-symmetric matrices (Natural Orbitals).
-            term = np.sum(prod * matrices[rem_node].T)
-            local_trace_sum += term
+            # Trace contraction: Tr(A @ B) = sum(A * B.T)
+            # Reduced time complexity if we want to keep only trace from O(N^3) to O(N^2)
+            tr_sum += np.sum(P * mats[rem].T)
             continue
 
-        # RECURSIVE STEP
+        # Recurse like James Harden, step back
         for i in range(1, n):
-            if not (mask & (1 << i)):
-                # Accumulate: New = Old @ Matrix_i
-                new_prod = np.dot(prod, matrices[i])
-                new_mask = mask | (1 << i)
-                stack.append((depth + 1, new_mask, new_prod))
+            if not ((mask >> i) & 1):
+                stack.append((depth + 1, mask | (1 << i), np.dot(P, mats[i])))
 
-    return local_trace_sum
+    return tr_sum
 
 
-# ==============================================================================
-# WORKER 2: APPROX MCI (New, Optimized)
-# ==============================================================================
-
-def _aprox_mci_worker(args):
+def _kernel_approx(args):
     """
-    Worker function for aproxmci.
-    Combines the efficient matrix multiplication of _mci_worker with
-    the distance and parity filtering of HamiltonMCI.
-
-    args: (matrices, dist_mat, second_idx, mcialg, d, prune_reversed)
+    DFS worker with distance/parity filtering.
+    args: (mats, dists, start_idx, alg_type, d_cut, sym_prune)
     """
-    matrices, dist_mat, second_idx, mcialg, d, prune_reversed = args
-    n = len(matrices)
+    mats, dists, j, alg, d_cut, sym_prune = args
+    n = len(mats)
 
-    # --- 1. Filter Initial Step (0 -> second_idx) ---
-    dist_0_sec = dist_mat[0, second_idx]
+    # 1. Filter Initial Step (0 -> j)
+    d0 = dists[0, j]
+    if d0 > d_cut: return 0.0, 0
 
-    # Global Constraint: All algs (1-4) require edges <= d
-    if dist_0_sec > d: return 0.0, 0
+    # Parity checks: Alg 3 (Odd only), Alg 4 (Even only)
+    if alg == 3 and (d0 % 2 == 0): return 0.0, 0
+    if alg == 4 and (d0 % 2 != 0): return 0.0, 0
 
-    # Alg 3 (Odd) / Alg 4 (Even) Checks
-    if mcialg == 3 and (dist_0_sec % 2 == 0): return 0.0, 0
-    if mcialg == 4 and (dist_0_sec % 2 != 0): return 0.0, 0
+    cur_max = d0
+    P = np.dot(mats[0], mats[j])
+    mask = (1 << 0) | (1 << j)
 
-    # For Alg 2, we track max distance found in path
-    current_max = dist_0_sec
+    # Stack: (depth, mask, product, prev_node, current_max_dist)
+    stack = [(2, mask, P, j, cur_max)]
 
-    # --- 2. Initialize DFS ---
-    current_prod = np.dot(matrices[0], matrices[second_idx])
-    visited_mask = (1 << 0) | (1 << second_idx)
-
-    # Stack: (depth, visited_mask, current_prod, last_node_idx, current_max_dist)
-    stack = [(2, visited_mask, current_prod, second_idx, current_max)]
-
-    local_trace_sum = 0.0
-    local_count = 0
+    tr_sum = 0.0
+    n_perms = 0
 
     while stack:
-        depth, mask, prod, last_idx, cur_max = stack.pop()
+        depth, mask, P, prev, cur_max = stack.pop()
 
-        # --- BASE CASE: One node remaining (Leaf) ---
+        # Leaf node
         if depth == n - 1:
-            # Find remaining node
-            rem_node = -1
-            for i in range(n):
-                if not (mask & (1 << i)):
-                    rem_node = i
-                    break
+            rem = 0
+            while (mask >> rem) & 1:
+                rem += 1
 
-            # A. Pruning (Symmetric Partition)
-            if prune_reversed and (second_idx > rem_node):
-                continue
+            if sym_prune and (j > rem): continue
 
-            # B. Validate Last Step (last -> rem)
-            dist_last = dist_mat[last_idx, rem_node]
-            if dist_last > d: continue
-            if mcialg == 3 and (dist_last % 2 == 0): continue
-            if mcialg == 4 and (dist_last % 2 != 0): continue
+            # Validate closing edges (prev->rem, rem->0)
+            d_last = dists[prev, rem]
+            d_close = dists[rem, 0]
 
-            # C. Validate Closing Step (rem -> 0)
-            dist_close = dist_mat[rem_node, 0]
-            if dist_close > d: continue
-            if mcialg == 3 and (dist_close % 2 == 0): continue
-            if mcialg == 4 and (dist_close % 2 != 0): continue
+            if d_last > d_cut or d_close > d_cut: continue
 
-            # D. Alg 2 Special Check: Max dist in cycle must be EXACTLY d
-            if mcialg == 2:
-                final_max = max(cur_max, dist_last, dist_close)
-                if final_max != d: continue
+            if alg == 3 and ((d_last % 2 == 0) or (d_close % 2 == 0)): continue
+            if alg == 4 and ((d_last % 2 != 0) or (d_close % 2 != 0)): continue
 
-            # E. Compute Trace (Trace Trick)
-            term = np.sum(prod * matrices[rem_node].T)
-            local_trace_sum += term
-            local_count += 1
+            # Alg 2: Cycle max distance must equal cutoff d
+            if alg == 2:
+                if max(cur_max, d_last, d_close) != d_cut: continue
+
+            tr_sum += np.sum(P * mats[rem].T)
+            n_perms += 1
             continue
 
-        # --- RECURSIVE STEP ---
+        # Recurse
         for i in range(1, n):
-            if not (mask & (1 << i)):
-                dist_step = dist_mat[last_idx, i]
+            if not ((mask >> i) & 1):
+                d_step = dists[prev, i]
 
-                # Filter based on Distance / Parity
-                if dist_step > d: continue
-                if mcialg == 3 and (dist_step % 2 == 0): continue
-                if mcialg == 4 and (dist_step % 2 != 0): continue
+                if d_step > d_cut: continue
+                if alg == 3 and (d_step % 2 == 0): continue
+                if alg == 4 and (d_step % 2 != 0): continue
 
-                # Update Max Distance (only needed for Alg 2)
-                new_max = max(cur_max, dist_step) if mcialg == 2 else 0
+                # For Alg 2, propagate max dist
+                new_max = max(cur_max, d_step) if alg == 2 else 0
 
-                # Optimization for Alg 2: If we already exceeded d, stop (impossible, but good safety)
-                # Actually, check above 'dist_step > d' handles this.
+                stack.append((depth + 1, mask | (1 << i), np.dot(P, mats[i]), i, new_max))
 
-                new_prod = np.dot(prod, matrices[i])
-                new_mask = mask | (1 << i)
-                stack.append((depth + 1, new_mask, new_prod, i, new_max))
+    return tr_sum, n_perms
 
-    return local_trace_sum, local_count
-
-
-# ==============================================================================
-# MAIN FUNCTION 1: EXACT MCI (Original, Unchanged)
-# ==============================================================================
-
-def compute_mci(arr, aom, partition='mulliken', n_cores=None):
-    """
-    Unified MCI calculator.
-    - Handles standard matrices AND Natural Orbitals (tuple input).
-    - Auto-optimizes pre-multiplication of Occupation matrix.
-    - Uses DFS and Multiprocessing.
-    """
-    # ---------------------------------------------------------
-    # 1. Input Normalization & Optimization
-    # ---------------------------------------------------------
-    # Check if input is (matrices, occupation_matrix)
+def _prep_matrices(arr, aom):
+    """Normalize input into list of matrices, handling NO tuples."""
     if isinstance(aom, (tuple, list)) and len(aom) == 2 and not isinstance(aom[0], np.ndarray):
+        # For Natural Orbitals: Pre-multiply Occ @ AOM
         real_aoms, occ = aom
-        # OPTIMIZATION: Pre-multiply Occupation @ AOM once.
-        # This moves the cost from O(N!) inside the loop to O(N) here.
-        matrices = [np.dot(occ, real_aoms[idx - 1]) for idx in arr]
-    else:
-        # Standard case
-        matrices = [aom[idx - 1] for idx in arr]
+        return [np.dot(occ, real_aoms[idx - 1]) for idx in arr]
+    return [aom[idx - 1] for idx in arr]
 
+
+def mci(arr, aom, partition='mulliken', n_cores=None):
+    """
+    Computes Exact MCI using DFS.
+
+    Parameters
+    ----------
+    arr : list
+        Atom indices involved in the ring.
+    aom : np.ndarray or tuple
+        Atomic Overlap Matrices. If tuple (AOMs, Occ), assumes Natural Orbitals.
+    partition : str
+        'mulliken', 'symmetric', etc. Controls path pruning.
+    n_cores : int, optional
+        Number of processes. Defaults to cpu_count.
+    """
+    mats = _prep_matrices(arr, aom)
     n = len(arr)
     if n < 3: return 0.0
 
-    # ---------------------------------------------------------
-    # 2. Setup Logic
-    # ---------------------------------------------------------
-    # If partition is symmetric, we PRUNE reversed paths.
-    # If Mulliken, we sum ALL paths (and divide by 2 later).
-    prune = (partition == 'symmetric')
+    # Symmetric AOMs?
+    sym_prune = (partition == 'symmetric')
 
-    tasks = [(matrices, sec, prune) for sec in range(1, n)]
-    total_trace = 0.0
+    # Tasks: Iterate over the second node in the path (0 -> j -> ...)
+    tasks = [(mats, j, sym_prune) for j in range(1, n)]
 
-    # ---------------------------------------------------------
-    # 3. Execution
-    # ---------------------------------------------------------
     if n_cores is None:
         n_cores = mp.cpu_count()
 
-    # Use multiprocessing only if worthwhile
     if n_cores > 1 and len(tasks) > 1:
-        with mp.Pool(processes=n_cores) as pool:
-            # chunksize=1 is good for heavy tasks
-            results = pool.map(_mci_worker, tasks, chunksize=1)
+        with mp.Pool(n_cores) as pool:
+            results = pool.map(_kernel_exact, tasks, chunksize=1)
         total_trace = sum(results)
     else:
-        for task in tasks:
-            total_trace += _mci_worker(task)
+        total_trace = sum(_kernel_exact(t) for t in tasks)
 
-    # Normalization of SD-wf is 2**(n-1) but from permutations we double count
-    if wf_type(aom) == "rest" or wf_type(aom) == "unrest":
-        prefactor = 2 ** (n - 2)
-    else:
-        # Prefactor just for the generation of permutations. We already make use of the NO occupations precomputing occ@AOM
-        prefactor = 0.5
+    # Normalization
+    # SD-wf is 2**(n-1), but we double count perms in non-symmetric cases
+    is_sd = wf_type(aom) in ["rest", "unrest"]
+    prefactor = 2 ** (n - 2) if is_sd else 0.5
 
     return prefactor * total_trace
 
 
-def sequential_mci(arr, aom, partition='mulliken'):
-    return compute_mci(arr, aom, partition=partition, n_cores=1)
+def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
+               rings_thres=0.3, connec=None, **kwargs):
+    """
+    Computes Approximate MCI with topological filtering.
 
+    alg (int): 0=Exact, 1=Dist, 2=MaxDist, 3=Odd, 4=Even
+    """
+    t0 = time()
 
-def sequential_mci_no(arr, aom, partition='mulliken'):
-    return compute_mci(arr, aom, partition=partition, n_cores=1)
+    # Exact if alg=0
+    if alg == 0:
+        val = mci(arr, aom, partition, n_cores)
+        # Factorial scaling for display purposes
+        nperms = factorial(len(arr) - 1)
+        if partition != "mulliken" and partition != "non-symmetric":
+            nperms *= 0.5
+        return val, nperms, time() - t0
 
-
-def multiprocessing_mci(arr, aom, ncores, partition='mulliken'):
-    return compute_mci(arr, aom, partition=partition, n_cores=ncores)
-
-
-def multiprocessing_mci_no(arr, aom, ncores, partition='mulliken'):
-    return compute_mci(arr, aom, partition=partition, n_cores=ncores)
-
-
-# ==============================================================================
-# MAIN FUNCTION 2: APPROX MCI (Optimized Integration)
-# ==============================================================================
-
-def aproxmci(arr, aom, partition=None, mcialg=0, d=1, ncores=1, minlen=6, maxlen=6, rings_thres=0.3, connec=None):
-    start = time()
-
-    # ---------------------------------------------------------
-    # 0. Legacy Handling (Full MCI if mcialg=0)
-    # ---------------------------------------------------------
-    if mcialg == 0:
-        if ncores == 1:
-            val = sequential_mci(arr, aom, partition)
-        else:
-            val = multiprocessing_mci(arr, aom, ncores, partition)
-
-        is_mulliken = (partition == "mulliken" or partition == "non-symmetric")
-        if is_mulliken:
-            nperms = factorial(len(arr) - 1)
-        else:
-            nperms = factorial(len(arr) - 1) * 0.5
-
-        t = time() - start
-        return val, nperms, t
-
-    # ---------------------------------------------------------
-    # 1. Connectivity & Distance Setup
-    # ---------------------------------------------------------
-    # Build full connectivity map
-    if not connec:
+    if connec is None:
         connec = build_connectivity(aom, rings_thres)
 
-    connec = filter_connec(connec)
-    full_distances = find_node_distances(connec)
-
-    # Extract only the subgraph distances relevant to 'arr'
-    # arr contains indices in the AOM (1-based usually in this context, so shift if needed)
-    # Assuming arr indices match aom indices/connec indices.
+    # Generate distance matrix for the relevant subgraph
+    full_dists = find_node_distances(filter_connec(connec))
     n = len(arr)
-    sub_dist_matrix = np.zeros((n, n), dtype=int)
-    # Map arr[i] to arr[j] distance
-    for i in range(n):
-        for j in range(n):
-            sub_dist_matrix[i, j] = full_distances[arr[i]][arr[j]]
+    sub_dists = np.array([[full_dists[arr[i]][arr[j]] for j in range(n)] for i in range(n)])
 
-    # ---------------------------------------------------------
-    # 2. Input Normalization (Matrices)
-    # ---------------------------------------------------------
-    # Pre-multiply Occ @ AOM if tuple (Natural Orbitals)
-    if isinstance(aom, (tuple, list)) and len(aom) == 2 and not isinstance(aom[0], np.ndarray):
-        real_aoms, occ = aom
-        matrices = [np.dot(occ, real_aoms[idx - 1]) for idx in arr]
-    else:
-        matrices = [aom[idx - 1] for idx in arr]
+    mats = _prep_matrices(arr, aom)
+    if n < 3: return 0.0, 0, time() - t0
 
-    if n < 3:
-        return 0.0, 0, time() - start
+    # 2. Prepare Tasks
+    is_mulliken = (partition in ["mulliken", "non-symmetric"])
+    sym_prune = not is_mulliken
 
-    # ---------------------------------------------------------
-    # 3. Setup Tasks
-    # ---------------------------------------------------------
-    # Determine Pruning based on partition
-    # If Mulliken/Non-sym -> We do NOT prune reversed paths in the walker.
-    # (We divide by 2 at the end instead).
-    is_mulliken = (partition == "mulliken" or partition == "non-symmetric")
-    prune_reversed = not is_mulliken
-
-    tasks = [
-        (matrices, sub_dist_matrix, sec, mcialg, d, prune_reversed)
-        for sec in range(1, n)
-    ]
+    tasks = [(mats, sub_dists, j, alg, d, sym_prune) for j in range(1, n)]
 
     total_trace = 0.0
     total_perms = 0
 
-    # ---------------------------------------------------------
-    # 4. Execution
-    # ---------------------------------------------------------
-    # Use multiprocessing if worthwhile
-    if ncores > 1 and len(tasks) > 1:
-        with mp.Pool(processes=ncores) as pool:
-            results = pool.map(_aprox_mci_worker, tasks, chunksize=1)
-
-        # Sum up results
-        for t_val, p_count in results:
-            total_trace += t_val
-            total_perms += p_count
+    if n_cores > 1 and len(tasks) > 1:
+        with mp.Pool(n_cores) as pool:
+            results = pool.map(_kernel_approx, tasks, chunksize=1)
+        for t, p in results:
+            total_trace += t
+            total_perms += p
     else:
-        for task in tasks:
-            t_val, p_count = _aprox_mci_worker(task)
+        for t in tasks:
+            t_val, p_count = _kernel_approx(t)
             total_trace += t_val
             total_perms += p_count
 
-    # ---------------------------------------------------------
-    # 5. Prefactor & Return
-    # ---------------------------------------------------------
-    # Normalization logic
-    if wf_type(aom) in ["rest", "unrest"]:
-        prefactor = 2 ** (n - 1)
-    else:
-        prefactor = 0.5
+    # 3. Normalization
+    is_sd = wf_type(aom) in ["rest", "unrest"]
+    prefactor = 2 ** (n - 1) if is_sd else 0.5
 
-    # If Mulliken, we calculated full sum (forward + reverse), so we halve it.
     if is_mulliken:
         total_trace *= 0.5
 
-    final_val = prefactor * total_trace
+    return prefactor * total_trace, total_perms, time() - t0
 
-    return final_val, total_perms, time() - start
+def sequential_mci(arr, aom, partition='mulliken'):
+    return mci(arr, aom, partition, n_cores=1)
+
+
+def multiprocessing_mci(arr, aom, ncores, partition='mulliken'):
+    return mci(arr, aom, partition, n_cores=ncores)
+
+
+# Aliases for Natural Orbitals
+sequential_mci_no = sequential_mci
+multiprocessing_mci_no = multiprocessing_mci
+aproxmci = mci_approx

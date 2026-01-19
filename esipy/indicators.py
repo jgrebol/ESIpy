@@ -3,7 +3,6 @@ import numpy as np
 from esipy.tools import find_dis, find_di, find_di_no, find_lis, find_ns, find_distances, av1245_pairs, wf_type
 from esipy import mci as _mci
 
-
 ########## Iring ###########
 
 # Computing the Iring (Restricted and Unrestricted)
@@ -57,7 +56,7 @@ def sequential_mci(arr, aom, partition):
     Default option if no number of cores is specified.
     """
 
-    # Delegate to esipy.mci.compute_mci with single core
+    # Use esipy.mci module
     return _mci.compute_mci(arr, aom, partition=partition, n_cores=1)
 
 def sequential_mci_no(arr, aom, partition):
@@ -65,7 +64,7 @@ def sequential_mci_no(arr, aom, partition):
     Computes the MCI for correlated wavefunctions sequentially by computing the Iring without storing the permutations.
     """
 
-    # Delegate to esipy.mci.compute_mci (it handles NO preprocessing)
+    # Use esipy.mci module
     return _mci.compute_mci(arr, aom, partition=partition, n_cores=1)
 
 
@@ -74,7 +73,7 @@ def multiprocessing_mci(arr, aom, ncores, partition):
        Computes the MCI by generating all the permutations for a later distribution along the specified number of cores.
     """
 
-    # Delegate to centralized compute_mci with requested number of cores
+    # Use esipy.mci module
     return _mci.compute_mci(arr, aom, partition=partition, n_cores=ncores)
 
 
@@ -83,6 +82,7 @@ def multiprocessing_mci_no(arr, aom, ncores, partition):
        Computes the MCI for correlated wavefunctions by generating all the permutations for a later distribution along the specified number of cores.
     """
 
+    # Use esipy.mci module
     return _mci.compute_mci(arr, aom, partition=partition, n_cores=ncores)
 
 ########### AV1245 ###########

@@ -119,6 +119,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         aom = []
         if partition in ("lowdin", "meta_lowdin", "nao"):
             if partition == "lowdin":
+                # Free of unitary transformations :)
                 U_inv = lowdin(S)
             elif partition == "meta_lowdin":
                 from pyscf.lo.orth import restore_ao_character
