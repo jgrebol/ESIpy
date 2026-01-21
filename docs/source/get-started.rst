@@ -89,12 +89,9 @@ and read through the method `readaoms()` by previously specifying the `read=True
 
 .. code-block:: python
 
-    arom = esipy.ESI(rings=[1,2,3,4,5,6], partition="nao", read=True, molinfo="benzene_nao.molinfo")
+    arom = esipy.ESI(rings=[1,2,3,4,5,6], partition="nao", read=True, molinfo="benzene_nao.molinfo", aoms="benzene_nao.aoms")
     arom.readaoms()
     arom.print()
-
-.. warning::
-    By using the `readaoms()` method, the output will be limited as it will not get information about the molecule.
 
 Correlated wavefunctions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
