@@ -1,10 +1,11 @@
 import numpy as np
 import multiprocessing as mp
+import itertools
 from math import factorial
 from time import time
 
 from esipy.tools import (
-    wf_type, mapping, filter_connec, find_node_distances, build_connectivity
+    wf_type, mapping, filter_connec, find_node_distances, build_connectivity, filter_distances
 )
 
 def _kernel_exact(args):
@@ -126,7 +127,7 @@ def _prep_matrices(arr, aom):
     return [aom[idx - 1] for idx in arr]
 
 
-def mci(arr, aom, partition='mulliken', n_cores=None):
+def compute_mci(arr, aom, partition='mulliken', n_cores=None):
     """
     Computes Exact MCI using DFS.
 
@@ -168,6 +169,9 @@ def mci(arr, aom, partition='mulliken', n_cores=None):
 
     return prefactor * total_trace
 
+# Backwards-compatible name: keep `mci` symbol pointing to compute_mci
+mci = compute_mci
+
 
 def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
                rings_thres=0.3, connec=None, **kwargs):
@@ -192,6 +196,8 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
 
     # Generate distance matrix for the relevant subgraph
     full_dists = find_node_distances(filter_connec(connec))
+    if alg == 3:
+        full_dists = filter_distances(connec)
     n = len(arr)
     sub_dists = np.array([[full_dists[arr[i]][arr[j]] for j in range(n)] for i in range(n)])
 
@@ -234,6 +240,8 @@ def sequential_mci(arr, aom, partition='mulliken'):
 
 def multiprocessing_mci(arr, aom, ncores, partition='mulliken'):
     return mci(arr, aom, partition, n_cores=ncores)
+
+
 
 
 # Aliases for Natural Orbitals

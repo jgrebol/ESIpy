@@ -527,6 +527,39 @@ def find_node_distances(connec):
 
    return distances
 
+from collections import deque, defaultdict
+
+from collections import deque, defaultdict
+
+def filter_distances(connec):
+    # Stores only the shortest ODD distance
+    odd_distances = defaultdict(dict)
+
+    for start in connec:
+        queue = deque([(start, 0)])
+
+        # Visited tracks (node, parity) so we don't get blocked by shorter even paths
+        visited = set()
+        visited.add((start, 0))
+
+        while queue:
+            cur_node, cur_dist = queue.popleft()
+
+            # Smallest odd distance
+            if cur_dist % 2 != 0 and cur_node not in odd_distances[start]:
+                odd_distances[start][cur_node] = cur_dist
+
+            for neighbor in connec[cur_node]:
+                new_dist = cur_dist + 1
+                new_parity = new_dist % 2
+
+                # Only process if we haven't visited with this specific parity
+                if (neighbor, new_parity) not in visited:
+                    visited.add((neighbor, new_parity))
+                    queue.append((neighbor, new_dist))
+
+    return odd_distances
+
 def iao(mf_orig, mf_min, coeffs=None):
     """
     Build IAOs using a minimal basis (mf_min) and the original AO basis (mf_orig).
