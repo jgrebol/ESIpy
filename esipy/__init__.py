@@ -1130,7 +1130,7 @@ class ESI:
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
                  ncores=1, save=None, readpath='.', read=False,
-                 maxlen=12, minlen=6, rings_thres=0.3):
+                 maxlen=12, minlen=6, rings_thres=0.3, free_atom=False):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
@@ -1142,6 +1142,7 @@ class ESI:
         self._partition = partition
         self._mci = mci
         self._av1245 = av1245
+        self.free_atom = free_atom # For IAO-AUTOSAD
         # For custom references
         self.flurefs = flurefs
         self.homarefs = homarefs
@@ -1354,7 +1355,7 @@ class ESI:
                 print(" | Building NAO AOMs to compute connectivity.")
                 if self.mol is None or self.mf is None:
                     raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs.")
-                mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf)
+                mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf, free_atom=self.free_atom)
             else:
                 mat = self.aom
             graph = build_connectivity(mat=mat, threshold=self.rings_thres)
@@ -1398,7 +1399,7 @@ class ESI:
             if self.mol and self.mf and self.partition:
                 self._aom_loaded = True
                 # Don't save in make_aoms, we'll save it ourselves in the subdirectory
-                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf)
+                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf, free_atom=self.free_atom)
                 if self.saveaoms:
                     os.makedirs(self.save_dir, exist_ok=True)
                     save_file(self._aom, os.path.join(self.save_dir, os.path.basename(self.saveaoms)))
@@ -1445,7 +1446,7 @@ class ESI:
                 print(" | Building NAO AOMs to compute connectivity.")
                 if self.mol is None or self.mf is None:
                     raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs to get connectivity matrix.")
-                mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf)
+                mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf, free_atom=self.free_atom)
             else:
                 mat = self.aom
             self._connec = build_connectivity(mat=mat, threshold=self.rings_thres)

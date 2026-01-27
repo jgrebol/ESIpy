@@ -312,6 +312,8 @@ def format_partition(partition):
         return "nao"
     elif partition in ["i", "iao", "intrinsic", "intr"]:
         return "iao"
+    elif partition in ["iao-autosad", "autosad", "iaosad", "ia", "iaoa", "autos"]:
+        return "iao-autosad"
     elif partition in ["q", "qt", "qtaim", "quant", "quantum"]:
         return "qtaim"
     else:
@@ -527,60 +529,220 @@ def find_node_distances(connec):
 
    return distances
 
-def iao(mf_orig, mf_min, coeffs=None):
+
+def iao(mol, pmol, coeffs):
     """
-    Build IAOs using a minimal basis (mf_min) and the original AO basis (mf_orig).
-
-    mf_orig, mf_min:
-        Objects containing:
-        - nbasis, numprim
-        - coefpb, expp, coord, iptoat, nlm
-        - All data needed by build_cross_ovlp()
-
-    mo_coeff:
-        Molecular orbital coefficients in AO basis (nbas_orig × nmo)
-
-    nelectron:
-        Total number of electrons (for closed-shell, we take nocc = nelec//2)
+    Build IAOs using Knizia's exact depolarization formula.
+    Numerically stable to guarantee exact density conservation.
     """
-
     from pyscf.gto.mole import intor_cross
-    S1 = mf_orig.get_ovlp()  # (nbas_orig × nbas_orig)
-    S2 = mf_min.get_ovlp()   # (nbas_min × nbas_min)
-    S12 = intor_cross("int1e_ovlp", mf_orig.mol, mf_min.mol)  # (nbas_orig × nbas_min)
+    from pyscf.lo import orth
+    import scipy.linalg
+    import numpy as np
 
-    # Define the occupied space
-    nocc = mf_orig.nelec // 2
-    if coeffs is None:
-        coeffs = mf_min.mo_coeff  # (nbas_orig × nmo)
-    C_occ = coeffs[:, :nocc]  # (nbas_orig × nocc)
+    # 1. Overlap Matrices
+    S1 = mol.intor('int1e_ovlp')
+    S2 = pmol.intor('int1e_ovlp')
+    S12 = intor_cross('int1e_ovlp', mol, pmol)
 
-    # Build projectors
-    S21 = S12.T
-    Ctild_min = np.linalg.solve(S2, S21 @ C_occ)  # (nmin × nocc)
+    # Number of occupied orbitals
+    nocc = mol.nelectron // 2
+    C_occ = coeffs[:, :nocc]  # (nbas x nocc)
 
-    try:
-        P12 = np.linalg.solve(S1, S12)  # (nbas_orig × nbasis_min)
-        Ctild_AO = np.linalg.solve(S1, S12 @ Ctild_min)
-    except np.linalg.LinAlgError:
-        from pyscf import scf
-        # Fallback to canonical orthonormalization
-        X = scf.addons.canonical_orth_(S1, lindep_threshold=1e-8)
-        P12 = X @ X.T @ S12
-        Ctild_AO = P12 @ Ctild_min
+    # 2. Represent minimal basis in full AO basis: A_tilde = S1^-1 * S12
+    # Using scipy.linalg.solve for numerical stability
+    A_tilde = scipy.linalg.solve(S1, S12, assume_a='pos')
 
-    # Lowdin orthonormalization
-    from pyscf.lo.orth import vec_lowdin
-    Ctild = vec_lowdin(Ctild_AO, S1)
+    # 3. Project occupied MOs onto minimal basis
+    # C_min = S2^-1 * S21 * C_occ
+    S21_Cocc = np.dot(S12.T, C_occ)
+    C_min = scipy.linalg.solve(S2, S21_Cocc, assume_a='pos')
 
-    P_occ  = C_occ @ C_occ.T @ S1
-    P_proj = Ctild @ Ctild.T @ S1
-    IAOs = P12 + 2 * (P_occ @ P_proj @ P12) - P_occ @ P12 - P_proj @ P12
+    # Express projected occupied MOs back in AO basis
+    C_tilde = np.dot(A_tilde, C_min)
 
-    # Orthonormalize IAOs ---
-    IAOs = vec_lowdin(IAOs, S1)
+    # Orthogonalize the projected occupied MOs
+    C_proj = orth.vec_lowdin(C_tilde, S1)
+
+    # 4. Form IAOs (Knizia Eq. 10 optimized for stability)
+    # Instead of full projector matrices (nbas x nbas), we apply them directly to A_tilde
+
+    # P_occ @ A_tilde = C_occ @ (C_occ.T @ S12)
+    P_occ_A = np.dot(C_occ, np.dot(C_occ.T, S12))
+
+    # P_proj @ A_tilde = C_proj @ (C_proj.T @ S12)
+    P_proj_A = np.dot(C_proj, np.dot(C_proj.T, S12))
+
+    # P_occ @ P_proj @ A_tilde
+    P_occ_P_proj_A = np.dot(C_occ, np.dot(C_occ.T, np.dot(S1, P_proj_A)))
+
+    # IAO = A_tilde + 2*(P1 P2 A) - P1 A - P2 A
+    IAO_nonorth = A_tilde + 2 * P_occ_P_proj_A - P_occ_A - P_proj_A
+
+    # 5. Final Symmetric Orthogonalization
+    IAOs = orth.vec_lowdin(IAO_nonorth, S1)
 
     return IAOs
+
+def get_effaos(mol, mf, coeffs, free_atom=True):
+    """
+    Builds effective Atomic Orbitals (eff-AOs) and their occupations.
+    Modified to handle Unrestricted (UKS/UHF) alpha and beta orbitals.
+    """
+    from pyscf.lo.nao import _prenao_sub
+    from pyscf.data import elements
+    import numpy as np
+    from pyscf import gto, scf
+
+    # Number of unpaired electrons for ground state atoms
+    atom_spins = {
+        'H': 1, 'He': 0, 'Li': 1, 'Be': 0, 'B': 1, 'C': 2, 'N': 3, 'O': 2, 'F': 1, 'Ne': 0,
+        'Na': 1, 'Mg': 0, 'Al': 1, 'Si': 2, 'P': 3, 'S': 2, 'Cl': 1, 'Ar': 0,
+        'K': 1, 'Ca': 0, 'Sc': 1, 'Ti': 2, 'V': 3, 'Cr': 6, 'Mn': 5, 'Fe': 4, 'Co': 3, 'Ni': 2, 'Cu': 1, 'Zn': 0,
+        'Ga': 1, 'Ge': 2, 'As': 3, 'Se': 2, 'Br': 1, 'Kr': 0
+    }
+
+    # Standard Minimal Basis sizes
+    def get_num_minbas(sym):
+        z = elements.charge(sym)
+        if z <= 2: return 1  # H-He
+        if z <= 10: return 5  # Li-Ne
+        if z <= 18: return 9  # Na-Ar
+        if z <= 30: return 18  # K-Zn
+        raise NotImplementedError(f"Minimal basis size not defined for element: {sym}")
+
+    aoslices = mol.aoslice_by_atom()
+    atom_syms = [mol.atom_pure_symbol(i) for i in range(mol.natm)]
+
+    # Calculate total minimal basis size
+    minbas_sizes = []
+    for sym in atom_syms:
+        n_min = get_num_minbas(sym)
+        minbas_sizes.append(n_min)
+
+    # Initialize outputs for potentially 2 spins
+    total_min_dim = sum(minbas_sizes)
+    veps_block = np.zeros((mol.nao, total_min_dim))
+    vaps_diag = []
+    S_mol = mol.intor("int1e_ovlp")
+    if "U" in mf.__class__.__name__:
+        dm = mf.make_rdm1(ao_repr=True)
+        P_mol = dm[0] + dm[1] if dm.ndim == 3 else dm
+    else:
+        P_mol = mf.make_rdm1(ao_repr=True)
+
+    # Loop over spin channels (alpha=0, beta=1)
+    col_idx = 0
+    atom_dict = {}
+    for ia, sym in enumerate(atom_syms):
+        p0, p1 = aoslices[ia, 2], aoslices[ia, 3]
+        n_target = minbas_sizes[ia]
+
+        # Create Mole with only this atom
+        mol_atm = gto.Mole()
+        mol_atm.atom = f"{sym} 0.0 0.0 0.0"
+        mol_atm.basis = {sym: mol._basis[sym]}
+        mol_atm.spin = atom_spins.get(sym, 0)
+        mol_atm.verbose = 0
+        mol_atm.cart = mol.cart
+        mol_atm.build()
+
+
+        if free_atom:
+            if sym not in atom_dict:
+                # Inherit DFT/HF method, upgrading to Unrestricted if needed
+                if "dft" in mf.__module__:
+                    mf_atm = scf.KS(mol_atm)
+                    if hasattr(mf, 'xc'): mf_atm.xc = mf.xc
+                else:
+                    mf_atm = scf.HF(mol_atm)
+
+                # Compute the SCF for the free atom
+                mf_atm.kernel()
+
+                # Get Density/Overlap
+                dm_local = mf_atm.make_rdm1()
+                P_local = dm_local[0] + dm_local[1] if dm_local.ndim == 3 else dm_local
+                S_local = mf_atm.get_ovlp()
+
+                # Calculate
+                PS = np.dot(P_local, S_local)
+                SPS = np.dot(S_local, PS)
+                w, c = _prenao_sub(mol_atm, SPS, S_local)
+
+                # Sort and Truncate
+                idx = np.argsort(w)[::-1][:n_target]
+                c_sel = c[:, idx]
+                atom_dict[sym] = (w[idx], c_sel)
+
+            w_keep, c_keep = atom_dict[sym]
+
+        else:
+            # Trossets de la P i S per a aquest spin
+            P_local = P_mol[p0:p1, p0:p1]
+            S_local = S_mol[p0:p1, p0:p1]
+
+            PS = np.dot(P_local, S_local)
+            SPS = np.dot(S_local, PS)
+
+            # Spherical average dels trossets de la PS
+            w, c = _prenao_sub(mol_atm, SPS, S_local)
+
+            # Sort descending by occupation
+            idx = np.argsort(w)[::-1][:n_target]
+            w_keep = w[idx]
+            c_keep = c[:, idx]
+
+        # Fiquem el bloc dels coeficients al trosset que toca
+        veps_block[p0:p1, col_idx: col_idx + n_target] = c_keep
+        vaps_diag.extend(w_keep)
+
+        col_idx += n_target
+
+    # Return simplified shapes if restricted
+    return np.array(vaps_diag), veps_block
+
+def autosad(mol, mf, free_atom=True):
+    """
+    Builds IAO-AutoSAD orbitals.
+    Handles both Restricted (returns array) and Unrestricted (returns tuple of arrays).
+    """
+    from scipy.linalg import solve
+    from pyscf.lo.orth import vec_lowdin
+    import numpy as np
+
+    def do_autosad(mol, mf, C_occ, free_atom):
+        S1 = mol.intor('int1e_ovlp')
+        aaaa, effaos = get_effaos(mol, mf, coeffs=C_occ, free_atom=free_atom)
+
+        # Effective overlaps
+        S12_eff = np.dot(S1, effaos)
+        S2_eff = np.linalg.multi_dot((effaos.T, S1, effaos))
+
+        A_tilde = effaos
+
+        S21_Cocc = np.dot(S12_eff.T, C_occ)
+        C_min = solve(S2_eff, S21_Cocc, assume_a='pos')
+        C_proj = vec_lowdin(np.dot(A_tilde, C_min), S1)
+
+        # Form IAOs (Knizia Eq 10)
+        P_occ_A = np.dot(C_occ, np.dot(C_occ.T, S12_eff))
+        P_proj_A = np.dot(C_proj, np.dot(C_proj.T, S12_eff))
+        P_occ_P_proj_A = np.dot(C_occ, np.dot(C_occ.T, np.dot(S1, P_proj_A)))
+
+        IAO_nonorth = A_tilde + 2 * P_occ_P_proj_A - P_occ_A - P_proj_A
+        return vec_lowdin(IAO_nonorth, S1)
+
+    if "U" in mf.__class__.__name__:
+        coeff_alpha, coeff_beta = mf.mo_coeff
+        autosad_alpha = do_autosad(mol, mf, coeff_alpha[:, :mf.nelec[0]], free_atom)
+        autosad_beta = do_autosad(mol, mf, coeff_beta[:, :mf.nelec[1]], free_atom)
+        return autosad_alpha, autosad_beta
+    else:
+        coeffs = mf.mo_coeff
+        autosad = do_autosad(mol, mf, coeffs[:, :mol.nelectron // 2], free_atom)
+        return autosad
+
 
 def permute_aos_rows(mat, mole2):
     """

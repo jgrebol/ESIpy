@@ -235,6 +235,10 @@ def find_flurefs(partition=None):
     elif partition == "iao":
         return {"CC": 1.4378, "CN": 1.4385, "BN": 1.1638, "NN": 1.3606, "CS": 1.1436}
 
+    elif partition == "iao-autosad": # For now, the same as IAO
+        return {"CC": 1.4378, "CN": 1.4385, "BN": 1.1638, "NN": 1.3606, "CS": 1.1436}
+
+
 
 def compute_flu(arr, molinfo, aom, flurefs=None, partition=None):
     """

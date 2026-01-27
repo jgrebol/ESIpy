@@ -1,10 +1,11 @@
 import numpy as np
 from pyscf.lo import nao
 from pyscf.lo.orth import lowdin
+from pyscf import scf
 
 from esipy.tools import save_file, format_partition, get_natorbs, build_eta
 
-def make_aoms(mol, mf, partition, myhf=None, save=None):
+def make_aoms(mol, mf, partition, myhf=None, save=None, free_atom=False):
     """
     Build the Atomic Overlap Matrices (AOMs) in the Molecular Orbitals basis. If using Natural Orbitals,
     the HF instance is required as the reference to build the IAO transformation matrix.
@@ -26,7 +27,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
     partition = format_partition(partition)
     # UNRESTRICTED
-    if mf.__class__.__name__ in ("UHF", "UKS", "SymAdaptedUHF", "SymAdaptedUKS") or (hasattr(mf, "__name__") and mf.__name__ == "UHF"):
+    if isinstance(mf, scf.uhf.UHF):
+    #if mf.__class__.__name__ in ("UHF", "UKS", "SymAdaptedUHF", "SymAdaptedUKS") or (hasattr(mf, "__name__") and mf.__name__ == "UHF"):
         # Getting specific information
         S = mf.get_ovlp()
         nocc_alpha = mf.mo_occ[0].astype(int)
@@ -67,10 +69,15 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 aom_beta.append(SCR_b @ SCR_b.T)
 
         # Special case IAO
-        elif partition == "iao":
-            from pyscf.lo.iao import iao, reference_mol
-            U_alpha_iao_nonortho = iao(mol, coeff_alpha)
-            U_beta_iao_nonortho = iao(mol, coeff_beta)
+        elif partition == "iao" or partition == "iao-autosad":
+            from pyscf.lo.iao import reference_mol
+            if partition == "iao-autosad":
+                from esipy.tools import autosad
+                U_alpha_iao_nonortho, U_beta_iao_nonortho = autosad(mol, mf, free_atom=free_atom)
+            else:
+                from pyscf.lo.iao import iao
+                U_alpha_iao_nonortho = iao(mol, coeff_alpha)
+                U_beta_iao_nonortho = iao(mol, coeff_beta)
             pmol = reference_mol(mol)
             U_alpha_inv = np.dot(U_alpha_iao_nonortho, lowdin(
                 np.linalg.multi_dot((U_alpha_iao_nonortho.T, S, U_alpha_iao_nonortho))))
@@ -109,7 +116,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
     # RESTRICTED
 
-    elif mf.__class__.__name__ in ("RHF", "RKS", "SymAdaptedRHF", "SymAdaptedRKS") or (hasattr(mf, "__name__") and mf.__name__ == "RHF"):
+    elif isinstance(mf, scf.hf.RHF):
+#    elif mf.__class__.__name__ in ("RHF", "RKS", "SymAdaptedRHF", "SymAdaptedRKS") or (hasattr(mf, "__name__") and mf.__name__ == "RHF"):
         # Getting specific information
         S = mf.get_ovlp()
         coeff = mf.mo_coeff[:, mf.mo_occ > 0]
@@ -138,10 +146,15 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 aom.append(SCR @ SCR.T)
 
         # Special case IAO
-        elif partition == "iao":
-            from pyscf.lo.iao import iao, reference_mol
+        elif partition == "iao" or partition == "iao-autosad":
+            from pyscf.lo.iao import reference_mol
+            if partition == "iao-autosad":
+                from esipy.tools import autosad
+                U_iao_nonortho = autosad(mol, mf, free_atom=free_atom)
+            else:
+                from pyscf.lo.iao import iao
+                U_iao_nonortho = iao(mol, coeff)
             pmol = reference_mol(mol)
-            U_iao_nonortho = iao(mol, coeff)
             U_inv = np.dot(U_iao_nonortho, lowdin(
                 np.linalg.multi_dot((U_iao_nonortho.T, S, U_iao_nonortho))))
             U = np.dot(S, U_inv)
@@ -152,18 +165,18 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 SCR = np.linalg.multi_dot((coeff.T, U, eta[i]))
                 aom.append(np.dot(SCR, SCR.T))
 
-        elif partition == "iao-autosad":
-            U_iao_nonortho = autosad(mol, mf)
-            U_inv = np.dot(U_iao_nonortho, lowdin(
-                np.linalg.multi_dot((U_iao_nonortho.T, S, U_iao_nonortho))))
-            U = np.dot(S, U_inv)
-            pmol = iao.reference_mol(mol)
-
-            eta = build_eta(pmol)
-
-            for i in range(pmol.natm):
-                SCR = np.linalg.multi_dot((coeff.T, U, eta[i]))
-                aom.append(np.dot(SCR, SCR.T))
+        #elif partition == "iao-autosad":
+        #    U_iao_nonortho = autosad(mol, mf)
+        #    U_inv = np.dot(U_iao_nonortho, lowdin(
+        #        np.linalg.multi_dot((U_iao_nonortho.T, S, U_iao_nonortho))))
+        #    U = np.dot(S, U_inv)
+        #    pmol = iao.reference_mol(mol)
+#
+#            eta = build_eta(pmol)
+#
+#            for i in range(pmol.natm):
+#                SCR = np.linalg.multi_dot((coeff.T, U, eta[i]))
+#                aom.append(np.dot(SCR, SCR.T))
 
         # Special case plain Mulliken
         elif partition == "mulliken":
