@@ -83,6 +83,7 @@ def main():
         save_name = None
     # Findrings
     findrings = inp.findrings
+    exclude = inp.exclude if inp.exclude else None
     # Minlen/Maxlen
     minlen = inp.minlen if inp.minlen else 6
     maxlen = inp.maxlen if inp.maxlen else 12
@@ -123,7 +124,7 @@ def main():
             molinfo = inp.aomname + '_' + partition + '.molinfo'
             # pass aom and molinfo strings so ESI will load them
             esi = ESI(aom=aom, rings=rings, partition=partition, molinfo=molinfo,
-                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, **mci_kwargs, **extra_kwargs)
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, **extra_kwargs)
         elif inp.mode == 'readint':
             # Construct the directory path with SHORT partition name: name_shortpart_atomicfiles
             from esipy.tools import format_short_partition
@@ -134,12 +135,13 @@ def main():
                 partition_dir = inp.readpath + '_' + shortpart + '_atomicfiles'
             # tell ESI to read from the partition-specific directory
             esi = ESI(read=True, readpath=partition_dir, rings=rings, partition=partition,
-                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, **mci_kwargs, **extra_kwargs)
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, **extra_kwargs)
             # Read the AOMs now
             esi.readaoms()
+            import numpy as np
         else:  # fchk
             esi = ESI(mol=mol, mf=mf, rings=rings, partition=partition, flurefs=flurefs,
-                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, **mci_kwargs, **extra_kwargs)
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, **extra_kwargs)
         esi.print()
 
         # MCI Approximations, in format (alg, d)

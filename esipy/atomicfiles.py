@@ -532,6 +532,8 @@ def write_wfx(path, name, mol, mf, aom, wf, occ=None):
     """
     # Use a custom extension to avoid confusion with other WFX writers
     filename = os.path.join(path, name + ".wfx")
+    if os.path.exists(filename):
+        return
     # Determine occupations matrix
     if wf == 'no' and occ is not None:
         occ_mat = np.asarray(occ, dtype=float)
@@ -571,7 +573,7 @@ def write_wfx(path, name, mol, mf, aom, wf, occ=None):
         nocc = None
         if mf is not None and hasattr(mf, 'mo_coeff') and getattr(mf, 'mo_coeff') is not None:
             try:
-                nocc = int(len(mf.mo_coeff))
+                nocc = mf.mo_coeff.shape[1]
             except Exception:
                 nocc = None
         if nocc is None:

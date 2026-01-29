@@ -70,7 +70,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 aom_beta.append(SCR_b @ SCR_b.T)
 
         # Special case IAO
-        elif partition == "iao" or partition == "iao-autosad":
+        elif partition.startswith("iao"):
             from pyscf.lo.iao import reference_mol
             if partition.startswith("iao-autosad"):
                 from esipy.tools import autosad
@@ -109,6 +109,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 aom_beta.append(SCR_beta)
 
         else:
+            print(partition)
             raise NameError("Hilbert-space scheme not available")
 
         aom = [aom_alpha, aom_beta]

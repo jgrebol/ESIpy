@@ -1130,7 +1130,7 @@ class ESI:
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
                  ncores=1, save=None, readpath='.', read=False,
-                 maxlen=12, minlen=6, rings_thres=0.3):
+                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
@@ -1163,6 +1163,7 @@ class ESI:
         self.maxlen = maxlen
         self.minlen = minlen
         self.rings_thres = rings_thres
+        self._exclude = exclude
         #self._printedrings = False
         self._connec = None
         self.done_connec = False
@@ -1301,11 +1302,16 @@ class ESI:
                 print(f" | Skipping ring analysis for {self.partition} partition.")
                 self._rings = None
 
-            self._rings = find_rings(graph, self.minlen, self.maxlen)
+            self._rings = find_rings(graph, self.minlen, self.maxlen, exclude=self.exclude)
             endrings = time()
 
             if not self._rings:
-                raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
+                print(" | WARNING: Could not find any ring. Please check the minimum and maximum ring lengths.")
+                self.totalaom = self.aom
+                self.nfrags = 0
+                self.fragmap = {}
+                return None
+                #raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
             #elif not self._printedrings:
             #    print(f" | Found {len(self._rings)} rings in {endrings-startrings:.4f} seconds:")
             #    print(" | -------------------------------")
@@ -1471,6 +1477,33 @@ class ESI:
     @mci.setter
     def mci(self, value):
         self._mci = value
+
+    @property
+    def exclude(self):
+        """
+        Processes the exclude list. If an element symbol (str) is found,
+        it finds all indices for that element. If an int is found, it keeps it.
+        """
+        if not self._exclude:
+            return []
+
+        raw_exclude = self._exclude if isinstance(self._exclude, list) else [self._exclude]
+        processed = []
+
+        symbols = self.molinfo.get("symbols", [])
+
+        for item in raw_exclude:
+            if isinstance(item, int):
+                processed.append(item)
+            elif isinstance(item, str):
+                indices = [i + 1 for i, sym in enumerate(symbols) if sym.upper() == item.upper()]
+                processed.extend(indices)
+
+        return list(set(processed))  # Return unique indices
+
+    @exclude.setter
+    def exclude(self, value):
+        self._exclude = value
 
     @property
     def av1245(self):

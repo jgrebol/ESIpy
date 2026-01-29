@@ -462,8 +462,12 @@ def build_connec_no(Smo, thres=0.25):
                     connec_dict[i].append(j)
     return filter_connec(connec_dict)
 
-def find_rings(connec, minlen=6, maxlen=6):
+def find_rings(connec, minlen=6, maxlen=6, exclude=None):
+    exclude = set(exclude) if exclude else set()
     def dfs(connec, minlen, maxlen, start):
+        if start in exclude:
+            return
+
         stack = [(start, [start])]
         while stack:
             (v, path) = stack.pop()
@@ -472,7 +476,7 @@ def find_rings(connec, minlen=6, maxlen=6):
             if len(path) >= minlen and start in connec[path[-1]] and path[1] < path[-1] and path[0] == start:
                 yield path
             for next in connec.get(v, []):
-                if next not in path:
+                if next not in path and next not in exclude:
                     stack.append((next, path.copy() + [next]))
 
     def unique(path, all):
