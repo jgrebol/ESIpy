@@ -129,6 +129,7 @@ class Mole2:
         self.nalpha = int(getattr(self.fchk, 'nalpha', getattr(self.fchk, 'nalpha', 0)))
         self.nbeta = int(getattr(self.fchk, 'nbeta', getattr(self.fchk, 'nbeta', 0)))
         self.spin = int(getattr(self.fchk, 'spin', self.nalpha - self.nbeta))
+        self.nelectron = int(getattr(self.fchk, 'nelectron', self.nalpha + self.nbeta))
 
         self.cart = getattr(self.fchk, 'cart', False)
 

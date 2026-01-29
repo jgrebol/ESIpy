@@ -9,7 +9,7 @@ import os
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: input2esi <inputfile>")
+        print("Usage: esipy <inputfile>")
         sys.exit(1)
     inputfile = sys.argv[1]
     inp = ESIInput.from_file(inputfile)

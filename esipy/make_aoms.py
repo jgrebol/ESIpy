@@ -5,7 +5,7 @@ from pyscf import scf
 
 from esipy.tools import save_file, format_partition, get_natorbs, build_eta
 
-def make_aoms(mol, mf, partition, myhf=None, save=None, free_atom=False):
+def make_aoms(mol, mf, partition, myhf=None, save=None):
     """
     Build the Atomic Overlap Matrices (AOMs) in the Molecular Orbitals basis. If using Natural Orbitals,
     the HF instance is required as the reference to build the IAO transformation matrix.
@@ -26,6 +26,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, free_atom=False):
     """
 
     partition = format_partition(partition)
+    free_atom = False # For IAO-AUTOSAD
     # UNRESTRICTED
     if isinstance(mf, scf.uhf.UHF):
     #if mf.__class__.__name__ in ("UHF", "UKS", "SymAdaptedUHF", "SymAdaptedUKS") or (hasattr(mf, "__name__") and mf.__name__ == "UHF"):
@@ -71,9 +72,12 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, free_atom=False):
         # Special case IAO
         elif partition == "iao" or partition == "iao-autosad":
             from pyscf.lo.iao import reference_mol
-            if partition == "iao-autosad":
+            if partition.startswith("iao-autosad"):
                 from esipy.tools import autosad
-                U_alpha_iao_nonortho, U_beta_iao_nonortho = autosad(mol, mf, free_atom=free_atom)
+                if partition == "iao-autosad-freeatom":
+                    U_alpha_iao_nonortho, U_beta_iao_nonortho = autosad(mol, mf, free_atom=True)
+                else:
+                    U_alpha_iao_nonortho, U_beta_iao_nonortho = autosad(mol, mf, free_atom=False)
             else:
                 from pyscf.lo.iao import iao
                 U_alpha_iao_nonortho = iao(mol, coeff_alpha)
@@ -146,11 +150,14 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, free_atom=False):
                 aom.append(SCR @ SCR.T)
 
         # Special case IAO
-        elif partition == "iao" or partition == "iao-autosad":
+        elif partition.startswith("iao"):
             from pyscf.lo.iao import reference_mol
-            if partition == "iao-autosad":
+            if partition.startswith("iao-autosad"):
                 from esipy.tools import autosad
-                U_iao_nonortho = autosad(mol, mf, free_atom=free_atom)
+                if partition == "iao-autosad-freeatom":
+                    U_iao_nonortho = autosad(mol, mf, free_atom=True)
+                else:
+                    U_iao_nonortho = autosad(mol, mf, free_atom=False)
             else:
                 from pyscf.lo.iao import iao
                 U_iao_nonortho = iao(mol, coeff)

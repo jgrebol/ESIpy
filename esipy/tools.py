@@ -312,8 +312,11 @@ def format_partition(partition):
         return "nao"
     elif partition in ["i", "iao", "intrinsic", "intr"]:
         return "iao"
-    elif partition in ["iao-autosad", "autosad", "iaosad", "ia", "iaoa", "autos"]:
-        return "iao-autosad"
+    elif partition in ["iao-autosad-freeatom", "autosad-freeatom", "iaofree", "iaof", "iaf", "f", "autosad", "iaosad", "if", "iaoaf", "autos"]:
+        return "iao-autosad-freeatom"
+    elif partition in ["iao-autosad", "iao-autosad-mull", "autosad-mull", "iaomull", "iaom", "iam", "iaomul", "autosadmull",
+                           "iaosad", "im", "autos"]: # Make it the default AUTOSAD procedure
+        return "iao-autosad-mull"
     elif partition in ["q", "qt", "qtaim", "quant", "quantum"]:
         return "qtaim"
     else:
