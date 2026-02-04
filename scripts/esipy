@@ -129,7 +129,7 @@ def main():
             # Construct the directory path with SHORT partition name: name_shortpart_atomicfiles
             from esipy.tools import format_short_partition
             shortpart = format_short_partition(partition)
-            if partition == "qtaim": # From AIMAll it is the name and the _atomicfiles. For ESIpy we include the partition
+            if shortpart == "qtaim": # From AIMAll it is the name and the _atomicfiles. For ESIpy we include the partition
                 partition_dir = inp.readpath + '_atomicfiles'
             else:
                 partition_dir = inp.readpath + '_' + shortpart + '_atomicfiles'
@@ -138,7 +138,6 @@ def main():
                       av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, **extra_kwargs)
             # Read the AOMs now
             esi.readaoms()
-            import numpy as np
         else:  # fchk
             esi = ESI(mol=mol, mf=mf, rings=rings, partition=partition, flurefs=flurefs,
                       av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, **extra_kwargs)
