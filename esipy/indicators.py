@@ -216,33 +216,32 @@ def find_flurefs(partition=None):
     :returns: Contains the reference DI for each bond.
     :rtype: dict
     """
-
     if partition == "qtaim":
-        return {"CC": 1.3993, "CN": 1.1958, "BN": 0.3934, "NN": 1.5252, "CS": 1.2369}
+        return {"CC": 1.3994, "CN": 1.1957, "BN": 0.3935, "NN": 1.5253, "CS": 1.2366, "CO": 0.8757}
 
     elif partition == "mulliken":
-        return {"CC": 1.4530, "CN": 1.4149, "BN": 1.0944, "NN": 1.3044, "CS": 1.1024}
+        return {"CC": 1.4536, "CN": 1.4051, "BN": 1.1042, "NN": 1.2831, "CS": 1.1013, "CO": 0.9840}
 
     elif partition == "lowdin":
-        return {"CC": 1.5000, "CN": 1.6257, "BN": 1.6278, "NN": 1.5252, "CS": 1.2675}
+        return {"CC": 1.4910, "CN": 1.5864, "BN": 1.3165, "NN": 1.5277, "CS": 1.2213, "CO": 1.2368}
 
     elif partition == "meta_lowdin":
-        return {"CC": 1.4394, "CN": 1.4524, "BN": 1.2048, "NN": 1.5252, "CS": 1.1458}
+        return {"CC": 1.4392, "CN": 1.4521, "BN": 1.2048, "NN": 1.3700, "CS": 1.1455, "CO": 1.0802}
 
     elif partition == "nao":
-        return {"CC": 1.4338, "CN": 1.4117, "BN": 0.9238, "NN": 1.3706, "CS": 1.1631}
+        return {"CC": 1.4347, "CN": 1.4115, "BN": 0.9239, "NN": 1.3708, "CS": 1.1625, "CO": 0.9912}
 
     elif partition == "iao":
-        return {"CC": 1.4378, "CN": 1.4385, "BN": 1.1631, "NN": 1.3606, "CS": 1.1436}
+        return {"CC": 1.4378, "CN": 1.4386, "BN": 1.1631, "NN": 1.3606, "CS": 1.1433, "CO": 1.0708}
 
     elif partition == "iao-autosad":
-        return {"CC": 1.4367, "CN": 1.4399, "BN": 1.1638, "NN": 1.3606, "CS": 1.1436}
+        return {"CC": 1.4367, "CN": 1.4400, "BN": 1.1814, "NN": 1.3609, "CS": 1.1420, "CO": 1.0747}
 
     elif partition == "iao-effao":
-        return {"CC": 1.4425, "CN": 1.4317, "BN": 1.1638, "NN": 1.3606, "CS": 1.1436}
+        return {"CC": 1.4425, "CN": 1.4318, "BN": 1.1517, "NN": 1.3578, "CS": 1.1401, "CO": 1.0565}
 
     elif partition == "iao-effao-lowdin":
-        return {"CC": 1.4425, "CN": 1.4317, "BN": 1.1638, "NN": 1.3606, "CS": 1.1436}
+        return {"CC": 1.4173, "CN": 1.4027, "BN": 1.0374, "NN": 1.3575, "CS": 1.1538, "CO": 1.0133}
 
 
 def compute_flu(arr, molinfo, aom, flurefs=None, partition=None):
