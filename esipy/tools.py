@@ -316,7 +316,7 @@ def format_partition(partition):
         return "iao-autosad"
     elif partition in ["iao-effao", "iao-e", "iao-efao", "iaoefao", "iaoe", "ie", "iaoeffao", "iae"]:
         return "iao-effao"
-    elif partition in ["iao-effao-lowdin", "iao-effao-low", "iao-efao-low", "iaoefaolow", "iaoel", "iaol", "il", "iaoeffaolowdin",
+    elif partition in ["iao-effao-lowdin", "iao-effao-low", "iao-efao-low", "iaoefaolow", "iaoel", "iaol", "il", "iel", "iaoeffaolowdin",
                            "iae"]:
         return "iao-effao-lowdin"
     elif partition in ["q", "qt", "qtaim", "quant", "quantum"]:
