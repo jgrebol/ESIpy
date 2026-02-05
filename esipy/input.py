@@ -72,7 +72,7 @@ class ESIInput:
                         pup = p.upper()
                         if pup == 'ALL':
                             # Expand ALL to all available partitions
-                            obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
+                            obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'iao-autosad', 'iao-effao', 'iao-effao-lowdin'])
                         elif pup == 'ROBUST':
                             # Expand ROBUST to robust partitions
                             obj.partition.extend(['meta_lowdin', 'nao', 'iao'])
