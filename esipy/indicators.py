@@ -227,17 +227,22 @@ def find_flurefs(partition=None):
         return {"CC": 1.5000, "CN": 1.6257, "BN": 1.6278, "NN": 1.5252, "CS": 1.2675}
 
     elif partition == "meta_lowdin":
-        return {"CC": 1.4394, "CN": 1.4524, "BN": 1.3701, "NN": 1.5252, "CS": 1.1458}
+        return {"CC": 1.4394, "CN": 1.4524, "BN": 1.2048, "NN": 1.5252, "CS": 1.1458}
 
     elif partition == "nao":
         return {"CC": 1.4338, "CN": 1.4117, "BN": 0.9238, "NN": 1.3706, "CS": 1.1631}
 
     elif partition == "iao":
-        return {"CC": 1.4378, "CN": 1.4385, "BN": 1.1638, "NN": 1.3606, "CS": 1.1436}
+        return {"CC": 1.4378, "CN": 1.4385, "BN": 1.1631, "NN": 1.3606, "CS": 1.1436}
 
-    elif partition == "iao-autosad-freeatom" or partition == "iao-autosad-mull": # For now, the same as IAO
-        return {"CC": 1.4378, "CN": 1.4385, "BN": 1.1638, "NN": 1.3606, "CS": 1.1436}
+    elif partition == "iao-autosad":
+        return {"CC": 1.4367, "CN": 1.4399, "BN": 1.1638, "NN": 1.3606, "CS": 1.1436}
 
+    elif partition == "iao-effao":
+        return {"CC": 1.4425, "CN": 1.4317, "BN": 1.1638, "NN": 1.3606, "CS": 1.1436}
+
+    elif partition == "iao-effao-lowdin":
+        return {"CC": 1.4425, "CN": 1.4317, "BN": 1.1638, "NN": 1.3606, "CS": 1.1436}
 
 
 def compute_flu(arr, molinfo, aom, flurefs=None, partition=None):

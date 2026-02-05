@@ -312,11 +312,13 @@ def format_partition(partition):
         return "nao"
     elif partition in ["i", "iao", "intrinsic", "intr"]:
         return "iao"
-    elif partition in ["iao-autosad-freeatom", "autosad-freeatom", "iaofree", "iaof", "iaf", "f", "autosad", "iaosad", "if", "iaoaf", "autos"]:
-        return "iao-autosad-freeatom"
-    elif partition in ["iao-autosad", "iao-autosad-mull", "autosad-mull", "iaomull", "iaom", "iam", "iaomul", "autosadmull",
-                           "iaosad", "im", "autos"]: # Make it the default AUTOSAD procedure
-        return "iao-autosad-mull"
+    elif partition in ["iao-autosad", "autosad", "iaoauto", "iaoa", "iaa", "ia", "a", "autosad", "iaosad", "autos"]:
+        return "iao-autosad"
+    elif partition in ["iao-effao", "iao-e", "iao-efao", "iaoefao", "iaoe", "ie", "iaoeffao", "iae"]:
+        return "iao-effao"
+    elif partition in ["iao-effao-lowdin", "iao-effao-low", "iao-efao-low", "iaoefaolow", "iaoel", "iaol", "il", "iaoeffaolowdin",
+                           "iae"]:
+        return "iao-effao-lowdin"
     elif partition in ["q", "qt", "qtaim", "quant", "quantum"]:
         return "qtaim"
     else:
@@ -340,7 +342,9 @@ def format_short_partition(partition):
         return "low"
     elif partition == "meta_lowdin":
         return "metalow"
-    elif partition == "nao" or partition == "iao" or partition == "qtaim":
+    elif partition == "iao-effao-lowdin":
+        return "iao-effao-low"
+    elif partition in ("nao", "iao", "qtaim", "iao-autosad", "iao-effao"):
         return partition
     else:
         raise NameError(" | Invalid partition scheme")
@@ -591,7 +595,7 @@ def iao(mol, pmol, coeffs):
 
     return IAOs
 
-def get_effaos(mol, mf, coeffs, free_atom=True):
+def get_effaos(mol, mf, coeffs, free_atom=True, lowdin=False):
     """
     Builds effective Atomic Orbitals (eff-AOs) and their occupations.
     Modified to handle Unrestricted (UKS/UHF) alpha and beta orbitals.
@@ -669,12 +673,19 @@ def get_effaos(mol, mf, coeffs, free_atom=True):
 
                 # Get Density/Overlap
                 dm_local = mf_atm.make_rdm1()
-                P_local = dm_local[0] + dm_local[1] if dm_local.ndim == 3 else dm_local
-                S_local = mf_atm.get_ovlp()
+                if lowdin:
+                    # Eff-AOs in Lowdin's basis
+                    PS = np.dot(P_mol, S_mol)
+                    SPS = np.dot(S_mol, PS)
+                    SPS = SPS[p0:p1, p0:p1]
+                    S_local = S_mol[p0:p1, p0:p1]
+                else:
+                    P_local = dm_local[0] + dm_local[1] if dm_local.ndim == 3 else dm_local
+                    S_local = mf_atm.get_ovlp()
 
-                # Calculate
-                PS = np.dot(P_local, S_local)
-                SPS = np.dot(S_local, PS)
+                    # Calculate
+                    PS = np.dot(P_local, S_local)
+                    SPS = np.dot(S_local, PS)
                 w, c = _prenao_sub(mol_atm, SPS, S_local)
 
                 # Sort and Truncate
@@ -686,11 +697,18 @@ def get_effaos(mol, mf, coeffs, free_atom=True):
 
         else:
             # Trossets de la P i S per a aquest spin
-            P_local = P_mol[p0:p1, p0:p1]
-            S_local = S_mol[p0:p1, p0:p1]
+            if lowdin:
+                # Eff-AOs in Lowdin's basis
+                PS = np.dot(P_mol, S_mol)
+                SPS = np.dot(S_mol, PS)
+                SPS = SPS[p0:p1, p0:p1]
+                S_local = S_mol[p0:p1, p0:p1]
+            else:
+                P_local = P_mol[p0:p1, p0:p1]
+                S_local = S_mol[p0:p1, p0:p1]
 
-            PS = np.dot(P_local, S_local)
-            SPS = np.dot(S_local, PS)
+                PS = np.dot(P_local, S_local)
+                SPS = np.dot(S_local, PS)
 
             # Spherical average dels trossets de la PS
             w, c = _prenao_sub(mol_atm, SPS, S_local)
@@ -709,7 +727,7 @@ def get_effaos(mol, mf, coeffs, free_atom=True):
     # Return simplified shapes if restricted
     return np.array(vaps_diag), veps_block
 
-def autosad(mol, mf, free_atom=True):
+def autosad(mol, mf, free_atom=True, lowdin=False):
     """
     Builds IAO-AutoSAD orbitals.
     Handles both Restricted (returns array) and Unrestricted (returns tuple of arrays).
@@ -718,9 +736,9 @@ def autosad(mol, mf, free_atom=True):
     from pyscf.lo.orth import vec_lowdin
     import numpy as np
 
-    def do_autosad(mol, mf, C_occ, free_atom):
+    def do_autosad(mol, mf, C_occ, free_atom, lowdin):
         S1 = mol.intor('int1e_ovlp')
-        aaaa, effaos = get_effaos(mol, mf, coeffs=C_occ, free_atom=free_atom)
+        aaaa, effaos = get_effaos(mol, mf, coeffs=C_occ, free_atom=free_atom, lowdin=lowdin)
 
         # Effective overlaps
         S12_eff = np.dot(S1, effaos)
@@ -742,12 +760,12 @@ def autosad(mol, mf, free_atom=True):
 
     if "U" in mf.__class__.__name__:
         coeff_alpha, coeff_beta = mf.mo_coeff
-        autosad_alpha = do_autosad(mol, mf, coeff_alpha[:, :mf.nelec[0]], free_atom)
-        autosad_beta = do_autosad(mol, mf, coeff_beta[:, :mf.nelec[1]], free_atom)
+        autosad_alpha = do_autosad(mol, mf, coeff_alpha[:, :mf.nelec[0]], free_atom, lowdin=lowdin)
+        autosad_beta = do_autosad(mol, mf, coeff_beta[:, :mf.nelec[1]], free_atom, lowdin=lowdin)
         return autosad_alpha, autosad_beta
     else:
         coeffs = mf.mo_coeff
-        autosad = do_autosad(mol, mf, coeffs[:, :mol.nelectron // 2], free_atom)
+        autosad = do_autosad(mol, mf, coeffs[:, :mol.nelectron // 2], free_atom, lowdin=lowdin)
         return autosad
 
 
