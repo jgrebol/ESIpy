@@ -613,13 +613,15 @@ def get_effaos(mol, mf, coeffs, free_atom=True, lowdin=False):
         'Ga': 1, 'Ge': 2, 'As': 3, 'Se': 2, 'Br': 1, 'Kr': 0
     }
 
-    # Standard Minimal Basis sizes
     def get_num_minbas(sym):
         z = elements.charge(sym)
-        if z <= 2: return 1  # H-He
-        if z <= 10: return 5  # Li-Ne
-        if z <= 18: return 9  # Na-Ar
-        if z <= 30: return 18  # K-Zn
+        if z <= 2:   return 1  # 1s (H, He)
+        if z <= 10:  return 5  # 1s + 2s2p (Li-Ne)
+        if z <= 18:  return 9  # [Ne] + 3s3p (Na-Ar)
+        if z <= 36:  return 18  # [Ar] + 4s3d4p (K-Kr)
+        if z <= 54:  return 27  # [Kr] + 5s4d5p (Rb-Xe)
+        if z <= 86:  return 43  # [Xe] + 6s4f5d6p (Cs-Rn)
+        if z <= 118: return 59  # [Rn] + 7s5f6d7p (Fr-Og)
         raise NotImplementedError(f"Minimal basis size not defined for element: {sym}")
 
     aoslices = mol.aoslice_by_atom()
