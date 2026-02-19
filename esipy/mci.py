@@ -4,7 +4,7 @@ from math import factorial
 from time import time
 
 from esipy.tools import (
-    wf_type, mapping, filter_connec, find_node_distances, build_connectivity
+    wf_type, mapping, filter_connec, find_node_distances, build_connectivity, find_node_distances_onlyodd
 )
 
 def _kernel_exact(args):
@@ -60,7 +60,7 @@ def _kernel_approx(args):
     if d0 > d_cut: return 0.0, 0
 
     # Parity checks: Alg 3 (Odd only), Alg 4 (Even only)
-    if alg == 3 and (d0 % 2 == 0): return 0.0, 0
+    if (alg == 3 or alg == 5) and (d0 % 2 == 0): return 0.0, 0
     if alg == 4 and (d0 % 2 != 0): return 0.0, 0
 
     cur_max = d0
@@ -90,7 +90,7 @@ def _kernel_approx(args):
 
             if d_last > d_cut or d_close > d_cut: continue
 
-            if alg == 3 and ((d_last % 2 == 0) or (d_close % 2 == 0)): continue
+            if (alg == 3 or alg == 5) and ((d_last % 2 == 0) or (d_close % 2 == 0)): continue
             if alg == 4 and ((d_last % 2 != 0) or (d_close % 2 != 0)): continue
 
             # Alg 2: Cycle max distance must equal cutoff d
@@ -107,7 +107,7 @@ def _kernel_approx(args):
                 d_step = dists[prev, i]
 
                 if d_step > d_cut: continue
-                if alg == 3 and (d_step % 2 == 0): continue
+                if (alg == 3 or alg == 5) and (d_step % 2 == 0): continue
                 if alg == 4 and (d_step % 2 != 0): continue
 
                 # For Alg 2, propagate max dist
@@ -126,7 +126,7 @@ def _prep_matrices(arr, aom):
     return [aom[idx - 1] for idx in arr]
 
 
-def mci(arr, aom, partition='mulliken', n_cores=None):
+def compute_mci(arr, aom, partition='mulliken', n_cores=None):
     """
     Computes Exact MCI using DFS.
 
@@ -180,7 +180,7 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
 
     # Exact if alg=0
     if alg == 0:
-        val = mci(arr, aom, partition, n_cores)
+        val = compute_mci(arr, aom, partition, n_cores)
         # Factorial scaling for display purposes
         nperms = factorial(len(arr) - 1)
         if partition != "mulliken" and partition != "non-symmetric":
@@ -191,7 +191,11 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
         connec = build_connectivity(aom, rings_thres)
 
     # Generate distance matrix for the relevant subgraph
-    full_dists = find_node_distances(filter_connec(connec))
+    full_dists = filter_connec(connec)
+    if alg == 5:
+        full_dists = find_node_distances_onlyodd(connec)
+    else:
+        full_dists = find_node_distances(connec)
     n = len(arr)
     sub_dists = np.array([[full_dists[arr[i]][arr[j]] for j in range(n)] for i in range(n)])
 
@@ -229,11 +233,11 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
     return prefactor * total_trace, total_perms, time() - t0
 
 def sequential_mci(arr, aom, partition='mulliken'):
-    return mci(arr, aom, partition, n_cores=1)
+    return compute_mci(arr, aom, partition, n_cores=1)
 
 
 def multiprocessing_mci(arr, aom, ncores, partition='mulliken'):
-    return mci(arr, aom, partition, n_cores=ncores)
+    return compute_mci(arr, aom, partition, n_cores=ncores)
 
 
 # Aliases for Natural Orbitals

@@ -119,7 +119,7 @@ class ESIInput:
                             obj.exclude.append(p)
                     i += 1
                 i -= 1
-            elif line.startswith('$MCIALG'):
+            elif line.startswith('$MCIALG') or line.startswith('$MCIAPROX'):
                 i += 1
                 while i < len(lines) and not lines[i].startswith('$'):
                     parts = lines[i].split()

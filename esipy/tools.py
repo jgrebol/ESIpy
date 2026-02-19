@@ -541,6 +541,53 @@ def find_node_distances(connec):
    return distances
 
 
+from collections import defaultdict, deque
+
+
+def find_node_distances_onlyodd(connec):
+    distances = defaultdict(dict)
+
+    for start in connec:
+        queue = deque([(start, 0)])
+        visited = {(start, 0)}  # Track (node, parity)
+
+        # Temporary storage to track the best of both parities
+        shortest_odd = {}
+        shortest_even = {}
+
+        while queue:
+            cur_node, cur_dist = queue.popleft()
+
+            # Save the shortest distance found for each parity
+            if cur_dist % 2 == 1:
+                if cur_node not in shortest_odd:
+                    shortest_odd[cur_node] = cur_dist
+            else:
+                if cur_node not in shortest_even:
+                    shortest_even[cur_node] = cur_dist
+
+            # Explore neighbors
+            for neighbor in connec.get(cur_node, []):
+                next_dist = cur_dist + 1
+                next_parity = next_dist % 2
+                state = (neighbor, next_parity)
+
+                if state not in visited:
+                    visited.add(state)
+                    queue.append((neighbor, next_dist))
+
+        # Decision Time: Merge into final distances
+        # Get every unique node we reached during this search
+        all_reached_nodes = set(shortest_odd.keys()).union(shortest_even.keys())
+
+        for node in all_reached_nodes:
+            if node in shortest_odd:
+                distances[start][node] = shortest_odd[node]  # Prefer Odd
+            else:
+                distances[start][node] = shortest_even[node]  # Fallback to Even
+
+    return distances
+
 def iao(mol, pmol, coeffs):
     """
     Build IAOs using Knizia's exact depolarization formula.
