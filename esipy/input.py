@@ -28,6 +28,7 @@ class ESIInput:
         self.aomname = None
         self.ncores = None
         self.mciaprox = []
+        self.exclude = []
 
     @staticmethod
     def from_string(input_str):
@@ -71,7 +72,7 @@ class ESIInput:
                         pup = p.upper()
                         if pup == 'ALL':
                             # Expand ALL to all available partitions
-                            obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
+                            obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'iao-autosad', 'iao-effao', 'iao-effao-lowdin'])
                         elif pup == 'ROBUST':
                             # Expand ROBUST to robust partitions
                             obj.partition.extend(['meta_lowdin', 'nao', 'iao'])
@@ -104,6 +105,20 @@ class ESIInput:
             elif line.startswith('$MAXLEN'):
                 i += 1
                 obj.maxlen = int(lines[i])
+            elif line.startswith('$EXCLUDE'):
+                obj.exclude = []
+                i += 1
+                while i < len(lines) and not lines[i].startswith('$'):
+                    parts = lines[i].split()
+                    for p in parts:
+                        try:
+                            # Try to convert to int (atom index)
+                            obj.exclude.append(int(p))
+                        except ValueError:
+                            # If it fails, treat as element symbol (str)
+                            obj.exclude.append(p)
+                    i += 1
+                i -= 1
             elif line.startswith('$MCIALG'):
                 i += 1
                 while i < len(lines) and not lines[i].startswith('$'):

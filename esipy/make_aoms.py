@@ -1,6 +1,7 @@
 import numpy as np
 from pyscf.lo import nao
-from pyscf.lo.orth import lowdin, orth_ao
+from pyscf.lo.orth import lowdin
+from pyscf import scf
 
 from esipy.tools import save_file, format_partition, get_natorbs, build_eta
 
@@ -26,7 +27,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
     partition = format_partition(partition)
     # UNRESTRICTED
-    if mf.__class__.__name__ in ("UHF", "UKS", "SymAdaptedUHF", "SymAdaptedUKS") or (hasattr(mf, "__name__") and mf.__name__ == "UHF"):
+    if isinstance(mf, scf.uhf.UHF):
+    #if mf.__class__.__name__ in ("UHF", "UKS", "SymAdaptedUHF", "SymAdaptedUKS") or (hasattr(mf, "__name__") and mf.__name__ == "UHF"):
         # Getting specific information
         S = mf.get_ovlp()
         nocc_alpha = mf.mo_occ[0].astype(int)
@@ -42,17 +44,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 U_inv = lowdin(S)
             elif partition == "meta_lowdin":
                 from pyscf.lo.orth import restore_ao_character
-                if hasattr(mol, '_read_fchk'):
-                    prev_reorder = getattr(mol, '_reorder', True)
-                    mol._reorder = False
-                    # Force recompute of overlap if present
-                    if hasattr(mol, '_ovlp'):
-                        mol._ovlp = None
-                    pre_orth_ao = restore_ao_character(mol, "ANO")
-                    mol._reorder = prev_reorder
-                    mol._ovlp = None
-                else:
-                    pre_orth_ao = restore_ao_character(mol, "ANO")
+                pre_orth_ao = restore_ao_character(mol, "ANO")
                 w = np.ones(pre_orth_ao.shape[0])
                 U_inv = nao._nao_sub(mol, w, pre_orth_ao, S)
             elif partition == "nao":
@@ -67,10 +59,24 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 aom_beta.append(SCR_b @ SCR_b.T)
 
         # Special case IAO
-        elif partition == "iao":
-            from pyscf.lo.iao import iao, reference_mol
-            U_alpha_iao_nonortho = iao(mol, coeff_alpha)
-            U_beta_iao_nonortho = iao(mol, coeff_beta)
+        elif partition.startswith("iao"):
+            from pyscf.lo.iao import reference_mol
+            from esipy.tools import autosad
+            if partition.startswith("iao-autosad") or partition.startswith("iao-effao"):
+                if partition == "iao-autosad":
+                    free_atom = True
+                    dolowdin = False
+                if partition == "iao-effao":
+                    free_atom = False
+                    dolowdin = False
+                if partition == "iao-effao-lowdin":
+                    free_atom = False
+                    dolowdin = True
+                U_alpha_iao_nonortho, U_beta_iao_nonortho = autosad(mol, mf, free_atom=free_atom, lowdin=dolowdin)
+            else:
+                from pyscf.lo.iao import iao
+                U_alpha_iao_nonortho = iao(mol, coeff_alpha)
+                U_beta_iao_nonortho = iao(mol, coeff_beta)
             pmol = reference_mol(mol)
             U_alpha_inv = np.dot(U_alpha_iao_nonortho, lowdin(
                 np.linalg.multi_dot((U_alpha_iao_nonortho.T, S, U_alpha_iao_nonortho))))
@@ -98,6 +104,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 aom_beta.append(SCR_beta)
 
         else:
+            print(partition)
             raise NameError("Hilbert-space scheme not available")
 
         aom = [aom_alpha, aom_beta]
@@ -109,7 +116,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
     # RESTRICTED
 
-    elif mf.__class__.__name__ in ("RHF", "RKS", "SymAdaptedRHF", "SymAdaptedRKS") or (hasattr(mf, "__name__") and mf.__name__ == "RHF"):
+    elif isinstance(mf, scf.hf.RHF):
+#    elif mf.__class__.__name__ in ("RHF", "RKS", "SymAdaptedRHF", "SymAdaptedRKS") or (hasattr(mf, "__name__") and mf.__name__ == "RHF"):
         # Getting specific information
         S = mf.get_ovlp()
         coeff = mf.mo_coeff[:, mf.mo_occ > 0]
@@ -138,10 +146,25 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 aom.append(SCR @ SCR.T)
 
         # Special case IAO
-        elif partition == "iao":
-            from pyscf.lo.iao import iao, reference_mol
+        elif partition.startswith("iao"):
+            from pyscf.lo.iao import reference_mol
+            from esipy.tools import autosad
+            if partition.startswith("iao-autosad") or partition.startswith("iao-effao"):
+                from esipy.tools import autosad
+                if partition == "iao-autosad":
+                    free_atom = True
+                    dolowdin = False
+                if partition == "iao-effao":
+                    free_atom = False
+                    dolowdin = False
+                if partition == "iao-effao-lowdin":
+                    free_atom = False
+                    dolowdin = True
+                U_iao_nonortho = autosad(mol, mf, free_atom=free_atom, lowdin=dolowdin)
+            else:
+                from pyscf.lo.iao import iao
+                U_iao_nonortho = iao(mol, coeff)
             pmol = reference_mol(mol)
-            U_iao_nonortho = iao(mol, coeff)
             U_inv = np.dot(U_iao_nonortho, lowdin(
                 np.linalg.multi_dot((U_iao_nonortho.T, S, U_iao_nonortho))))
             U = np.dot(S, U_inv)
@@ -151,6 +174,19 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             for i in range(pmol.natm):
                 SCR = np.linalg.multi_dot((coeff.T, U, eta[i]))
                 aom.append(np.dot(SCR, SCR.T))
+
+        #elif partition == "iao-autosad":
+        #    U_iao_nonortho = autosad(mol, mf)
+        #    U_inv = np.dot(U_iao_nonortho, lowdin(
+        #        np.linalg.multi_dot((U_iao_nonortho.T, S, U_iao_nonortho))))
+        #    U = np.dot(S, U_inv)
+        #    pmol = iao.reference_mol(mol)
+#
+#            eta = build_eta(pmol)
+#
+#            for i in range(pmol.natm):
+#                SCR = np.linalg.multi_dot((coeff.T, U, eta[i]))
+#                aom.append(np.dot(SCR, SCR.T))
 
         # Special case plain Mulliken
         elif partition == "mulliken":

@@ -129,6 +129,7 @@ class Mole2:
         self.nalpha = int(getattr(self.fchk, 'nalpha', getattr(self.fchk, 'nalpha', 0)))
         self.nbeta = int(getattr(self.fchk, 'nbeta', getattr(self.fchk, 'nbeta', 0)))
         self.spin = int(getattr(self.fchk, 'spin', self.nalpha - self.nbeta))
+        self.nelectron = int(getattr(self.fchk, 'nelectron', self.nalpha + self.nbeta))
 
         self.cart = getattr(self.fchk, 'cart', False)
 
@@ -305,6 +306,7 @@ class MeanField2:
         self._scf.mo_coeff = self.mo_coeff
         self._scf.mo_occ = self.mo_occ
         self._scf.e_tot = self.e_tot
+        self._scf.__class__.__name__ = self.__name__
 
     def make_rdm1(self, ao_repr=True):
         # Simple density from mo_coeff and mo_occ if available (RHF case)

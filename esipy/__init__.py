@@ -1117,7 +1117,6 @@ class ESI:
     ncores (optional, int): Number of cores to use for the MCI calculation. Default is 1.
     saveaoms (optional): Name where to save the AOMs in binary.
     savemolinfo (optional): Name where to save the molecular information dictionary in binary.
-    name (optional, str): Name of the calculation. Default is 'calc'.
     readpath (optional, str): Path to read the AOMs. Default is '.'.
     indicators (obj): Object containing the indicators of the calculation. Generated in the initialization.
 
@@ -1131,7 +1130,7 @@ class ESI:
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
                  ncores=1, save=None, readpath='.', read=False,
-                 maxlen=12, minlen=6, rings_thres=0.3):
+                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
@@ -1164,6 +1163,7 @@ class ESI:
         self.maxlen = maxlen
         self.minlen = minlen
         self.rings_thres = rings_thres
+        self._exclude = exclude
         #self._printedrings = False
         self._connec = None
         self.done_connec = False
@@ -1195,7 +1195,9 @@ class ESI:
                 return
             self.fragaom, self.fragmap = list(process_fragments(self.aom, self.rings, False))
             if self.fragaom:
-                self.totalaom = self.aom + self.fragaom
+                self.totalaom = deepcopy(self.aom)
+                for f in self.fragaom:
+                    self.totalaom.append(f)
                 self.nfrags = len(self.fragaom)
             else:
                 self.totalaom = self.aom
@@ -1300,11 +1302,16 @@ class ESI:
                 print(f" | Skipping ring analysis for {self.partition} partition.")
                 self._rings = None
 
-            self._rings = find_rings(graph, self.minlen, self.maxlen)
+            self._rings = find_rings(graph, self.minlen, self.maxlen, exclude=self.exclude)
             endrings = time()
 
             if not self._rings:
-                raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
+                print(" | WARNING: Could not find any ring. Please check the minimum and maximum ring lengths.")
+                self.totalaom = self.aom
+                self.nfrags = 0
+                self.fragmap = {}
+                return None
+                #raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
             #elif not self._printedrings:
             #    print(f" | Found {len(self._rings)} rings in {endrings-startrings:.4f} seconds:")
             #    print(" | -------------------------------")
@@ -1472,6 +1479,33 @@ class ESI:
         self._mci = value
 
     @property
+    def exclude(self):
+        """
+        Processes the exclude list. If an element symbol (str) is found,
+        it finds all indices for that element. If an int is found, it keeps it.
+        """
+        if not self._exclude:
+            return []
+
+        raw_exclude = self._exclude if isinstance(self._exclude, list) else [self._exclude]
+        processed = []
+
+        symbols = self.molinfo.get("symbols", [])
+
+        for item in raw_exclude:
+            if isinstance(item, int):
+                processed.append(item)
+            elif isinstance(item, str):
+                indices = [i + 1 for i, sym in enumerate(symbols) if sym.upper() == item.upper()]
+                processed.extend(indices)
+
+        return list(set(processed))  # Return unique indices
+
+    @exclude.setter
+    def exclude(self, value):
+        self._exclude = value
+
+    @property
     def av1245(self):
         """
         Whether to compute the AV1245. If not provided, it will compute it if the number of rings is greater than 9.
@@ -1583,61 +1617,4 @@ class ESI:
                 arom_no(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                     av1245=self.av1245,
                     flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap,)
-
-    def mciaprox(self, mcialg=0, d=1):
-        from esipy.mci import aproxmci
-        self.mcialg = mcialg
-        self.d = d
-        print(" | Module to compute approximations for the MCI")
-        print(' -------------------------------------------------')
-        if getattr(self, "partition") is None:
-            print(" | No partition specified. Will assume non-symmetric AOMs")
-
-        if self.ncores == 1:
-            print(" | Using MCI's single-core algorithm")
-        else:
-            print(f" | Using MCI's multi-core algorithm for {self.ncores} cores")
-
-        if self.mcialg == 0:
-            print(" | Exact MCI calcualtion")
-        elif self.mcialg == 1:
-            print(f" | Approximate MCI. Algorithm 1.\n | All permutations having a maximum distance of {self.d}")
-        elif self.mcialg == 2:
-            print(f" | Approximate MCI. Algorithm 2.\n | Only permutations having a maximum distance of {self.d}")
-        elif self.mcialg == 3:
-            print(f" | Approximate MCI. Algorithm 3.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any even distance between two vertices")
-        elif self.mcialg == 4:
-            print(f" | Approximate MCI. Algorithm 4.\n | Only permutations having a maximum distance of {self.d}\n | and excluding any odd distance between two vertices")
-        print(' -------------------------------------------------')
-
-        # Call aproxmci for each ring (self.rings is a list of rings). Aggregate results.
-        for i, ring in enumerate(self.rings):
-            print(" | Ring  {} ({}):   {}".format(i + 1, len(ring), "  ".join(str(num) for num in ring)))
-            print(' -------------------------------------------------')
-            val = 0.0
-            nperms = 0
-            t = 0.0
-            kind = wf_type(self.aom)
-            if kind == "rest":
-                val, nperms, t = aproxmci(ring, self.aom, self.partition, self.mcialg, self.d, self.ncores, connec=self.connec)
-                val = 2 * val
-            elif kind == "unrest":
-                val_a, nperms_a, t_a = aproxmci(ring, self.aom[0], self.partition, self.mcialg, self.d, self.ncores, connec=self.connec)
-                val_b, nperms_b, t_b = aproxmci(ring, self.aom[1], self.partition, self.mcialg, self.d, self.ncores, connec=self.connec)
-                val = val_a + val_b
-                nperms = nperms_a + nperms_b
-                t = t_a + t_b
-
-            print(f" | Number of permutations:           {nperms:.14g}")
-
-            print(f" | Time for the MCI calculation:     {t:.5f} seconds")
-            print(f" | MCI(mcialg={self.mcialg}, d={self.d}):               {val:.8f}")
-            if val > 0:
-                print(f" | MCI(mcialg={self.mcialg}, d={self.d})**(1/n):        {val ** (1/len(ring)):.8f}")
-            else:
-                from numpy import abs
-                print(f" | MCI(mcialg={self.mcialg}, d={self.d})**(1/n):        -{abs(val) ** (1 / len(ring)):.8f}")
-            print(' -------------------------------------------------')
-
-
 

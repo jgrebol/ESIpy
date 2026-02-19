@@ -1,6 +1,6 @@
 :title: Index
 
-.. image:: ./logoesipy.png
+.. image:: _static/logoesipy.png
    :alt: ESIpy Logo
    :align: center
 
@@ -10,15 +10,15 @@ partitions using the PySCF module.
 This program has been developed by Joan Grèbol-Tomàs under the supervision of Eduard Matito and Pedro Salvador.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
    Introduction <intro>
    Installation Guide <installation>
    Theoretical Background <theory>
    Getting started <get-started>
+   ESIpy from FCHK <fchk>
    Advanced utilities <advanced>
-   ESIpy from a FCHK file <fchk>
    MCI Timings <mci-timings>
    API Reference <api>
 

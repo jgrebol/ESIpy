@@ -81,7 +81,7 @@ class ESItest(unittest.TestCase):
         self.assertTrue(esitest.av1245)
 
         # For a 12MR: mci=False, av1245=True
-        esitest = esipy.ESI(mol=mol, mf=mf, rings=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], partition='mulliken')
+        esitest = esipy.ESI(mol=mol, mf=mf, rings=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], partition='mulliken')
         self.assertFalse(esitest.mci)
         self.assertTrue(esitest.av1245)
 
