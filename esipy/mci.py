@@ -2,10 +2,81 @@ import numpy as np
 import multiprocessing as mp
 from math import factorial
 from time import time
+from collections import defaultdict, deque
 
 from esipy.tools import (
-    wf_type, mapping, filter_connec, find_node_distances, build_connectivity, find_node_distances_onlyodd
+    wf_type, mapping, filter_connec, build_connectivity
 )
+
+
+def find_node_distances(connec):
+    """Standard BFS to find the shortest path between nodes."""
+    distances = defaultdict(dict)
+
+    for start in connec:
+        queue = deque([(start, 0)])
+        visited = set()
+
+        while queue:
+            cur_node, cur_dist = queue.popleft()
+
+            if cur_node not in visited:
+                visited.add(cur_node)
+                distances[start][cur_node] = cur_dist
+
+                for neighbor in connec[cur_node]:
+                    if neighbor not in visited:
+                        queue.append((neighbor, cur_dist + 1))
+
+    return distances
+
+
+def find_node_distances_onlyodd(connec):
+    """BFS tracking parity. Prefers the shortest odd distance, falls back to even."""
+    distances = defaultdict(dict)
+
+    for start in connec:
+        queue = deque([(start, 0)])
+        visited = {(start, 0)}  # Track (node, parity)
+
+        # Temporary storage to track the best of both parities
+        shortest_odd = {}
+        shortest_even = {}
+
+        while queue:
+            cur_node, cur_dist = queue.popleft()
+
+            # Save the shortest distance found for each parity
+            if cur_dist % 2 == 1:
+                if cur_node not in shortest_odd:
+                    shortest_odd[cur_node] = cur_dist
+            else:
+                if cur_node not in shortest_even:
+                    shortest_even[cur_node] = cur_dist
+
+            # Explore neighbors
+            for neighbor in connec.get(cur_node, []):
+                next_dist = cur_dist + 1
+                next_parity = next_dist % 2
+                state = (neighbor, next_parity)
+
+                if state not in visited:
+                    visited.add(state)
+                    queue.append((neighbor, next_dist))
+
+        # Decision Time: Merge into final distances
+        # Get every unique node we reached during this search
+        all_reached_nodes = set(shortest_odd.keys()).union(shortest_even.keys())
+
+        for node in all_reached_nodes:
+            if node in shortest_odd:
+                distances[start][node] = shortest_odd[node]  # Prefer Odd
+            else:
+                distances[start][node] = shortest_even[node]  # Fallback to Even
+
+        distances[start][start] = 0  # Starting node is always 0
+
+    return distances
 
 
 def _kernel_exact(args):
@@ -35,8 +106,7 @@ def _kernel_exact(args):
             if sym_prune and (j > rem):
                 continue
 
-            # Trace contraction: Tr(A @ B) = sum(A * B.T)
-            # Reduced time complexity if we want to keep only trace from O(N^3) to O(N^2)
+            # Tr(A @ B) = sum(A * B.T) (just for the final step, O(N**3) -> O(N**2))
             tr_sum += np.sum(P * mats[rem].T)
             continue
 
