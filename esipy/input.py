@@ -90,7 +90,7 @@ class ESIInput:
             elif line.upper().startswith('$ALLPARTS') or line.upper().startswith('$ALLPARTITIONS'):
                 obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'iao-autosad', 'iao-effao',
                                  'iao-effao-lowdin']
-            elif line.upper().startswith('$AUTO'):
+            elif line.upper().startswith('$AUTO') or line.upper().startswith('$DEFAULT'):
                 seen_ring_cmds.append('$AUTO')
                 obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'iao-autosad', 'iao-effao',
                                  'iao-effao-lowdin']

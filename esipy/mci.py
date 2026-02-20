@@ -260,13 +260,20 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
         connec = build_connectivity(aom, rings_thres)
 
     # Generate distance matrix for the relevant subgraph
-    full_dists = filter_connec(connec)
+    connec = filter_connec(connec)
 
-    # Use onlyodd for alg 4 and 5
+    # Subgraph for the ring atoms only
+    ring_connec = {
+        atom: [neighbor for neighbor in connec[atom] if neighbor in arr]
+        for atom in arr
+    }
+    # ==========================================================
+
+    # Use onlyodd for alg 4 and 5, but pass the isolated ring_connec!
     if alg == 4 or alg == 5:
-        full_dists = find_node_distances_onlyodd(connec)
+        full_dists = find_node_distances_onlyodd(ring_connec)
     else:
-        full_dists = find_node_distances(connec)
+        full_dists = find_node_distances(ring_connec)
 
     n = len(arr)
     sub_dists = np.array([[full_dists[arr[i]][arr[j]] for j in range(n)] for i in range(n)])
