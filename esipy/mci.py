@@ -7,6 +7,7 @@ from esipy.tools import (
     wf_type, mapping, filter_connec, find_node_distances, build_connectivity, find_node_distances_onlyodd
 )
 
+
 def _kernel_exact(args):
     """DFS worker for exact MCI."""
     mats, j, sym_prune = args
@@ -59,9 +60,8 @@ def _kernel_approx(args):
     d0 = dists[0, j]
     if d0 > d_cut: return 0.0, 0
 
-    # Parity checks: Alg 3 (Odd only), Alg 4 (Even only)
+    # Parity checks: Alg 3 and 5 (Odd only)
     if (alg == 3 or alg == 5) and (d0 % 2 == 0): return 0.0, 0
-    if alg == 4 and (d0 % 2 != 0): return 0.0, 0
 
     cur_max = d0
     P = np.dot(mats[0], mats[j])
@@ -91,10 +91,9 @@ def _kernel_approx(args):
             if d_last > d_cut or d_close > d_cut: continue
 
             if (alg == 3 or alg == 5) and ((d_last % 2 == 0) or (d_close % 2 == 0)): continue
-            if alg == 4 and ((d_last % 2 != 0) or (d_close % 2 != 0)): continue
 
-            # Alg 2: Cycle max distance must equal cutoff d
-            if alg == 2:
+            # Alg 2 & 4: Cycle max distance must equal cutoff d
+            if alg == 2 or alg == 4:
                 if max(cur_max, d_last, d_close) != d_cut: continue
 
             tr_sum += np.sum(P * mats[rem].T)
@@ -108,14 +107,14 @@ def _kernel_approx(args):
 
                 if d_step > d_cut: continue
                 if (alg == 3 or alg == 5) and (d_step % 2 == 0): continue
-                if alg == 4 and (d_step % 2 != 0): continue
 
-                # For Alg 2, propagate max dist
-                new_max = max(cur_max, d_step) if alg == 2 else 0
+                # For Alg 2 & 4, propagate max dist
+                new_max = max(cur_max, d_step) if (alg == 2 or alg == 4) else 0
 
                 stack.append((depth + 1, mask | (1 << i), np.dot(P, mats[i]), i, new_max))
 
     return tr_sum, n_perms
+
 
 def _prep_matrices(arr, aom):
     """Normalize input into list of matrices, handling NO tuples."""
@@ -174,7 +173,7 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
     """
     Computes Approximate MCI with topological filtering.
 
-    alg (int): 0=Exact, 1=Dist, 2=MaxDist, 3=Odd, 4=Even
+    alg (int): 0=Exact, 1=Dist, 2=MaxDist, 3=Odd, 4=MaxDistOdd, 5=Odd(Alternate)
     """
     t0 = time()
 
@@ -192,10 +191,13 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
 
     # Generate distance matrix for the relevant subgraph
     full_dists = filter_connec(connec)
-    if alg == 5:
+
+    # Use onlyodd for alg 4 and 5
+    if alg == 4 or alg == 5:
         full_dists = find_node_distances_onlyodd(connec)
     else:
         full_dists = find_node_distances(connec)
+
     n = len(arr)
     sub_dists = np.array([[full_dists[arr[i]][arr[j]] for j in range(n)] for i in range(n)])
 
@@ -231,6 +233,7 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
         total_trace *= 0.5
 
     return prefactor * total_trace, total_perms, time() - t0
+
 
 def sequential_mci(arr, aom, partition='mulliken'):
     return compute_mci(arr, aom, partition, n_cores=1)
