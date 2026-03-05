@@ -65,14 +65,17 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             if partition.startswith("iao-autosad") or partition.startswith("iao-effao"):
                 if partition == "iao-autosad":
                     free_atom = True
-                    dolowdin = False
-                if partition == "iao-effao":
+                    mode = None # Free-atom SAD on original basis always
+                elif partition == "iao-effao-gross":
                     free_atom = False
-                    dolowdin = False
-                if partition == "iao-effao-lowdin":
+                    domode = "gross"
+                elif partition == "iao-effao-gross":
                     free_atom = False
-                    dolowdin = True
-                U_alpha_iao_nonortho, U_beta_iao_nonortho = autosad(mol, mf, free_atom=free_atom, lowdin=dolowdin)
+                    domode = "net"
+                elif partition == "iao-effao-lowdin":
+                    free_atom = False
+                    domode = "lowdin"
+                U_alpha_iao_nonortho, U_beta_iao_nonortho = autosad(mol, mf, free_atom=free_atom, mode=domode)
             else:
                 from pyscf.lo.iao import iao
                 U_alpha_iao_nonortho = iao(mol, coeff_alpha)
@@ -153,14 +156,17 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 from esipy.tools import autosad
                 if partition == "iao-autosad":
                     free_atom = True
-                    dolowdin = False
-                if partition == "iao-effao":
+                    domode = None  # Free-atom SAD on original basis always
+                elif partition == "iao-effao-gross":
                     free_atom = False
-                    dolowdin = False
-                if partition == "iao-effao-lowdin":
+                    domode = "gross"
+                elif partition == "iao-effao-net":
                     free_atom = False
-                    dolowdin = True
-                U_iao_nonortho = autosad(mol, mf, free_atom=free_atom, lowdin=dolowdin)
+                    domode = "net"
+                elif partition == "iao-effao-lowdin":
+                    free_atom = False
+                    domode = "lowdin"
+                U_iao_nonortho = autosad(mol, mf, free_atom=free_atom, mode=domode)
             else:
                 from pyscf.lo.iao import iao
                 U_iao_nonortho = iao(mol, coeff)
