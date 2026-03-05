@@ -578,7 +578,7 @@ def iao(mol, pmol, coeffs):
     return IAOs
 
 
-def get_effaos(mol, mf, free_atom=True, mode=None):  # Removed unused 'coeffs'
+def get_effaos(mol, mf, free_atom=True, mode=None):
     """
     Builds effective Atomic Orbitals (eff-AOs) and their occupations.
     Modified to handle Unrestricted (UKS/UHF) alpha and beta orbitals.
@@ -586,6 +586,7 @@ def get_effaos(mol, mf, free_atom=True, mode=None):  # Removed unused 'coeffs'
     from pyscf.lo.nao import _prenao_sub
     from pyscf.data import elements
     import numpy as np
+    import scipy.linalg
     from pyscf import gto, scf
 
     # Number of unpaired electrons for ground state atoms
@@ -622,24 +623,23 @@ def get_effaos(mol, mf, free_atom=True, mode=None):  # Removed unused 'coeffs'
     else:
         P_mol = mf.make_rdm1(ao_repr=True)
 
-    # --- OPTIMIZATION 1: Precompute molecule-wide matrices OUTSIDE the loop ---
     if not free_atom:
         if mode == "lowdin":
             from pyscf.lo.orth import lowdin
             T = lowdin(S_mol)
-            P_mol = T.T @ P_mol @ T
+            T_inv = scipy.linalg.inv(T)
+            P_mol = T_inv.T @ P_mol @ T_inv
         elif mode == "gross":
             PS_mol = (np.dot(P_mol, S_mol) + np.dot(S_mol, P_mol)) / 2
 
     col_idx = 0
-    atom_dict = {}  # Cache for free_atom SCF results
-    mol_atm_dict = {}  # Cache for atomic gto.Mole objects
+    atom_dict = {}
+    mol_atm_dict = {}
 
     for ia, sym in enumerate(atom_syms):
         p0, p1 = aoslices[ia, 2], aoslices[ia, 3]
         n_target = minbas_sizes[ia]
 
-        # --- OPTIMIZATION 2: Only build the gto.Mole once per element type ---
         if sym not in mol_atm_dict:
             mol_atm = gto.Mole()
             mol_atm.atom = f"{sym} 0.0 0.0 0.0"
@@ -654,7 +654,6 @@ def get_effaos(mol, mf, free_atom=True, mode=None):  # Removed unused 'coeffs'
 
         if free_atom:
             if sym not in atom_dict:
-                # Inherit DFT/HF method, upgrading to Unrestricted if needed
                 if "dft" in mf.__module__:
                     mf_atm = scf.KS(mol_atm)
                     if hasattr(mf, 'xc'): mf_atm.xc = mf.xc
@@ -668,6 +667,8 @@ def get_effaos(mol, mf, free_atom=True, mode=None):  # Removed unused 'coeffs'
 
                 PS = np.dot(P_local, S_local)
                 SPS = np.dot(S_local, PS)
+
+                # From PySCF: eigenvalues and eigenvectors from spherically-averaged atomic blocks
                 w, c = _prenao_sub(mol_atm, SPS, S_local)
 
                 idx = np.argsort(w)[::-1][:n_target]
@@ -677,13 +678,12 @@ def get_effaos(mol, mf, free_atom=True, mode=None):  # Removed unused 'coeffs'
             w_keep, c_keep = atom_dict[sym]
 
         else:
-            # --- BUG FIX: Slice the pre-computed matrices for this specific atom ---
             if mode == "lowdin":
                 mat = P_mol[p0:p1, p0:p1]
-                aux = np.eye(p1 - p0)  # S is the identity matrix in a Löwdin basis
+                aux = np.eye(p1 - p0)
             elif mode == "gross":
                 mat = PS_mol[p0:p1, p0:p1]
-                aux = S_mol[p0:p1, p0:p1]
+                aux = np.eye(p1 - p0)
             elif mode == "net":
                 P_local = P_mol[p0:p1, p0:p1]
                 S_local = S_mol[p0:p1, p0:p1]
@@ -692,17 +692,20 @@ def get_effaos(mol, mf, free_atom=True, mode=None):  # Removed unused 'coeffs'
                 mat = SPS
                 aux = S_local
 
-            w, c = _prenao_sub(mol_atm, mat, aux)
+            w, c = _prenao_sub(mol_atm, p=mat, s=aux)
 
             idx = np.argsort(w)[::-1][:n_target]
             w_keep = w[idx]
             c_keep = c[:, idx]
 
-        # Insert the block of coefficients
         veps_block[p0:p1, col_idx: col_idx + n_target] = c_keep
         vaps_diag.extend(w_keep)
 
         col_idx += n_target
+
+    # Revert all vectors from Lowdin basis to AO basis in one go
+    if not free_atom and mode == "lowdin":
+        veps_block = T @ veps_block
 
     return np.array(vaps_diag), veps_block
 
