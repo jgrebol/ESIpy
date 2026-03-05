@@ -703,7 +703,6 @@ def get_effaos(mol, mf, free_atom=True, mode=None):
 
         col_idx += n_target
 
-    # Revert all vectors from Lowdin basis to AO basis in one go
     if not free_atom and mode == "lowdin":
         veps_block = T @ veps_block
 
