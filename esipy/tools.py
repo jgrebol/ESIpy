@@ -322,6 +322,9 @@ def format_partition(partition):
     elif partition in ["iao-effao-lowdin", "iao-effao-low", "iao-efao-low", "iaoefaolow", "iaoel", "iaol", "il", "iel", "iaoeffaolowdin",
                            "iae"]:
         return "iao-effao-lowdin"
+    elif partition in ["iao-effao-metalowdin", "iao-effao-metalow", "iao-efao-metalow", "iaoefaolow", "iaoel", "iaol", "il",
+                           "iel", "iaoeffaolowdin", "iaom", "im", "iao-effao-meta-lowdin"]:
+        return "iao-effao-meta-lowdin"
     elif partition in ["q", "qt", "qtaim", "quant", "quantum"]:
         return "qtaim"
     else:
@@ -585,7 +588,6 @@ def iao(mol, pmol, coeffs):
 def get_effaos(mol, mf, free_atom=True, mode=None):
     """
     Builds effective Atomic Orbitals (eff-AOs) and their occupations.
-    Modified to handle Unrestricted (UKS/UHF) alpha and beta orbitals.
     """
     from pyscf.lo.nao import _prenao_sub
     from pyscf.data import elements
@@ -628,9 +630,14 @@ def get_effaos(mol, mf, free_atom=True, mode=None):
         P_mol = mf.make_rdm1(ao_repr=True)
 
     if not free_atom:
-        if mode == "lowdin":
-            from pyscf.lo.orth import lowdin
-            T = lowdin(S_mol)
+        if mode in ["lowdin", "meta-lowdin"]:
+            if mode == "lowdin":
+                from pyscf.lo.orth import lowdin
+                T = lowdin(S_mol)
+            else:
+                from pyscf.lo.orth import orth_ao
+                T = orth_ao(mf, 'meta_lowdin', pre_orth_ao="ANO")
+
             T_inv = scipy.linalg.inv(T)
             P_mol = T_inv.T @ P_mol @ T_inv
         elif mode == "gross":
@@ -682,7 +689,7 @@ def get_effaos(mol, mf, free_atom=True, mode=None):
             w_keep, c_keep = atom_dict[sym]
 
         else:
-            if mode == "lowdin":
+            if mode in ["lowdin", "meta-lowdin"]:
                 mat = P_mol[p0:p1, p0:p1]
                 aux = np.eye(p1 - p0)
             elif mode == "gross":
@@ -707,7 +714,7 @@ def get_effaos(mol, mf, free_atom=True, mode=None):
 
         col_idx += n_target
 
-    if not free_atom and mode == "lowdin":
+    if not free_atom and mode in ["lowdin", "meta-lowdin"]:
         veps_block = T @ veps_block
 
     return np.array(vaps_diag), veps_block

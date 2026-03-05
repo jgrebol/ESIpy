@@ -166,6 +166,9 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 elif partition == "iao-effao-lowdin":
                     free_atom = False
                     domode = "lowdin"
+                elif partition == "iao-effao-meta-lowdin":
+                    free_atom = False
+                    domode = "meta-lowdin"
                 U_iao_nonortho = autosad(mol, mf, free_atom=free_atom, mode=domode)
             else:
                 from pyscf.lo.iao import iao

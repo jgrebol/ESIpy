@@ -81,7 +81,7 @@ class ESIInput:
                             obj.partition.extend(
                                 ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
                         elif pup == "ALLWIP":
-                            obj.partition.extend(['m', 'l', 'ml', 'n', 'i', 'ia', 'ig', 'in', 'il'])
+                            obj.partition.extend(['m', 'l', 'ml', 'n', 'i', 'ia', 'ig', 'in', 'il', 'im'])
                         elif pup == 'ROBUST':
                             obj.partition.extend(['meta_lowdin', 'nao', 'iao'])
                         else:
