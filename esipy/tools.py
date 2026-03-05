@@ -347,6 +347,10 @@ def format_short_partition(partition):
         return "metalow"
     elif partition == "iao-effao-lowdin":
         return "iao-effao-low"
+    elif partition == "iao-effao-gross":
+        return "iao-effao-gross"
+    elif partition == "iao-effao-net":
+        return "iao-effao-net"
     elif partition in ("nao", "iao", "qtaim", "iao-autosad", "iao-effao"):
         return partition
     else:
