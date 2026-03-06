@@ -639,7 +639,7 @@ def get_effaos(mol, mf, free_atom=True, mode=None):
                 T = orth_ao(mf, 'meta_lowdin', pre_orth_ao="ANO")
 
             T_inv = scipy.linalg.inv(T)
-            P_mol = T_inv.T @ P_mol @ T_inv
+            P_mol = T_inv @ P_mol @ T_inv.T
         elif mode == "gross":
             PS_mol = (np.dot(P_mol, S_mol) + np.dot(S_mol, P_mol)) / 2
 
@@ -711,6 +711,7 @@ def get_effaos(mol, mf, free_atom=True, mode=None):
 
         veps_block[p0:p1, col_idx: col_idx + n_target] = c_keep
         vaps_diag.extend(w_keep)
+        print("Eigenvalues for atom {} (sum {}): {}".format(sym, sum(w), w_keep))
 
         col_idx += n_target
 
