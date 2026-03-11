@@ -243,6 +243,10 @@ def find_flurefs(partition=None):
     elif partition == "iao-effao-lowdin":
         return {"CC": 1.4173, "CN": 1.4027, "BN": 1.0374, "NN": 1.3575, "CS": 1.1538, "CO": 1.0133}
 
+    else: # FOR THE IAO TESTS
+        return {"CC": 1.4173, "CN": 1.4027, "BN": 1.0374, "NN": 1.3575, "CS": 1.1538, "CO": 1.0133}
+
+
 
 def compute_flu(arr, molinfo, aom, flurefs=None, partition=None):
     """

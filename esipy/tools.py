@@ -327,7 +327,14 @@ def format_partition(partition):
         return "iao-effao-meta-lowdin"
     elif partition in ["q", "qt", "qtaim", "quant", "quantum"]:
         return "qtaim"
+    elif partition in ["sym", "ias", "is"]:
+        return "iao-effao-symmetric"
+    elif partition in ["sps"]:
+        return "iao-effao-sps"
+    elif partition in ["spsa"]:
+        return "iao-effao-spsa"
     else:
+        return partition # FOR THE IAO TESTS
         raise NameError(" | Invalid partition scheme")
 
 
@@ -357,6 +364,7 @@ def format_short_partition(partition):
     elif partition in ("nao", "iao", "qtaim", "iao-autosad", "iao-effao"):
         return partition
     else:
+        return partition # FOR THE IAO TESTS
         raise NameError(" | Invalid partition scheme")
 
 
@@ -700,6 +708,25 @@ def get_effaos(mol, mf, free_atom=True, mode=None):
                 S_local = S_mol[p0:p1, p0:p1]
                 PS = np.dot(P_local, S_local)
                 SPS = np.dot(S_local, PS)
+                mat = SPS
+                aux = S_local
+            elif mode == "sym":
+                P_local = P_mol[p0:p1, p0:p1]
+                S_local = S_mol[p0:p1, p0:p1]
+                PS_local = np.dot(P_local, S_local)
+                mat = (PS_local + PS_local.T) / 2
+                aux = np.eye(p1 - p0)
+            elif mode == "sps":
+                PS = np.dot(P_mol, S_mol)
+                SPS = np.dot(S_mol, PS)
+                SPS = SPS[p0:p1, p0:p1]
+                mat = SPS
+                aux = np.eye(p1 - p0)
+            elif mode == "spsa":
+                PS = np.dot(P_mol, S_mol)
+                SPS = np.dot(S_mol, PS)
+                SPS = SPS[p0:p1, p0:p1]
+                S_local = S_mol[p0:p1, p0:p1]
                 mat = SPS
                 aux = S_local
 
