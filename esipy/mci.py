@@ -2,10 +2,34 @@ import numpy as np
 import multiprocessing as mp
 from math import factorial
 from time import time
+from collections import defaultdict, deque
 
 from esipy.tools import (
-    wf_type, mapping, filter_connec, find_node_distances, build_connectivity
+    wf_type, mapping, filter_connec, build_connectivity
 )
+
+
+def find_node_distances(connec):
+    """Standard BFS to find the shortest path between nodes."""
+    distances = defaultdict(dict)
+
+    for start in connec:
+        queue = deque([(start, 0)])
+        visited = set()
+
+        while queue:
+            cur_node, cur_dist = queue.popleft()
+
+            if cur_node not in visited:
+                visited.add(cur_node)
+                distances[start][cur_node] = cur_dist
+
+                for neighbor in connec[cur_node]:
+                    if neighbor not in visited:
+                        queue.append((neighbor, cur_dist + 1))
+
+    return distances
+
 
 def _kernel_exact(args):
     """DFS worker for exact MCI."""
@@ -34,8 +58,7 @@ def _kernel_exact(args):
             if sym_prune and (j > rem):
                 continue
 
-            # Trace contraction: Tr(A @ B) = sum(A * B.T)
-            # Reduced time complexity if we want to keep only trace from O(N^3) to O(N^2)
+            # Tr(A @ B) = sum(A * B.T) (just for the final step, O(N**3) -> O(N**2))
             tr_sum += np.sum(P * mats[rem].T)
             continue
 
@@ -99,13 +122,12 @@ def compute_mci(arr, aom, partition='mulliken', n_cores=None):
     return prefactor * total_trace
 
 
-
 def sequential_mci(arr, aom, partition='mulliken'):
-    return mci(arr, aom, partition, n_cores=1)
+    return compute_mci(arr, aom, partition, n_cores=1)
 
 
 def multiprocessing_mci(arr, aom, ncores, partition='mulliken'):
-    return mci(arr, aom, partition, n_cores=ncores)
+    return compute_mci(arr, aom, partition, n_cores=ncores)
 
 
 # Aliases for Natural Orbitals

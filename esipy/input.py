@@ -3,6 +3,7 @@ Input parser for ESIpy custom input blocks.
 Supports keywords: $READFCHK, $RING, $PARTITION, $FLUREF, $FINDRINGS, $MINLEN, $MAXLEN
 """
 
+
 class ESIInput:
     def __init__(self):
         self.fchk_file = None
@@ -34,36 +35,42 @@ class ESIInput:
     def from_string(input_str):
         obj = ESIInput()
         lines = [line.strip() for line in input_str.strip().splitlines() if line.strip()]
+
+        # Trackers for contradictory keywords
+        seen_modes = []
+        seen_ring_cmds = []
+        seen_mci_cmds = []
+
         i = 0
         while i < len(lines):
             line = lines[i]
             if line.startswith('$READFCHK'):
-                # next line: name of the .fchk file
+                seen_modes.append('$READFCHK')
                 obj.mode = 'fchk'
                 i += 1
                 if i < len(lines):
                     obj.fchk_file = lines[i]
-            elif line.startswith('$READINT'): # $READINTS also works
-                # next line: base name of the directory with the int files
+            elif line.startswith('$READINT'):
+                seen_modes.append('$READINT')
                 obj.mode = 'readint'
                 i += 1
                 if i < len(lines):
                     obj.readpath = lines[i]
             elif line.startswith('$READAOM'):
-                # next line: base name (without extension) used to get .aoms and .molinfo
+                seen_modes.append('$READAOM')
                 obj.mode = 'readaoms'
                 i += 1
                 if i < len(lines):
                     obj.aomname = lines[i]
-            elif line.startswith('$RING'): # $RINGS also works
+            elif line.startswith('$RING'):
+                seen_ring_cmds.append('$RING')
                 obj.rings = []
                 i += 1
-                # Keep reading lines as long as they exist and don't start with '$'
                 while i < len(lines) and not lines[i].strip().startswith('$'):
                     obj.rings.append(list(map(int, lines[i].split())))
                     i += 1
                 i -= 1
-            elif line.startswith('$PARTITION'): # $PARTITIONS also works
+            elif line.startswith('$PARTITION'):
                 obj.partition = []
                 i += 1
                 while i < len(lines) and not lines[i].startswith('$'):
@@ -71,16 +78,24 @@ class ESIInput:
                     for p in partitions:
                         pup = p.upper()
                         if pup == 'ALL':
-                            # Expand ALL to all available partitions
-                            obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
+                            obj.partition.extend(
+                                ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
+                        elif pup == "ALLWIP":
+                            obj.partition.extend(['m', 'l', 'ml', 'n', 'i', 'ia', 'ig', 'in', 'il', 'im', 'sym', 'sps', 'spsa'])
                         elif pup == 'ROBUST':
-                            # Expand ROBUST to robust partitions
                             obj.partition.extend(['meta_lowdin', 'nao', 'iao'])
                         else:
-                            # normalize token to lowercase for consistent filename generation
                             obj.partition.append(p.strip().lower())
                     i += 1
                 i -= 1
+            elif line.upper().startswith('$ALLPARTS') or line.upper().startswith('$ALLPARTITIONS'):
+                obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'iao-autosad', 'iao-effao',
+                                 'iao-effao-lowdin']
+            elif line.upper().startswith('$AUTO') or line.upper().startswith('$DEFAULT'):
+                seen_ring_cmds.append('$AUTO')
+                obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'iao-autosad', 'iao-effao',
+                                 'iao-effao-lowdin']
+                obj.findrings = True
             elif line.startswith('$FLUREF'):
                 i += 1
                 obj.fluref = []
@@ -93,9 +108,10 @@ class ESIInput:
                     i += 1
                 i -= 1
             elif line.startswith('$FINDRINGS'):
+                seen_ring_cmds.append('$FINDRINGS')
                 obj.findrings = True
             elif line.startswith('$NORING'):
-                # No ring analysis, only atomic populations and delocalization indices
+                seen_ring_cmds.append('$NORING')
                 obj.noring = True
                 obj.findrings = False
                 obj.rings = None
@@ -112,30 +128,30 @@ class ESIInput:
                     parts = lines[i].split()
                     for p in parts:
                         try:
-                            # Try to convert to int (atom index)
                             obj.exclude.append(int(p))
                         except ValueError:
-                            # If it fails, treat as element symbol (str)
                             obj.exclude.append(p)
                     i += 1
                 i -= 1
-            elif line.startswith('$MCIALG'):
+            elif line.startswith('$MCIALG') or line.startswith('$MCIAPROX'):
+                seen_mci_cmds.append('$MCIAPROX')
                 i += 1
                 while i < len(lines) and not lines[i].startswith('$'):
                     parts = lines[i].split()
                     if len(parts) >= 2:
                         try:
-                            # Format: Algorithm Distance
                             alg = int(parts[0])
                             dist = int(parts[1])
                             obj.mciaprox.append((alg, dist))
                         except ValueError:
-                            pass  # Skip malformed lines
+                            pass
                     i += 1
                 i -= 1
             elif line.startswith('$MCI'):
+                seen_mci_cmds.append('$MCI')
                 obj.mci = True
             elif line.startswith('$NOMCI'):
+                seen_mci_cmds.append('$NOMCI')
                 obj.mci = False
             elif line.startswith('$AV1245'):
                 obj.av1245 = True
@@ -145,24 +161,17 @@ class ESIInput:
                     try:
                         obj.ncores = int(lines[i])
                     except Exception:
-                        # leave as None if parsing fails. ESI will make it single core then
                         obj.ncores = None
             elif line.startswith('$SAVE'):
                 obj.save = True
-                # Determine molecule name based on input mode
-                # This will be used to create subdirectory and save files
                 if obj.mode == 'fchk' and obj.fchk_file:
-                    # Extract filename without extension
                     import os
                     obj.save = os.path.splitext(os.path.basename(obj.fchk_file))[0]
                 elif obj.mode == 'readint' and obj.readpath:
-                    # Use directory basename
                     import os
                     obj.save = os.path.basename(os.path.normpath(obj.readpath))
                 elif obj.mode == 'readaoms' and obj.aomname:
-                    # Use the aomname directly
                     obj.save = obj.aomname
-                # If mode/file not set yet, keep as True (will be resolved later)
             elif line.startswith('$WRITEAOMS'):
                 obj.writeaoms = True
             elif line.startswith('$FRAGMENTS'):
@@ -177,6 +186,25 @@ class ESIInput:
                     i += 1
                 i -= 1
             i += 1
+
+        # --- Validation Checks ---
+        unique_modes = set(seen_modes)
+        if len(unique_modes) > 1:
+            raise ValueError(
+                f"Contradictory input modes specified: {', '.join(unique_modes)}. Please specify only one input source.")
+
+        unique_ring_cmds = set(seen_ring_cmds)
+        if '$NORING' in unique_ring_cmds and len(unique_ring_cmds) > 1:
+            conflicts = [c for c in unique_ring_cmds if c != '$NORING']
+            raise ValueError(
+                f"Contradictory ring instructions specified. Found $NORING along with: {', '.join(conflicts)}.")
+
+        unique_mci_cmds = set(seen_mci_cmds)
+        if '$NOMCI' in unique_mci_cmds and len(unique_mci_cmds) > 1:
+            conflicts = [c for c in unique_mci_cmds if c != '$NOMCI']
+            raise ValueError(
+                f"Contradictory MCI instructions specified. Found $NOMCI along with: {', '.join(conflicts)}.")
+        # -------------------------
 
         obj._set_defaults()
         obj._set_save_name()
@@ -193,27 +221,18 @@ class ESIInput:
             elif self.mode == 'readaoms' and self.aomname:
                 self.save = self.aomname
             else:
-                # No valid name found
                 pass
 
     def _set_defaults(self):
-        """Apply light defaults when some input blocks are omitted.
-
-        - If no explicit rings were provided and neither $FINDRINGS nor $NORING
-          were set by the user, enable automatic ring finding by default.
-        """
-        # If no partition provided, raise an informative error (user must choose)
+        """Apply light defaults when some input blocks are omitted."""
         if self.partition is None or len(self.partition) == 0:
             raise ValueError(
                 'No partition specified in input. Please set $PARTITION to one or more of: '
                 "'mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao' (or use 'ALL'/'ROBUST')."
             )
 
-        # Format partitions
         from esipy.tools import format_partition
         self.partition = [format_partition(p) for p in self.partition]
-
-        return
 
     @staticmethod
     def from_file(filepath):
@@ -221,8 +240,9 @@ class ESIInput:
             return ESIInput.from_string(f.read())
 
     def __repr__(self):
-        return (f"ESIInput(mode={self.mode}, fchk_file={self.fchk_file}, readpath={self.readpath}, aomname={self.aomname}, "
-                f"rings={self.rings}, noring={self.noring}, partition={self.partition}, fragments={self.fragments}, "
-                f"fluref={self.fluref}, homaref={self.homaref}, findrings={self.findrings}, "
-                f"minlen={self.minlen}, maxlen={self.maxlen}, mci={self.mci}, av1245={self.av1245}, "
-                f"save={self.save}, writeaoms={self.writeaoms}, ncores={self.ncores})")
+        return (
+            f"ESIInput(mode={self.mode}, fchk_file={self.fchk_file}, readpath={self.readpath}, aomname={self.aomname}, "
+            f"rings={self.rings}, noring={self.noring}, partition={self.partition}, fragments={self.fragments}, "
+            f"fluref={self.fluref}, homaref={self.homaref}, findrings={self.findrings}, "
+            f"minlen={self.minlen}, maxlen={self.maxlen}, mci={self.mci}, av1245={self.av1245}, "
+            f"save={self.save}, writeaoms={self.writeaoms}, ncores={self.ncores})")

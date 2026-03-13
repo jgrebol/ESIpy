@@ -107,7 +107,7 @@ def find_dis(arr, aom):
     :rtype: list of float
     """
 
-    return [4 * np.trace(np.dot(aom[arr[i] - 1], aom[arr[(i + 1) % len(arr)] - 1])) for i in range(len(arr))]
+    return [4 * np.einsum('ij,ji->', aom[arr[i] - 1], aom[arr[(i + 1) % len(arr)] - 1]) for i in range(len(arr))]
 
 
 def find_di(aom, i, j):
@@ -124,7 +124,7 @@ def find_di(aom, i, j):
     :rtype: float
     """
 
-    return 2 * np.trace(np.dot(aom[i - 1], aom[j - 1]))
+    return 2 * np.einsum('ij,ji->', aom[i - 1], aom[j - 1])
 
 
 def find_di_no(aom, i, j):
@@ -141,7 +141,8 @@ def find_di_no(aom, i, j):
     :rtype: float
     """
 
-    return np.trace(np.linalg.multi_dot((aom[1], aom[0][i - 1], aom[1], aom[0][j - 1])))
+    # Tr(Occ @ AOM_i @ Occ @ AOM_j)
+    return np.einsum('ij,jk,kl,li->', aom[1], aom[0][i - 1], aom[1], aom[0][j - 1])
 
 
 def find_lis(arr, aom):
@@ -156,7 +157,7 @@ def find_lis(arr, aom):
     :rtype: list of float
     """
 
-    return [2 * np.trace(np.dot(aom[arr[i] - 1], aom[arr[i] - 1])) for i in range(len(arr))]
+    return [2 * np.einsum('ij,ji->', aom[arr[i] - 1], aom[arr[i] - 1]) for i in range(len(arr))]
 
 
 def find_ns(arr, aom):
@@ -314,14 +315,27 @@ def format_partition(partition):
         return "iao"
     elif partition in ["iao-autosad", "autosad", "iaoauto", "iaoa", "iaa", "ia", "a", "autosad", "iaosad", "autos"]:
         return "iao-autosad"
-    elif partition in ["iao-effao", "iao-e", "iao-efao", "iaoefao", "iaoe", "ie", "iaoeffao", "iae", "e"]:
-        return "iao-effao"
+    elif partition in ["iao-effao-gross", "iao-eg", "iao-efao-gross", "iaoefaogross", "iaoeg", "iaog", "ig", "iaoeffao", "gross", "iag", "g"]:
+        return "iao-effao-gross"
+    elif partition in ["iao-effao-net", "iao-en", "iao-efao-net", "iaoefaonet", "iaoen", "iaon", "in",
+                           "iaoeffaonet", "net", "ian", "ne"]:
+        return "iao-effao-net"
     elif partition in ["iao-effao-lowdin", "iao-effao-low", "iao-efao-low", "iaoefaolow", "iaoel", "iaol", "il", "iel", "iaoeffaolowdin",
                            "iae"]:
         return "iao-effao-lowdin"
+    elif partition in ["iao-effao-metalowdin", "iao-effao-metalow", "iao-efao-metalow", "iaoefaolow", "iaoel", "iaol", "il",
+                           "iel", "iaoeffaolowdin", "iaom", "im", "iao-effao-meta-lowdin"]:
+        return "iao-effao-meta-lowdin"
     elif partition in ["q", "qt", "qtaim", "quant", "quantum"]:
         return "qtaim"
+    elif partition in ["sym", "ias", "is"]:
+        return "iao-effao-symmetric"
+    elif partition in ["sps"]:
+        return "iao-effao-sps"
+    elif partition in ["spsa"]:
+        return "iao-effao-spsa"
     else:
+        return partition # FOR THE IAO TESTS
         raise NameError(" | Invalid partition scheme")
 
 
@@ -344,9 +358,14 @@ def format_short_partition(partition):
         return "metalow"
     elif partition == "iao-effao-lowdin":
         return "iao-effao-low"
+    elif partition == "iao-effao-gross":
+        return "iao-effao-gross"
+    elif partition == "iao-effao-net":
+        return "iao-effao-net"
     elif partition in ("nao", "iao", "qtaim", "iao-autosad", "iao-effao"):
         return partition
     else:
+        return partition # FOR THE IAO TESTS
         raise NameError(" | Invalid partition scheme")
 
 
@@ -427,44 +446,39 @@ def build_eta(mol):
 
 def build_connec_rest(Smo, thres=0.25):
     natoms = len(Smo)
-    connec_dict = {}
+    connec_dict = {i: [] for i in range(1, natoms + 1)}
 
-    for i in range(1, natoms + 1):
-        for j in range(1, natoms + 1):
-            if i != j:
-                if 2 * find_di(Smo, i, j) >= thres:
-                    if i not in connec_dict:
-                        connec_dict[i] = []
-                    connec_dict[i].append(j)
-    return filter_connec(connec_dict)
+    for i in range(1, natoms):
+        for j in range(i + 1, natoms + 1):
+            if 2 * find_di(Smo, i, j) >= thres:
+                connec_dict[i].append(j)
+                connec_dict[j].append(i)
+    return filter_connec({k: v for k, v in connec_dict.items() if v})
 
 def build_connec_unrest(Smo, thres=0.25):
     natoms = len(Smo[0])
-    connec_dict = {}
+    connec_dict = {i: [] for i in range(1, natoms + 1)}
 
-    for i in range(1, natoms + 1):
-        for j in range(1, natoms + 1):
-            if i != j:
-                di_alpha = find_di(Smo[0], i, j)
-                di_beta = find_di(Smo[1], i, j)
-                di = di_alpha + di_beta
-                if di >= thres:
-                    if i not in connec_dict:
-                        connec_dict[i] = []
-                    connec_dict[i].append(j)
-    return filter_connec(connec_dict)
+    for i in range(1, natoms):
+        for j in range(i + 1, natoms + 1):
+            di_alpha = find_di(Smo[0], i, j)
+            di_beta = find_di(Smo[1], i, j)
+            di = di_alpha + di_beta
+            if di >= thres:
+                connec_dict[i].append(j)
+                connec_dict[j].append(i)
+    return filter_connec({k: v for k, v in connec_dict.items() if v})
 
 def build_connec_no(Smo, thres=0.25):
-    connec_dict = {}
+    natoms = len(Smo[0])
+    connec_dict = {i: [] for i in range(1, natoms + 1)}
 
-    for i in range(len(Smo[0])):
-        for j in range(len(Smo[0])):
-            if i != j:
-                if find_di_no(Smo, i, j) >= thres:
-                    if i not in connec_dict:
-                        connec_dict[i] = []
-                    connec_dict[i].append(j)
-    return filter_connec(connec_dict)
+    for i in range(1, natoms):
+        for j in range(i + 1, natoms + 1):
+            if find_di_no(Smo, i, j) >= thres:
+                connec_dict[i].append(j)
+                connec_dict[j].append(i)
+    return filter_connec({k: v for k, v in connec_dict.items() if v})
 
 def find_rings(connec, minlen=6, maxlen=6, exclude=None):
     exclude = set(exclude) if exclude else set()
@@ -520,80 +534,10 @@ def is_fused(arr, connec):
 def find_middle_nodes(connec2):
     return [key for key, vals in connec2.items() if len(vals) > 2]
 
-def find_node_distances(connec):
-   distances = defaultdict(dict)
-
-   for start in connec:
-       queue = deque([(start, 0)])
-       visited = set()
-
-       while queue:
-           cur_node, cur_dist = queue.popleft()
-
-           if cur_node not in visited:
-               visited.add(cur_node)
-               distances[start][cur_node] = cur_dist
-
-               for neighbor in connec[cur_node]:
-                   if neighbor not in visited:
-                       queue.append((neighbor, cur_dist + 1))
-
-   return distances
-
-
-def iao(mol, pmol, coeffs):
-    """
-    Build IAOs using Knizia's exact depolarization formula.
-    Numerically stable to guarantee exact density conservation.
-    """
-    from pyscf.gto.mole import intor_cross
-    from pyscf.lo import orth
-    import scipy.linalg
-    import numpy as np
-
-    # 1. Overlap Matrices
-    S1 = mol.intor('int1e_ovlp')
-    S2 = pmol.intor('int1e_ovlp')
-    S12 = intor_cross('int1e_ovlp', mol, pmol)
-
-    # Number of occupied orbitals
-    nocc = mol.nelectron // 2
-    C_occ = coeffs[:, :nocc]  # (nbas x nocc)
-
-    # 2. Represent minimal basis in full AO basis: A_tilde = S1^-1 * S12
-    # Using scipy.linalg.solve for numerical stability
-    A_tilde = scipy.linalg.solve(S1, S12, assume_a='pos')
-
-    # 3. Project occupied MOs onto minimal basis
-    # C_min = S2^-1 * S21 * C_occ
-    S21_Cocc = np.dot(S12.T, C_occ)
-    C_min = scipy.linalg.solve(S2, S21_Cocc, assume_a='pos')
-
-    # Express projected occupied MOs back in AO basis
-    C_tilde = np.dot(A_tilde, C_min)
-
-    # Orthogonalize the projected occupied MOs
-    C_proj = orth.vec_lowdin(C_tilde, S1)
-
-    # 4. Form IAOs (Knizia Eq. 10 optimized for stability)
-    # Instead of full projector matrices (nbas x nbas), we apply them directly to A_tilde
-
-    # P_occ @ A_tilde = C_occ @ (C_occ.T @ S12)
-    P_occ_A = np.dot(C_occ, np.dot(C_occ.T, S12))
-
-    # P_proj @ A_tilde = C_proj @ (C_proj.T @ S12)
-    P_proj_A = np.dot(C_proj, np.dot(C_proj.T, S12))
-
-    # P_occ @ P_proj @ A_tilde
-    P_occ_P_proj_A = np.dot(C_occ, np.dot(C_occ.T, np.dot(S1, P_proj_A)))
-
-    # IAO = A_tilde + 2*(P1 P2 A) - P1 A - P2 A
-    IAO_nonorth = A_tilde + 2 * P_occ_P_proj_A - P_occ_A - P_proj_A
-
-    # 5. Final Symmetric Orthogonalization
-    IAOs = orth.vec_lowdin(IAO_nonorth, S1)
-
-    return IAOs
+try:
+    from esipy.iao import iao, get_effaos, autosad
+except ImportError:
+    pass
 
 def permute_aos_rows(mat, mole2):
     """
