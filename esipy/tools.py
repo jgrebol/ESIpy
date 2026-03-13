@@ -313,9 +313,29 @@ def format_partition(partition):
         return "nao"
     elif partition in ["i", "iao", "intrinsic", "intr"]:
         return "iao"
+    elif partition in ["iao-autosad", "autosad", "iaoauto", "iaoa", "iaa", "ia", "a", "autosad", "iaosad", "autos"]:
+        return "iao-autosad"
+    elif partition in ["iao-effao-gross", "iao-eg", "iao-efao-gross", "iaoefaogross", "iaoeg", "iaog", "ig", "iaoeffao", "gross", "iag", "g"]:
+        return "iao-effao-gross"
+    elif partition in ["iao-effao-net", "iao-en", "iao-efao-net", "iaoefaonet", "iaoen", "iaon", "in",
+                           "iaoeffaonet", "net", "ian", "ne"]:
+        return "iao-effao-net"
+    elif partition in ["iao-effao-lowdin", "iao-effao-low", "iao-efao-low", "iaoefaolow", "iaoel", "iaol", "il", "iel", "iaoeffaolowdin",
+                           "iae"]:
+        return "iao-effao-lowdin"
+    elif partition in ["iao-effao-metalowdin", "iao-effao-metalow", "iao-efao-metalow", "iaoefaolow", "iaoel", "iaol", "il",
+                           "iel", "iaoeffaolowdin", "iaom", "im", "iao-effao-meta-lowdin"]:
+        return "iao-effao-meta-lowdin"
     elif partition in ["q", "qt", "qtaim", "quant", "quantum"]:
         return "qtaim"
+    elif partition in ["sym", "ias", "is"]:
+        return "iao-effao-symmetric"
+    elif partition in ["sps"]:
+        return "iao-effao-sps"
+    elif partition in ["spsa"]:
+        return "iao-effao-spsa"
     else:
+        return partition # FOR THE IAO TESTS
         raise NameError(" | Invalid partition scheme")
 
 
@@ -336,9 +356,16 @@ def format_short_partition(partition):
         return "low"
     elif partition == "meta_lowdin":
         return "metalow"
-    elif partition in ("nao", "iao", "qtaim"):
+    elif partition == "iao-effao-lowdin":
+        return "iao-effao-low"
+    elif partition == "iao-effao-gross":
+        return "iao-effao-gross"
+    elif partition == "iao-effao-net":
+        return "iao-effao-net"
+    elif partition in ("nao", "iao", "qtaim", "iao-autosad", "iao-effao"):
         return partition
     else:
+        return partition # FOR THE IAO TESTS
         raise NameError(" | Invalid partition scheme")
 
 
@@ -506,6 +533,11 @@ def is_fused(arr, connec):
 
 def find_middle_nodes(connec2):
     return [key for key, vals in connec2.items() if len(vals) > 2]
+
+try:
+    from esipy.iao import iao, get_effaos, autosad
+except ImportError:
+    pass
 
 def permute_aos_rows(mat, mole2):
     """
