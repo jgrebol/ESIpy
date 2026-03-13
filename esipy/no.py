@@ -66,18 +66,21 @@ def deloc_no(aom, molinfo, fragmap={}):
     print(" ---------------------------------------------------------- ")
 
     for i in range(len(aom)):
-        lif = np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i], occ ** (1 / 2), aom[i])))
-        lix = 0.5 * np.trace(np.linalg.multi_dot((occ, aom[i], occ, aom[i])))
+        # Trace(sqrt(occ) @ AOM_i @ sqrt(occ) @ AOM_i)
+        # Using einsum for Trace(M1 @ M2 @ M3 @ M4)
+        occ_half = np.diag(np.sqrt(np.diag(occ)))
+        lif = np.einsum('ij,jk,kl,li->', occ_half, aom[i], occ_half, aom[i])
+        lix = 0.5 * np.einsum('ij,jk,kl,li->', occ, aom[i], occ, aom[i])
         lifs.append(lif)
         lixs.append(lix)
-        N.append(np.trace(np.dot(occ, aom[i])))
+        N.append(np.einsum('ij,ji->', occ, aom[i]))
 
         dlocF = 0
         dlocX = 0
         for j in range(len(aom)):
             if i != j:
-                dif = np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i], occ ** (1 / 2), aom[j])))
-                dix = 0.5 * np.trace(np.linalg.multi_dot((occ, aom[i], occ, aom[j])))
+                dif = np.einsum('ij,jk,kl,li->', occ_half, aom[i], occ_half, aom[j])
+                dix = 0.5 * np.einsum('ij,jk,kl,li->', occ, aom[i], occ, aom[j])
                 if symbols[j] != "FF":
                     dlocF += dif
                     dlocX += dix
@@ -108,8 +111,9 @@ def deloc_no(aom, molinfo, fragmap={}):
                 print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
                     symbols[i], i + 1, symbols[j], j + 1, lifs[i], lixs[i]))
             else:
-                dif = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i], occ ** (1 / 2), aom[j])))
-                dix = np.trace(np.linalg.multi_dot((occ, aom[i], occ, aom[j])))
+                occ_half = np.diag(np.sqrt(np.diag(occ)))
+                dif = 2 * np.einsum('ij,jk,kl,li->', occ_half, aom[i], occ_half, aom[j])
+                dix = np.einsum('ij,jk,kl,li->', occ, aom[i], occ, aom[j])
                 if symbols[i] != "FF" and symbols[j] != "FF":  # Exclude FF atoms from contributing
                     print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
                         symbols[i], i + 1, symbols[j], j + 1, dif, dix))
