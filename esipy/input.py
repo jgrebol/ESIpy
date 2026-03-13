@@ -79,8 +79,7 @@ class ESIInput:
                         pup = p.upper()
                         if pup == 'ALL':
                             obj.partition.extend(
-                                ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'iao-autosad', 'iao-effao',
-                                 'iao-effao-lowdin'])
+                                ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
                         elif pup == 'ROBUST':
                             obj.partition.extend(['meta_lowdin', 'nao', 'iao'])
                         else:
@@ -88,12 +87,10 @@ class ESIInput:
                     i += 1
                 i -= 1
             elif line.upper().startswith('$ALLPARTS') or line.upper().startswith('$ALLPARTITIONS'):
-                obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'iao-autosad', 'iao-effao',
-                                 'iao-effao-lowdin']
+                obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
             elif line.upper().startswith('$AUTO') or line.upper().startswith('$DEFAULT'):
                 seen_ring_cmds.append('$AUTO')
-                obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'iao-autosad', 'iao-effao',
-                                 'iao-effao-lowdin']
+                obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
                 obj.findrings = True
             elif line.startswith('$FLUREF'):
                 i += 1
