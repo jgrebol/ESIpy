@@ -59,24 +59,10 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 aom_beta.append(SCR_b @ SCR_b.T)
 
         # Special case IAO
-        elif partition.startswith("iao"):
-            from pyscf.lo.iao import reference_mol
-            from esipy.tools import autosad
-            if partition.startswith("iao-autosad") or partition.startswith("iao-effao"):
-                if partition == "iao-autosad":
-                    free_atom = True
-                    dolowdin = False
-                if partition == "iao-effao":
-                    free_atom = False
-                    dolowdin = False
-                if partition == "iao-effao-lowdin":
-                    free_atom = False
-                    dolowdin = True
-                U_alpha_iao_nonortho, U_beta_iao_nonortho = autosad(mol, mf, free_atom=free_atom, lowdin=dolowdin)
-            else:
-                from pyscf.lo.iao import iao
-                U_alpha_iao_nonortho = iao(mol, coeff_alpha)
-                U_beta_iao_nonortho = iao(mol, coeff_beta)
+        elif partition == "iao":
+            from pyscf.lo.iao import reference_mol, iao
+            U_alpha_iao_nonortho = iao(mol, coeff_alpha)
+            U_beta_iao_nonortho = iao(mol, coeff_beta)
             pmol = reference_mol(mol)
             U_alpha_inv = np.dot(U_alpha_iao_nonortho, lowdin(
                 np.linalg.multi_dot((U_alpha_iao_nonortho.T, S, U_alpha_iao_nonortho))))
@@ -146,24 +132,9 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 aom.append(SCR @ SCR.T)
 
         # Special case IAO
-        elif partition.startswith("iao"):
-            from pyscf.lo.iao import reference_mol
-            from esipy.tools import autosad
-            if partition.startswith("iao-autosad") or partition.startswith("iao-effao"):
-                from esipy.tools import autosad
-                if partition == "iao-autosad":
-                    free_atom = True
-                    dolowdin = False
-                if partition == "iao-effao":
-                    free_atom = False
-                    dolowdin = False
-                if partition == "iao-effao-lowdin":
-                    free_atom = False
-                    dolowdin = True
-                U_iao_nonortho = autosad(mol, mf, free_atom=free_atom, lowdin=dolowdin)
-            else:
-                from pyscf.lo.iao import iao
-                U_iao_nonortho = iao(mol, coeff)
+        elif partition == "iao":
+            from pyscf.lo.iao import reference_mol, iao
+            U_iao_nonortho = iao(mol, coeff)
             pmol = reference_mol(mol)
             U_inv = np.dot(U_iao_nonortho, lowdin(
                 np.linalg.multi_dot((U_iao_nonortho.T, S, U_iao_nonortho))))
