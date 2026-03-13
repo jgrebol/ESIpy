@@ -534,7 +534,10 @@ def is_fused(arr, connec):
 def find_middle_nodes(connec2):
     return [key for key, vals in connec2.items() if len(vals) > 2]
 
-from esipy.iao import iao, get_effaos, autosad
+try:
+    from esipy.iao import iao, get_effaos, autosad
+except ImportError:
+    pass
 
 def permute_aos_rows(mat, mole2):
     """
