@@ -107,7 +107,7 @@ def find_dis(arr, aom):
     :rtype: list of float
     """
 
-    return [4 * np.trace(np.dot(aom[arr[i] - 1], aom[arr[(i + 1) % len(arr)] - 1])) for i in range(len(arr))]
+    return [4 * np.einsum('ij,ji->', aom[arr[i] - 1], aom[arr[(i + 1) % len(arr)] - 1]) for i in range(len(arr))]
 
 
 def find_di(aom, i, j):
@@ -124,7 +124,7 @@ def find_di(aom, i, j):
     :rtype: float
     """
 
-    return 2 * np.trace(np.dot(aom[i - 1], aom[j - 1]))
+    return 2 * np.einsum('ij,ji->', aom[i - 1], aom[j - 1])
 
 
 def find_di_no(aom, i, j):
@@ -141,7 +141,8 @@ def find_di_no(aom, i, j):
     :rtype: float
     """
 
-    return np.trace(np.linalg.multi_dot((aom[1], aom[0][i - 1], aom[1], aom[0][j - 1])))
+    # Tr(Occ @ AOM_i @ Occ @ AOM_j)
+    return np.einsum('ij,jk,kl,li->', aom[1], aom[0][i - 1], aom[1], aom[0][j - 1])
 
 
 def find_lis(arr, aom):
@@ -156,7 +157,7 @@ def find_lis(arr, aom):
     :rtype: list of float
     """
 
-    return [2 * np.trace(np.dot(aom[arr[i] - 1], aom[arr[i] - 1])) for i in range(len(arr))]
+    return [2 * np.einsum('ij,ji->', aom[arr[i] - 1], aom[arr[i] - 1]) for i in range(len(arr))]
 
 
 def find_ns(arr, aom):
@@ -445,44 +446,39 @@ def build_eta(mol):
 
 def build_connec_rest(Smo, thres=0.25):
     natoms = len(Smo)
-    connec_dict = {}
+    connec_dict = {i: [] for i in range(1, natoms + 1)}
 
-    for i in range(1, natoms + 1):
-        for j in range(1, natoms + 1):
-            if i != j:
-                if 2 * find_di(Smo, i, j) >= thres:
-                    if i not in connec_dict:
-                        connec_dict[i] = []
-                    connec_dict[i].append(j)
-    return filter_connec(connec_dict)
+    for i in range(1, natoms):
+        for j in range(i + 1, natoms + 1):
+            if 2 * find_di(Smo, i, j) >= thres:
+                connec_dict[i].append(j)
+                connec_dict[j].append(i)
+    return filter_connec({k: v for k, v in connec_dict.items() if v})
 
 def build_connec_unrest(Smo, thres=0.25):
     natoms = len(Smo[0])
-    connec_dict = {}
+    connec_dict = {i: [] for i in range(1, natoms + 1)}
 
-    for i in range(1, natoms + 1):
-        for j in range(1, natoms + 1):
-            if i != j:
-                di_alpha = find_di(Smo[0], i, j)
-                di_beta = find_di(Smo[1], i, j)
-                di = di_alpha + di_beta
-                if di >= thres:
-                    if i not in connec_dict:
-                        connec_dict[i] = []
-                    connec_dict[i].append(j)
-    return filter_connec(connec_dict)
+    for i in range(1, natoms):
+        for j in range(i + 1, natoms + 1):
+            di_alpha = find_di(Smo[0], i, j)
+            di_beta = find_di(Smo[1], i, j)
+            di = di_alpha + di_beta
+            if di >= thres:
+                connec_dict[i].append(j)
+                connec_dict[j].append(i)
+    return filter_connec({k: v for k, v in connec_dict.items() if v})
 
 def build_connec_no(Smo, thres=0.25):
-    connec_dict = {}
+    natoms = len(Smo[0])
+    connec_dict = {i: [] for i in range(1, natoms + 1)}
 
-    for i in range(len(Smo[0])):
-        for j in range(len(Smo[0])):
-            if i != j:
-                if find_di_no(Smo, i, j) >= thres:
-                    if i not in connec_dict:
-                        connec_dict[i] = []
-                    connec_dict[i].append(j)
-    return filter_connec(connec_dict)
+    for i in range(1, natoms):
+        for j in range(i + 1, natoms + 1):
+            if find_di_no(Smo, i, j) >= thres:
+                connec_dict[i].append(j)
+                connec_dict[j].append(i)
+    return filter_connec({k: v for k, v in connec_dict.items() if v})
 
 def find_rings(connec, minlen=6, maxlen=6, exclude=None):
     exclude = set(exclude) if exclude else set()
@@ -538,257 +534,7 @@ def is_fused(arr, connec):
 def find_middle_nodes(connec2):
     return [key for key, vals in connec2.items() if len(vals) > 2]
 
-def iao(mol, pmol, coeffs):
-    """
-    Build IAOs using Knizia's exact depolarization formula.
-    Numerically stable to guarantee exact density conservation.
-    """
-    from pyscf.gto.mole import intor_cross
-    from pyscf.lo import orth
-    import scipy.linalg
-    import numpy as np
-
-    # 1. Overlap Matrices
-    S1 = mol.intor('int1e_ovlp')
-    S2 = pmol.intor('int1e_ovlp')
-    S12 = intor_cross('int1e_ovlp', mol, pmol)
-
-    # Number of occupied orbitals
-    nocc = mol.nelectron // 2
-    C_occ = coeffs[:, :nocc]  # (nbas x nocc)
-
-    # 2. Represent minimal basis in full AO basis: A_tilde = S1^-1 * S12
-    # Using scipy.linalg.solve for numerical stability
-    A_tilde = scipy.linalg.solve(S1, S12, assume_a='pos')
-
-    # 3. Project occupied MOs onto minimal basis
-    # C_min = S2^-1 * S21 * C_occ
-    S21_Cocc = np.dot(S12.T, C_occ)
-    C_min = scipy.linalg.solve(S2, S21_Cocc, assume_a='pos')
-
-    # Express projected occupied MOs back in AO basis
-    C_tilde = np.dot(A_tilde, C_min)
-
-    # Orthogonalize the projected occupied MOs
-    C_proj = orth.vec_lowdin(C_tilde, S1)
-
-    # 4. Form IAOs (Knizia Eq. 10 optimized for stability)
-    # Instead of full projector matrices (nbas x nbas), we apply them directly to A_tilde
-
-    # P_occ @ A_tilde = C_occ @ (C_occ.T @ S12)
-    P_occ_A = np.dot(C_occ, np.dot(C_occ.T, S12))
-
-    # P_proj @ A_tilde = C_proj @ (C_proj.T @ S12)
-    P_proj_A = np.dot(C_proj, np.dot(C_proj.T, S12))
-
-    # P_occ @ P_proj @ A_tilde
-    P_occ_P_proj_A = np.dot(C_occ, np.dot(C_occ.T, np.dot(S1, P_proj_A)))
-
-    # IAO = A_tilde + 2*(P1 P2 A) - P1 A - P2 A
-    IAO_nonorth = A_tilde + 2 * P_occ_P_proj_A - P_occ_A - P_proj_A
-
-    # 5. Final Symmetric Orthogonalization
-    IAOs = orth.vec_lowdin(IAO_nonorth, S1)
-
-    return IAOs
-
-
-def get_effaos(mol, mf, free_atom=True, mode=None):
-    """
-    Builds effective Atomic Orbitals (eff-AOs) and their occupations.
-    """
-    from pyscf.lo.nao import _prenao_sub
-    from pyscf.data import elements
-    import numpy as np
-    import scipy.linalg
-    from pyscf import gto, scf
-
-    # Number of unpaired electrons for ground state atoms
-    atom_spins = {
-        'H': 1, 'He': 0, 'Li': 1, 'Be': 0, 'B': 1, 'C': 2, 'N': 3, 'O': 2, 'F': 1, 'Ne': 0,
-        'Na': 1, 'Mg': 0, 'Al': 1, 'Si': 2, 'P': 3, 'S': 2, 'Cl': 1, 'Ar': 0,
-        'K': 1, 'Ca': 0, 'Sc': 1, 'Ti': 2, 'V': 3, 'Cr': 6, 'Mn': 5, 'Fe': 4, 'Co': 3, 'Ni': 2, 'Cu': 1, 'Zn': 0,
-        'Ga': 1, 'Ge': 2, 'As': 3, 'Se': 2, 'Br': 1, 'Kr': 0
-    }
-
-    def get_num_minbas(sym):
-        z = elements.charge(sym)
-        if z <= 2:   return 1  # 1s (H, He)
-        if z <= 10:  return 5  # 1s + 2s2p (Li-Ne)
-        if z <= 18:  return 9  # [Ne] + 3s3p (Na-Ar)
-        if z <= 36:  return 18  # [Ar] + 4s3d4p (K-Kr)
-        if z <= 54:  return 27  # [Kr] + 5s4d5p (Rb-Xe)
-        if z <= 86:  return 43  # [Xe] + 6s4f5d6p (Cs-Rn)
-        if z <= 118: return 59  # [Rn] + 7s5f6d7p (Fr-Og)
-        raise NotImplementedError(f"Minimal basis size not defined for element: {sym}")
-
-    aoslices = mol.aoslice_by_atom()
-    atom_syms = [mol.atom_pure_symbol(i) for i in range(mol.natm)]
-    minbas_sizes = [get_num_minbas(sym) for sym in atom_syms]
-
-    total_min_dim = sum(minbas_sizes)
-    veps_block = np.zeros((mol.nao, total_min_dim))
-    vaps_diag = []
-
-    S_mol = mol.intor("int1e_ovlp")
-    if "U" in mf.__class__.__name__:
-        dm = mf.make_rdm1(ao_repr=True)
-        P_mol = dm[0] + dm[1] if dm.ndim == 3 else dm
-    else:
-        P_mol = mf.make_rdm1(ao_repr=True)
-
-    if not free_atom:
-        if mode in ["lowdin", "meta-lowdin"]:
-            if mode == "lowdin":
-                from pyscf.lo.orth import lowdin
-                T = lowdin(S_mol)
-            else:
-                from pyscf.lo.orth import orth_ao
-                T = orth_ao(mf, 'meta_lowdin', pre_orth_ao="ANO")
-
-            T_inv = scipy.linalg.inv(T)
-            P_mol = T_inv @ P_mol @ T_inv.T
-        elif mode == "gross":
-            PS_mol = (np.dot(P_mol, S_mol) + np.dot(S_mol, P_mol)) / 2
-
-    col_idx = 0
-    atom_dict = {}
-    mol_atm_dict = {}
-
-    for ia, sym in enumerate(atom_syms):
-        p0, p1 = aoslices[ia, 2], aoslices[ia, 3]
-        n_target = minbas_sizes[ia]
-
-        if sym not in mol_atm_dict:
-            mol_atm = gto.Mole()
-            mol_atm.atom = f"{sym} 0.0 0.0 0.0"
-            mol_atm.basis = {sym: mol._basis[sym]}
-            mol_atm.spin = atom_spins.get(sym, 0)
-            mol_atm.verbose = 0
-            mol_atm.cart = mol.cart
-            mol_atm.build()
-            mol_atm_dict[sym] = mol_atm
-        else:
-            mol_atm = mol_atm_dict[sym]
-
-        if free_atom:
-            if sym not in atom_dict:
-                if "dft" in mf.__module__:
-                    mf_atm = scf.KS(mol_atm)
-                    if hasattr(mf, 'xc'): mf_atm.xc = mf.xc
-                else:
-                    mf_atm = scf.HF(mol_atm)
-
-                mf_atm.kernel()
-                dm_local = mf_atm.make_rdm1()
-                P_local = dm_local[0] + dm_local[1] if dm_local.ndim == 3 else dm_local
-                S_local = mf_atm.get_ovlp()
-
-                PS = np.dot(P_local, S_local)
-                SPS = np.dot(S_local, PS)
-
-                # From PySCF: eigenvalues and eigenvectors from spherically-averaged atomic blocks
-                w, c = _prenao_sub(mol_atm, SPS, S_local)
-
-                idx = np.argsort(w)[::-1][:n_target]
-                c_sel = c[:, idx]
-                atom_dict[sym] = (w[idx], c_sel)
-
-            w_keep, c_keep = atom_dict[sym]
-
-        else:
-            if mode in ["lowdin", "meta-lowdin"]:
-                mat = P_mol[p0:p1, p0:p1]
-                aux = np.eye(p1 - p0)
-            elif mode == "gross":
-                mat = PS_mol[p0:p1, p0:p1]
-                aux = np.eye(p1 - p0)
-            elif mode == "net":
-                P_local = P_mol[p0:p1, p0:p1]
-                S_local = S_mol[p0:p1, p0:p1]
-                PS = np.dot(P_local, S_local)
-                SPS = np.dot(S_local, PS)
-                mat = SPS
-                aux = S_local
-            elif mode == "sym":
-                P_local = P_mol[p0:p1, p0:p1]
-                S_local = S_mol[p0:p1, p0:p1]
-                PS_local = np.dot(P_local, S_local)
-                mat = (PS_local + PS_local.T) / 2
-                aux = np.eye(p1 - p0)
-            elif mode == "sps":
-                PS = np.dot(P_mol, S_mol)
-                SPS = np.dot(S_mol, PS)
-                SPS = SPS[p0:p1, p0:p1]
-                mat = SPS
-                aux = np.eye(p1 - p0)
-            elif mode == "spsa":
-                PS = np.dot(P_mol, S_mol)
-                SPS = np.dot(S_mol, PS)
-                SPS = SPS[p0:p1, p0:p1]
-                S_local = S_mol[p0:p1, p0:p1]
-                mat = SPS
-                aux = S_local
-
-            w, c = _prenao_sub(mol_atm, p=mat, s=aux)
-
-            idx = np.argsort(w)[::-1][:n_target]
-            w_keep = w[idx]
-            c_keep = c[:, idx]
-
-        veps_block[p0:p1, col_idx: col_idx + n_target] = c_keep
-        vaps_diag.extend(w_keep)
-        print("Eigenvalues for atom {} (sum {}): {}".format(sym, sum(w), w_keep))
-
-        col_idx += n_target
-
-    if not free_atom and mode in ["lowdin", "meta-lowdin"]:
-        veps_block = T @ veps_block
-
-    return np.array(vaps_diag), veps_block
-
-
-def autosad(mol, mf, free_atom=True, mode=None):
-    """
-    Builds IAO-AutoSAD orbitals.
-    Handles both Restricted (returns array) and Unrestricted (returns tuple of arrays).
-    """
-    from scipy.linalg import solve
-    from pyscf.lo.orth import vec_lowdin
-    import numpy as np
-
-    def do_autosad(mol, mf, C_occ, free_atom, mode):
-        S1 = mol.intor('int1e_ovlp')
-        aaaa, effaos = get_effaos(mol, mf, free_atom=free_atom, mode=mode)
-
-        # Effective overlaps
-        S12_eff = np.dot(S1, effaos)
-        S2_eff = np.linalg.multi_dot((effaos.T, S1, effaos))
-
-        A_tilde = effaos
-
-        S21_Cocc = np.dot(S12_eff.T, C_occ)
-        C_min = solve(S2_eff, S21_Cocc, assume_a='pos')
-        C_proj = vec_lowdin(np.dot(A_tilde, C_min), S1)
-
-        # Form IAOs (Knizia Eq 10)
-        P_occ_A = np.dot(C_occ, np.dot(C_occ.T, S12_eff))
-        P_proj_A = np.dot(C_proj, np.dot(C_proj.T, S12_eff))
-        P_occ_P_proj_A = np.dot(C_occ, np.dot(C_occ.T, np.dot(S1, P_proj_A)))
-
-        IAO_nonorth = A_tilde + 2 * P_occ_P_proj_A - P_occ_A - P_proj_A
-        return vec_lowdin(IAO_nonorth, S1)
-
-    if "U" in mf.__class__.__name__:
-        coeff_alpha, coeff_beta = mf.mo_coeff
-        autosad_alpha = do_autosad(mol, mf, coeff_alpha[:, :mf.nelec[0]], free_atom, mode=mode)
-        autosad_beta = do_autosad(mol, mf, coeff_beta[:, :mf.nelec[1]], free_atom, mode=mode)
-        return autosad_alpha, autosad_beta
-    else:
-        coeffs = mf.mo_coeff
-        autosad = do_autosad(mol, mf, coeffs[:, :mol.nelectron // 2], free_atom, mode=mode)
-        return autosad
-
+from esipy.iao import iao, get_effaos, autosad
 
 def permute_aos_rows(mat, mole2):
     """

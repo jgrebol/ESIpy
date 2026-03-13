@@ -61,7 +61,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         # Special case IAO
         elif partition.startswith("iao"):
             from pyscf.lo.iao import reference_mol
-            from esipy.tools import autosad
+            from esipy.iao import autosad, iao
             if partition.startswith("iao-autosad") or partition.startswith("iao-effao"):
                 if partition == "iao-autosad":
                     free_atom = True
@@ -151,9 +151,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         # Special case IAO
         elif partition.startswith("iao"):
             from pyscf.lo.iao import reference_mol
-            from esipy.tools import autosad
+            from esipy.iao import autosad, iao
             if partition.startswith("iao-autosad") or partition.startswith("iao-effao"):
-                from esipy.tools import autosad
                 if partition == "iao-autosad":
                     free_atom = True
                     domode = None  # Free-atom SAD on original basis always
@@ -264,7 +263,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             if myhf is None:
                 raise NameError(
                     " | Could not calculate partition from Natural Orbitals calculation \n | Please provide HF reference object in 'myhf'")
-            from pyscf.lo.iao import iao
+            from esipy.iao import iao
             coeff_hf = myhf.mo_coeff
             if len(np.shape(coeff_hf)) == 3:
                 coeff_hf = np.sum(coeff_hf, axis=0)

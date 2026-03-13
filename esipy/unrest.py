@@ -62,16 +62,16 @@ def deloc_unrest(aom, molinfo, fragmap={}):
     Nij_alpha, Nij_beta = [], []
 
     for i in range(len(aom[0])):
-        li_alpha = np.trace(np.dot(aom[0][i], aom[0][i]))
-        li_beta = np.trace(np.dot(aom[1][i], aom[1][i]))
+        li_alpha = np.einsum('ij,ji->', aom[0][i], aom[0][i])
+        li_beta = np.einsum('ij,ji->', aom[1][i], aom[1][i])
         lis_alpha.append(li_alpha)
         lis_beta.append(li_beta)
         Nij_alpha.append(np.trace(aom[0][i]))
         Nij_beta.append(np.trace(aom[1][i]))
 
         for j in range(i + 1, len(aom[0])):
-            diaa = 2 * np.trace(np.dot(aom[0][i], aom[0][j]))
-            dibb = 2 * np.trace(np.dot(aom[1][i], aom[1][j]))
+            diaa = 2 * np.einsum('ij,ji->', aom[0][i], aom[0][j])
+            dibb = 2 * np.einsum('ij,ji->', aom[1][i], aom[1][j])
             dis_alpha.append(diaa)
             dis_beta.append(dibb)
 
@@ -103,8 +103,8 @@ def deloc_unrest(aom, molinfo, fragmap={}):
                     symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), lis_alpha[i] + lis_beta[i], lis_alpha[i], lis_beta[i]))
             else:
-                dia = 2 * np.trace(np.dot(aom[0][i], aom[0][j]))
-                dib = 2 * np.trace(np.dot(aom[1][i], aom[1][j]))
+                dia = 2 * np.einsum('ij,ji->', aom[0][i], aom[0][j])
+                dib = 2 * np.einsum('ij,ji->', aom[1][i], aom[1][j])
                 ditot = dia + dib
                 print(" | {:>2}{:>2}-{:>2}{:>2}  {:8.4f}  {:8.4f}  {:8.4f}".format(
                     symbols[i], str(i + 1).center(2), symbols[j],
