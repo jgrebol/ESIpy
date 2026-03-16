@@ -291,23 +291,19 @@ def process_fragments(aom, rings, done=False):
                 continue
     return fragaom, fragmap
 
+
+
 def format_partition(partition):
-    """
-    Filters the 'partition' attribute for flexibility.
-
-    :param partition: String with the name of the partition.
-    :type partition: str
-    :returns: String with the standard partition name for ESIpy.
-    :rtype: str
-    """
-
+    orig = partition
     partition = partition.lower()
+    if "(" in partition:
+        # Mixed partition like piao-iao(0.5)
+        return orig.upper()
     if partition in ["m", "mul", "mull", "mulliken"]:
         return "mulliken"
     elif partition in ["l", "low", "lowdin"]:
         return "lowdin"
-    elif partition in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta-lowdin",
-                       "meta_lowdin"]:
+    elif partition in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta-lowdin", "meta_lowdin"]:
         return "meta_lowdin"
     elif partition in ["n", "nao", "natural", "nat"]:
         return "nao"
@@ -315,40 +311,34 @@ def format_partition(partition):
         return "iao"
     elif partition in ["iao-autosad", "autosad", "iaoauto", "iaoa", "iaa", "ia", "a", "autosad", "iaosad", "autos"]:
         return "iao-autosad"
-    elif partition in ["iao-effao-gross", "iao-eg", "iao-efao-gross", "iaoefaogross", "iaoeg", "iaog", "ig", "iaoeffao", "gross", "iag", "g"]:
+    elif partition in ["iao-effao-gross", "iao-eg", "iaoeg", "iaog", "ig", "gross", "iag", "g"]:
         return "iao-effao-gross"
-    elif partition in ["iao-effao-net", "iao-en", "iao-efao-net", "iaoefaonet", "iaoen", "iaon", "in",
-                           "iaoeffaonet", "net", "ian", "ne"]:
+    elif partition in ["iao-effao-net", "iao-en", "iaoen", "iaon", "in", "net", "ian", "ne"]:
         return "iao-effao-net"
-    elif partition in ["iao-effao-lowdin", "iao-effao-low", "iao-efao-low", "iaoefaolow", "iaoel", "iaol", "il", "iel", "iaoeffaolowdin",
-                           "iae"]:
+    elif partition in ["iao-effao-lowdin", "iaoel", "iaol", "il", "iel", "iae"]:
         return "iao-effao-lowdin"
-    elif partition in ["iao-effao-metalowdin", "iao-effao-metalow", "iao-efao-metalow", "iaoefaolow", "iaoel", "iaol", "il",
-                           "iel", "iaoeffaolowdin", "iaom", "im", "iao-effao-meta-lowdin"]:
+    elif partition in ["iao-effao-metalowdin", "iao-effao-meta-lowdin", "iaom", "im"]:
         return "iao-effao-meta-lowdin"
+    elif partition in ["p", "piao"]:
+        return "piao"
+    elif partition in ["pi", "piao-iao"]:
+        return "piao-iao"
     elif partition in ["q", "qt", "qtaim", "quant", "quantum"]:
         return "qtaim"
-    elif partition in ["sym", "ias", "is"]:
+    elif partition in ["sym", "ias", "is", "iao-effao-symmetric"]:
         return "iao-effao-symmetric"
-    elif partition in ["sps"]:
+    elif partition in ["sps", "iao-effao-sps"]:
         return "iao-effao-sps"
-    elif partition in ["spsa"]:
+    elif partition in ["spsa", "iao-effao-spsa"]:
         return "iao-effao-spsa"
     else:
-        return partition # FOR THE IAO TESTS
-        raise NameError(" | Invalid partition scheme")
+        return partition
+
+
+
 
 
 def format_short_partition(partition):
-    """
-    Filters the short version of the 'partition' attribute.
-
-    :param partition: String with the name of the partition.
-    :type partition: str
-    :returns: String with the short version of the partition scheme.
-    :rtype: str
-    """
-
     partition = partition.lower()
     if partition == "mulliken":
         return "mul"
@@ -362,11 +352,19 @@ def format_short_partition(partition):
         return "iao-effao-gross"
     elif partition == "iao-effao-net":
         return "iao-effao-net"
+    elif partition == "iao-ano":
+        return "iano"
+    elif partition == "piao":
+        return "p"
+    elif partition == "piao-iao":
+        return "pi"
+    elif partition == "piao-iao-ano":
+        return "pia"
     elif partition in ("nao", "iao", "qtaim", "iao-autosad", "iao-effao"):
         return partition
     else:
-        return partition # FOR THE IAO TESTS
-        raise NameError(" | Invalid partition scheme")
+        return partition
+
 
 
 def mapping(arr, perm):
