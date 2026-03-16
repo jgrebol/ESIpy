@@ -13,15 +13,18 @@ setup(
     author="Joan Grebol, Eduard Matito, Pedro Salvador",
     url="https://github.com/jgrebol/ESIpy",
     packages=["esipy"],
-    scripts=[
-        "scripts/esipy",
-    ],
+    entry_points={
+        "console_scripts": [
+            "esipy=esipy.cli:main",
+        ],
+    },
     install_requires=[
-        "pyscf<=2.4",
+        "numpy",
+        "pyscf<=2.8.0",
         "sphinx",
-        "urllib3>=2.6.3",
+        "urllib3>=2.0.0",
         "h5py",
     ],
-    requires_python=">=3.7, <3.12",
+    python_requires=">=3.7",
 )
 
