@@ -30,6 +30,7 @@ class ESIInput:
         self.ncores = None
         self.mciaprox = []
         self.exclude = []
+        self.iaomix = [0.5]
 
     @staticmethod
     def from_string(input_str):
@@ -81,11 +82,36 @@ class ESIInput:
                             obj.partition.extend(
                                 ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
                         elif pup == "ALLWIP":
-                            obj.partition.extend(['m', 'l', 'ml', 'n', 'i', 'ia', 'ig', 'in', 'il', 'im', 'sym', 'sps', 'spsa'])
+                            obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'piao', 'iao-autosad', 'iao-effao-lowdin', 'iao-effao-metalowdin', 'iao-effao-gross', 'iao-effao-net', 'iao-effao-sps', 'iao-effao-spsa', 'iao-effao-symmetric'])
+                            for val in obj.iaomix:
+                                obj.partition.append(f"piao-iao({val})")
+                                obj.partition.append(f"fpiao({val})")
+                                obj.partition.append(f"dfpiao({val})")
+                                obj.partition.append(f"xiao_dfpiao({val})")
+                        elif pup == "ALLEFFAO":
+                            obj.partition.extend(['iao', 'iao-autosad', 'iao-effao-lowdin', 'iao-effao-metalowdin', 'iao-effao-gross', 'iao-effao-net', 'iao-effao-sps', 'iao-effao-spsa', 'iao-effao-symmetric'])
+                        elif pup == "WIPALL":
+                            # Base partitions
+                            obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'piao', 'iao-autosad', 'iao-effao-lowdin', 'iao-effao-metalowdin', 'iao-effao-gross', 'iao-effao-net', 'iao-effao-sps', 'iao-effao-spsa', 'iao-effao-symmetric'])
+                            # Mixes and scaled
+                            for val in obj.iaomix:
+                                obj.partition.append(f"piao-iao({val})")
+                                obj.partition.append(f"fpiao({val})")
+                                obj.partition.append(f"dfpiao({val})")
+                        elif pup == "ALLEDU":
+                            obj.partition.extend(['piao', 'iao_6-31G', 'iao_cc-pVDZ', 'iao_STO-3G'])
+                            for val in obj.iaomix:
+                                obj.partition.append(f"fpiao({val})")
+                                obj.partition.append(f"dfpiao({val})")
+                                obj.partition.append(f"xiao_dfpiao({val})")
                         elif pup == 'ROBUST':
                             obj.partition.extend(['meta_lowdin', 'nao', 'iao'])
                         else:
-                            obj.partition.append(p.strip().lower())
+                            p_str = p.strip().lower()
+                            if p_str.startswith("iaomix("):
+                                obj.partition.append(p_str.replace("iaomix(", "piao-iao("))
+                            else:
+                                obj.partition.append(p_str)
                     i += 1
                 i -= 1
             elif line.upper().startswith('$ALLPARTS') or line.upper().startswith('$ALLPARTITIONS'):
@@ -162,6 +188,18 @@ class ESIInput:
                         obj.ncores = int(lines[i])
                     except Exception:
                         obj.ncores = None
+            elif line.startswith('$IAOMIX'):
+                if not hasattr(obj, 'iaomix_set'):
+                    obj.iaomix = []
+                    obj.iaomix_set = True
+                i += 1
+                while i < len(lines) and not lines[i].startswith('$'):
+                    for val in lines[i].split():
+                        try: obj.iaomix.append(float(val))
+                        except: pass
+                    i += 1
+                if not obj.iaomix: obj.iaomix = [0.5]
+                i -= 1
             elif line.startswith('$SAVE'):
                 obj.save = True
                 if obj.mode == 'fchk' and obj.fchk_file:

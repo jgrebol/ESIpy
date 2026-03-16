@@ -237,7 +237,7 @@ def find_flurefs(partition=None):
     elif partition == "iao-autosad":
         return {"CC": 1.4367, "CN": 1.4400, "BN": 1.1814, "NN": 1.3609, "CS": 1.1420, "CO": 1.0747}
 
-    elif partition in ("iao-effao", "iao-effao-gross", "iao-effao-net", "iao-effao-meta-lowdin"):
+    elif partition in ("iao-effao", "iao-effao-gross", "iao-effao-net", "iao-effao-meta-lowdin", "iao-ano", "piao", "piao-iao", "piao-iao-ano"):
         return {"CC": 1.4425, "CN": 1.4318, "BN": 1.1517, "NN": 1.3578, "CS": 1.1401, "CO": 1.0565}
 
     elif partition == "iao-effao-lowdin":

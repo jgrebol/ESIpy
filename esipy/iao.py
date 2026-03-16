@@ -79,42 +79,93 @@ def spherical_average(mol, ia, mat, overlap):
 
     return np.array(all_w), all_c, np.array(l_map)
 
-def get_num_minbas_per_l(sym):
+def get_num_minbas_per_l(sym, polarized=False):
     """Returns the number of physical shells required per L."""
     z = elements.charge(sym)
-    if z <= 2:   return {0: 1}  # 1s
-    if z <= 10:  return {0: 2, 1: 1}  # 1s, 2s, 2p
-    if z <= 18:  return {0: 3, 1: 2}  # 3s, 3p
-    if z <= 36:  return {0: 4, 1: 3, 2: 1}  # 4s, 4p, 3d
-    if z <= 54:  return {0: 5, 1: 4, 2: 2}  # 5s, 5p, 4d
-    if z <= 86:  return {0: 6, 1: 5, 2: 3, 3: 1}
-    if z <= 118: return {0: 7, 1: 6, 2: 4, 3: 2}
-    raise NotImplementedError(f"Minimal basis not defined for: {sym}")
+    if z <= 2:   d = {0: 1}  # 1s
+    elif z <= 10:  d = {0: 2, 1: 1}  # 1s, 2s, 2p
+    elif z <= 18:  d = {0: 3, 1: 2}  # 3s, 3p
+    elif z <= 36:  d = {0: 4, 1: 3, 2: 1}  # 4s, 4p, 3d
+    elif z <= 54:  d = {0: 5, 1: 4, 2: 2}  # 5s, 5p, 4d
+    elif z <= 86:  d = {0: 6, 1: 5, 2: 3, 3: 1}
+    elif z <= 118: d = {0: 7, 1: 6, 2: 4, 3: 2}
+    else: raise NotImplementedError(f"Minimal basis not defined for: {sym}")
+    if polarized:
+        if z <= 2: d[1] = 1
+        elif z <= 10: d[2] = 1
+        elif z <= 18: d[2] = 1
+        elif z <= 36: d[3] = 1
+        elif z <= 54: d[3] = 1
+    return d
 
-def get_num_minbas_ao(mol, ia):
+def get_num_minbas_ao(mol, ia, polarized=False):
     """Returns the total number of AOs in the minimal basis for atom ia."""
     sym = mol.atom_pure_symbol(ia)
-    target_l = get_num_minbas_per_l(sym)
+    target_l = get_num_minbas_per_l(sym, polarized=polarized)
     total = 0
     ao_loc = mol.ao_loc_nr()
-    # Find first shell of this atom to check degen (Cartesian vs Spherical)
     atom_shells = [ib for ib in range(mol.nbas) if mol.bas_atom(ib) == ia]
-    
     for l, count in target_l.items():
-        # Find actual degen for this L in this basis
-        degen = 2 * l + 1 # Default
+        degen = 2 * l + 1
         for ib in atom_shells:
             if mol.bas_angular(ib) == l:
-                degen = ao_loc[ib+1] - ao_loc[ib]
-                break
+                degen = ao_loc[ib+1] - ao_loc[ib]; break
         total += count * degen
     return total
 
-def get_effaos(mol, mf, free_atom=True, mode=None):
+def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=1.0):
+    """Builds a reference Mole object for IAO."""
+    if hasattr(mol, 'pyscf_mol'):
+        mol = mol.pyscf_mol
+    pmol = gto.Mole()
+    pmol.atom, pmol.cart = mol.atom, mol.cart
+    ref_basis = {}
+    for ia in range(mol.natm):
+        sym = mol.atom_pure_symbol(ia)
+        if sym not in ref_basis:
+            # 1. Get minimal shells from source_basis
+            basis_source = gto.basis.load(source_basis, sym)
+            target_l = get_num_minbas_per_l(sym, polarized=False)
+            new_basis_atom, l_counts = [], {}
+            for shell in basis_source:
+                l = shell[0]
+                count = l_counts.get(l, 0)
+                if count < target_l.get(l, 0):
+                    new_basis_atom.append(shell); l_counts[l] = count + 1
+            
+            # 2. Add polarization shells
+            if polarized:
+                if pol_basis == 'working':
+                    basis_pol = mol._basis[sym]
+                elif isinstance(pol_basis, str):
+                    basis_pol = gto.basis.load(pol_basis, sym)
+                else:
+                    # Fallback to standard piao (minao polarization)
+                    basis_pol = gto.basis.load('minao', sym)
+
+                max_l_min = max(target_l.keys())
+                for shell in basis_pol:
+                    l = shell[0]
+                    if l > max_l_min:
+                        if x != 1.0:
+                            scaled_shell = [l]
+                            for prim in shell[1:]:
+                                new_prim = [prim[0] * x] + list(prim[1:])
+                                scaled_shell.append(new_prim)
+                            new_basis_atom.append(scaled_shell)
+                        else:
+                            new_basis_atom.append(shell)
+            ref_basis[sym] = new_basis_atom
+    pmol.basis = ref_basis
+    pmol.build()
+    return pmol
+
+def get_effaos(mol, mf, free_atom=True, mode=None, polarized=False):
     """
     Builds effective Atomic Orbitals (eff-AOs) for all IAO variants.
     """
-    minbas_total = sum(get_num_minbas_ao(mol, i) for i in range(mol.natm))
+    pmol = reference_mol(mol, polarized=polarized)
+    minbas_total = pmol.nao
     veps_block = np.zeros((mol.nao, minbas_total))
     vaps_diag = []
     
@@ -127,16 +178,21 @@ def get_effaos(mol, mf, free_atom=True, mode=None):
     # Global transformations for specific modes
     if not free_atom:
         if mode in ["lowdin", "meta-lowdin"]:
-            if mode == "lowdin": T = orth.lowdin(S_mol)
+            if mode == "lowdin": T = orth.lowdin(S_mol) # T is S^-1/2
             else:
                 from pyscf.lo.orth import orth_ao
-                T = orth_ao(mf, 'meta_lowdin', pre_orth_ao="ANO")
-            T_inv = scipy.linalg.inv(T)
-            # P' = T^-1 P T^-1
-            P_mol = T_inv @ P_mol @ T_inv.T
+                T = orth_ao(mf, 'meta_lowdin', pre_orth_ao="MINAO")
+            # User wants (T^-1 P T^-1)^A. If T = S^-1/2, then T^-1 = S^1/2.
+            # P_lowdin = S^1/2 P S^1/2.
+            # We can get this by T_inv = S^1/2.
+            # Or simpler: P_mol = inv(T) @ P_mol @ inv(T)
+            T_inv = scipy.linalg.sqrtm(S_mol)
+            P_mol = T_inv @ P_mol @ T_inv
+            S_mol = np.eye(mol.nao)
         elif mode == "gross":
-            # P' = (PS + SP) / 2
+            # P_gross = (PS + SP) / 2
             P_mol = (P_mol @ S_mol + S_mol @ P_mol) / 2
+            S_mol = np.eye(mol.nao)
 
     aoslices = mol.aoslice_by_atom()
     col_idx = 0
@@ -145,8 +201,8 @@ def get_effaos(mol, mf, free_atom=True, mode=None):
     for ia in range(mol.natm):
         sym = mol.atom_pure_symbol(ia)
         p0, p1 = aoslices[ia, 2], aoslices[ia, 3]
-        target_l_counts = get_num_minbas_per_l(sym)
-        n_target = get_num_minbas_ao(mol, ia)
+        target_l_counts = get_num_minbas_per_l(sym, polarized=polarized)
+        n_target = get_num_minbas_ao(mol, ia, polarized=polarized)
 
         if free_atom:
             mol_at = gto.Mole(); mol_at.atom = f"{sym} 0 0 0"; mol_at.basis = {sym: mol._basis[sym]}
@@ -157,33 +213,48 @@ def get_effaos(mol, mf, free_atom=True, mode=None):
             dm_at = mf_at.make_rdm1()
             P_at = dm_at[0] + dm_at[1] if dm_at.ndim == 3 else dm_at
             S_at = mf_at.get_ovlp()
-            # IAO-AUTOSAD uses SPS of free atom for selection
-            w, c, l_map = spherical_average(mol_at, 0, S_at @ P_at @ S_at, S_at)
+            # For free atom, eigenvalues of free-atom density matrix.
+            # Usually means S P S c = S c lambda
+            mat_block = S_at @ P_at @ S_at
+            ovlp_block = S_at
+            w, c, l_map = spherical_average(mol_at, 0, mat_block, ovlp_block)
         else:
-            # 1. Define Property Matrix (mat_block)
+            # 1. Define Property Matrix (mat_block) and Metric (ovlp_block)
             if mode == "net":
-                # S^A P^A S^A
+                # S^A P^A S^A c^A = S^A c^A lambda^A
                 Sa, Pa = S_mol[p0:p1, p0:p1], P_mol[p0:p1, p0:p1]
                 mat_block = Sa @ Pa @ Sa
-            elif mode in ["sps", "spsa"]:
-                # (S P S)^A
-                mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1]
+                ovlp_block = Sa
+            elif mode == "gross":
+                # ( (PS + SP)/2 )^A c^A = c^A lambda^A
+                # S_mol is already I here due to global transform
+                mat_block = P_mol[p0:p1, p0:p1]
+                ovlp_block = np.eye(p1 - p0)
+            elif mode in ["lowdin", "meta-lowdin"]:
+                # ( T^-1 P T^-1 )^A c^A = c^A lambda^A
+                # S_mol is already I here due to global transform
+                mat_block = P_mol[p0:p1, p0:p1]
+                ovlp_block = np.eye(p1 - p0)
             elif mode == "sym":
-                # (P^A S^A + S^A P^A) / 2
+                # ( (P^A S^A + S^A P^A)/2 ) c^A = c^A lambda^A
                 Pa, Sa = P_mol[p0:p1, p0:p1], S_mol[p0:p1, p0:p1]
                 mat_block = (Pa @ Sa + Sa @ Pa) / 2
-            else:
-                # GROSS, LOWDIN, ML, default
-                mat_block = P_mol[p0:p1, p0:p1]
-
-            # 2. Define Metric (ovlp_block)
-            if mode in ["lowdin", "meta-lowdin", "gross", "sym", "sps"]:
                 ovlp_block = np.eye(p1 - p0)
+            elif mode == "sps":
+                # (S P S)^A c^A = c^A lambda^A
+                mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1]
+                ovlp_block = np.eye(p1 - p0)
+            elif mode == "spsa":
+                # (S P S)^A c^A = S^A c^A lambda^A
+                mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1]
+                ovlp_block = S_mol[p0:p1, p0:p1]
             else:
-                # net, spsa, and default use the local overlap block
+                # Default fallback
+                mat_block = P_mol[p0:p1, p0:p1]
                 ovlp_block = S_mol[p0:p1, p0:p1]
             
             w, c, l_map = spherical_average(mol, ia, mat_block, ovlp_block)
+
 
         # Selection based on L shell requirements
         selected = []
@@ -195,6 +266,8 @@ def get_effaos(mol, mf, free_atom=True, mode=None):
             for ib in range(mol.nbas):
                 if mol.bas_atom(ib) == ia and mol.bas_angular(ib) == l:
                     degen = ao_loc[ib+1] - ao_loc[ib]; break
+            # Fallback for polarized shells not in basis? 
+            if degen == 0: degen = 2 * l + 1
             selected.extend(l_indices[:count * degen])
         
         selected = sorted(selected)
@@ -202,35 +275,57 @@ def get_effaos(mol, mf, free_atom=True, mode=None):
         vaps_diag.extend(w[selected])
         col_idx += n_target
 
-    return np.array(vaps_diag), veps_block
+    return np.array(vaps_diag), veps_block, pmol
 
-def iao(mol, pmol, coeffs):
-    """Standard IAO construction using Knizia formula."""
-    print("hola")
-    from pyscf.gto.mole import intor_cross
-    S1, S2 = mol.intor('int1e_ovlp'), pmol.intor('int1e_ovlp')
-    S12 = intor_cross('int1e_ovlp', mol, pmol)
-    C_occ = coeffs[:, :mol.nelectron // 2]
-    A_tilde = scipy.linalg.solve(S1, S12, assume_a='pos')
-    C_min = scipy.linalg.solve(S2, S12.T @ C_occ, assume_a='pos')
+def _do_iao(mol, coeffs, pmol=None, A_basis=None):
+    """
+    Core IAO construction. 
+    Can take either a pmol (reference Mole) or A_basis (basis in working basis).
+    """
+    S1 = mol.intor('int1e_ovlp')
+    
+    if A_basis is not None:
+        A_tilde = A_basis
+        S2 = A_tilde.T @ S1 @ A_tilde
+        S12 = S1 @ A_tilde
+    else:
+        from pyscf.gto.mole import intor_cross
+        S2 = pmol.intor('int1e_ovlp')
+        S12 = intor_cross('int1e_ovlp', mol, pmol)
+        A_tilde = scipy.linalg.solve(S1, S12, assume_a='pos')
+    
+    C_min = scipy.linalg.solve(S2, S12.T @ coeffs, assume_a='pos')
     C_proj = orth.vec_lowdin(A_tilde @ C_min, S1)
-    P_occ_A = C_occ @ (C_occ.T @ S12); P_proj_A = C_proj @ (C_proj.T @ S12)
-    P_occ_P_proj_A = C_occ @ (C_occ.T @ (S1 @ P_proj_A))
+    
+    P_occ_A = coeffs @ (coeffs.T @ S12)
+    P_proj_A = C_proj @ (C_proj.T @ S12)
+    P_occ_P_proj_A = coeffs @ (coeffs.T @ (S1 @ P_proj_A))
+    
     IAO_nonorth = A_tilde + 2 * P_occ_P_proj_A - P_occ_A - P_proj_A
     return orth.vec_lowdin(IAO_nonorth, S1)
 
-def autosad(mol, mf, free_atom=True, mode=None):
+def iao(mol, coeffs, source_basis='minao'):
+    """Standard IAO construction."""
+    pmol = reference_mol(mol, polarized=False, source_basis=source_basis)
+    return _do_iao(mol, coeffs, pmol=pmol), pmol
+
+def piao(mol, coeffs, source_basis='minao'):
+    """Polarized IAO using polarization from working basis."""
+    pmol = reference_mol(mol, polarized=True, pol_basis='working', source_basis=source_basis)
+    return _do_iao(mol, coeffs, pmol=pmol), pmol
+
+def fpiao(mol, coeffs, x=1.0, source_basis='minao'):
+    """Polarized IAO using polarization from ANO."""
+    pmol = reference_mol(mol, polarized=True, pol_basis='ano', source_basis=source_basis, x=x)
+    return _do_iao(mol, coeffs, pmol=pmol), pmol
+
+def autosad(mol, mf, free_atom=True, mode=None, polarized=False):
     """IAO-AutoSAD and IAO-effAO wrapper."""
-    def do_autosad(mol, mf, C_occ, free_atom, mode):
-        S1 = mol.intor('int1e_ovlp')
-        w, effaos = get_effaos(mol, mf, free_atom=free_atom, mode=mode)
-        S12_eff = S1 @ effaos; S2_eff = effaos.T @ S1 @ effaos
-        C_min = scipy.linalg.solve(S2_eff, S12_eff.T @ C_occ, assume_a='pos')
-        C_proj = orth.vec_lowdin(effaos @ C_min, S1)
-        P_occ_A = C_occ @ (C_occ.T @ S12_eff); P_proj_A = C_proj @ (C_proj.T @ S12_eff)
-        P_occ_P_proj_A = C_occ @ (C_occ.T @ (S1 @ P_proj_A))
-        IAO_nonorth = effaos + 2 * P_occ_P_proj_A - P_occ_A - P_proj_A
-        return orth.vec_lowdin(IAO_nonorth, S1)
+    def do_autosad(mol, mf, C_occ, free_atom, mode, polarized):
+        w, effaos, pmol = get_effaos(mol, mf, free_atom=free_atom, mode=mode, polarized=polarized)
+        return _do_iao(mol, C_occ, A_basis=effaos)
+    
     if "U" in mf.__class__.__name__:
-        ca, cb = mf.mo_coeff; return do_autosad(mol, mf, ca[:, :mf.nelec[0]], free_atom, mode), do_autosad(mol, mf, cb[:, :mf.nelec[1]], free_atom, mode)
-    return do_autosad(mol, mf, mf.mo_coeff[:, :mol.nelectron // 2], free_atom, mode)
+        ca, cb = mf.mo_coeff; return (do_autosad(mol, mf, ca[:, :mf.nelec[0]], free_atom, mode, polarized), 
+                                      do_autosad(mol, mf, cb[:, :mf.nelec[1]], free_atom, mode, polarized)), reference_mol(mol)
+    return do_autosad(mol, mf, mf.mo_coeff[:, :mol.nelectron // 2], free_atom, mode, polarized), reference_mol(mol)

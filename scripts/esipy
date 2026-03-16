@@ -67,6 +67,8 @@ def main():
 
     # Forward ncores if provided
     extra_kwargs = {}
+    if inp.iaomix is not None:
+        extra_kwargs['iaomix'] = inp.iaomix
     if inp.ncores is not None:
         extra_kwargs['ncores'] = inp.ncores
 

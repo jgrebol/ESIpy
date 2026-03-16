@@ -70,7 +70,7 @@ def deloc_rest(aom, molinfo, fragmap={}):
             symbols[i], i + 1, N, li, N - li))
 
         for j in range(i + 1, len(aom)):
-            di = 4 * np.einsum('ij,ji->', aom[i], aom[j])
+            di = 2 * np.einsum('ij,ji->', aom[i], aom[j])
             if j < len(presymbols):
                 dis.append(di)
     Ntot = np.sum(Ns[:len(presymbols)])
@@ -91,7 +91,7 @@ def deloc_rest(aom, molinfo, fragmap={}):
                     symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), lis[i]))
             else:
-                dif = 4 * np.einsum('ij,ji->', aom[i], aom[j])
+                dif = 2 * np.einsum('ij,ji->', aom[i], aom[j])
                 print(" | {:>2}{:>2}-{:>2}{:>2}   {:>8.4f}".format(
                     symbols[i], str(i + 1).center(2), symbols[j],
                     str(j + 1).center(2), dif))

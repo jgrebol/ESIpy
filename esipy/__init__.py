@@ -74,7 +74,7 @@ class IndicatorsRest:
         :returns: The Iring value
             :rtype: float
         """
-        return 2 * compute_iring(self._rings, self._aom)
+        return 4 * compute_iring(self._rings, self._aom)
 
     @property
     def mci(self):
@@ -89,7 +89,7 @@ class IndicatorsRest:
                 self._done_mci = sequential_mci(self._rings, self._aom, self._partition)
             else:
                 self._done_mci = multiprocessing_mci(self._rings, self._aom, self._ncores, self._partition)
-        return 2 * self._done_mci
+        return 4 * self._done_mci
 
     def _av(self):
         """
@@ -110,7 +110,7 @@ class IndicatorsRest:
         :returns: The AV1245 value.
         :rtype: float
         """
-        return 2 * self._av()[0]
+        return self._av()[0]
 
     @property
     def avmin(self):
@@ -120,7 +120,7 @@ class IndicatorsRest:
         :returns: The AVmin value.
         :rtype: float
         """
-        return 2 * self._av()[1]
+        return self._av()[1]
 
     @property
     def av1245_list(self):
@@ -130,7 +130,7 @@ class IndicatorsRest:
         :returns: The list of 4c-MCIs that form the AV1245.
         :rtype: numpy.ndarray
         """
-        return 2 * np.array(self._av()[2], dtype=object)
+        return np.array(self._av()[2], dtype=object)
 
     def _pdi(self):
         """
@@ -151,7 +151,7 @@ class IndicatorsRest:
         :returns: The PDI value.
         :rtype: float
         """
-        return 2 * self._pdi()[0]
+        return self._pdi()[0]
 
     @property
     def pdi_list(self):
@@ -161,7 +161,7 @@ class IndicatorsRest:
         :returns: The list of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return 2 * np.array(self._pdi()[1], dtype=object)
+        return np.array(self._pdi()[1], dtype=object)
 
     @property
     def flu(self):
@@ -192,7 +192,7 @@ class IndicatorsRest:
         :returns: The BOA value.
         :rtype: float
         """
-        return 2 * self._boa()[0]
+        return self._boa()[0]
 
     @property
     def boa_c(self):
@@ -202,7 +202,7 @@ class IndicatorsRest:
         :returns: The BOA_c value.
         :rtype: float
         """
-        return 2 * self._boa()[1]
+        return self._boa()[1]
 
     @property
     def homer(self):
@@ -402,7 +402,7 @@ class IndicatorsUnrest:
                 mci_beta = multiprocessing_mci(self._rings, self._aom[1], self._ncores,
                                                self._partition)
             self._done_mcis = (mci_alpha, mci_beta)
-        return self._done_mcis
+        return 4 * self._done_mcis
 
     @property
     def mci(self):
@@ -866,7 +866,7 @@ class IndicatorsNatorb:
         :returns: The Iring value.
         :rtype: float
         """
-        return compute_iring_no(self._rings, self._aom)
+        return 4 * compute_iring_no(self._rings, self._aom)
 
     @property
     def mci(self):
@@ -881,7 +881,7 @@ class IndicatorsNatorb:
                 self._done_mci = sequential_mci_no(self._rings, self._aom, self._partition)
             else:
                 self._done_mci = multiprocessing_mci_no(self._rings, self._aom, self._ncores, self._partition)
-        return self._done_mci
+        return 4 * self._done_mci
 
     def _av_no(self):
         """
@@ -1129,7 +1129,7 @@ class ESI:
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
-                 ncores=1, save=None, readpath='.', read=False,
+                 ncores=1, save=None, readpath='.', read=False, iaomix=0.5,
                  maxlen=12, minlen=6, rings_thres=0.3, exclude=None):
         # For usual ESIpy calculations
         self._aom = aom
@@ -1151,6 +1151,7 @@ class ESI:
         self.frag = False
         # For other tools
         self.ncores = ncores
+        self.iaomix = iaomix
         self.save = save
         # Directory where files will be written. Use <save>_esipy to avoid cluttering working dir
         self.save_dir = save + '_esipy' if save else None
@@ -1164,6 +1165,7 @@ class ESI:
         self.minlen = minlen
         self.rings_thres = rings_thres
         self._exclude = exclude
+        self.iaomix = getattr(self, "iaomix", 0.5)
         #self._printedrings = False
         self._connec = None
         self.done_connec = False
@@ -1404,7 +1406,8 @@ class ESI:
             if self.mol and self.mf and self.partition:
                 self._aom_loaded = True
                 # Don't save in make_aoms, we'll save it ourselves in the subdirectory
-                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf)
+                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf, iaomix=self.iaomix)
+
                 if self.saveaoms:
                     os.makedirs(self.save_dir, exist_ok=True)
                     save_file(self._aom, os.path.join(self.save_dir, os.path.basename(self.saveaoms)))
