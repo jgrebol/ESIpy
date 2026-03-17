@@ -181,7 +181,8 @@ def get_effaos(mol, mf, free_atom=True, mode=None, polarized=False):
     vaps_diag = []
     S_mol = mol.intor("int1e_ovlp")
     if "U" in mf.__class__.__name__:
-        dm = mf.make_rdm1(ao_repr=True); P_mol = dm[0] + dm[1] if dm.ndim == 3 else dm
+        dm = mf.make_rdm1(ao_repr=True)
+        P_mol = dm[0] + dm[1] if dm.ndim == 3 else dm
     else:
         P_mol = mf.make_rdm1(ao_repr=True)
 
@@ -198,7 +199,7 @@ def get_effaos(mol, mf, free_atom=True, mode=None, polarized=False):
             S_mol = np.eye(mol.nao)
 
         elif mode == "gross":
-            P_mol = (P_mol @ S_mol + S_mol @ P_mol) / 2
+            P_mol = (P_mol @ S_mol + S_mol @ P_mol) / 2 # ((PS + SP)^A)/2
             S_mol = np.eye(mol.nao)
 
     aoslices = mol.aoslice_by_atom()
@@ -220,27 +221,27 @@ def get_effaos(mol, mf, free_atom=True, mode=None, polarized=False):
             dm_at = mf_at.make_rdm1()
             P_at = dm_at[0] + dm_at[1] if dm_at.ndim == 3 else dm_at
             S_at = mf_at.get_ovlp()
-            mat_block = S_at @ P_at @ S_at
+            mat_block = S_at @ P_at @ S_at # S P S c = S c L
             ovlp_block = S_at
             w, c, l_map = spherical_average(mol_at, 0, mat_block, ovlp_block)
         else:
             if mode == "net":
                 Sa, Pa = S_mol[p0:p1, p0:p1], P_mol[p0:p1, p0:p1]
-                mat_block = Sa @ Pa @ Sa
-                ovlp_block = Sa
+                mat_block = Sa @ Pa @ Sa # S^A P^A S^A
+                ovlp_block = Sa # S^A
             elif mode == "gross" or mode in ["lowdin", "meta-lowdin"]:
-                mat_block = P_mol[p0:p1, p0:p1]
-                ovlp_block = np.eye(p1 - p0)
+                mat_block = P_mol[p0:p1, p0:p1] # ((PS + SP)^A)/2
+                ovlp_block = np.eye(p1 - p0) # I
             elif mode == "sym":
                 Pa, Sa = P_mol[p0:p1, p0:p1], S_mol[p0:p1, p0:p1]
-                mat_block = (Pa @ Sa + Sa @ Pa) / 2
-                ovlp_block = np.eye(p1 - p0)
+                mat_block = (Pa @ Sa + Sa @ Pa) / 2 # (P^A S^A + S^A P^A)/2
+                ovlp_block = np.eye(p1 - p0) # I
             elif mode == "sps":
-                mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1]
-                ovlp_block = np.eye(p1 - p0)
+                mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1] # (SPS)^A
+                ovlp_block = np.eye(p1 - p0) # I
             elif mode == "spsa":
-                mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1]
-                ovlp_block = S_mol[p0:p1, p0:p1]
+                mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1] # (SPS)^A
+                ovlp_block = S_mol[p0:p1, p0:p1] # S^A
             else:
                 mat_block = P_mol[p0:p1, p0:p1]
                 ovlp_block = S_mol[p0:p1, p0:p1]
