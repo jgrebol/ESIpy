@@ -191,11 +191,9 @@ def get_effaos(mol, mf, free_atom=True, mode=None, polarized=False):
                 T = orth.lowdin(S_mol)
             else:
                 from pyscf.lo.orth import orth_ao
-                # Removed pre_orth_ao="ANO" to prevent projection artifacts
                 T = orth_ao(mf, 'meta_lowdin')
 
-            # Exact analytical inverse
-            T_inv = T.T @ S_mol
+            T_inv = T.T @ S_mol # T^{T} S T = I  --> T^{T} S = T^{-1} 
             P_mol = T_inv @ P_mol @ T_inv.T
             S_mol = np.eye(mol.nao)
 
