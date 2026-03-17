@@ -6,7 +6,7 @@ from pyscf import scf
 
 from esipy.tools import save_file, format_partition, get_natorbs, build_eta
 
-def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5):
+def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='minao', iaopol=None):
     """
     Build the Atomic Overlap Matrices (AOMs) in the Molecular Orbitals basis.
     """
@@ -32,28 +32,33 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5):
     
     def get_iao_aoms(p_type, c, current_mf, w_override=None):
         from esipy.iao import iao, piao, fpiao, get_effaos, reference_mol, autosad
-        
+
         w = w_override if w_override is not None else weight
 
         if p_type.startswith("iao_"):
             basis = p_type.split("_")[1]
-            U_nonorth, pmol = iao(mol, c, source_basis=basis)
+            U_nonorth, pmol = iao(mol, c, source_basis=basis, pol_basis=iaopol)
         elif p_type == "iao":
-            U_nonorth, pmol = iao(mol, c)
+            U_nonorth, pmol = iao(mol, c, source_basis=iaoref, pol_basis=iaopol)
         elif p_type == "piao":
-            U_nonorth, pmol = piao(mol, c)
+            # If iaopol is None, piao uses 'working'
+            pol = iaopol if iaopol is not None else 'working'
+            U_nonorth, pmol = piao(mol, c, source_basis=iaoref, pol_basis=pol)
         elif p_type in ["fpiao", "fpiao1"]:
-            U_nonorth, pmol = fpiao(mol, c, x=w)
+            # If iaopol is None, fpiao uses 'ano'
+            pol = iaopol if iaopol is not None else 'ano'
+            U_nonorth, pmol = fpiao(mol, c, x=w, source_basis=iaoref, pol_basis=pol)
         elif p_type == "dfpiao":
             # DFPIAO = w * IAO + (1-w) * FPIAO
             aom_iao = get_iao_aoms("iao", c, current_mf)
+            # For fpiao inside dfpiao, we might want w=1.0 if not specified
             aom_fpiao = get_iao_aoms("fpiao", c, current_mf, w_override=1.0)
-            pmol = reference_mol(mol, polarized=False) 
+            pmol = reference_mol(mol, polarized=False, source_basis=iaoref) 
             return [w * aom_iao[i] + (1 - w) * aom_fpiao[i] for i in range(pmol.natm)]
         elif p_type == "xiao_dfpiao":
             aom_iao = get_iao_aoms("iao", c, current_mf)
             aom_fpiao = get_iao_aoms("fpiao", c, current_mf, w_override=1.0)
-            pmol = reference_mol(mol, polarized=False)
+            pmol = reference_mol(mol, polarized=False, source_basis=iaoref)
             return [(1 - w) * aom_iao[i] + w * aom_fpiao[i] for i in range(pmol.natm)]
         elif p_type.startswith("iao-effao-") or p_type in ["sym", "sps", "spsa", "iao-autosad"]:
             if p_type == "iao-autosad":
@@ -65,18 +70,13 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5):
             
             # Handle unrestricted return (tuple)
             if isinstance(U_nonorth, tuple):
-                # This part is tricky because get_iao_aoms is called per spin.
-                # But autosad returns (Ua, Ub) if mf is UHF.
-                # current_mf might be mf or myhf.
-                # If we are here, we should check which spin we want.
-                # Actually, make_aoms calls get_iao_aoms with coeff_alpha/beta.
-                # We need a way to pass the right spin to autosad or get the right spin from it.
-                # Simplified: if current_mf is UHF, we expect c to be either ca or cb.
-                # We can check if c is ca or cb.
                 if np.allclose(c, current_mf.mo_coeff[0][:, :c.shape[1]]):
                     U_nonorth = U_nonorth[0]
                 else:
                     U_nonorth = U_nonorth[1]
+        elif p_type == "iao-pyscf":
+            # Redirect to standard iao which now uses PySCF logic
+            U_nonorth, pmol = iao(mol, c)
         else:
             raise NameError(f"Unknown IAO type: {p_type}")
         

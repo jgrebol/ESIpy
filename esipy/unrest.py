@@ -13,7 +13,10 @@ def info_unrest(aom, molinfo, nfrags=0):
     :type molinfo: dict
     """
 
-    partition = format_partition(molinfo["partition"])
+    partition = format_partition(molinfo["partition"], 
+                                 iaoref=molinfo.get("iaoref"), 
+                                 iaopol=molinfo.get("iaopol"),
+                                 iaomix=molinfo.get("iaomix", 0.5))
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     print(" | Number of Atoms:          {}".format(len(aom[0])-nfrags))
     print(" | Occ. Mol. Orbitals:       {}({})".format(np.shape(aom[0][0])[0], np.shape(aom[1][0])[0]))

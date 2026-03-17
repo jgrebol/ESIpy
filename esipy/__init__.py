@@ -1130,7 +1130,8 @@ class ESI:
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
                  ncores=1, save=None, readpath='.', read=False, iaomix=0.5,
-                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None):
+                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None,
+                 iaoref='minao', iaopol=None):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
@@ -1152,6 +1153,8 @@ class ESI:
         # For other tools
         self.ncores = ncores
         self.iaomix = iaomix
+        self.iaoref = iaoref
+        self.iaopol = iaopol
         self.save = save
         # Directory where files will be written. Use <save>_esipy to avoid cluttering working dir
         self.save_dir = save + '_esipy' if save else None
@@ -1371,7 +1374,8 @@ class ESI:
                 molinfo_path = os.path.join(self.save_dir, os.path.basename(self.savemolinfo))
             else:
                 molinfo_path = self.savemolinfo
-            self._molinfo = mol_info(self.mol, self.mf, molinfo_path, self._partition, graph)
+            self._molinfo = mol_info(self.mol, self.mf, molinfo_path, self._partition, graph,
+                                     iaoref=self.iaoref, iaopol=self.iaopol, iaomix=self.iaomix)
         return self._molinfo
 
     @property
@@ -1406,7 +1410,8 @@ class ESI:
             if self.mol and self.mf and self.partition:
                 self._aom_loaded = True
                 # Don't save in make_aoms, we'll save it ourselves in the subdirectory
-                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf, iaomix=self.iaomix)
+                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf, 
+                                      iaomix=self.iaomix, iaoref=self.iaoref, iaopol=self.iaopol)
 
                 if self.saveaoms:
                     os.makedirs(self.save_dir, exist_ok=True)

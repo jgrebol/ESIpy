@@ -31,6 +31,8 @@ class ESIInput:
         self.mciaprox = []
         self.exclude = []
         self.iaomix = [0.5]
+        self.iaoref = 'minao'
+        self.iaopol = None
 
     @staticmethod
     def from_string(input_str):
@@ -63,6 +65,20 @@ class ESIInput:
                 i += 1
                 if i < len(lines):
                     obj.aomname = lines[i]
+            elif line.startswith('$IAOREF'):
+                i += 1
+                if i < len(lines) and not lines[i].startswith('$'):
+                    obj.iaoref = lines[i]
+                else:
+                    obj.iaoref = 'minao'
+                    i -= 1
+            elif line.startswith('$IAOPOL'):
+                i += 1
+                if i < len(lines) and not lines[i].startswith('$'):
+                    obj.iaopol = lines[i]
+                else:
+                    obj.iaopol = 'working'
+                    i -= 1
             elif line.startswith('$RING'):
                 seen_ring_cmds.append('$RING')
                 obj.rings = []

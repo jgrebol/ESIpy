@@ -14,7 +14,10 @@ def info_no(aom, molinfo, nfrags=0):
     """
 
     aom, occ = aom
-    partition = format_partition(molinfo["partition"])
+    partition = format_partition(molinfo["partition"], 
+                                 iaoref=molinfo.get("iaoref"), 
+                                 iaopol=molinfo.get("iaopol"),
+                                 iaomix=molinfo.get("iaomix", 0.5))
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     print(" | Number of Atoms:          {}".format(len(aom)-nfrags))
     print(" | Occ. Mol. Orbitals:       {}".format(np.shape(aom[0])[0]))

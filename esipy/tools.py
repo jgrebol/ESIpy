@@ -189,7 +189,7 @@ def av1245_pairs(arr):
             for i in range(len(arr))]
 
 
-def mol_info(mol=None, mf=None, save=None, partition=None, connec=None):
+def mol_info(mol=None, mf=None, save=None, partition=None, connec=None, iaoref=None, iaopol=None, iaomix=None):
     """
     Obtains information from the molecule and the calculation to complement the main code function without requiring the 'mol' and 'mf' objects.
 
@@ -201,12 +201,21 @@ def mol_info(mol=None, mf=None, save=None, partition=None, connec=None):
     :type save: str
     :param partition: String with the name of the partition.
     :type partition: str
+    :param iaoref: Reference basis for IAO.
+    :type iaoref: str
+    :param iaopol: Polarization basis for IAO.
+    :type iaopol: str
+    :param iaomix: IAO mixing weight.
+    :type iaomix: float
     :returns: Dictionary with the information of the molecule and the calculation.
     :rtype: dict
     """
 
     info = {}
     info.update({"partition": partition})
+    if iaoref: info.update({"iaoref": iaoref})
+    if iaopol: info.update({"iaopol": iaopol})
+    if iaomix is not None: info.update({"iaomix": iaomix})
     if mol:
         info.update({
             "symbols": [mol.atom_symbol(i) for i in range(mol.natm)],
@@ -293,9 +302,64 @@ def process_fragments(aom, rings, done=False):
 
 
 
-def format_partition(partition):
+def format_partition(partition, iaoref=None, iaopol=None, iaomix=0.5):
     orig = partition
     partition = partition.lower()
+
+    # Construct fancy name for IAO variants if requested
+    if any(x in partition for x in ["iao", "piao"]):
+        # Extract weight if present in partition string
+        import re
+        weight = iaomix
+        match = re.search(r"\((.*?)\)", partition)
+        if match:
+            try:
+                weight = float(match.group(1))
+                partition = partition.split("(")[0].strip()
+            except: pass
+        
+        # Base variant name
+        if partition in ["m", "mul", "mull", "mulliken"]: base = "MULLIKEN"
+        elif partition in ["l", "low", "lowdin"]: base = "LOWDIN"
+        elif partition in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta-lowdin", "meta_lowdin"]: base = "META-LOWDIN"
+        elif partition in ["n", "nao", "natural", "nat"]: base = "NAO"
+        elif partition in ["i", "iao", "intrinsic", "intr"]: base = "IAO"
+        elif partition in ["iao-autosad", "iaoauto", "iaoa", "iaa", "ia", "a", "autosad", "iaosad", "autos"]: base = "IAO-AUTOSAD"
+        elif partition in ["iao-effao-gross", "iao-eg", "iaoeg", "iaog", "ig", "gross", "iag", "g"]: base = "IAO-EFFAO-GROSS"
+        elif partition in ["iao-effao-net", "iao-en", "iaoen", "iaon", "in", "net", "ian", "ne"]: base = "IAO-EFFAO-NET"
+        elif partition in ["iao-effao-lowdin", "iaoel", "iaol", "il", "iel", "iae"]: base = "IAO-EFFAO-LOWDIN"
+        elif partition in ["iao-effao-metalowdin", "iao-effao-meta-lowdin", "iaom", "im"]: base = "IAO-EFFAO-META-LOWDIN"
+        elif partition in ["p", "piao"]: base = "PIAO"
+        elif partition in ["pi", "piao-iao"]: base = "PIAO-IAO"
+        elif partition in ["q", "qt", "qtaim", "quant", "quantum"]: base = "QTAIM"
+        elif partition in ["sym", "ias", "is", "iao-effao-symmetric"]: base = "IAO-EFFAO-SYMMETRIC"
+        elif partition in ["sps", "iao-effao-sps"]: base = "IAO-EFFAO-SPS"
+        elif partition in ["spsa", "iao-effao-spsa"]: base = "IAO-EFFAO-SPSA"
+        elif partition == "fpiao": base = "FPIAO"
+        elif partition == "dfpiao": base = "DFPIAO"
+        elif partition == "xiao_dfpiao": base = "XIAO_DFPIAO"
+        else: base = partition.upper()
+
+        # Add iaoref and iaopol
+        ref_pol = ""
+        if iaoref and iaoref.lower() != 'minao':
+            ref_pol = iaoref.upper()
+        
+        if iaopol:
+            pol_name = iaopol.upper() if isinstance(iaopol, str) else "POL"
+            if ref_pol: ref_pol += "+" + pol_name
+            else: ref_pol = "MINAO+" + pol_name
+        
+        full_name = base
+        if ref_pol:
+            full_name += f"({ref_pol})"
+        
+        # Add weight if it's a mixed variant or if specified
+        if any(x in partition for x in ["mix", "dfpiao", "fpiao", "xiao"]):
+             full_name += f"({weight})"
+        
+        return full_name
+
     if "(" in partition:
         # Mixed partition like piao-iao(0.5)
         return orig.upper()

@@ -113,52 +113,73 @@ def get_num_minbas_ao(mol, ia, polarized=False):
         total += count * degen
     return total
 
-def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=1.0):
-    """Builds a reference Mole object for IAO."""
-    if hasattr(mol, 'pyscf_mol'):
-        mol = mol.pyscf_mol
-    pmol = gto.Mole()
-    pmol.atom, pmol.cart = mol.atom, mol.cart
+def get_reference_basis_dict(mol, source_basis='minao', pol_basis=None, x=1.0):
+    """Helper function to get the reference basis set for IAO."""
+    
+    def get_minimal_part(sym, source_basis_name):
+        # Truncate to minimal basis size
+        basis_source = gto.basis.load(source_basis_name, sym)
+        target_l = get_num_minbas_per_l(sym, polarized=False)
+        new_basis_atom, l_counts = [], {}
+        for shell in basis_source:
+            l = shell[0]
+            count = l_counts.get(l, 0)
+            if count < target_l.get(l, 0):
+                new_basis_atom.append(shell)
+                l_counts[l] = count + 1
+        return new_basis_atom, target_l
+
+    def get_polarization_part(sym, pol_basis_name, target_l, x=1.0):
+        if pol_basis_name == 'working':
+            basis_pol = mol._basis[sym]
+        elif isinstance(pol_basis_name, str):
+            basis_pol = gto.basis.load(pol_basis_name, sym)
+        else:
+            return []
+
+        # Target polarization L shells
+        target_pol_l = get_num_minbas_per_l(sym, polarized=True)
+        # Only keep L that are in target_pol_l but NOT in target_l
+        new_pol_atom, l_counts = [], {}
+        for shell in basis_pol:
+            l = shell[0]
+            if l in target_pol_l and l not in target_l:
+                count = l_counts.get(l, 0)
+                if count < target_pol_l[l]:
+                    if x != 1.0:
+                        scaled_shell = [l]
+                        for prim in shell[1:]:
+                            new_prim = [prim[0] * x] + list(prim[1:])
+                            scaled_shell.append(new_prim)
+                        new_pol_atom.append(scaled_shell)
+                    else:
+                        new_pol_atom.append(shell)
+                    l_counts[l] = count + 1
+        return new_pol_atom
+
     ref_basis = {}
     for ia in range(mol.natm):
         sym = mol.atom_pure_symbol(ia)
         if sym not in ref_basis:
-            # 1. Get minimal shells from source_basis
-            basis_source = gto.basis.load(source_basis, sym)
-            target_l = get_num_minbas_per_l(sym, polarized=False)
-            new_basis_atom, l_counts = [], {}
-            for shell in basis_source:
-                l = shell[0]
-                count = l_counts.get(l, 0)
-                if count < target_l.get(l, 0):
-                    new_basis_atom.append(shell); l_counts[l] = count + 1
-            
-            # 2. Add polarization shells
-            if polarized:
-                if pol_basis == 'working':
-                    basis_pol = mol._basis[sym]
-                elif isinstance(pol_basis, str):
-                    basis_pol = gto.basis.load(pol_basis, sym)
-                else:
-                    # Fallback to standard piao (minao polarization)
-                    basis_pol = gto.basis.load('minao', sym)
+            min_basis, target_l = get_minimal_part(sym, source_basis)
+            pol_basis_list = get_polarization_part(sym, pol_basis, target_l, x=x)
+            ref_basis[sym] = min_basis + pol_basis_list
+    return ref_basis
 
-                max_l_min = max(target_l.keys())
-                for shell in basis_pol:
-                    l = shell[0]
-                    if l > max_l_min:
-                        if x != 1.0:
-                            scaled_shell = [l]
-                            for prim in shell[1:]:
-                                new_prim = [prim[0] * x] + list(prim[1:])
-                                scaled_shell.append(new_prim)
-                            new_basis_atom.append(scaled_shell)
-                        else:
-                            new_basis_atom.append(shell)
-            ref_basis[sym] = new_basis_atom
-    pmol.basis = ref_basis
-    pmol.build()
-    return pmol
+def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=1.0):
+    """Builds a reference Mole object for IAO."""
+    from pyscf.lo import iao as pyscf_iao
+    if hasattr(mol, 'pyscf_mol'):
+        mol = mol.pyscf_mol
+    
+    # If polarized is True but pol_basis is None, use 'minao' polarization
+    if polarized and pol_basis is None:
+        pol_basis = 'minao'
+    elif not polarized:
+        pol_basis = None
+
+    ref_basis = get_reference_basis_dict(mol, source_basis=source_basis, pol_basis=pol_basis, x=x)
+    return pyscf_iao.reference_mol(mol, minao=ref_basis)
 
 def get_effaos(mol, mf, free_atom=True, mode=None, polarized=False):
     """
@@ -282,41 +303,41 @@ def _do_iao(mol, coeffs, pmol=None, A_basis=None):
     Core IAO construction. 
     Can take either a pmol (reference Mole) or A_basis (basis in working basis).
     """
+    from pyscf.lo import iao as pyscf_iao
+    from pyscf.lo import orth
     S1 = mol.intor('int1e_ovlp')
     
     if A_basis is not None:
         A_tilde = A_basis
         S2 = A_tilde.T @ S1 @ A_tilde
         S12 = S1 @ A_tilde
+        C_min = scipy.linalg.solve(S2, S12.T @ coeffs, assume_a='pos')
+        C_proj = orth.vec_lowdin(A_tilde @ C_min, S1)
+        
+        P_occ_A = coeffs @ (coeffs.T @ S12)
+        P_proj_A = C_proj @ (C_proj.T @ S12)
+        P_occ_P_proj_A = coeffs @ (coeffs.T @ (S1 @ P_proj_A))
+        
+        IAO_nonorth = A_tilde + 2 * P_occ_P_proj_A - P_occ_A - P_proj_A
+        return orth.vec_lowdin(IAO_nonorth, S1)
     else:
-        from pyscf.gto.mole import intor_cross
-        S2 = pmol.intor('int1e_ovlp')
-        S12 = intor_cross('int1e_ovlp', mol, pmol)
-        A_tilde = scipy.linalg.solve(S1, S12, assume_a='pos')
-    
-    C_min = scipy.linalg.solve(S2, S12.T @ coeffs, assume_a='pos')
-    C_proj = orth.vec_lowdin(A_tilde @ C_min, S1)
-    
-    P_occ_A = coeffs @ (coeffs.T @ S12)
-    P_proj_A = C_proj @ (C_proj.T @ S12)
-    P_occ_P_proj_A = coeffs @ (coeffs.T @ (S1 @ P_proj_A))
-    
-    IAO_nonorth = A_tilde + 2 * P_occ_P_proj_A - P_occ_A - P_proj_A
-    return orth.vec_lowdin(IAO_nonorth, S1)
+        # Use PySCF's construction for standard cases
+        C_iao_nonorth = pyscf_iao.iao(mol, coeffs, minao=pmol.basis)
+        return orth.vec_lowdin(C_iao_nonorth, S1)
 
-def iao(mol, coeffs, source_basis='minao'):
+def iao(mol, coeffs, source_basis='minao', pol_basis=None):
     """Standard IAO construction."""
-    pmol = reference_mol(mol, polarized=False, source_basis=source_basis)
+    pmol = reference_mol(mol, polarized=(pol_basis is not None), pol_basis=pol_basis, source_basis=source_basis)
     return _do_iao(mol, coeffs, pmol=pmol), pmol
 
-def piao(mol, coeffs, source_basis='minao'):
-    """Polarized IAO using polarization from working basis."""
-    pmol = reference_mol(mol, polarized=True, pol_basis='working', source_basis=source_basis)
+def piao(mol, coeffs, source_basis='minao', pol_basis='working'):
+    """Polarized IAO."""
+    pmol = reference_mol(mol, polarized=True, pol_basis=pol_basis, source_basis=source_basis)
     return _do_iao(mol, coeffs, pmol=pmol), pmol
 
-def fpiao(mol, coeffs, x=1.0, source_basis='minao'):
-    """Polarized IAO using polarization from ANO."""
-    pmol = reference_mol(mol, polarized=True, pol_basis='ano', source_basis=source_basis, x=x)
+def fpiao(mol, coeffs, x=1.0, source_basis='minao', pol_basis='ano'):
+    """Polarized IAO using polarization from specified basis (default ANO)."""
+    pmol = reference_mol(mol, polarized=True, pol_basis=pol_basis, source_basis=source_basis, x=x)
     return _do_iao(mol, coeffs, pmol=pmol), pmol
 
 def autosad(mol, mf, free_atom=True, mode=None, polarized=False):
