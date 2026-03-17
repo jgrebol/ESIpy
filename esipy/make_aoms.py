@@ -31,7 +31,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
     S = mf.get_ovlp()
     
     def get_iao_aoms(p_type, c, current_mf, w_override=None):
-        from esipy.iao import iao, piao, fpiao, get_effaos, reference_mol, autosad
+        from esipy.iao import iao, get_effaos, reference_mol, autosad
 
         w = w_override if w_override is not None else weight
 
@@ -40,10 +40,6 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
             U_nonorth, pmol = iao(mol, c, source_basis=basis, pol_basis=iaopol)
         elif p_type == "iao":
             U_nonorth, pmol = iao(mol, c, source_basis=iaoref, pol_basis=iaopol)
-        elif p_type == "piao":
-            # If iaopol is None, piao uses 'working'
-            pol = iaopol if iaopol is not None else 'working'
-            U_nonorth, pmol = piao(mol, c, source_basis=iaoref, pol_basis=pol)
         elif p_type in ["fpiao", "fpiao1"]:
             # If iaopol is None, fpiao uses 'ano'
             pol = iaopol if iaopol is not None else 'ano'
@@ -51,7 +47,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
         elif p_type == "dfpiao":
             # DFPIAO = w * IAO + (1-w) * FPIAO
             aom_iao = get_iao_aoms("iao", c, current_mf)
-            # For fpiao inside dfpiao, we might want w=1.0 if not specified
+            # For fpiao inside dfwe might want w=1.0 if not specified
             aom_fpiao = get_iao_aoms("fpiao", c, current_mf, w_override=1.0)
             pmol = reference_mol(mol, polarized=False, source_basis=iaoref) 
             return [w * aom_iao[i] + (1 - w) * aom_fpiao[i] for i in range(pmol.natm)]
@@ -117,11 +113,9 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
             if partition == "piao-iao":
                 print(f" | Averaging AOMs for combined partition (IAO weight = {weight})...")
                 aom_iao_a = get_iao_aoms("iao", coeff_alpha, mf)
-                aom_piao_a = get_iao_aoms("piao", coeff_alpha, mf)
                 aom_alpha = [weight * aom_iao_a[i] + (1 - weight) * aom_piao_a[i] for i in range(mol.natm)]
                 
                 aom_iao_b = get_iao_aoms("iao", coeff_beta, mf)
-                aom_piao_b = get_iao_aoms("piao", coeff_beta, mf)
                 aom_beta = [weight * aom_iao_b[i] + (1 - weight) * aom_piao_b[i] for i in range(mol.natm)]
             else:
                 aom_alpha = get_iao_aoms(partition, coeff_alpha, mf)
@@ -160,7 +154,6 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
             if partition == "piao-iao":
                 print(f" | Averaging AOMs for combined partition (IAO weight = {weight})...")
                 aom_iao = get_iao_aoms("iao", coeff, mf)
-                aom_piao = get_iao_aoms("piao", coeff, mf)
                 aom = [weight * aom_iao[i] + (1 - weight) * aom_piao[i] for i in range(mol.natm)]
             else:
                 aom = get_iao_aoms(partition, coeff, mf)
@@ -214,12 +207,12 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
                     return np.dot(S, U_inv), pmol
 
                 U_iao, pmol_iao = get_U_iao("iao", coeff_hf)
-                U_piao, pmol_piao = get_U_iao("piao", coeff_hf)
+                U_pmol_piao = get_U_iao("piao", coeff_hf)
                 eta = build_eta(pmol_iao) 
                 
                 for i in range(pmol_iao.natm):
                     aom_iao_i = np.linalg.multi_dot((coeff.T, U_iao, eta[i], U_iao.T, coeff))
-                    aom_piao_i = np.linalg.multi_dot((coeff.T, U_piao, eta[i], U_piao.T, coeff))
+                    aom_piao_i = np.linalg.multi_dot((coeff.T, U_eta[i], U_piao.T, coeff))
                     aom.append(weight * aom_iao_i + (1 - weight) * aom_piao_i)
             else:
                 aom = get_iao_aoms(partition, coeff, myhf) 

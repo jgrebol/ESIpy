@@ -7,175 +7,87 @@ from pyscf.lo import orth
 def spherical_average(mol, ia, mat, overlap):
     """
     Performs spherical averaging of a property matrix for atom 'ia'.
-    Returns eigenvalues and eigenvectors grouped by shell.
+    Uses PySCF's native _prenao_sub logic for AO slicing and averaging.
+    Returns eigenvalues, eigenvectors (in full AO space), and an L-map.
     """
-    # Identify shells belonging to this atom
-    all_l = [mol.bas_angular(ib) for ib in range(mol.nbas)]
-    all_atoms = [mol.bas_atom(ib) for ib in range(mol.nbas)]
-    
-    atom_shell_indices = [ib for ib, at in enumerate(all_atoms) if at == ia]
-    l_vals = [all_l[ib] for ib in atom_shell_indices]
-    unique_l = sorted(list(set(l_vals)))
-    
     ao_loc = mol.ao_loc_nr()
-    atom_start = mol.aoslice_by_atom()[ia, 2]
-    
-    all_w = []
-    all_c = np.zeros_like(mat)
-    l_map = [] 
-    current_col = 0
-    
-    for l in unique_l:
-        # Number of components per contracted shell
-        degen = 2 * l + 1 if not mol.cart else (l + 1) * (l + 2) // 2
-        
-        # Collect all contracted shells of this L
-        # Note: one 'ib' in mol._bas can have multiple contracted shells (n_contr > 1)
-        subshells = []
-        for ib in atom_shell_indices:
-            if mol.bas_angular(ib) == l:
-                n_contr = mol.bas_nctr(ib)
-                p0 = ao_loc[ib] - atom_start
-                for k in range(n_contr):
-                    # Index of first AO of this contracted subshell
-                    subshells.append(p0 + k * degen)
-        
-        n_shells = len(subshells)
-        mat_red = np.zeros((n_shells, n_shells))
-        ovlp_red = np.zeros((n_shells, n_shells))
-        
-        for i, p0 in enumerate(subshells):
-            for j, q0 in enumerate(subshells):
-                # We average over the 'degen' components
-                # The components are usually ordered: (s0_m0, s0_m1, ..., s1_m0, s1_m1, ...)
-                # WAIT: in PySCF, if n_contr > 1, the order is (s0_m0, s1_m0, ..., s0_m1, s1_m1, ...)
-                # Let's verify this. Actually, standard PySCF AO order for n_contr > 1:
-                # [shell0_comp0, shell1_comp0, ..., shell0_comp1, shell1_comp1, ...]
-                # So the 'degen' components of shell 'i' are NOT contiguous!
-                
-                # Let's find the indices of the 'degen' components for subshell i
-                # ib is the parent shell index
-                # i is the subshell index within the L-group
-                
-                # Correction: loop over components m
-                val_mat = 0.0
-                val_ovlp = 0.0
-                for m in range(degen):
-                    # In PySCF, the AO index for (subshell i, component m) is p0 + m*n_shells_in_ib?
-                    # No, let's use a safer approach:
-                    pass
-        
-        # Simplified approach: assume n_contr = 1 for now or handle the PySCF mapping
-        # Most modern bases in PySCF are n_contr=1 expanded.
-        # If n_contr > 1, we'll just use the trace over the whole block.
-        for i, ib in enumerate(shell_indices_l := [ib for ib in atom_shell_indices if mol.bas_angular(ib) == l]):
-            for j, jb in enumerate(shell_indices_l):
-                p0, p1 = ao_loc[ib] - atom_start, ao_loc[ib+1] - atom_start
-                q0, q1 = ao_loc[jb] - atom_start, ao_loc[jb+1] - atom_start
-                
-                # Average the block (Trace / dimensionality)
-                # This works correctly even if n_contr > 1, as it averages all functions of this L
-                mat_red_block = mat[p0:p1, q0:q1]
-                ovlp_red_block = overlap[p0:p1, q0:q1]
-                
-                # mat_red_block is (degen*n_contr_i) x (degen*n_contr_j)
-                # We want to extract the (n_contr_i x n_contr_j) radial part
-                ni, nj = mol.bas_nctr(ib), mol.bas_nctr(jb)
-                m_sub = np.zeros((ni, nj))
-                o_sub = np.zeros((ni, nj))
-                for ki in range(ni):
-                    for kj in range(nj):
-                        # Sum over components m
-                        s = 0.0
-                        so = 0.0
-                        for m in range(degen):
-                            # PySCF ordering: component m is at p0 + m*ni + ki
-                            idx_i = ki + m * ni
-                            idx_j = kj + m * nj
-                            s += mat_red_block[idx_i, idx_j]
-                            so += ovlp_red_block[idx_i, idx_j]
-                        m_sub[ki, kj] = s / degen
-                        o_sub[ki, kj] = so / degen
-                
-                # Now we need to place m_sub into the larger mat_red
-                # We'll re-structure mat_red to be N_contracted_shells total
-                pass
+    bas_ang = mol._bas[:, gto.ANG_OF]
 
-    # Actually, let's use a simpler, more robust logic for mat_red
-    # 1. Expand shells so each ib has n_contr=1
-    # 2. Compute mat_red
-    
-    # 1. Identify all subshells (L, atom, indices in local atom matrix)
-    atom_subshells = []
-    for ib in atom_shell_indices:
-        l = mol.bas_angular(ib)
-        ni = mol.bas_nctr(ib)
-        degen = 2*l+1 if not mol.cart else (l+1)*(l+2)//2
-        p0 = ao_loc[ib] - atom_start
-        for k in range(ni):
-            indices = [p0 + k + m*ni for m in range(degen)]
-            atom_subshells.append({'l': l, 'indices': indices})
-            
-    unique_l = sorted(list(set(s['l'] for s in atom_subshells)))
-    
     all_w = []
     all_c = np.zeros((mat.shape[0], mat.shape[0]))
     l_map = []
     current_col = 0
-    
-    for l in unique_l:
-        l_subshells = [s for s in atom_subshells if s['l'] == l]
-        n = len(l_subshells)
-        mat_red = np.zeros((n, n))
-        ovlp_red = np.zeros((n, n))
-        
-        for i in range(n):
-            for j in range(n):
-                idx_i = l_subshells[i]['indices']
-                idx_j = l_subshells[j]['indices']
-                # Average over components
-                s = 0.0
-                so = 0.0
-                for m in range(len(idx_i)):
-                    s += mat[idx_i[m], idx_j[m]]
-                    so += overlap[idx_i[m], idx_j[m]]
-                mat_red[i, j] = s / len(idx_i)
-                ovlp_red[i, j] = so / len(idx_i)
-        
-        # Solve GEVP
+
+    # Get basis slice for the target atom
+    b0, b1, p0_atom, p1_atom = mol.aoslice_by_atom()[ia]
+    if b1 <= b0:
+        return np.array(all_w), all_c, np.array(l_map)
+
+    l_max = bas_ang[b0:b1].max()
+
+    for l in range(l_max + 1):
+        # Find all shells on this atom with angular momentum l
+        ib_l = np.where(bas_ang[b0:b1] == l)[0]
+        if len(ib_l) == 0:
+            continue
+
+        # Extract all AO indices for this L
+        idx = []
+        for ib in ib_l:
+            idx.append(np.arange(ao_loc[b0+ib] - p0_atom, ao_loc[b0+ib+1] - p0_atom))
+        idx = np.hstack(idx)
+
+        # Determine degeneracy (Spherical vs Cartesian)
+        if mol.cart:
+            degen = (l + 1) * (l + 2) // 2
+        else:
+            degen = l * 2 + 1
+
+        n_shells = len(idx) // degen
+        idx_reshaped = idx.reshape(-1, degen)
+
+        # Average the matrix blocks over the degenerate components
+        p_frag = np.zeros((n_shells, n_shells))
+        s_frag = np.zeros((n_shells, n_shells))
+        for i in range(n_shells):
+            for j in range(n_shells):
+                p_frag[i, j] = np.trace(mat[np.ix_(idx_reshaped[i], idx_reshaped[j])]) / degen
+                s_frag[i, j] = np.trace(overlap[np.ix_(idx_reshaped[i], idx_reshaped[j])]) / degen
+
+        # Solve Generalized Eigenvalue Problem directly as PySCF does
         try:
-            e, v = scipy.linalg.eigh(ovlp_red)
-            e[e < 1e-14] = 1e-14
-            s_inv_half = v @ np.diag(1.0 / np.sqrt(e)) @ v.T
-            w, c_prime = scipy.linalg.eigh(s_inv_half @ mat_red @ s_inv_half)
-            c_red = s_inv_half @ c_prime
-        except:
-            w, c_red = scipy.linalg.eigh(mat_red)
-            
-        # Sort descending
-        idx = np.argsort(w)[::-1]
-        w, c_red = w[idx], c_red[:, idx]
-        
-        print(f"L={l} Shell Occupations (Averaged): {w}")
-        
-        degen = len(l_subshells[0]['indices'])
-        for iw in range(n):
-            val = w[iw]
+            e, v = scipy.linalg.eigh(p_frag, s_frag)
+        except scipy.linalg.LinAlgError:
+            # Fallback if overlap is ill-conditioned
+            e, v = scipy.linalg.eigh(p_frag)
+
+        # Sort descending by occupation
+        sort_idx = np.argsort(e)[::-1]
+        e = e[sort_idx]
+        v = v[:, sort_idx]
+
+        print(f"L={l} Shell Occupations (Averaged): {e}")
+
+        # Map back to full AO space and duplicate for each degenerate component
+        for iw in range(n_shells):
+            val = e[iw]
             for m in range(degen):
                 v_full = np.zeros(mat.shape[0])
-                for i in range(n):
-                    # Radial coefficient c_red[i, iw] for subshell i, component m
-                    v_full[l_subshells[i]['indices'][m]] = c_red[i, iw]
-                
-                # Norm
+
+                # Scatter the reduced eigenvector back into the full AO index map
+                for i_shell in range(n_shells):
+                    v_full[idx_reshaped[i_shell, m]] = v[i_shell, iw]
+
+                # Normalize the eigenvector in the full overlap metric
                 norm = np.sqrt(v_full.T @ overlap @ v_full)
-                if norm > 1e-14: v_full /= norm
-                
+                if norm > 1e-14:
+                    v_full /= norm
+
                 all_w.append(val)
-                l_map.append(l)
+                l_map.append(l)  # <--- Tracking L corresponding to this eigenvalue
                 all_c[:, current_col] = v_full
                 current_col += 1
-                
+
     return np.array(all_w), all_c, np.array(l_map)
 
 def get_num_minbas_per_l(sym, polarized=False):
@@ -235,9 +147,13 @@ def get_reference_basis_dict(mol, source_basis='minao', pol_basis=None, x=1.0):
             l = shell[0]
             if l in target_pol_l and l not in target_l:
                 if l_counts.get(l, 0) < target_pol_l[l]:
-                    prim = shell[1]
-                    scaled_exp = prim[0] * x
-                    new_pol_atom.append([l, [scaled_exp, 1.0]])
+                    # Build a new shell preserving all primitives and contraction coefficients
+                    new_shell = [l]
+                    for prim in shell[1:]:
+                        scaled_exp = prim[0] * x
+                        contraction_coeff = prim[1]
+                        new_shell.append([scaled_exp, contraction_coeff])
+                    new_pol_atom.append(new_shell)
                     l_counts[l] = l_counts.get(l, 0) + 1
         return new_pol_atom
 
@@ -271,13 +187,18 @@ def get_effaos(mol, mf, free_atom=True, mode=None, polarized=False):
 
     if not free_atom:
         if mode in ["lowdin", "meta-lowdin"]:
-            if mode == "lowdin": T = orth.lowdin(S_mol)
+            if mode == "lowdin":
+                T = orth.lowdin(S_mol)
             else:
                 from pyscf.lo.orth import orth_ao
-                T = orth_ao(mf, 'meta_lowdin', pre_orth_ao="MINAO")
-            T_inv = scipy.linalg.sqrtm(S_mol)
-            P_mol = T_inv @ P_mol @ T_inv
+                # Removed pre_orth_ao="ANO" to prevent projection artifacts
+                T = orth_ao(mf, 'meta_lowdin')
+
+            # Exact analytical inverse
+            T_inv = T.T @ S_mol
+            P_mol = T_inv @ P_mol @ T_inv.T
             S_mol = np.eye(mol.nao)
+
         elif mode == "gross":
             P_mol = (P_mol @ S_mol + S_mol @ P_mol) / 2
             S_mol = np.eye(mol.nao)
@@ -337,6 +258,8 @@ def get_effaos(mol, mf, free_atom=True, mode=None, polarized=False):
             # Identify shells by unique eigenvalues (degenerate components share same eigenvalue)
             _, shell_start_indices = np.unique(np.round(w_l, 10), return_index=True)
             shell_start_indices = np.sort(shell_start_indices)
+
+            # Truncation: Keep only the target_n_shells (e.g., top 1s, 2s, 2p)
             for s_idx in range(min(target_n_shells, len(shell_start_indices))):
                 start = shell_start_indices[s_idx]
                 end = shell_start_indices[s_idx+1] if s_idx+1 < len(shell_start_indices) else len(l_idx)
@@ -384,7 +307,7 @@ def autosad(mol, mf, free_atom=True, mode=None, polarized=False):
         w, effaos, pmol = get_effaos(mol, mf, free_atom=free_atom, mode=mode, polarized=polarized)
         return _do_iao(mol, C_occ, A_basis=effaos)
     if "U" in mf.__class__.__name__:
-        ca, cb = mf.mo_coeff; return (do_autosad(mol, mf, ca[:, :mf.nelec[0]], free_atom, mode, polarized), 
+        ca, cb = mf.mo_coeff; return (do_autosad(mol, mf, ca[:, :mf.nelec[0]], free_atom, mode, polarized),
                                       do_autosad(mol, mf, cb[:, :mf.nelec[1]], free_atom, mode, polarized)), reference_mol(mol)
     return do_autosad(mol, mf, mf.mo_coeff[:, :mol.nelectron // 2], free_atom, mode, polarized), reference_mol(mol)
 
@@ -392,3 +315,4 @@ def dfpiao(mol, coeffs, x=0.5, source_basis='minao', pol_basis='ano'):
     res_iao = iao(mol, coeffs, source_basis=source_basis)
     res_fpiao = fpiao(mol, coeffs, x=1.0, source_basis=source_basis, pol_basis=pol_basis)
     return res_iao, res_fpiao
+
