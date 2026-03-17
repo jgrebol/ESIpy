@@ -1,5 +1,154 @@
 #!/usr/bin/env python3
-from esipy.cli import main
+from esipy.input import ESIInput
+from esipy.readfchk import readfchk
+from esipy import ESI
+from esipy.tools import format_partition
+import sys
+import os
+
+# You don't necessarily need a main() function anymore,
+# but keeping it is good practice to prevent variable leaking.
+def main():
+    if len(sys.argv) < 2 or sys.argv[1] in ["-h", "--help"]:
+        print("Usage: esipy <inputfile>")
+        print("\nCalculate electronic aromaticity indicators using ESIpy.")
+        print("\nOptions:")
+        print("  -h, --help    Show this help message and exit")
+        sys.exit(1)
+
+    inputfile = sys.argv[1]
+    if not os.path.isfile(inputfile):
+        print(f"Error: The input file '{inputfile}' does not exist.")
+        sys.exit(1)
+    inp = ESIInput.from_file(inputfile)
+
+    mol = None
+    mf = None
+    molname = None  # molecule/calculation name for subdirectory
+
+    if inp.mode == 'fchk':
+        if not inp.fchk_file:
+            print("No fchk file specified in input.")
+            sys.exit(1)
+        if not os.path.isfile(inp.fchk_file):
+            print(f"Error: The file '{inp.fchk_file}' does not exist.")
+            sys.exit(1)
+        mol, mf = readfchk(inp.fchk_file)
+        molname = os.path.splitext(os.path.basename(inp.fchk_file))[0]
+
+    elif inp.mode == 'readint':
+        if not inp.readpath:
+            print("No directory specified for $READINT.")
+            sys.exit(1)
+        mol, mf = None, None
+        molname = inp.readpath
+
+    elif inp.mode == 'readaoms':
+        if not inp.aomname:
+            print("No AOM base name specified for $READAOMS.")
+            sys.exit(1)
+        molname = inp.aomname
+        mol, mf = None, None
+
+    else:
+        print(f"Unknown input mode: {inp.mode}")
+        sys.exit(1)
+
+    flurefs = None
+    if inp.fluref:
+        flurefs = {f"REF{i+1}": v for i, v in enumerate(inp.fluref)}
+
+    partitions = inp.partition if inp.partition else ['meta_lowdin']
+
+    if inp.mci is True:
+        mci_kwargs = {'mci': True}
+    elif inp.mci is False:
+        mci_kwargs = {'mci': False}
+    else:
+        mci_kwargs = {}
+
+    extra_kwargs = {}
+    if inp.iaomix is not None:
+        extra_kwargs['iaomix'] = inp.iaomix
+    if inp.iaoref is not None:
+        extra_kwargs['iaoref'] = inp.iaoref
+    if inp.iaopol is not None:
+        extra_kwargs['iaopol'] = inp.iaopol
+    if inp.ncores is not None:
+        extra_kwargs['ncores'] = inp.ncores
+
+    av1245 = True if inp.av1245 else None
+
+    if inp.save is True:
+        save_name = molname
+    elif inp.save:
+        save_name = inp.save
+    else:
+        save_name = None
+
+    findrings = inp.findrings
+    exclude = inp.exclude if inp.exclude else None
+    minlen = inp.minlen if inp.minlen else 6
+    maxlen = inp.maxlen if inp.maxlen else 12
+
+    if findrings:
+        rings = "find"
+    elif inp.rings:
+        rings = inp.rings
+    elif inp.fragments:
+        rings = inp.fragments.copy()
+    else:
+        rings = None
+
+    if rings and inp.fragments:
+        def replace_fragments(ring, fragments):
+            result = []
+            for atom in ring:
+                found = False
+                for frag in fragments:
+                    if atom in frag:
+                        result.append(frag)
+                        found = True
+                        break
+                if not found:
+                    result.append(atom)
+            return result
+        if isinstance(rings[0], list):
+            rings = [replace_fragments(ring, inp.fragments) for ring in rings]
+        else:
+            rings = replace_fragments(rings, inp.fragments)
+
+    for partition in partitions:
+        if inp.mode == 'readaoms':
+            partition = format_partition(partition)
+            aom = inp.aomname + '_' + partition + '.aoms'
+            molinfo = inp.aomname + '_' + partition + '.molinfo'
+            esi = ESI(aom=aom, rings=rings, partition=partition, molinfo=molinfo,
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, **extra_kwargs)
+        elif inp.mode == 'readint':
+            from esipy.tools import format_short_partition
+            shortpart = format_short_partition(partition)
+            if shortpart == "qtaim":
+                partition_dir = inp.readpath + '_atomicfiles'
+            else:
+                partition_dir = inp.readpath + '_' + shortpart + '_atomicfiles'
+            esi = ESI(read=True, readpath=partition_dir, rings=rings, partition=partition,
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, **extra_kwargs)
+            esi.readaoms()
+        else:
+            esi = ESI(mol=mol, mf=mf, rings=rings, partition=partition, flurefs=flurefs,
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, **extra_kwargs)
+        esi.print()
+
+        if inp.mciaprox:
+            for alg, d in inp.mciaprox:
+                esi.mciaprox(mcialg=alg, d=d)
+
+        if inp.writeaoms:
+            write_name = save_name if save_name else molname
+            if write_name:
+                esi.writeaoms(write_name)
 
 if __name__ == "__main__":
     main()
+

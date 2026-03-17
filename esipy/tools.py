@@ -479,6 +479,7 @@ def get_natorbs(mf, S):
 
     # Solve generalized eigenproblem to obtain NOs and occupancies
     occ, coeff = eigh(np.linalg.multi_dot((S, D, S)), b=S)
+    print(f"DEBUG: eigh eigenvalues (occupancies): {occ}")
 
     # Order descending
     coeff = coeff[:, ::-1]

@@ -1,6 +1,5 @@
 from setuptools import setup
 
-# Read the long description from README.md
 with open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
@@ -13,11 +12,11 @@ setup(
     author="Joan Grebol, Eduard Matito, Pedro Salvador",
     url="https://github.com/jgrebol/ESIpy",
     packages=["esipy"],
-    entry_points={
-        "console_scripts": [
-            "esipy=esipy.cli:main",
-        ],
-    },
+    # REMOVED entry_points block
+    # ADDED the scripts block:
+    scripts=[
+        "scripts/esipy"
+    ],
     install_requires=[
         "numpy",
         "pyscf<=2.8.0",

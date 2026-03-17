@@ -49,12 +49,15 @@ def spherical_average(mol, ia, mat, overlap):
         try:
             # S^-1/2 transformation for stability
             e, v = scipy.linalg.eigh(ovlp_red)
+            print(f"DEBUG: Overlap eigenvalues: {e}")
             e[e < 1e-14] = 1e-14
             s_inv_half = v @ np.diag(1.0 / np.sqrt(e)) @ v.T
             w, c_prime = scipy.linalg.eigh(s_inv_half @ mat_red @ s_inv_half)
+            print(f"DEBUG: Property matrix (scaled) eigenvalues: {w}")
             c_red = s_inv_half @ c_prime
         except Exception:
             w, c_red = scipy.linalg.eigh(mat_red)
+            print(f"DEBUG: Property matrix eigenvalues (EVP): {w}")
 
         print(f"L={l} Eigenvalues: {w}")
 
