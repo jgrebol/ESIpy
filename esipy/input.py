@@ -104,7 +104,7 @@ class ESIInput:
                                 obj.partition.append(f"fpiao({val})")
                                 obj.partition.append(f"dfpiao({val})")
                                 obj.partition.append(f"xiao_dfpiao({val})")
-                        elif pup == "ALLEFFAO":
+                        elif pup == "ALLEFFAO" or pup == "ALLEFAO":
                             obj.partition.extend(['iao', 'iao-autosad', 'iao-effao-lowdin', 'iao-effao-metalowdin', 'iao-effao-gross', 'iao-effao-net', 'iao-effao-sps', 'iao-effao-spsa', 'iao-effao-symmetric'])
                         elif pup == "WIPALL":
                             # Base partitions

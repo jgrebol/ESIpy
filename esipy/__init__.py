@@ -74,7 +74,7 @@ class IndicatorsRest:
         :returns: The Iring value
             :rtype: float
         """
-        return 4 * compute_iring(self._rings, self._aom)
+        return 2 * compute_iring(self._rings, self._aom)
 
     @property
     def mci(self):
@@ -89,7 +89,7 @@ class IndicatorsRest:
                 self._done_mci = sequential_mci(self._rings, self._aom, self._partition)
             else:
                 self._done_mci = multiprocessing_mci(self._rings, self._aom, self._ncores, self._partition)
-        return 4 * self._done_mci
+        return 2 * self._done_mci
 
     def _av(self):
         """
@@ -402,7 +402,7 @@ class IndicatorsUnrest:
                 mci_beta = multiprocessing_mci(self._rings, self._aom[1], self._ncores,
                                                self._partition)
             self._done_mcis = (mci_alpha, mci_beta)
-        return 4 * self._done_mcis
+        return self._done_mcis
 
     @property
     def mci(self):

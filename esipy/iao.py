@@ -56,6 +56,8 @@ def spherical_average(mol, ia, mat, overlap):
         except Exception:
             w, c_red = scipy.linalg.eigh(mat_red)
 
+        print(f"L={l} Eigenvalues: {w}")
+
         # Sort descending
         idx = np.argsort(w)[::-1]
         w, c_red = w[idx], c_red[:, idx]
