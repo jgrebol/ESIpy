@@ -31,7 +31,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
     S = mf.get_ovlp()
     
     def get_iao_aoms(p_type, c, current_mf, w_override=None):
-        from esipy.iao import iao, get_effaos, reference_mol, autosad
+        from esipy.iao import iao, fpiao, dfpiao, get_effaos, reference_mol, autosad
 
         w = w_override if w_override is not None else weight
 

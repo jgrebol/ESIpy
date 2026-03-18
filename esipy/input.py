@@ -98,24 +98,17 @@ class ESIInput:
                             obj.partition.extend(
                                 ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
                         elif pup == "ALLWIP":
-                            obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'piao', 'iao-autosad', 'iao-effao-lowdin', 'iao-effao-metalowdin', 'iao-effao-gross', 'iao-effao-net', 'iao-effao-sps', 'iao-effao-spsa', 'iao-effao-symmetric'])
+                            obj.partition.extend(["mulliken", "lowdin", "meta_lowdin", "nao", "iao", "iao-autosad", "iao-effao-lowdin", "iao-effao-metalowdin", "iao-effao-gross", "iao-effao-net", "iao-effao-sps", "iao-effao-spsa", "iao-effao-symmetric"])
+                        elif pup == "ALLEFFAO" or pup == "ALLEFAO":
+                            obj.partition.extend(["iao", "iao-autosad", "iao-effao-lowdin", "iao-effao-metalowdin", "iao-effao-gross", "iao-effao-net", "iao-effao-sps", "iao-effao-spsa", "iao-effao-symmetric"])
+                        elif pup == "WIPALL":
+                            obj.partition.extend(["mulliken", "lowdin", "meta_lowdin", "nao", "iao", "iao-autosad", "iao-effao-lowdin", "iao-effao-metalowdin", "iao-effao-gross", "iao-effao-net", "iao-effao-sps", "iao-effao-spsa", "iao-effao-symmetric"])
                             for val in obj.iaomix:
-                                obj.partition.append(f"piao-iao({val})")
                                 obj.partition.append(f"fpiao({val})")
                                 obj.partition.append(f"dfpiao({val})")
                                 obj.partition.append(f"xiao_dfpiao({val})")
-                        elif pup == "ALLEFFAO" or pup == "ALLEFAO":
-                            obj.partition.extend(['iao', 'iao-autosad', 'iao-effao-lowdin', 'iao-effao-metalowdin', 'iao-effao-gross', 'iao-effao-net', 'iao-effao-sps', 'iao-effao-spsa', 'iao-effao-symmetric'])
-                        elif pup == "WIPALL":
-                            # Base partitions
-                            obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'piao', 'iao-autosad', 'iao-effao-lowdin', 'iao-effao-metalowdin', 'iao-effao-gross', 'iao-effao-net', 'iao-effao-sps', 'iao-effao-spsa', 'iao-effao-symmetric'])
-                            # Mixes and scaled
-                            for val in obj.iaomix:
-                                obj.partition.append(f"piao-iao({val})")
-                                obj.partition.append(f"fpiao({val})")
-                                obj.partition.append(f"dfpiao({val})")
                         elif pup == "ALLEDU":
-                            obj.partition.extend(['piao', 'iao_6-31G', 'iao_cc-pVDZ', 'iao_STO-3G'])
+                            obj.partition.extend(["iao_6-31G", "iao_cc-pVDZ", "iao_STO-3G"])
                             for val in obj.iaomix:
                                 obj.partition.append(f"fpiao({val})")
                                 obj.partition.append(f"dfpiao({val})")
@@ -123,11 +116,14 @@ class ESIInput:
                         elif pup == 'ROBUST':
                             obj.partition.extend(['meta_lowdin', 'nao', 'iao'])
                         else:
-                            p_str = p.strip().lower()
-                            if p_str.startswith("iaomix("):
-                                obj.partition.append(p_str.replace("iaomix(", "piao-iao("))
+                            p_parts = p.strip().split()
+                            p_name = p_parts[0].lower()
+                            if p_name in ["fpiao", "dfpiao", "xiao_dfpiao"] and len(p_parts) > 1:
+                                obj.partition.append(f"{p_name}({p_parts[1]})")
+                            elif p_name.startswith("iaomix("):
+                                obj.partition.append(p_name.replace("iaomix(", "dfpiao("))
                             else:
-                                obj.partition.append(p_str)
+                                obj.partition.append(p_name)
                     i += 1
                 i -= 1
             elif line.upper().startswith('$ALLPARTS') or line.upper().startswith('$ALLPARTITIONS'):

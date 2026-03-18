@@ -3,96 +3,93 @@ import scipy.linalg
 from pyscf import gto, scf
 from pyscf.data import elements
 from pyscf.lo import orth
+from pyscf.lo.nao import _sph_average_mat, _cart_average_mat
 
 def spherical_average(mol, ia, mat, overlap):
     """
-    Performs spherical averaging of a property matrix for atom 'ia'.
-    Uses PySCF's native _prenao_sub logic for AO slicing and averaging.
-    Returns eigenvalues, eigenvectors (in full AO space), and an L-map.
+    Exact clone of PySCF's _prenao_sub logic applied to a single atom block,
+    augmented to keep track of angular momentum (l_map) and shell rank (shell_map)
+    for robust minimal basis extraction.
     """
     ao_loc = mol.ao_loc_nr()
+    aoslices = mol.aoslice_by_atom()
+    b0, b1, p0, p1 = aoslices[ia]
+    nao_atom = p1 - p0
+
+    occ = np.zeros(nao_atom)
+    cao = np.zeros((nao_atom, nao_atom), dtype=overlap.dtype)
+    l_map = np.full(nao_atom, -1, dtype=int)
+    shell_map = np.full(nao_atom, -1, dtype=int)
+
+    # Trace conservation check
+    if np.allclose(overlap, np.eye(overlap.shape[0])):
+        trace_before = np.trace(mat)
+    else:
+        try:
+            # Trace of generalized eigenvalue problem is trace(S^-1 P)
+            trace_before = np.trace(scipy.linalg.solve(overlap, mat, assume_a='pos'))
+        except:
+            trace_before = np.trace(np.linalg.pinv(overlap) @ mat)
+
     bas_ang = mol._bas[:, gto.ANG_OF]
-
-    all_w = []
-    all_c = np.zeros((mat.shape[0], mat.shape[0]))
-    l_map = []
-    current_col = 0
-
-    # Get basis slice for the target atom
-    b0, b1, p0_atom, p1_atom = mol.aoslice_by_atom()[ia]
     if b1 <= b0:
-        return np.array(all_w), all_c, np.array(l_map)
+        return occ, cao, l_map, shell_map
 
     l_max = bas_ang[b0:b1].max()
 
     for l in range(l_max + 1):
-        # Find all shells on this atom with angular momentum l
-        ib_l = np.where(bas_ang[b0:b1] == l)[0]
-        if len(ib_l) == 0:
-            continue
-
-        # Extract all AO indices for this L
         idx = []
-        for ib in ib_l:
-            idx.append(np.arange(ao_loc[b0+ib] - p0_atom, ao_loc[b0+ib+1] - p0_atom))
+        for ib in np.where(bas_ang[b0:b1] == l)[0]:
+            # Make indices relative to the atom block
+            idx.append(np.arange(ao_loc[b0+ib] - p0, ao_loc[b0+ib+1] - p0))
+        if len(idx) == 0:
+            continue
         idx = np.hstack(idx)
 
-        # Determine degeneracy (Spherical vs Cartesian)
+        # Spherical or Cartesian averaging
         if mol.cart:
             degen = (l + 1) * (l + 2) // 2
+            p_frag = _cart_average_mat(mat, l, idx)
+            s_frag = _cart_average_mat(overlap, l, idx)
         else:
-            degen = l * 2 + 1
+            degen = 2 * l + 1
+            p_frag = _sph_average_mat(mat, l, idx)
+            s_frag = _sph_average_mat(overlap, l, idx)
 
-        n_shells = len(idx) // degen
-        idx_reshaped = idx.reshape(-1, degen)
-
-        # Average the matrix blocks over the degenerate components
-        p_frag = np.zeros((n_shells, n_shells))
-        s_frag = np.zeros((n_shells, n_shells))
-        for i in range(n_shells):
-            for j in range(n_shells):
-                p_frag[i, j] = np.trace(mat[np.ix_(idx_reshaped[i], idx_reshaped[j])]) / degen
-                s_frag[i, j] = np.trace(overlap[np.ix_(idx_reshaped[i], idx_reshaped[j])]) / degen
-
-        # Solve Generalized Eigenvalue Problem directly as PySCF does
+        # Solve Generalized Eigenvalue Problem
         try:
             e, v = scipy.linalg.eigh(p_frag, s_frag)
         except scipy.linalg.LinAlgError:
-            # Fallback if overlap is ill-conditioned
-            e, v = scipy.linalg.eigh(p_frag)
+            # Fallback for near-singular overlap
+            e_s, u_s = scipy.linalg.eigh(s_frag)
+            mask = e_s > 1e-12
+            s_inv_half = u_s[:, mask] @ np.diag(1.0 / np.sqrt(e_s[mask])) @ u_s[:, mask].T
+            e, v_prime = scipy.linalg.eigh(s_inv_half @ p_frag @ s_inv_half)
+            v = s_inv_half @ v_prime
 
-        # Sort descending by occupation
-        sort_idx = np.argsort(e)[::-1]
-        e = e[sort_idx]
-        v = v[:, sort_idx]
+        # Sort descending (This makes shell 0 the highest occ, shell 1 the next, etc.)
+        e = e[::-1]
+        v = v[:, ::-1]
 
-        print(f"L={l} Shell Occupations (Averaged): {e}")
+        # Map back to full atom block
+        idx = idx.reshape(-1, degen)
+        for k in range(degen):
+            ilst = idx[:, k]
+            occ[ilst] = e
+            l_map[ilst] = l
+            # Directly map the shell rank from the sorted eigenvalue array
+            shell_map[ilst] = np.arange(len(e))
+            for i, i0 in enumerate(ilst):
+                cao[i0, ilst] = v[i]
 
-        # Map back to full AO space and duplicate for each degenerate component
-        for iw in range(n_shells):
-            val = e[iw]
-            for m in range(degen):
-                v_full = np.zeros(mat.shape[0])
+    trace_after = np.sum(occ)
+    print(f"    Atom {ia:3d} ({mol.atom_symbol(ia):2s}): Trace before average = {trace_before:10.6f}, Trace after = {trace_after:10.6f}, Diff = {trace_before-trace_after:10.2e}")
 
-                # Scatter the reduced eigenvector back into the full AO index map
-                for i_shell in range(n_shells):
-                    v_full[idx_reshaped[i_shell, m]] = v[i_shell, iw]
-
-                # Normalize the eigenvector in the full overlap metric
-                norm = np.sqrt(v_full.T @ overlap @ v_full)
-                if norm > 1e-14:
-                    v_full /= norm
-
-                all_w.append(val)
-                l_map.append(l)  # <--- Tracking L corresponding to this eigenvalue
-                all_c[:, current_col] = v_full
-                current_col += 1
-
-    return np.array(all_w), all_c, np.array(l_map)
+    return occ, cao, l_map, shell_map
 
 def get_num_minbas_per_l(sym, polarized=False):
     z = elements.charge(sym)
-    if z <= 2:   d = {0: 1}  # 1s
+    if z <= 2:    d = {0: 1}  # 1s
     elif z <= 10:  d = {0: 2, 1: 1}  # 1s, 2s, 2p
     elif z <= 18:  d = {0: 3, 1: 2}  # 3s, 3p
     elif z <= 36:  d = {0: 4, 1: 3, 2: 1}  # 4s, 4p, 3d
@@ -112,7 +109,6 @@ def get_num_minbas_ao(mol, ia, polarized=False):
     sym = mol.atom_pure_symbol(ia)
     target_l = get_num_minbas_per_l(sym, polarized=polarized)
     total = 0
-    # Find degeneracies in the working basis
     for l, count in target_l.items():
         degen = 2*l+1
         for ib in range(mol.nbas):
@@ -147,7 +143,6 @@ def get_reference_basis_dict(mol, source_basis='minao', pol_basis=None, x=1.0):
             l = shell[0]
             if l in target_pol_l and l not in target_l:
                 if l_counts.get(l, 0) < target_pol_l[l]:
-                    # Build a new shell preserving all primitives and contraction coefficients
                     new_shell = [l]
                     for prim in shell[1:]:
                         scaled_exp = prim[0] * x
@@ -181,26 +176,32 @@ def get_effaos(mol, mf, free_atom=True, mode=None, polarized=False):
     vaps_diag = []
     S_mol = mol.intor("int1e_ovlp")
     if "U" in mf.__class__.__name__:
-        dm = mf.make_rdm1(ao_repr=True)
-        P_mol = dm[0] + dm[1] if dm.ndim == 3 else dm
+        dm = mf.make_rdm1(ao_repr=True); P_mol = dm[0] + dm[1] if dm.ndim == 3 else dm
     else:
         P_mol = mf.make_rdm1(ao_repr=True)
 
+    T_orth = None  # TRACK THE ORTHOGONALIZATION MATRIX
+
     if not free_atom:
+        print(f"| Eff-AO mode: {mode}")
         if mode in ["lowdin", "meta-lowdin"]:
             if mode == "lowdin":
-                T = orth.lowdin(S_mol)
+                T_orth = orth.lowdin(S_mol)
             else:
                 from pyscf.lo.orth import orth_ao
-                T = orth_ao(mf, 'meta_lowdin')
+                # mf is explicitly required here for occupations
+                T_orth = orth_ao(mf, 'meta_lowdin', pre_orth_ao="ANO")
 
-            T_inv = T.T @ S_mol # T^{T} S T = I  --> T^{T} S = T^{-1} 
+            T_inv = T_orth.T @ S_mol
             P_mol = T_inv @ P_mol @ T_inv.T
             S_mol = np.eye(mol.nao)
-
         elif mode == "gross":
-            P_mol = (P_mol @ S_mol + S_mol @ P_mol) / 2 # ((PS + SP)^A)/2
+            P_mol = (P_mol @ S_mol + S_mol @ P_mol) / 2
             S_mol = np.eye(mol.nao)
+
+    print(f"| Total population (trace of PS): {np.trace(P_mol @ S_mol):.10f}")
+    total_eff_pop = 0
+    total_kept_pop = 0
 
     aoslices = mol.aoslice_by_atom()
     col_idx = 0
@@ -214,6 +215,7 @@ def get_effaos(mol, mf, free_atom=True, mode=None, polarized=False):
 
         if free_atom:
             mol_at = gto.Mole(); mol_at.atom = f"{sym} 0 0 0"; mol_at.basis = {sym: mol._basis[sym]}
+            mol_at.verbose = 0
             mol_at.spin = atom_spins.get(sym, 0); mol_at.cart = mol.cart; mol_at.build()
             mf_at = scf.KS(mol_at) if "dft" in mf.__module__ else scf.HF(mol_at)
             if hasattr(mf, 'xc'): mf_at.xc = mf.xc
@@ -221,56 +223,59 @@ def get_effaos(mol, mf, free_atom=True, mode=None, polarized=False):
             dm_at = mf_at.make_rdm1()
             P_at = dm_at[0] + dm_at[1] if dm_at.ndim == 3 else dm_at
             S_at = mf_at.get_ovlp()
-            mat_block = S_at @ P_at @ S_at # S P S c = S c L
+            mat_block = S_at @ P_at @ S_at
             ovlp_block = S_at
-            w, c, l_map = spherical_average(mol_at, 0, mat_block, ovlp_block)
+            w, c, l_map, shell_map = spherical_average(mol_at, 0, mat_block, ovlp_block)
         else:
             if mode == "net":
                 Sa, Pa = S_mol[p0:p1, p0:p1], P_mol[p0:p1, p0:p1]
-                mat_block = Sa @ Pa @ Sa # S^A P^A S^A
-                ovlp_block = Sa # S^A
+                mat_block = Sa @ Pa @ Sa
+                ovlp_block = Sa
             elif mode == "gross" or mode in ["lowdin", "meta-lowdin"]:
-                mat_block = P_mol[p0:p1, p0:p1] # ((PS + SP)^A)/2
-                ovlp_block = np.eye(p1 - p0) # I
+                mat_block = P_mol[p0:p1, p0:p1]
+                ovlp_block = np.eye(p1 - p0)
             elif mode == "sym":
                 Pa, Sa = P_mol[p0:p1, p0:p1], S_mol[p0:p1, p0:p1]
-                mat_block = (Pa @ Sa + Sa @ Pa) / 2 # (P^A S^A + S^A P^A)/2
-                ovlp_block = np.eye(p1 - p0) # I
+                mat_block = (Pa @ Sa + Sa @ Pa) / 2
+                ovlp_block = np.eye(p1 - p0)
             elif mode == "sps":
-                mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1] # (SPS)^A
-                ovlp_block = np.eye(p1 - p0) # I
+                mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1]
+                ovlp_block = np.eye(p1 - p0)
             elif mode == "spsa":
-                mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1] # (SPS)^A
-                ovlp_block = S_mol[p0:p1, p0:p1] # S^A
+                mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1]
+                ovlp_block = S_mol[p0:p1, p0:p1]
             else:
                 mat_block = P_mol[p0:p1, p0:p1]
                 ovlp_block = S_mol[p0:p1, p0:p1]
-            w, c, l_map = spherical_average(mol, ia, mat_block, ovlp_block)
+            w, c, l_map, shell_map = spherical_average(mol, ia, mat_block, ovlp_block)
+
+        total_eff_pop += np.sum(w)
 
         final_idx = []
         unique_l = sorted(target_l_counts.keys())
         for l in unique_l:
             target_n_shells = target_l_counts[l]
-            l_idx = np.where(l_map == l)[0]
-            if len(l_idx) == 0: continue
-            w_l = w[l_idx]
-            # Identify shells by unique eigenvalues (degenerate components share same eigenvalue)
-            _, shell_start_indices = np.unique(np.round(w_l, 10), return_index=True)
-            shell_start_indices = np.sort(shell_start_indices)
+            # Grab strictly the required number of top-occupied shells
+            idx_keep = np.where((l_map == l) & (shell_map < target_n_shells))[0]
+            final_idx.extend(idx_keep)
 
-            # Truncation: Keep only the target_n_shells (e.g., top 1s, 2s, 2p)
-            for s_idx in range(min(target_n_shells, len(shell_start_indices))):
-                start = shell_start_indices[s_idx]
-                end = shell_start_indices[s_idx+1] if s_idx+1 < len(shell_start_indices) else len(l_idx)
-                final_idx.extend(l_idx[start:end])
+        final_idx = np.sort(final_idx)
 
         w_keep = w[final_idx]
+        total_kept_pop += np.sum(w_keep)
         c_keep = c[:, final_idx]
         veps_block[p0:p1, col_idx: col_idx + n_target] = c_keep
         vaps_diag.extend(w_keep)
         col_idx += n_target
 
-    print(f"\nFinal EffAO Eigenvalues for molecule (mode={mode}):")
+    # TRANSFORM BACK TO NON-ORTHOGONAL AO BASIS
+    if T_orth is not None:
+        veps_block = T_orth @ veps_block
+
+    print(f"| Sum of all Eff-AO eigenvalues: {total_eff_pop:.10f}")
+    print(f"| Sum of kept Eff-AO eigenvalues: {total_kept_pop:.10f}")
+
+    print(f"\nFinal EffAO Occupations for molecule (mode={mode}):")
     print(np.array(vaps_diag))
     return np.array(vaps_diag), veps_block, pmol
 
