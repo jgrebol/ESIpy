@@ -97,7 +97,7 @@ def compute_av1245(arr, aom, partition):
      :type arr: list of int
      :param aom: Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
      :type aom: list of matrices
-     :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
+     :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta-lowdin', 'nao', and 'iao'.
      :type partition: str
 
      :returns: The AV1245 index, the AVmin index, and each of the AV1245 in a list for the output, respectively.
@@ -123,7 +123,7 @@ def compute_av1245_no(arr, aom, partition):
      :type arr: list of int
      :param aom: Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
      :type aom: list of matrices
-     :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
+     :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta-lowdin', 'nao', and 'iao'.
      :type partition: str
 
      :returns: The AV1245 index, the AVmin index, and each of the AV1245 in a list for the output, respectively.
@@ -210,7 +210,7 @@ def find_flurefs(partition=None):
     level of theory.
 
     :param partition: Specifies the atom-in-molecule partition scheme.
-                      Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
+                      Options include 'mulliken', 'lowdin', 'meta-lowdin', 'nao', and 'iao'.
     :type partition: str
 
     :returns: Contains the reference DI for each bond.
@@ -225,7 +225,7 @@ def find_flurefs(partition=None):
     elif partition == "lowdin":
         return {"CC": 1.4910, "CN": 1.5864, "BN": 1.3165, "NN": 1.5277, "CS": 1.2213, "CO": 1.2368}
 
-    elif partition == "meta_lowdin":
+    elif partition == "meta-lowdin":
         return {"CC": 1.4392, "CN": 1.4521, "BN": 1.2048, "NN": 1.3700, "CS": 1.1455, "CO": 1.0802}
 
     elif partition == "nao":
@@ -260,7 +260,7 @@ def compute_flu(arr, molinfo, aom, flurefs=None, partition=None):
     :type aom: list of matrices
     :param flurefs: User-provided references for the FLU index.
     :type flurefs: dict, optional
-    :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
+    :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta-lowdin', 'nao', and 'iao'.
     :type partition: str, optional
 
     :returns: The FLU value for the given ring connectivity.

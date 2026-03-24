@@ -34,7 +34,7 @@ expected = {'mulliken': dict(exp_pop_atm1_a=3.1944, exp_pop_atm1_b=2.7968, exp_d
             'lowdin': dict(exp_pop_atm1_a=3.1460, exp_pop_atm1_b=2.7565, exp_di_all_a=0.9936, exp_di_all_b=0.9000,
                            exp_dis_sum_a=7.2857, exp_dis_sum_b=7.2612, exp_di_12_a=0.7227, exp_di_12_b=0.5574,
                            exp_iring=0.007371, exp_mci=-0.023151, exp_av=1.126, exp_pdi=0.062565, exp_avmin=-3.529),
-            'meta_lowdin': dict(exp_pop_atm1_a=3.1486, exp_pop_atm1_b=2.7591, exp_di_all_a=0.9933, exp_di_all_b=0.8999,
+            'meta-lowdin': dict(exp_pop_atm1_a=3.1486, exp_pop_atm1_b=2.7591, exp_di_all_a=0.9933, exp_di_all_b=0.8999,
                                 exp_dis_sum_a=7.2831, exp_dis_sum_b=7.2600, exp_di_12_a=0.7226, exp_di_12_b=0.5575,
                                 exp_iring=0.007380, exp_mci=-0.023148, exp_av=1.128, exp_pdi=0.062664,
                                 exp_avmin=-3.527),
@@ -120,7 +120,7 @@ class ESItest(unittest.TestCase):
         self.run_indicator_tests(partition, exp=exp)
 
     def test_meta_lowdin(self):
-        partition = 'meta_lowdin'
+        partition = 'meta-lowdin'
         exp = expected[partition]
         self.run_pop_tests(partition, exp=exp)
         self.run_indicator_tests(partition, exp=exp)

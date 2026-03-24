@@ -121,7 +121,7 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
     :type aom: list
     :param ring: Connectivity of the atoms in the ring. Can be more than one ring as a list of lists.
     :type ring: list of int, optional
-    :param partition: Partition scheme for the AOMs. Options are "mulliken", "lowdin", "meta_lowdin", "nao", "iao".
+    :param partition: Partition scheme for the AOMs. Options are "mulliken", "lowdin", "meta-lowdin", "nao", "iao".
     :type partition: str, optional
 
     :returns: None
@@ -196,7 +196,7 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
                 f.write(" Using Mulliken atomic definition\n")
             elif partition == "lowdin":
                 f.write(" Using Lowdin atomic definition\n")
-            elif partition == "meta_lowdin":
+            elif partition == "meta-lowdin":
                 f.write(" Using Meta-Lowdin atomic definition\n")
             elif partition == "nao":
                 f.write(" Using NAO atomic definition\n")

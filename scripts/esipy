@@ -58,7 +58,7 @@ def main():
     if inp.fluref:
         flurefs = {f"REF{i+1}": v for i, v in enumerate(inp.fluref)}
 
-    partitions = inp.partition if inp.partition else ['meta_lowdin']
+    partitions = inp.partition if inp.partition else ['meta-lowdin']
 
     if inp.mci is True:
         mci_kwargs = {'mci': True}
@@ -74,6 +74,10 @@ def main():
         extra_kwargs['iaoref'] = inp.iaoref
     if inp.iaopol is not None:
         extra_kwargs['iaopol'] = inp.iaopol
+    if inp.heavy_only:
+        extra_kwargs['heavy_only'] = True
+    if inp.full_basis:
+        extra_kwargs['full_basis'] = True
     if inp.ncores is not None:
         extra_kwargs['ncores'] = inp.ncores
 

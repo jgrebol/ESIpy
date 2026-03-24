@@ -55,7 +55,7 @@ class ESItest(unittest.TestCase):
                              "m-lowdin"]
         for part in meta_lowdin_parts:
             with self.subTest(partition=part):
-                self.init_partition(part, 'meta_lowdin')
+                self.init_partition(part, 'meta-lowdin')
 
     def test_init_partition_nao(self):
         nao_parts = ["n", "nao", "natural"]

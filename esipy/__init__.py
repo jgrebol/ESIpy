@@ -38,7 +38,7 @@ class IndicatorsRest:
             mol (optional, obj): Molecule object "mol" from PySCF.
             mf (optional, obj): Calculation object "mf" from PySCF.
             partition (optional, str): Type of Hilbert-space partition scheme.
-                Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao'.
+                Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
             mci (optional, boolean): Whether to compute the MCI.
             av1245 (optional, boolean): Whether to compute the AV1245.
             flurefs (optional, dict): Custom FLU references.
@@ -110,7 +110,7 @@ class IndicatorsRest:
         :returns: The AV1245 value.
         :rtype: float
         """
-        return self._av()[0]
+        return 2 * self._av()[0]
 
     @property
     def avmin(self):
@@ -120,7 +120,7 @@ class IndicatorsRest:
         :returns: The AVmin value.
         :rtype: float
         """
-        return self._av()[1]
+        return 2 * self._av()[1]
 
     @property
     def av1245_list(self):
@@ -130,7 +130,7 @@ class IndicatorsRest:
         :returns: The list of 4c-MCIs that form the AV1245.
         :rtype: numpy.ndarray
         """
-        return np.array(self._av()[2], dtype=object)
+        return 2 * np.array(self._av()[2], dtype=object)
 
     def _pdi(self):
         """
@@ -151,7 +151,7 @@ class IndicatorsRest:
         :returns: The PDI value.
         :rtype: float
         """
-        return self._pdi()[0]
+        return 2 * self._pdi()[0]
 
     @property
     def pdi_list(self):
@@ -161,7 +161,7 @@ class IndicatorsRest:
         :returns: The list of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return np.array(self._pdi()[1], dtype=object)
+        return 2 * np.array(self._pdi()[1], dtype=object)
 
     @property
     def flu(self):
@@ -310,7 +310,7 @@ class IndicatorsUnrest:
         mol (optional, obj): Molecule object "mol" from PySCF.
         mf (optional, obj): Calculation object "mf" from PySCF.
         partition (optional, str): Type of Hilbert-space partition scheme.
-            Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao'.
+            Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
         mci (optional, boolean): Whether to compute the MCI.
         av1245 (optional, boolean): Whether to compute the AV1245.
         flurefs (optional, dict): Custom FLU references.
@@ -828,7 +828,7 @@ class IndicatorsNatorb:
         mf (optional, obj): Calculation object "mf" from PySCF.
         myhf (optional, obj): Reference RHF object for IAO-Natural Orbitals calculation.
         partition (optional, str): Type of Hilbert-space partition scheme.
-            Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao'.
+            Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
         mci (optional, boolean): Whether to compute the MCI.
         av1245 (optional, boolean): Whether to compute the AV1245.
         flurefs (optional, dict): Custom FLU references.
@@ -866,7 +866,7 @@ class IndicatorsNatorb:
         :returns: The Iring value.
         :rtype: float
         """
-        return 4 * compute_iring_no(self._rings, self._aom)
+        return compute_iring_no(self._rings, self._aom)
 
     @property
     def mci(self):
@@ -881,7 +881,7 @@ class IndicatorsNatorb:
                 self._done_mci = sequential_mci_no(self._rings, self._aom, self._partition)
             else:
                 self._done_mci = multiprocessing_mci_no(self._rings, self._aom, self._ncores, self._partition)
-        return 4 * self._done_mci
+        return self._done_mci
 
     def _av_no(self):
         """
@@ -1105,7 +1105,7 @@ class ESI:
     mf (optional, obj): Calculation object "mf" from PySCF.
     myhf (optional, obj): Reference RHF object for IAO-Natural Orbitals calculation.
     partition (optional, str): Type of Hilbert-space partition scheme.
-        Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao'.
+        Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
     mci (optional, boolean): Whether to compute the MCI.
     av1245 (optional, boolean): Whether to compute the AV1245.
     flurefs (optional, dict): Custom FLU references.
@@ -1131,7 +1131,7 @@ class ESI:
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
                  ncores=1, save=None, readpath='.', read=False, iaomix=0.5,
                  maxlen=12, minlen=6, rings_thres=0.3, exclude=None,
-                 iaoref='minao', iaopol=None):
+                 iaoref='minao', iaopol=None, heavy_only=False, full_basis=False):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
@@ -1155,6 +1155,8 @@ class ESI:
         self.iaomix = iaomix
         self.iaoref = iaoref
         self.iaopol = iaopol
+        self.heavy_only = heavy_only
+        self.full_basis = full_basis
         self.save = save
         # Directory where files will be written. Use <save>_esipy to avoid cluttering working dir
         self.save_dir = save + '_esipy' if save else None
@@ -1375,7 +1377,7 @@ class ESI:
             else:
                 molinfo_path = self.savemolinfo
             self._molinfo = mol_info(self.mol, self.mf, molinfo_path, self._partition, graph,
-                                     iaoref=self.iaoref, iaopol=self.iaopol, iaomix=self.iaomix)
+                                     iaoref=self.iaoref, iaopol=self.iaopol, iaomix=self.iaomix, heavy_only=self.heavy_only, full_basis=self.full_basis)
         return self._molinfo
 
     @property
@@ -1410,7 +1412,7 @@ class ESI:
             if self.mol and self.mf and self.partition:
                 self._aom_loaded = True
                 # Don't save in make_aoms, we'll save it ourselves in the subdirectory
-                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf, 
+                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf, heavy_only=self.heavy_only, 
                                       iaomix=self.iaomix, iaoref=self.iaoref, iaopol=self.iaopol)
 
                 if self.saveaoms:
@@ -1424,7 +1426,7 @@ class ESI:
     @property
     def partition(self):
         """
-        Get the partition scheme for the Hilbert-space. Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao'.
+        Get the partition scheme for the Hilbert-space. Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
         Some variations of these names are also available. Only one partition at a time.
 
         :returns: The partition scheme for the Hilbert-space calculation.
@@ -1433,7 +1435,7 @@ class ESI:
 
         if isinstance(self._partition, str):
             return format_partition(self._partition)
-        raise ValueError(" | Partition could not be processed. Options are 'mulliken', 'lowdin', 'meta_lowdin', 'nao' and 'iao'")
+        raise ValueError(" | Partition could not be processed. Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'")
 
     @property
     def connec(self):

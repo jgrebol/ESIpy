@@ -12,8 +12,6 @@ setup(
     author="Joan Grebol, Eduard Matito, Pedro Salvador",
     url="https://github.com/jgrebol/ESIpy",
     packages=["esipy"],
-    # REMOVED entry_points block
-    # ADDED the scripts block:
     scripts=[
         "scripts/esipy"
     ],

@@ -45,7 +45,7 @@ expected = {
                    exp_lifs_sum=30.7179, exp_lixs_sum=27.0052, exp_difs_sum=11.2821, exp_dixs_sum=13.9444,
                    exp_dif_12=1.0662,
                    exp_dix_12=1.3304, exp_iring=0.051584, exp_mci=0.073380, exp_av=9.539, exp_pdi=0.049823, Nx=40.9496),
-    'meta_lowdin': dict(exp_pop_atm1=6.0342, exp_lif_atm1=4.5493, exp_lix_atm1=4.0351, exp_dif_1_all=1.4849,
+    'meta-lowdin': dict(exp_pop_atm1=6.0342, exp_lif_atm1=4.5493, exp_lix_atm1=4.0351, exp_dif_1_all=1.4849,
                         exp_dix_1_all=1.8461,
                         exp_lifs_sum=30.7211, exp_lixs_sum=27.0088, exp_difs_sum=11.2789, exp_dixs_sum=13.9408,
                         exp_dif_12=1.0662,
@@ -69,7 +69,7 @@ class ESItest(unittest.TestCase):
     def run_pop_tests(self, partition, exp):
         esitest = ESI(mol=mol, mf=mf, myhf=myhf, rings=ring, partition=partition)
         esitest.print()
-        aom, occ = esitest.aom
+        aom = esitest.aom; occ = esitest.mf.mo_occ
 
         exp_pop_atm1 = exp['exp_pop_atm1']
         exp_lif_atm1 = exp['exp_lif_atm1']
@@ -85,15 +85,15 @@ class ESItest(unittest.TestCase):
         Nx = exp['Nx']
 
         # Testing atomic populations of C1
-        self.assertAlmostEqual(trace(dot(occ, aom[0])), exp_pop_atm1, places=4)
+        self.assertAlmostEqual(2 * np.trace(aom[0]), exp_pop_atm1, places=4)
         # Testing LI for C1
         lif = trace(multi_dot((occ ** (1 / 2), aom[0], occ ** (1 / 2), aom[0])))
         lix = 0.5 * trace(multi_dot((occ, aom[0], occ, aom[0])))
         self.assertAlmostEqual(lif, exp_lif_atm1, places=4)
         self.assertAlmostEqual(lix, exp_lix_atm1, places=4)
         # Testing delocalized electrons for C1
-        dif_1_all = trace(dot(occ, aom[0])) - lif
-        # dix_1_all = trace(dot(occ, aom[0])) - lix
+        dif_1_all = 2 * np.trace(aom[0]) - lif
+        # dix_1_all = 2 * np.trace(aom[0]) - lix
         dix_1_all = 0.5 * sum(trace(multi_dot((occ, aom[0], occ, aom[i]))) for i in range(1, 12))
         self.assertAlmostEqual(dif_1_all, exp_dif_1_all, places=4)
         self.assertAlmostEqual(dix_1_all, exp_dix_1_all, places=4)
@@ -158,7 +158,7 @@ class ESItest(unittest.TestCase):
         self.run_indicator_tests(partition, exp=exp)
 
     def test_meta_lowdin(self):
-        partition = 'meta_lowdin'
+        partition = 'meta-lowdin'
         exp = expected[partition]
         self.run_pop_tests(partition, exp=exp)
         self.run_indicator_tests(partition, exp=exp)

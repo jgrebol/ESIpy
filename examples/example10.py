@@ -39,7 +39,7 @@ print("Running MP2 calculation...")
 mf4 = mp.MP2(mf).run()
 ring = [1, 2, 3, 4, 5, 6]
 
-for part in ["mulliken", "lowdin", "meta_lowdin", "nao", "iao"]:
+for part in ["mulliken", "lowdin", "meta-lowdin", "nao", "iao"]:
     for method in [mf1, mf2, mf3, mf4]:
         arom = esipy.ESI(mol=mol, mf=method, myhf=mf, rings=ring, partition=part, ncores=1)
         arom.print()

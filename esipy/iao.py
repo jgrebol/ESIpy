@@ -1,3 +1,39 @@
+def load_iao_dat_basis(file_path, symbol):
+    with open(file_path, 'r') as f:
+        lines = f.readlines()
+    basis = []
+    found_element = False
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        if line.startswith('ELEMENT'):
+            parts = line.split()
+            if len(parts) >= 3 and parts[2].upper() == symbol.upper():
+                found_element = True
+                i += 1
+                while i < len(lines) and 'NSHELL' not in lines[i]: i += 1
+                if i < len(lines):
+                    num_shells = int(lines[i].strip().split()[1])
+                    i += 1
+                    for _ in range(num_shells):
+                        while i < len(lines) and 'SHELL' not in lines[i]: i += 1
+                        if i >= len(lines): break
+                        shell_parts = lines[i].strip().split()
+                        l, nprim = int(shell_parts[1]), int(shell_parts[2])
+                        i += 1
+                        shell = [l]
+                        for _ in range(nprim):
+                            prim_parts = lines[i].strip().split()
+                            shell.append([float(prim_parts[0]), float(prim_parts[1])])
+                            i += 1
+                        basis.append(shell)
+                break
+        i += 1
+    if not found_element: raise ValueError(f'Element {symbol} not found')
+    return basis
+
+
+import os
 import numpy as np
 import scipy.linalg
 from pyscf import gto, scf
@@ -106,50 +142,88 @@ def get_num_minbas_per_l(sym, polarized=False):
     return d
 
 def get_num_minbas_ao(mol, ia, polarized=False):
+    """
+    Calculates the total number of minimal basis functions for a given atom,
+    accounting for whether the molecule is using spherical or Cartesian basis.
+    """
     sym = mol.atom_pure_symbol(ia)
-    target_l = get_num_minbas_per_l(sym, polarized=polarized)
-    total = 0
-    for l, count in target_l.items():
-        degen = 2*l+1
-        for ib in range(mol.nbas):
-            if mol.bas_atom(ib) == ia and mol.bas_angular(ib) == l:
-                degen = (mol.ao_loc_nr()[ib+1] - mol.ao_loc_nr()[ib]) // mol.bas_nctr(ib)
-                break
-        total += count * degen
-    return total
+    l_counts = get_num_minbas_per_l(sym, polarized=polarized)
 
-def get_reference_basis_dict(mol, source_basis='minao', pol_basis=None, x=1.0):
+    n_target = 0
+    for l, count in l_counts.items():
+        if mol.cart:
+            degen = (l + 1) * (l + 2) // 2
+        else:
+            degen = 2 * l + 1
+        n_target += count * degen
+
+    return n_target
+
+def _load_basis_wrapper(name, sym):
+    if os.path.exists(name):
+        return load_iao_dat_basis(name, sym)
+    from pyscf import gto
+    return gto.basis.load(name, sym)
+
+def get_reference_basis_dict(mol, source_basis='minao', pol_basis=None, x=1.0, heavy_only=False, full_basis=False):
     def get_minimal_part(sym, source_basis_name):
-        basis_source = gto.basis.load(source_basis_name, sym)
+        if full_basis:
+            if source_basis_name == 'working': return mol._basis[sym], {}
+            return _load_basis_wrapper(source_basis_name, sym), {}
+        if source_basis_name == 'working':
+            basis_source = mol._basis[sym]
+        else:
+            basis_source = _load_basis_wrapper(source_basis_name, sym)
         target_l = get_num_minbas_per_l(sym, polarized=False)
         new_basis_atom, l_counts = [], {}
         for shell in basis_source:
             l = shell[0]
+            # In PySCF format [l, [exp, c1, c2...], ...], the number of functions is len(shell[1]) - 1
+            n_func = len(shell[1]) - 1
             count = l_counts.get(l, 0)
             if count < target_l.get(l, 0):
-                new_basis_atom.append(shell)
-                l_counts[l] = count + 1
+                # If this shell provides more functions than needed, we must truncate the contraction coefficients
+                needed = target_l[l] - count
+                if n_func > needed:
+                    # Truncate shell to only take 'needed' coefficients
+                    new_shell = [l]
+                    for prim in shell[1:]:
+                        new_shell.append(prim[:needed+1])
+                    new_basis_atom.append(new_shell)
+                    l_counts[l] = count + needed
+                else:
+                    new_basis_atom.append(shell)
+                    l_counts[l] = count + n_func
         return new_basis_atom, target_l
 
     def get_polarization_part(sym, pol_basis_name, target_l, x=1.0):
         if pol_basis_name == 'working':
             basis_pol = mol._basis[sym]
         elif isinstance(pol_basis_name, str):
-            basis_pol = gto.basis.load(pol_basis_name, sym)
+            basis_pol = _load_basis_wrapper(pol_basis_name, sym)
         else: return []
+        
         target_pol_l = get_num_minbas_per_l(sym, polarized=True)
         new_pol_atom, l_counts = [], {}
+        
         for shell in basis_pol:
             l = shell[0]
+            # polarization part only adds l NOT in target_l (the minimal part)
             if l in target_pol_l and l not in target_l:
-                if l_counts.get(l, 0) < target_pol_l[l]:
+                n_func = len(shell[1]) - 1
+                count = l_counts.get(l, 0)
+                if count < target_pol_l[l]:
+                    needed = target_pol_l[l] - count
                     new_shell = [l]
-                    for prim in shell[1:]:
-                        scaled_exp = prim[0] * x
-                        contraction_coeff = prim[1]
-                        new_shell.append([scaled_exp, contraction_coeff])
+                    if n_func > needed:
+                        for prim in shell[1:]:
+                            new_shell.append([prim[0] * x] + prim[1:needed+1])
+                        l_counts[l] = count + needed
+                    else:
+                        for prim in shell[1:]:
+                            new_shell.append([prim[0] * x] + prim[1:])
+                        l_counts[l] = count + n_func
                     new_pol_atom.append(new_shell)
-                    l_counts[l] = l_counts.get(l, 0) + 1
         return new_pol_atom
 
     ref_basis = {}
@@ -157,20 +231,28 @@ def get_reference_basis_dict(mol, source_basis='minao', pol_basis=None, x=1.0):
         sym = mol.atom_pure_symbol(ia)
         if sym not in ref_basis:
             min_basis, target_l = get_minimal_part(sym, source_basis)
-            pol_basis_list = get_polarization_part(sym, pol_basis, target_l, x=x)
+            pol_basis_list = get_polarization_part(sym, pol_basis, target_l, x=x) if not full_basis else []
             ref_basis[sym] = min_basis + pol_basis_list
     return ref_basis
 
-def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=1.0):
+def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=1.0, heavy_only=False, full_basis=False):
     from pyscf.lo import iao as pyscf_iao
     if hasattr(mol, 'pyscf_mol'): mol = mol.pyscf_mol
-    if polarized and pol_basis is None: pol_basis = 'minao'
+    if polarized and pol_basis is None: pol_basis = 'ano'
     elif not polarized: pol_basis = None
     ref_basis = get_reference_basis_dict(mol, source_basis=source_basis, pol_basis=pol_basis, x=x)
+    print("Using the reference basis:", ref_basis)
+    if heavy_only:
+        for sym in ref_basis:
+            if sym == 'H':
+                new_shells = []
+                for shell in ref_basis[sym]:
+                    if shell[0] == 0: new_shells.append(shell)
+                ref_basis[sym] = new_shells
     return pyscf_iao.reference_mol(mol, minao=ref_basis)
 
-def get_effaos(mol, mf, free_atom=True, mode=None, polarized=False):
-    pmol = reference_mol(mol, polarized=polarized)
+def get_effaos(mol, mf, free_atom=True, mode=None, polarized=False, heavy_only=False, full_basis=False):
+    pmol = reference_mol(mol, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis)
     minbas_total = pmol.nao
     veps_block = np.zeros((mol.nao, minbas_total))
     vaps_diag = []
@@ -190,7 +272,7 @@ def get_effaos(mol, mf, free_atom=True, mode=None, polarized=False):
             else:
                 from pyscf.lo.orth import orth_ao
                 # mf is explicitly required here for occupations
-                T_orth = orth_ao(mf, 'meta_lowdin', pre_orth_ao="ANO")
+                T_orth = orth_ao(mf, 'meta-lowdin', pre_orth_ao="ANO")
 
             T_inv = T_orth.T @ S_mol
             P_mol = T_inv @ P_mol @ T_inv.T
@@ -279,7 +361,7 @@ def get_effaos(mol, mf, free_atom=True, mode=None, polarized=False):
     print(np.array(vaps_diag))
     return np.array(vaps_diag), veps_block, pmol
 
-def _do_iao(mol, coeffs, pmol=None, A_basis=None):
+def _do_iao(mol, coeffs, pmol=None, A_basis=None, heavy_only=False):
     from pyscf.lo import iao as pyscf_iao
     from pyscf.lo import orth
     S1 = mol.intor('int1e_ovlp')
@@ -287,6 +369,11 @@ def _do_iao(mol, coeffs, pmol=None, A_basis=None):
         A_tilde = A_basis
         S2 = A_tilde.T @ S1 @ A_tilde
         S12 = S1 @ A_tilde
+        import os
+        prefix = os.environ.get("IAO_DUMP_PREFIX")
+        if prefix:
+            dump_matrix(prefix + "_s2.dat", S2)
+            dump_matrix(prefix + "_s12.dat", S12)
         C_min = scipy.linalg.solve(S2, S12.T @ coeffs, assume_a='pos')
         C_proj = orth.vec_lowdin(A_tilde @ C_min, S1)
         P_occ_A = coeffs @ (coeffs.T @ S12)
@@ -298,25 +385,50 @@ def _do_iao(mol, coeffs, pmol=None, A_basis=None):
         C_iao_nonorth = pyscf_iao.iao(mol, coeffs, minao=pmol.basis)
         return orth.vec_lowdin(C_iao_nonorth, S1)
 
-def iao(mol, coeffs, source_basis='minao', pol_basis=None):
-    pmol = reference_mol(mol, polarized=(pol_basis is not None), pol_basis=pol_basis, source_basis=source_basis)
+def iao(mol, coeffs, source_basis='minao', pol_basis=None, heavy_only=False, full_basis=False):
+    pmol = reference_mol(mol, polarized=(pol_basis is not None), pol_basis=pol_basis, source_basis=source_basis, heavy_only=heavy_only, full_basis=full_basis)
     return _do_iao(mol, coeffs, pmol=pmol), pmol
 
-def fpiao(mol, coeffs, x=1.0, source_basis='minao', pol_basis='ano'):
-    pmol = reference_mol(mol, polarized=True, pol_basis=pol_basis, source_basis=source_basis, x=x)
+def fpiao(mol, coeffs, x=1.0, source_basis='minao', pol_basis='ano', heavy_only=False, full_basis=False):
+    pmol = reference_mol(mol, polarized=True, pol_basis=pol_basis, source_basis=source_basis, x=x, heavy_only=heavy_only, full_basis=full_basis)
     return _do_iao(mol, coeffs, pmol=pmol), pmol
 
-def autosad(mol, mf, free_atom=True, mode=None, polarized=False):
-    def do_autosad(mol, mf, C_occ, free_atom, mode, polarized):
-        w, effaos, pmol = get_effaos(mol, mf, free_atom=free_atom, mode=mode, polarized=polarized)
+def autosad(mol, mf, free_atom=True, mode=None, polarized=False, heavy_only=False, full_basis=False):
+    def do_autosad(mol, mf, C_occ, free_atom, mode, polarized, heavy_only, full_basis):
+        w, effaos, pmol = get_effaos(mol, mf, free_atom=free_atom, mode=mode, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis)
         return _do_iao(mol, C_occ, A_basis=effaos)
     if "U" in mf.__class__.__name__:
-        ca, cb = mf.mo_coeff; return (do_autosad(mol, mf, ca[:, :mf.nelec[0]], free_atom, mode, polarized),
-                                      do_autosad(mol, mf, cb[:, :mf.nelec[1]], free_atom, mode, polarized)), reference_mol(mol)
-    return do_autosad(mol, mf, mf.mo_coeff[:, :mol.nelectron // 2], free_atom, mode, polarized), reference_mol(mol)
+        ca, cb = mf.mo_coeff; return (do_autosad(mol, mf, ca[:, :mf.nelec[0]], free_atom, mode, polarized, heavy_only, full_basis),
+                                      do_autosad(mol, mf, cb[:, :mf.nelec[1]], free_atom, mode, polarized, heavy_only, full_basis)), reference_mol(mol, heavy_only=heavy_only, full_basis=full_basis)
+    return do_autosad(mol, mf, mf.mo_coeff[:, :mol.nelectron // 2], free_atom, mode, polarized, heavy_only, full_basis), reference_mol(mol, heavy_only=heavy_only, full_basis=full_basis)
+
 
 def dfpiao(mol, coeffs, x=0.5, source_basis='minao', pol_basis='ano'):
     res_iao = iao(mol, coeffs, source_basis=source_basis)
     res_fpiao = fpiao(mol, coeffs, x=1.0, source_basis=source_basis, pol_basis=pol_basis)
     return res_iao, res_fpiao
 
+
+def piao(mol, coeffs, x=1.0, source_basis='minao', pol_basis='ano', heavy_only=True, full_basis=False):
+    from pyscf.lo import iao as pyscf_iao
+    from pyscf.lo import orth
+    pmol = reference_mol(mol, polarized=True, pol_basis=pol_basis, source_basis=source_basis, x=x, heavy_only=heavy_only, full_basis=full_basis)
+    pmol.cart = True # Force Cartesian for reference basis
+    S1 = mol.intor('int1e_ovlp')
+    C_iao_nonorth = pyscf_iao.iao(mol, coeffs, minao=pmol.basis)
+    return orth.vec_lowdin(C_iao_nonorth, S1), pmol
+    C_iao_nonorth = pyscf_iao.iao(mol, coeffs, minao=pmol.basis)
+    return orth.vec_lowdin(C_iao_nonorth, S1), pmol
+
+def iao_nonorth(mol, coeffs, source_basis='minao', heavy_only=False, full_basis=False):
+    pmol = reference_mol(mol, polarized=False, source_basis=source_basis, heavy_only=heavy_only, full_basis=full_basis)
+    from pyscf.lo import iao as pyscf_iao
+    C_iao_nonorth = pyscf_iao.iao(mol, coeffs, minao=pmol.basis)
+    return C_iao_nonorth, pmol
+
+def piao_nonorth(mol, coeffs, x=1.0, source_basis='minao', pol_basis='ano', heavy_only=True, full_basis=False):
+    pmol = reference_mol(mol, polarized=True, pol_basis=pol_basis, source_basis=source_basis, x=x, heavy_only=heavy_only, full_basis=full_basis)
+    pmol.cart = True
+    from pyscf.lo import iao as pyscf_iao
+    C_iao_nonorth = pyscf_iao.iao(mol, coeffs, minao=pmol.basis)
+    return C_iao_nonorth, pmol

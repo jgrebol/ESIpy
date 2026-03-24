@@ -1,6 +1,7 @@
 import unittest
 
 from numpy import trace, dot
+import numpy as np
 from numpy.linalg import multi_dot
 from pyscf import gto, scf, mcscf
 
@@ -46,7 +47,7 @@ expected = {
                    exp_dif_12=1.3330,
                    exp_dix_12=1.4088, exp_iring=0.069018, exp_mci=0.097096, exp_av=10.976, exp_pdi=0.047430,
                    Nx=41.6943),
-    'meta_lowdin': dict(exp_pop_atm1=6.0350, exp_lif_atm1=4.1795, exp_lix_atm1=4.0359, exp_dif_1_all=1.8556,
+    'meta-lowdin': dict(exp_pop_atm1=6.0350, exp_lif_atm1=4.1795, exp_lix_atm1=4.0359, exp_dif_1_all=1.8556,
                         exp_dix_1_all=1.9482,
                         exp_lifs_sum=27.8704, exp_lixs_sum=27.0090, exp_difs_sum=14.1296, exp_dixs_sum=14.6854,
                         exp_dif_12=1.3329,
@@ -86,15 +87,15 @@ class ESItest(unittest.TestCase):
         Nx = exp['Nx']
 
         # Testing atomic populations of C1
-        self.assertAlmostEqual(trace(dot(occ, aom[0])), exp_pop_atm1, places=4)
+        self.assertAlmostEqual(np.trace(np.dot(occ, aom[0])), exp_pop_atm1, places=4)
         # Testing LI for C1
         lif = trace(multi_dot((occ ** (1 / 2), aom[0], occ ** (1 / 2), aom[0])))
         lix = 0.5 * trace(multi_dot((occ, aom[0], occ, aom[0])))
         self.assertAlmostEqual(lif, exp_lif_atm1, places=4)
         self.assertAlmostEqual(lix, exp_lix_atm1, places=4)
         # Testing delocalized electrons for C1
-        dif_1_all = trace(dot(occ, aom[0])) - lif
-        # dix_1_all = trace(dot(occ, aom[0])) - lix
+        dif_1_all = np.trace(aom[0]) - lif
+        # dix_1_all = 2 * np.trace(aom[0]) - lix
         dix_1_all = 0.5 * sum(trace(multi_dot((occ, aom[0], occ, aom[i]))) for i in range(1, 12))
         self.assertAlmostEqual(dif_1_all, exp_dif_1_all, places=4)
         self.assertAlmostEqual(dix_1_all, exp_dix_1_all, places=4)
@@ -159,7 +160,7 @@ class ESItest(unittest.TestCase):
         self.run_indicator_tests(partition, exp=exp)
 
     def test_meta_lowdin(self):
-        partition = 'meta_lowdin'
+        partition = 'meta-lowdin'
         exp = expected[partition]
         self.run_pop_tests(partition, exp=exp)
         self.run_indicator_tests(partition, exp=exp)
