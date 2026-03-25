@@ -80,8 +80,6 @@ def main():
         extra_kwargs['full_basis'] = True
     if inp.ncores is not None:
         extra_kwargs['ncores'] = inp.ncores
-    if inp.verbose_mci:
-        extra_kwargs['verbose_mci'] = inp.verbose_mci
 
 
     av1245 = True if inp.av1245 else None
