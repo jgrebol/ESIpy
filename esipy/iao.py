@@ -409,26 +409,9 @@ def dfpiao(mol, coeffs, x=0.5, source_basis='minao', pol_basis='ano'):
     return res_iao, res_fpiao
 
 
-def piao(mol, coeffs, x=1.0, source_basis='minao', pol_basis='ano', heavy_only=True, full_basis=False):
-    from pyscf.lo import iao as pyscf_iao
-    from pyscf.lo import orth
-    pmol = reference_mol(mol, polarized=True, pol_basis=pol_basis, source_basis=source_basis, x=x, heavy_only=heavy_only, full_basis=full_basis)
-    pmol.cart = True # Force Cartesian for reference basis
-    S1 = mol.intor('int1e_ovlp')
-    C_iao_nonorth = pyscf_iao.iao(mol, coeffs, minao=pmol.basis)
-    return orth.vec_lowdin(C_iao_nonorth, S1), pmol
-    C_iao_nonorth = pyscf_iao.iao(mol, coeffs, minao=pmol.basis)
-    return orth.vec_lowdin(C_iao_nonorth, S1), pmol
-
 def iao_nonorth(mol, coeffs, source_basis='minao', heavy_only=False, full_basis=False):
     pmol = reference_mol(mol, polarized=False, source_basis=source_basis, heavy_only=heavy_only, full_basis=full_basis)
     from pyscf.lo import iao as pyscf_iao
     C_iao_nonorth = pyscf_iao.iao(mol, coeffs, minao=pmol.basis)
     return C_iao_nonorth, pmol
 
-def piao_nonorth(mol, coeffs, x=1.0, source_basis='minao', pol_basis='ano', heavy_only=True, full_basis=False):
-    pmol = reference_mol(mol, polarized=True, pol_basis=pol_basis, source_basis=source_basis, x=x, heavy_only=heavy_only, full_basis=full_basis)
-    pmol.cart = True
-    from pyscf.lo import iao as pyscf_iao
-    C_iao_nonorth = pyscf_iao.iao(mol, coeffs, minao=pmol.basis)
-    return C_iao_nonorth, pmol

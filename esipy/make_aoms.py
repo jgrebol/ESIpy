@@ -11,7 +11,6 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
     Build the Atomic Overlap Matrices (AOMs) in the Molecular Orbitals basis.
     """
 
-    # Parse the weight if present in partition string like piao-iao(0.5)
     weight = iaomix
     if isinstance(weight, list):
         weight = weight[0]
@@ -36,7 +35,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
         except ImportError:
             import esipy.iao as iao_mod
 
-        iao, piao, fpiao, dfpiao = iao_mod.iao, iao_mod.piao, iao_mod.fpiao, iao_mod.dfpiao
+        iao, fpiao, dfpiao = iao_mod.iao, iao_mod.fpiao, iao_mod.dfpiao
         get_effaos, reference_mol, autosad = iao_mod.get_effaos, iao_mod.reference_mol, iao_mod.autosad
 
         p_type = p_type.lower()

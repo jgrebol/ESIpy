@@ -330,7 +330,6 @@ def format_partition(partition, iaoref=None, iaopol=None, iaomix=0.5, heavy_only
     elif p_method == "fpiao": base = "FPIAO"
 
     elif p_method == "dfpiao": base = "DFPIAO"
-    elif p_method == "xiao_dfpiao": base = "XIAO_DFPIAO"
     else: base = p_method.upper()
     
     # 2. Extract weight if present: "dfpiao(0.3)" -> "dfpiao", weight=0.3
@@ -394,12 +393,6 @@ def format_short_partition(partition):
         return "iao-effao-net"
     elif partition == "iao-ano":
         return "iano"
-    elif partition == "piao":
-        return "p"
-    elif partition == "piao-iao":
-        return "pi"
-    elif partition == "piao-iao-ano":
-        return "pia"
     elif partition in ("nao", "iao", "qtaim", "iao-autosad", "iao-effao"):
         return partition
     else:
