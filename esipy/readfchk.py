@@ -130,6 +130,7 @@ class Mole2:
         self.nbeta = int(getattr(self.fchk, 'nbeta', getattr(self.fchk, 'nbeta', 0)))
         self.spin = int(getattr(self.fchk, 'spin', self.nalpha - self.nbeta))
         self.nelectron = int(getattr(self.fchk, 'nelectron', self.nalpha + self.nbeta))
+        self.unrestricted = self.fchk.unrestricted
 
         self.cart = getattr(self.fchk, 'cart', False)
 
@@ -267,16 +268,16 @@ class MeanField2:
         self.e_tot = float(getattr(self.mole2.fchk, 'e_tot', 0.0))
         self.charge = int(getattr(self.mole2.fchk, 'charge', 0))
 
-        if self.nalpha == self.nbeta:
+        if self.mole2.fchk.unrestricted:
+            self._scf = scf.UHF(self.mol)
+            self.__name__ = "UHF"
+        else:
             # Restricted
             self._scf = scf.RHF(self.mol)
             self.__name__ = "RHF"
-        else:
-            self._scf = scf.UHF(self.mol)
-            self.__name__ = "UHF"
 
         # Read MO coefficients from FCHK (Gaussian order) and reshape
-        wf = 'rest' if self.nalpha == self.nbeta else 'unrest'
+        wf = 'unrest' if self.mole2.fchk.unrestricted else 'rest'
         if wf == 'rest':
             mo_flat = read_list_from_fchk('Alpha MO coefficients', path)
             if len(mo_flat) == 0:
@@ -306,7 +307,7 @@ class MeanField2:
         self._scf.mo_coeff = self.mo_coeff
         self._scf.mo_occ = self.mo_occ
         self._scf.e_tot = self.e_tot
-        self._scf.__class__.__name__ = self.__name__
+        self._scf.__name__ = self.__name__
 
     def make_rdm1(self, ao_repr=True):
         # Simple density from mo_coeff and mo_occ if available (RHF case)
@@ -336,10 +337,22 @@ class FchkMolecule:
         # basic scalars
         self.nalpha = int(read_from_fchk('Number of alpha electrons', path)[-1])
         self.mult = int(read_from_fchk('Multiplicity', path)[-1])
-        if self.mult != 1:
-            self.nbeta = int(read_from_fchk('Number of beta electrons', path)[-1])
+
+        # Check if it is Unrestricted by looking for Beta MO coefficients
+        # Gaussian only includes Beta MOs if it is a UHF/U-DFT calculation
+        beta_mo = read_from_fchk('Beta MO coefficients', path)
+        self.unrestricted = (len(beta_mo) > 0)
+
+        # Try to read nbeta if it exists, otherwise use nalpha
+        res_beta = read_from_fchk('Number of beta electrons', path)
+        if res_beta:
+            self.nbeta = int(res_beta[-1])
         else:
             self.nbeta = self.nalpha
+
+        if self.mult != 1:
+            self.unrestricted = True
+
         self.nelec = (self.nalpha, self.nbeta)
         self.natoms = int(read_from_fchk('Number of atoms', path)[-1])
         self.ncshell = int(read_from_fchk('Number of contracted shells', path)[-1])
@@ -379,6 +392,16 @@ class FchkMolecule:
 
         self.nummo = int(read_from_fchk('Number of independent functions', path)[-1])
         self.numao = int(read_from_fchk('Number of basis functions', path)[-1])
+
+        frag_info = read_list_from_fchk('Atom fragment info', path)
+        self.fragments = []
+        if frag_info:
+            from collections import defaultdict
+            fdict = defaultdict(set)
+            for i, f in enumerate(frag_info):
+                fdict[int(f)].add(i + 1)
+            for f_id in sorted(fdict.keys()):
+                self.fragments.append(fdict[f_id])
 
 
 def make_basis(mf):

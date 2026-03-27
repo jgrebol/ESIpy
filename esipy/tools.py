@@ -7,18 +7,22 @@ def wf_type(aom):
     Checks the topology of the AOMs to obtain the type of wavefunction.
 
     :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
     :returns: A string with the type of wave function ('rest', 'unrest' or 'no').
-    :rtype: str
     """
-    if isinstance(aom[0][0][0], float):
+    # Restricted: list of 2D matrices
+    if isinstance(aom[0], np.ndarray) and aom[0].ndim == 2:
         return "rest"
-    elif isinstance(aom[1][0][0], float):
-        return "no"
-    elif isinstance(aom[1][0][0][0], float):
-        return "unrest"
-    else:
-        raise NameError("Could not find the type of wave function from the AOMs")
+    
+    # Unrestricted or Natural Orbitals: [list, list/array]
+    if isinstance(aom, list) and len(aom) == 2:
+        # Natural Orbitals: [list of matrices, 1D/2D array of occupations]
+        if isinstance(aom[1], np.ndarray) and aom[1].ndim in [1, 2]:
+            return "no"
+        # Unrestricted: [list of alpha matrices, list of beta matrices]
+        if isinstance(aom[1], list) and isinstance(aom[1][0], np.ndarray) and aom[1][0].ndim == 2:
+            return "unrest"
+            
+    raise NameError("Could not find the type of wave function from the AOMs")
 
 
 def find_multiplicity(aom):
@@ -143,7 +147,8 @@ def find_di_no(aom, i, j):
     """
 
     # Tr(Occ @ AOM_i @ Occ @ AOM_j)
-    return np.einsum('ij,jk,kl,li->', aom[1], aom[0][i - 1], aom[1], aom[0][j - 1])
+    occ = np.diag(aom[1])
+    return np.einsum('ij,jk,kl,li->', occ, aom[0][i - 1], occ, aom[0][j - 1])
 
 
 def find_lis(arr, aom):
@@ -190,7 +195,7 @@ def av1245_pairs(arr):
             for i in range(len(arr))]
 
 
-def mol_info(mol=None, mf=None, save=None, partition=None, connec=None, iaoref=None, iaopol=None, iaomix=None, heavy_only=False, full_basis=False):
+def mol_info(mol=None, mf=None, save=None, partition=None, connec=None, iaoref=None, iaopol=None, iaomix=None, heavy_only=True, full_basis=False):
     """
     Obtains information from the molecule and the calculation to complement the main code function without requiring the 'mol' and 'mf' objects.
 
@@ -247,17 +252,18 @@ def mol_info(mol=None, mf=None, save=None, partition=None, connec=None, iaoref=N
     return info
 
 
-def build_connectivity(mat=None, threshold=None):
+def build_connectivity(mat=None, threshold=0.25):
     """
     Build the connectivity dictionary based on the given atomic overlap matrices.
 
     Parameters:
         mat: Atomic overlap matrices. If None, uses self.aom or builds meta-lowdin AOMs
-        threshold: Threshold for connectivity determination. If None, uses self.rings_thres
+        threshold: Threshold for connectivity determination. Default is 0.25.
 
     Returns:
         Dictionary representing atomic connectivity
     """
+    if threshold is None: threshold = 0.25
     wf = wf_type(mat)
 
     if wf == "rest":
@@ -288,22 +294,23 @@ def process_fragments(aom, rings, done=False):
     for ring in rings:
         for r in ring:
             if isinstance(r, set):
-                if tuple(r) not in fragmap:
-                    fragmap[tuple(r)] = nfrags + len(aom) + 1
-                nfrags += 1
-                if not done:
-                    print(f" | Fragment FF{len(aom) + nfrags}: {r}")
-                combined_aom = np.zeros_like(aom[0])
-                for atm in r:
-                    combined_aom += aom[atm - 1]
-                fragaom.append(combined_aom)
+                t_r = tuple(sorted(list(r)))
+                if t_r not in fragmap:
+                    nfrags += 1
+                    fragmap[t_r] = nfrags + len(aom)
+                    if not done:
+                        print(f" | Fragment FF{len(aom) + nfrags}: {r}")
+                    combined_aom = np.zeros_like(aom[0])
+                    for atm in r:
+                        combined_aom += aom[atm - 1]
+                    fragaom.append(combined_aom)
             else:
                 continue
     return fragaom, fragmap
 
 
 
-def format_partition(partition, iaoref=None, iaopol=None, iaomix=0.5, heavy_only=False):
+def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_only=False):
     import re
     orig = partition
     p_split = partition.split(None, 1)
@@ -313,37 +320,44 @@ def format_partition(partition, iaoref=None, iaopol=None, iaomix=0.5, heavy_only
     # Guidelines: IAO <basis>, FPIAO(x) <basis>, DFPIAO(x) <basis>
     
     # 1. Standardize method name
-    if p_method in ["m", "mul", "mull", "mulliken"]: base = "MULLIKEN"
-    elif p_method in ["l", "low", "lowdin"]: base = "LOWDIN"
-    elif p_method in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta_lowdin", "meta-lowdin"]: base = "META-LOWDIN"
-    elif p_method in ["n", "nao", "natural", "nat"]: base = "NAO"
-    elif p_method in ["i", "iao", "intrinsic", "intr"]: base = "IAO"
-    elif p_method in ["iao-autosad", "iaoauto", "iaoa", "iaa", "ia", "a", "autosad", "iaosad", "autos"]: base = "IAO-AUTOSAD"
-    elif p_method in ["iao-effao-gross", "iao-eg", "iaoeg", "iaog", "ig", "gross", "iag", "g"]: base = "IAO-EFFAO-GROSS"
-    elif p_method in ["iao-effao-net", "iao-en", "iaoen", "iaon", "in", "net", "ian", "ne"]: base = "IAO-EFFAO-NET"
-    elif p_method in ["iao-effao-lowdin", "iaoel", "iaol", "il", "iel", "iae"]: base = "IAO-EFFAO-LOWDIN"
-    elif p_method in ["iao-effao-metalowdin", "iao-effao-meta-lowdin", "iaom", "im"]: base = "IAO-EFFAO-META-LOWDIN"
-    elif p_method in ["sym", "ias", "is", "iao-effao-symmetric"]: base = "IAO-EFFAO-SYMMETRIC"
-    elif p_method in ["sps", "iao-effao-sps"]: base = "IAO-EFFAO-SPS"
-    elif p_method in ["spsa", "iao-effao-spsa"]: base = "IAO-EFFAO-SPSA"
-    elif p_method == "iao_basis": base = "IAO-BASIS"
-    elif p_method == "fpiao": base = "FPIAO"
-
-    elif p_method == "dfpiao": base = "DFPIAO"
-    else: base = p_method.upper()
+    if p_method in ["m", "mul", "mull", "mulliken"]: base = "mulliken"
+    elif p_method in ["l", "low", "lowdin"]: base = "lowdin"
+    elif p_method in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta-lowdin", "meta-lowdin"]: base = "meta-lowdin"
+    elif p_method in ["n", "nao", "natural", "nat"]: base = "nao"
+    elif p_method in ["i", "iao", "intrinsic", "intr"]: base = "iao"
+    elif p_method in ["iao-autosad", "iaoauto", "iaoa", "iaa", "ia", "a", "autosad", "iaosad", "autos"]: base = "iao-autosad"
+    elif p_method in ["iao-effao-gross", "iao-eg", "iaoeg", "iaog", "ig", "gross", "iag", "g"]: base = "iao-effao-gross"
+    elif p_method in ["iao-effao-net", "iao-en", "iaoen", "iaon", "in", "net", "ian", "ne"]: base = "iao-effao-net"
+    elif p_method in ["iao-effao-lowdin", "iaoel", "iaol", "il", "iel", "iae"]: base = "iao-effao-lowdin"
+    elif p_method in ["iao-effao-metalowdin", "iao-effao-meta-lowdin", "iaom", "im"]: base = "iao-effao-metalowdin"
+    elif p_method in ["sym", "ias", "is", "iao-effao-symmetric"]: base = "iao-effao-symmetric"
+    elif p_method in ["sps", "iao-effao-sps"]: base = "iao-effao-sps"
+    elif p_method in ["spsa", "iao-effao-spsa"]: base = "iao-effao-spsa"
+    elif p_method == "iao_basis": base = "iao-basis"
+    elif p_method == "fpiao": base = "fpiao"
+    elif p_method == "dfpiao": base = "dfpiao"
+    elif p_method == "xiao_dfpiao": base = "xiao_dfpiao"
+    else: base = p_method.lower()
     
     # 2. Extract weight if present: "dfpiao(0.3)" -> "dfpiao", weight=0.3
-    weight = iaomix if isinstance(iaomix, (float, int)) else (iaomix[0] if iaomix else 0.5)
-    if "fpiao" in p_method: weight = 1.0
-    if "dfpiao" in p_method: weight = 0.5
-    
     match_w = re.search(r"\(+(.*?)\)+", partition)
     if match_w:
         try:
             weight = float(match_w.group(1))
             # Clean base name if weight was part of it
-            base = re.sub(r"\(.*?\)", "", base)
-        except: pass
+            base = re.sub(r"\(.*?\)", "", base).strip()
+        except:
+            weight = None
+    else:
+        weight = None
+        
+    if weight is None:
+        if iaomix is not None:
+            weight = iaomix if isinstance(iaomix, (float, int)) else (iaomix[0] if iaomix else 0.5)
+        else:
+            if "fpiao" in p_method: weight = 1.0
+            elif "dfpiao" in p_method: weight = 0.5
+            else: weight = 0.5
 
     # 3. Extract basis
     # Basis can be in p_suffix or iaoref
@@ -353,24 +367,28 @@ def format_partition(partition, iaoref=None, iaopol=None, iaomix=0.5, heavy_only
     
     # Clean basis name (remove extension, take filename)
     if "/" in res_basis:
-        res_basis = res_basis.split("/")[-1].replace("_ref_basis.dat", "").replace("_polar_basis.dat", "").upper()
+        res_basis = res_basis.split("/")[-1].replace("_ref_basis.dat", "").replace("_polar_basis.dat", "").lower()
     elif res_basis.lower() == "minao":
         res_basis = ""
     else:
-        res_basis = res_basis.upper()
+        res_basis = res_basis.lower()
 
     # 4. Construct final label
-    label = base
-    if res_basis:
-        label += f" {res_basis}"
-    
-    if "FPIAO" in base or "DFPIAO" in base or "XIAO" in base:
+    if "fpiao" in base or "dfpiao" in base or "xiao" in base:
         # Avoid double dots like 1.00
         w_str = f"{weight:g}" if weight != int(weight) else f"{weight:.1f}"
-        label += f"({w_str})"
+        if "(" not in base:
+            base += f"({w_str})"
+        else:
+            base = re.sub(r"\(.*?\)", f"({w_str})", base)
+
+    label = base
+    # Only append reference basis for IAO variants
+    is_iao = "iao" in base or "piao" in base or "xiao" in base
+    if is_iao and res_basis:
+        label += f" {res_basis}"
         
     return label.lower()
-
 def format_short_partition(partition):
 
     # Split to preserve case for paths/basis names if needed
@@ -393,6 +411,12 @@ def format_short_partition(partition):
         return "iao-effao-net"
     elif partition == "iao-ano":
         return "iano"
+    elif partition == "piao":
+        return "p"
+    elif partition == "piao-iao":
+        return "pi"
+    elif partition == "piao-iao-ano":
+        return "pia"
     elif partition in ("nao", "iao", "qtaim", "iao-autosad", "iao-effao"):
         return partition
     else:
@@ -454,8 +478,7 @@ def get_natorbs(mf, S):
     coeff = coeff[:, ::-1]
     occ = occ[::-1]
     occ[occ < 1e-12] = 0.0 # Small values set to zero
-    occ_diag = np.diag(occ)
-    return occ_diag, coeff
+    return occ, coeff
 
 
 def build_eta(mol):

@@ -57,7 +57,7 @@ def deloc_unrest(aom, molinfo, fragmap={}):
     """
 
     presymbols = molinfo["symbols"]
-    symbols = presymbols + ["FF"] * (len(fragmap))
+    symbols = presymbols + ["FF"] * (len(aom[0]) - len(presymbols))
 
     # Getting the LIs and DIs
     dis_alpha, dis_beta = [], []

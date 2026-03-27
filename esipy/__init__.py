@@ -456,7 +456,7 @@ class IndicatorsUnrest:
         :returns: The AV1245 value.
         :rtype: float
         """
-        return self._avs()[0][0] + self._avs()[1][0]
+        return 2 * (self._avs()[0][0] + self._avs()[1][0])
 
     @property
     def av1245_alpha(self):
@@ -466,7 +466,7 @@ class IndicatorsUnrest:
         :returns: The AV1245_alpha value.
         :rtype: float
         """
-        return self._avs()[0][0]
+        return 2 * self._avs()[0][0]
 
     @property
     def av1245_beta(self):
@@ -476,7 +476,7 @@ class IndicatorsUnrest:
         :returns: The AV1245_beta value.
         :rtype: float
         """
-        return self._avs()[1][0]
+        return 2 * self._avs()[1][0]
 
     @property
     def avmin(self):
@@ -526,7 +526,7 @@ class IndicatorsUnrest:
         :returns: The list of 4c-MCIs that form the AV1245_alpha.
         :rtype: numpy.ndarray
         """
-        return self._avs()[0][2]
+        return 2 * np.array(self._avs()[0][2])
 
     @property
     def av1245_list_beta(self):
@@ -536,7 +536,7 @@ class IndicatorsUnrest:
         :returns: The list of 4c-MCIs that form the AV1245_beta.
         :rtype: numpy.ndarray
         """
-        return self._avs()[1][2]
+        return 2 * np.array(self._avs()[1][2])
 
     def _pdis(self):
         """
@@ -560,7 +560,7 @@ class IndicatorsUnrest:
         :returns: The PDI value.
         :rtype: float
         """
-        return self._pdis()[0][0] + self._pdis()[1][0]
+        return 2 * (self._pdis()[0][0] + self._pdis()[1][0])
 
     @property
     def pdi_alpha(self):
@@ -570,7 +570,7 @@ class IndicatorsUnrest:
         :returns: The PDI_alpha value.
         :rtype: float
         """
-        return self._pdis()[0][0]
+        return 2 * self._pdis()[0][0]
 
     @property
     def pdi_beta(self):
@@ -580,7 +580,7 @@ class IndicatorsUnrest:
         :returns: The PDI_beta value.
         :rtype: float
         """
-        return self._pdis()[1][0]
+        return 2 * self._pdis()[1][0]
 
     @property
     def pdi_list(self):
@@ -590,7 +590,7 @@ class IndicatorsUnrest:
         :returns: The list of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return self._pdis()[0][1] + self._pdis()[1][1]
+        return 2 * (self._pdis()[0][1] + self._pdis()[1][1])
 
     @property
     def pdi_list_alpha(self):
@@ -600,7 +600,7 @@ class IndicatorsUnrest:
         :returns: The list of the alpha component of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return self._pdis()[0][1]
+        return 2 * self._pdis()[0][1]
 
     @property
     def pdi_list_beta(self):
@@ -610,7 +610,7 @@ class IndicatorsUnrest:
         :returns: The list of the beta component of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return self._pdis()[1][1]
+        return 2 * self._pdis()[1][1]
 
     def _flus(self):
         """
@@ -866,7 +866,7 @@ class IndicatorsNatorb:
         :returns: The Iring value.
         :rtype: float
         """
-        return compute_iring_no(self._rings, self._aom)
+        return 4 * compute_iring_no(self._rings, self._aom)
 
     @property
     def mci(self):
@@ -881,7 +881,7 @@ class IndicatorsNatorb:
                 self._done_mci = sequential_mci_no(self._rings, self._aom, self._partition)
             else:
                 self._done_mci = multiprocessing_mci_no(self._rings, self._aom, self._ncores, self._partition)
-        return self._done_mci
+        return 4 * self._done_mci
 
     def _av_no(self):
         """
@@ -902,7 +902,7 @@ class IndicatorsNatorb:
         :returns: The AV1245 value
         :rtype: float
         """
-        return self._av_no()[0]
+        return 4 * self._av_no()[0]
 
     @property
     def avmin(self):
@@ -912,7 +912,7 @@ class IndicatorsNatorb:
         :returns: The AVmin value.
         :rtype: float
         """
-        return self._av_no()[1]
+        return 4 * self._av_no()[1]
 
     @property
     def av1245_list(self):
@@ -922,7 +922,7 @@ class IndicatorsNatorb:
         :returns: The list of 4c-MCIs that form the AV1245.
         :rtype: numpy.ndarray
         """
-        return self._av_no()[2]
+        return 4 * np.array(self._av_no()[2])
 
     def _pdi_no(self):
         """
@@ -943,7 +943,7 @@ class IndicatorsNatorb:
         :returns: The PDI value.
         :rtype: float
         """
-        return self._pdi_no()[0]
+        return 4 * self._pdi_no()[0]
 
     @property
     def pdi_list(self):
@@ -953,7 +953,7 @@ class IndicatorsNatorb:
         :returns: The list of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return self._pdi_no()[1]
+        return 4 * self._pdi_no()[1]
 
     @property
     def flu(self):
@@ -1129,9 +1129,9 @@ class ESI:
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
-                 ncores=1, save=None, readpath='.', read=False, iaomix=0.5,
+                 ncores=1, save=None, readpath='.', read=False, iaomix=None,
                  maxlen=12, minlen=6, rings_thres=0.3, exclude=None,
-                 iaoref='minao', iaopol=None, heavy_only=False, full_basis=False):
+                 iaoref='minao', iaopol='ano', heavy_only=True, full_basis=False):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
@@ -1160,8 +1160,9 @@ class ESI:
         self.save = save
         # Directory where files will be written. Use <save>_esipy to avoid cluttering working dir
         self.save_dir = save + '_esipy' if save else None
-        self.saveaoms = save + '_' + self.partition + ".aoms" if save else None
-        self.savemolinfo = save + '_' + self.partition + ".molinfo" if save else None
+        formatted_part = format_partition(self.partition, iaoref=self.iaoref, iaopol=self.iaopol, iaomix=self.iaomix, heavy_only=self.heavy_only)
+        self.saveaoms = save + '_' + formatted_part + ".aoms" if save else None
+        self.savemolinfo = save + '_' + formatted_part + ".molinfo" if save else None
         self.readpath = readpath
         self.read = read
         # For finding rings
@@ -1170,15 +1171,10 @@ class ESI:
         self.minlen = minlen
         self.rings_thres = rings_thres
         self._exclude = exclude
-        self.iaomix = getattr(self, "iaomix", 0.5)
         #self._printedrings = False
         self._connec = None
         self.done_connec = False
         self.filtrings = []
-        if hasattr(self, 'nomci') and self.nomci:
-            self._mci = False
-        if hasattr(self, 'noav1245') and self.noav1245:
-            self._av1245 = False
 
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
         print(" ** Localization & Delocalization Indices **  ")
@@ -1214,7 +1210,11 @@ class ESI:
             for i in deepcopy(self.rings):
                 ring = []
                 for j in range(len(i)):
-                    ring.append(self.fragmap[tuple(i[j % len(i)])] if isinstance(i[j % len(i)], set) else i[j % len(i)])
+                    item = i[j % len(i)]
+                    if isinstance(item, set):
+                        ring.append(self.fragmap[tuple(sorted(list(item)))])
+                    else:
+                        ring.append(item)
                 self.indicators.append(IndicatorsRest(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                       partition=self.partition, mci=self.mci,
                                                       av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs,
@@ -1242,7 +1242,11 @@ class ESI:
             for i in deepcopy(self.rings):
                 ring = []
                 for j in range(len(i)):
-                    ring.append(self.fragmap[tuple(i[j % len(i)])] if isinstance(i[j % len(i)], set) else i[j % len(i)])
+                    item = i[j % len(i)]
+                    if isinstance(item, set):
+                        ring.append(self.fragmap[tuple(sorted(list(item)))])
+                    else:
+                        ring.append(item)
                 self.indicators.append(IndicatorsUnrest(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                         partition=self.partition, mci=self.mci,
                                                         av1245=self.av1245, flurefs=self.flurefs,
@@ -1269,7 +1273,11 @@ class ESI:
             for i in deepcopy(self.rings):
                 ring = []
                 for j in range(len(i)):
-                    ring.append(self.fragmap[tuple(i[j % len(i)])] if isinstance(i[j % len(i)], set) else i[j % len(i)])
+                    item = i[j % len(i)]
+                    if isinstance(item, set):
+                        ring.append(self.fragmap[tuple(sorted(list(item)))])
+                    else:
+                        ring.append(item)
                 self.indicators.append(IndicatorsNatorb(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
                                                         partition=self.partition, mci=self.mci,
                                                         av1245=self.av1245, flurefs=self.flurefs,
@@ -1336,7 +1344,11 @@ class ESI:
             for i in range(len(self._rings)):
                 ring = []
                 for j in range(len(self._rings[i])):
-                    ring.append(self.fragmap[tuple(self._rings[i][j % len(self._rings[i])])] if isinstance(self._rings[i][j % len(self._rings[i])], set) else self._rings[i][j % len(self._rings[i])])
+                    item = self._rings[i][j % len(self._rings[i])]
+                    if isinstance(item, set):
+                        ring.append(self.fragmap[tuple(sorted(list(item)))])
+                    else:
+                        ring.append(item)
                 self.filtrings.append(ring)
         if not self.filtrings:
             self.filtrings = self._rings
@@ -1363,14 +1375,12 @@ class ESI:
             self._molinfo = load_file(self._molinfo)
             return self._molinfo
         if not self._molinfo:
-            if self.partition in ['mulliken', 'lowdin']:
-                print(" | Building NAO AOMs to compute connectivity.")
-                if self.mol is None or self.mf is None:
-                    raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs.")
-                mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf)
-            else:
-                mat = self.aom
+            print(" | Building NAO AOMs to compute connectivity.")
+            if self.mol is None or self.mf is None:
+                raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs.")
+            mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf)
             graph = build_connectivity(mat=mat, threshold=self.rings_thres)
+            
             if self.save:
                 os.makedirs(self.save_dir, exist_ok=True)
                 molinfo_path = os.path.join(self.save_dir, os.path.basename(self.savemolinfo))
@@ -1434,7 +1444,7 @@ class ESI:
         """
 
         if isinstance(self._partition, str):
-            return format_partition(self._partition)
+            return self._partition
         raise ValueError(" | Partition could not be processed. Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'")
 
     @property

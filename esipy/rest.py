@@ -55,7 +55,7 @@ def deloc_rest(aom, molinfo, fragmap={}):
 
     # Checking where to read the atomic symbols from
     presymbols = molinfo["symbols"]
-    symbols = presymbols + ["FF"] * (len(fragmap))
+    symbols = presymbols + ["FF"] * (len(aom) - len(presymbols))
 
     print(" ------------------------------------- ")
     print(" | Atom    N(Sij)     loc.      dloc. ")
