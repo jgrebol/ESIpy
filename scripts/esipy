@@ -64,12 +64,14 @@ def main():
         mci_kwargs = {'mci': True}
     elif inp.mci is False:
         mci_kwargs = {'mci': False}
+    elif inp.domci is False:
+        mci_kwargs = {'mci': False}
     else:
         mci_kwargs = {}
 
     extra_kwargs = {}
     if inp.iaomix is not None:
-        extra_kwargs['iaomix'] = inp.iaomix
+        extra_kwargs['iaomix'] = inp.iaomix[0] if isinstance(inp.iaomix, list) and len(inp.iaomix) > 0 else inp.iaomix
     if inp.iaoref is not None:
         extra_kwargs['iaoref'] = inp.iaoref
     if inp.iaopol is not None:
@@ -80,7 +82,6 @@ def main():
         extra_kwargs['full_basis'] = True
     if inp.ncores is not None:
         extra_kwargs['ncores'] = inp.ncores
-
 
     av1245 = True if inp.av1245 else None
 
@@ -108,15 +109,19 @@ def main():
     if rings and inp.fragments:
         def replace_fragments(ring, fragments):
             result = []
-            for atom in ring:
-                found = False
-                for frag in fragments:
-                    if atom in frag:
-                        result.append(frag)
-                        found = True
-                        break
-                if not found:
-                    result.append(atom)
+            for item in ring:
+                if isinstance(item, str) and item.upper().startswith('F'):
+                    try:
+                        fidx = int(item[1:]) - 1
+                        if 0 <= fidx < len(fragments):
+                            result.append(fragments[fidx])
+                        else:
+                            result.append(item)
+                    except ValueError:
+                        result.append(item)
+                else:
+                    # if it has 1 it puts atom number 1
+                    result.append(item)
             return result
         if isinstance(rings[0], list):
             rings = [replace_fragments(ring, inp.fragments) for ring in rings]
@@ -125,9 +130,9 @@ def main():
 
     for partition in partitions:
         if inp.mode == 'readaoms':
-            partition = format_partition(partition)
-            aom = inp.aomname + '_' + partition + '.aoms'
-            molinfo = inp.aomname + '_' + partition + '.molinfo'
+            f_partition = format_partition(partition, **extra_kwargs)
+            aom = inp.aomname + '_' + f_partition + '.aoms'
+            molinfo = inp.aomname + '_' + f_partition + '.molinfo'
             esi = ESI(aom=aom, rings=rings, partition=partition, molinfo=molinfo,
                       av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, **extra_kwargs)
         elif inp.mode == 'readint':

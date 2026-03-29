@@ -6,7 +6,7 @@ from pyscf import scf
 
 from esipy.tools import save_file, format_partition, get_natorbs, build_eta
 
-def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=None, iaoref='minao', iaopol='ano', heavy_only=None, full_basis=False):
+def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='minao', iaopol='ano', heavy_only=None, full_basis=False):
     """
     Build the Atomic Overlap Matrices (AOMs) in the Molecular Orbitals basis. 
     """
@@ -20,7 +20,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=None, iaoref='min
     try:
         S = mf.get_ovlp()
     except:
-        S = mol.get_ovlp()
+        S = mol.intor('int1e_ovlp')
     
     def get_iao_aoms(p_type, c, current_mf, w_override=None, current_myhf=None):
         try:
@@ -64,10 +64,6 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=None, iaoref='min
         ref_bas = p_parts[1] if len(p_parts) > 1 else iaoref
         local_w = w_override if w_override is not None else (string_w if string_w is not None else weight)
 
-        # Reference for IAO transformation
-        mf_ref = current_myhf if current_myhf is not None else current_mf
-        
-        # Note: IAO variants now return a shared transformation matrix for UHF
         if p_base == "dfpiao":
             aom_iao = get_iao_aoms(f"iao {ref_bas}", c, current_mf, current_myhf=current_myhf)
             aom_fpiao = get_iao_aoms(f"fpiao {ref_bas}", c, current_mf, w_override=1.0, current_myhf=current_myhf)
@@ -77,26 +73,21 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=None, iaoref='min
             aom_fpiao = get_iao_aoms(f"fpiao {ref_bas}", c, current_mf, w_override=1.0, current_myhf=current_myhf)
             return [(1.0 - local_w) * aom_iao[i] + local_w * aom_fpiao[i] for i in range(mol.natm)]
         elif p_base == "fpiao":
-            U_nonorth, pmol = fpiao(mol, mf_ref, x=local_w, source_basis=ref_bas, pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis)
+            U_nonorth, pmol = fpiao(mol, c, x=local_w, source_basis=ref_bas, pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis)
         elif p_base == "iao":
-            U_nonorth, pmol = iao(mol, mf_ref, source_basis=ref_bas, heavy_only=local_heavy_only, full_basis=full_basis)
+            U_nonorth, pmol = iao(mol, c, source_basis=ref_bas, heavy_only=local_heavy_only, full_basis=full_basis)
         elif p_base == "iao-autosad":
-            U_nonorth, pmol = autosad(mol, mf_ref, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis)
+            U_nonorth, pmol = autosad(mol, c, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis)
         elif p_base.startswith("iao-effao"):
             mode = p_base.replace("iao-effao-", "").replace("iao-effao", "net")
             if mode == "symmetric": mode = "sym"
-            U_nonorth, pmol = effao(mol, mf_ref, mode=mode, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis)
+            U_nonorth, pmol = effao(mol, c, mode=mode, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis)
         elif p_base == "wiao":
-            U_nonorth, pmol = wiao(mol, mf_ref, heavy_only=local_heavy_only, full_basis=full_basis)
+            U_nonorth, pmol = wiao(mol, c, heavy_only=local_heavy_only, full_basis=full_basis)
         elif p_base == "iao-pyscf":
              from pyscf.lo import iao as pyscf_iao
              from pyscf.lo import orth
-             try:
-                 import iao_dump as iao_mod
-             except ImportError:
-                 import esipy.iao as iao_mod
-             c_occ = iao_mod.get_union_occ(mol, mf_ref)
-             C_iao_nonorth = pyscf_iao.iao(mol, c_occ)
+             C_iao_nonorth = pyscf_iao.iao(mol, c)
              U_nonorth = orth.vec_lowdin(C_iao_nonorth, S)
              pmol = mol
         else:
@@ -109,16 +100,18 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=None, iaoref='min
 
     # 1. UNRESTRICTED
     if isinstance(mf, scf.uhf.UHF) or (hasattr(mf, "__name__") and mf.__name__ == "UHF"):
-        coeff_alpha = mf.mo_coeff[0][:, mf.mo_occ[0] > 0]
-        coeff_beta = mf.mo_coeff[1][:, mf.mo_occ[1] > 0]
+        ca, cb = mf.mo_coeff
+        oa, ob = mf.mo_occ
+        coeff_alpha = ca[:, oa > 0]
+        coeff_beta = cb[:, ob > 0]
 
-        if partition_label in ("lowdin", "meta-lowdin", "metalowdin", "m-lowdin", "mlowdin", "nao", "mulliken"):
+        if partition_label in ("lowdin", "meta-lowdin", "nao", "mulliken"):
             aom_alpha, aom_beta = [], []
             if partition_label == "lowdin":
                 U_inv = lowdin(S)
-            elif partition_label in ("meta-lowdin", "metalowdin", "m-lowdin", "mlowdin"):
+            elif partition_label == "meta-lowdin":
                 from pyscf.lo.orth import restore_ao_character
-                pre_orth_ao = restore_ao_character(mol, "MINAO")
+                pre_orth_ao = restore_ao_character(mol, "ANO")
                 w = np.ones(pre_orth_ao.shape[1])
                 U_inv = nao._nao_sub(mol, w, pre_orth_ao, S)
             elif partition_label == "nao":
@@ -144,16 +137,20 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=None, iaoref='min
         return aom
 
     # 2. RESTRICTED
-    if isinstance(mf, scf.hf.RHF) or (hasattr(mf, "__name__") and mf.__name__ == "RHF"):
-        coeff = mf.mo_coeff[:, mf.mo_occ > 0]
+    else:
+        if hasattr(mf, 'mo_occ'):
+            coeff = mf.mo_coeff[:, mf.mo_occ > 0]
+        else:
+            occ, coeff = get_natorbs(mf, S)
+            coeff = coeff[:, occ > 1e-10]
 
-        if partition_label in ("lowdin", "meta-lowdin", "metalowdin", "m-lowdin", "mlowdin", "nao", "mulliken"):
+        if partition_label in ("lowdin", "meta-lowdin", "nao", "mulliken"):
             aom = []
             if partition_label == "lowdin":
                 U_inv = lowdin(S)
-            elif partition_label in ("meta-lowdin", "metalowdin", "m-lowdin", "mlowdin"):
+            elif partition_label == "meta-lowdin":
                 from pyscf.lo.orth import restore_ao_character
-                pre_orth_ao = restore_ao_character(mol, "MINAO")
+                pre_orth_ao = restore_ao_character(mol, "ANO")
                 w = np.ones(pre_orth_ao.shape[1])
                 U_inv = nao._nao_sub(mol, w, pre_orth_ao, S)
             elif partition_label == "nao":
@@ -173,36 +170,3 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=None, iaoref='min
             
         if save: save_file(aom, save)
         return aom
-
-    # 3. NATURAL ORBITALS (Multireference / post-HF)
-    else:
-        occ, coeff = get_natorbs(mf, S)
-        
-        if partition_label in ("lowdin", "meta-lowdin", "metalowdin", "m-lowdin", "mlowdin", "nao", "mulliken"):
-            aom = []
-            if partition_label == "lowdin":
-                U_inv = lowdin(S)
-            elif partition_label in ("meta-lowdin", "metalowdin", "m-lowdin", "mlowdin"):
-                from pyscf.lo.orth import restore_ao_character
-                pre_orth_ao = restore_ao_character(mol, "MINAO")
-                w = np.ones(pre_orth_ao.shape[1])
-                U_inv = nao._nao_sub(mol, w, pre_orth_ao, S)
-            elif partition_label == "nao":
-                mf_ref = myhf if myhf is not None else mf
-                U_inv = nao.nao(mol, mf_ref, S)
-            
-            if partition_label == "mulliken":
-                eta = build_eta(mol)
-                for i in range(mol.natm):
-                    aom.append(np.linalg.multi_dot((coeff.T, S, eta[i], coeff)))
-            else:
-                U = np.linalg.inv(U_inv)
-                eta = build_eta(mol)
-                for i in range(mol.natm):
-                    aom.append(coeff.T @ U.T @ eta[i] @ U @ coeff)
-        else:
-            aom = get_iao_aoms(partition_label, coeff, mf, current_myhf=myhf)
-
-        aom_result = [aom, occ]
-        if save: save_file(aom_result, save)
-        return aom_result
