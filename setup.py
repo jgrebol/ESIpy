@@ -14,7 +14,6 @@ setup(
     packages=["esipy"],
     scripts=[
         "scripts/esipy",
-        "scripts/esipy-viz"
     ],
     install_requires=[
         "numpy",
