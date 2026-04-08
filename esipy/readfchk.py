@@ -301,6 +301,8 @@ class MeanField2:
             self.mo_coeff = mo_arr
 
             self.mo_occ = [np.zeros(self.nummo), np.zeros(self.nummo)]
+            print("Number of alpha electrons", self.nalpha)
+            print("Number of beta electrons", self.nbeta)
             self.mo_occ[0][:self.nalpha] = 1.0
             self.mo_occ[1][:self.nbeta] = 1.0
 

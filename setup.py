@@ -13,7 +13,8 @@ setup(
     url="https://github.com/jgrebol/ESIpy",
     packages=["esipy"],
     scripts=[
-        "scripts/esipy"
+        "scripts/esipy",
+        "scripts/esipy-viz"
     ],
     install_requires=[
         "numpy",
