@@ -327,3 +327,4 @@ def wiao(mol, coeffs, heavy_only=False, full_basis=False):
         for j in range(natm): PCC_min[loc_min[i]:loc_min[i+1], loc_min[j]:loc_min[j+1]] = PCC_atom[i, j]
     PCC_min = 0.999 * PCC_min + 0.001 * np.eye(nmin)
     return _do_iao(mol, coeffs, A_basis=A_tilde @ PCC_min), pmol
+
