@@ -111,7 +111,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
                 U_inv = lowdin(S)
             elif partition_label == "meta_lowdin":
                 from pyscf.lo import orth
-                U_inv = orth.orth_ao(mol, method="meta_lowdin")
+                U_inv = orth.orth_ao(mf, method="meta_lowdin")
             elif partition_label == "nao":
                 U_inv = nao.nao(mol, mf, S)
             
@@ -148,7 +148,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
                 U_inv = lowdin(S)
             elif partition_label == "meta_lowdin":
                 from pyscf.lo import orth
-                U_inv = orth.orth_ao(mol, method="meta_lowdin")
+                U_inv = orth.orth_ao(mf, method="meta_lowdin")
             elif partition_label == "nao":
                 U_inv = nao.nao(mol, mf, S)
             
