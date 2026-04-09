@@ -804,7 +804,7 @@ class IndicatorsUnrest:
         :returns: The BLA value.
         :rtype: float
         """
-        return self._blas()[0]
+        res = self._blas(); return res[0] if res is not None else None
 
     @property
     def bla_c(self):
@@ -814,7 +814,7 @@ class IndicatorsUnrest:
         :returns: The BLA_c value.
         :rtype: float
         """
-        return self._blas()[1]
+        res = self._blas(); return res[1] if res is not None else None
 
 
 class IndicatorsNatorb:
@@ -1081,7 +1081,7 @@ class IndicatorsNatorb:
         :returns: The BLA value.
         :rtype: float
         """
-        return self._blas()[0]
+        res = self._blas(); return res[0] if res is not None else None
 
     @property
     def bla_c(self):
@@ -1091,7 +1091,7 @@ class IndicatorsNatorb:
         :returns: The BLA_c value.
         :rtype: float
         """
-        return self._blas()[1]
+        res = self._blas(); return res[1] if res is not None else None
 
 
 class ESI:

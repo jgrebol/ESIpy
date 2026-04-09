@@ -242,7 +242,7 @@ def build_connectivity(mat=None, threshold=None):
     Build the connectivity dictionary based on the given atomic overlap matrices.
 
     Parameters:
-        mat: Atomic overlap matrices. If None, uses self.aom or builds meta-lowdin AOMs
+        mat: Atomic overlap matrices. If None, uses self.aom or builds meta_lowdin AOMs
         threshold: Threshold for connectivity determination. If None, uses self.rings_thres
 
     Returns:
@@ -301,22 +301,19 @@ def format_partition(partition):
     :rtype: str
     """
 
-    partition = partition.lower()
+    partition = partition.strip().lower()
     if partition in ["m", "mul", "mull", "mulliken"]:
         return "mulliken"
     elif partition in ["l", "low", "lowdin"]:
         return "lowdin"
-    elif partition in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta-lowdin",
-                       "meta_lowdin"]:
+    elif partition in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta_lowdin", "meta_lowdin"]:
         return "meta_lowdin"
     elif partition in ["n", "nao", "natural", "nat"]:
         return "nao"
     elif partition in ["i", "iao", "intrinsic", "intr"]:
         return "iao"
-    elif partition in ["q", "qt", "qtaim", "quant", "quantum"]:
-        return "qtaim"
     else:
-        raise NameError(" | Invalid partition scheme")
+        return partition
 
 
 def format_short_partition(partition):
