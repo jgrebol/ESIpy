@@ -60,7 +60,7 @@ The partition string can be input in different names, as ESIpy will recognize th
 - **Intrinsic Atomic Orbitals:** "iao", "i" and "intrinsic".
 - **Lowdin:** "lowdin", "l" and "low".
 - **Mulliken:** "mulliken", "m" and "mul".
-- **meta-Lowdin:** "meta_lowdin", "ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta-lowdin".
+- **meta-Lowdin:** "meta-lowdin", "ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta-lowdin".
 
 AV1245 and MCI calculation
 --------------------------
