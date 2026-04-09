@@ -242,7 +242,7 @@ def build_connectivity(mat=None, threshold=None):
     Build the connectivity dictionary based on the given atomic overlap matrices.
 
     Parameters:
-        mat: Atomic overlap matrices. If None, uses self.aom or builds meta_lowdin AOMs
+        mat: Atomic overlap matrices. If None, uses self.aom or builds meta-lowdin AOMs
         threshold: Threshold for connectivity determination. If None, uses self.rings_thres
 
     Returns:
@@ -313,6 +313,8 @@ def format_partition(partition):
         return "nao"
     elif partition in ["i", "iao", "intrinsic", "intr"]:
         return "iao"
+    else:
+        return partition
     elif partition in ["q", "qt", "qtaim", "quant", "quantum"]:
         return "qtaim"
     else:
