@@ -116,9 +116,12 @@ class ESIInput:
                     all_effaos = ["iao-autosad", "iao-effao", "iao-effao-net", "iao-effao-gross", "iao-effao-lowdin", "iao-effao-ml", "iao-effao-symmetric", "iao-effao-sps", "iao-effao-spsa"]
 
                     if pup == 'ALL':
-                        obj.partition.extend(['mulliken', 'lowdin', 'meta-lowdin', 'nao', 'iao'])
+                        obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
+                    elif pup == 'ROBUST':
+                        obj.partition.extend(['meta_lowdin', 'nao', 'iao'])
+                        obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
                     elif pup == "ALLWIP" or pup == "WIPALL":
-                        obj.partition.extend(['mulliken', 'lowdin', 'meta-lowdin', 'nao', 'iao'])
+                        obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
                         obj.partition.extend(all_effaos)
                         obj.partition.extend(all_fpiaos)
                         obj.partition.extend(all_dfpiaos)
@@ -142,7 +145,7 @@ class ESIInput:
                     i += 1
                 i -= 1
             elif line.upper().startswith('$ALLPARTS'):
-                obj.partition = ['mulliken', 'lowdin', 'meta-lowdin', 'nao', 'iao', 'iao-autosad', 'iao-effao', 'iao-effao-lowdin']
+                obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'iao-autosad', 'iao-effao', 'iao-effao-lowdin']
             elif line.startswith('$FLUREF'):
                 i += 1
                 obj.fluref = []

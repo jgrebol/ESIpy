@@ -15,7 +15,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
     if isinstance(weight, list):
         weight = weight[0]
 
-    partition_label = format_partition(partition, iaomix=weight).lower()
+    partition_label = format_partition(partition)
     
     try:
         S = mf.get_ovlp()
@@ -105,15 +105,13 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
         coeff_alpha = ca[:, oa > 0]
         coeff_beta = cb[:, ob > 0]
 
-        if partition_label in ("lowdin", "meta-lowdin", "nao", "mulliken"):
+        if partition_label in ("lowdin", "meta_lowdin", "nao", "mulliken"):
             aom_alpha, aom_beta = [], []
             if partition_label == "lowdin":
                 U_inv = lowdin(S)
-            elif partition_label == "meta-lowdin":
-                from pyscf.lo.orth import restore_ao_character
-                pre_orth_ao = restore_ao_character(mol, "ANO")
-                w = np.ones(pre_orth_ao.shape[1])
-                U_inv = nao._nao_sub(mol, w, pre_orth_ao, S)
+            elif partition_label == "meta_lowdin":
+                from pyscf.lo import orth
+                U_inv = orth.orth_ao(mol, method="meta_lowdin")
             elif partition_label == "nao":
                 U_inv = nao.nao(mol, mf, S)
             
@@ -144,15 +142,13 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
             occ, coeff = get_natorbs(mf, S)
             coeff = coeff[:, occ > 1e-10]
 
-        if partition_label in ("lowdin", "meta-lowdin", "nao", "mulliken"):
+        if partition_label in ("lowdin", "meta_lowdin", "nao", "mulliken"):
             aom = []
             if partition_label == "lowdin":
                 U_inv = lowdin(S)
-            elif partition_label == "meta-lowdin":
-                from pyscf.lo.orth import restore_ao_character
-                pre_orth_ao = restore_ao_character(mol, "ANO")
-                w = np.ones(pre_orth_ao.shape[1])
-                U_inv = nao._nao_sub(mol, w, pre_orth_ao, S)
+            elif partition_label == "meta_lowdin":
+                from pyscf.lo import orth
+                U_inv = orth.orth_ao(mol, method="meta_lowdin")
             elif partition_label == "nao":
                 U_inv = nao.nao(mol, mf, S)
             

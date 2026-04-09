@@ -72,10 +72,7 @@ def read_aoms(path='.'):
 
                     # We first get the number of shape of the alpha-alpha matrix
                     na, nb = read_orbs(intfile_path)
-                    if na == nb:
-                        nt = na
-                    else:
-                        nt = na + nb
+                    nt = na + nb
 
                     # Mulliken works on non-symmetric, square AOMs
                     if mul:

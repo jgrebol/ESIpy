@@ -310,85 +310,29 @@ def process_fragments(aom, rings, done=False):
 
 
 
-def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_only=False):
-    import re
-    orig = partition
-    p_split = partition.split(None, 1)
-    p_method = p_split[0].lower()
-    p_suffix = p_split[1] if len(p_split) > 1 else ""
-    
-    # Guidelines: IAO <basis>, FPIAO(x) <basis>, DFPIAO(x) <basis>
-    
-    # 1. Standardize method name
-    if p_method in ["m", "mul", "mull", "mulliken"]: base = "mulliken"
-    elif p_method in ["l", "low", "lowdin"]: base = "lowdin"
-    elif p_method in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta_lowdin", "meta-lowdin"]: base = "meta-lowdin"
-    elif p_method in ["n", "nao", "natural", "nat"]: base = "nao"
-    elif p_method in ["i", "iao", "intrinsic", "intr"]: base = "iao"
-    elif p_method in ["iao-autosad", "iaoauto", "iaoa", "iaa", "ia", "a", "autosad", "iaosad", "autos"]: base = "iao-autosad"
-    elif p_method in ["iao-effao-gross", "iao-eg", "iaoeg", "iaog", "ig", "gross", "iag", "g"]: base = "iao-effao-gross"
-    elif p_method in ["iao-effao-net", "iao-en", "iaoen", "iaon", "in", "net", "ian", "ne"]: base = "iao-effao-net"
-    elif p_method in ["iao-effao-lowdin", "iaoel", "iaol", "il", "iel", "iae"]: base = "iao-effao-lowdin"
-    elif p_method in ["iao-effao-metalowdin", "iao-effao-meta-lowdin", "iaom", "im"]: base = "iao-effao-meta-lowdin"
-    elif p_method in ["sym", "ias", "is", "iao-effao-symmetric"]: base = "iao-effao-symmetric"
-    elif p_method in ["sps", "iao-effao-sps"]: base = "iao-effao-sps"
-    elif p_method in ["spsa", "iao-effao-spsa"]: base = "iao-effao-spsa"
-    elif p_method == "iao_basis": base = "iao-basis"
-    elif p_method == "fpiao": base = "fpiao"
-    elif p_method == "dfpiao": base = "dfpiao"
-    elif p_method == "xiao_dfpiao": base = "xiao_dfpiao"
-    else: base = p_method.lower()
-    
-    # 2. Extract weight if present: "dfpiao(0.3)" -> "dfpiao", weight=0.3
-    match_w = re.search(r"\(+(.*?)\)+", partition)
-    if match_w:
-        try:
-            weight = float(match_w.group(1))
-            # Clean base name if weight was part of it
-            base = re.sub(r"\(.*?\)", "", base).strip()
-        except:
-            weight = None
+def format_partition(partition):
+    """
+    Filters the 'partition' attribute for flexibility.
+
+    :param partition: String with the name of the partition.
+    :type partition: str
+    :returns: String with the standard partition name for ESIpy.
+    :rtype: str
+    """
+
+    partition = partition.strip().lower()
+    if partition in ["m", "mul", "mull", "mulliken"]:
+        return "mulliken"
+    elif partition in ["l", "low", "lowdin"]:
+        return "lowdin"
+    elif partition in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta-lowdin", "meta_lowdin"]:
+        return "meta_lowdin"
+    elif partition in ["n", "nao", "natural", "nat"]:
+        return "nao"
+    elif partition in ["i", "iao", "intrinsic", "intr"]:
+        return "iao"
     else:
-        weight = None
-        
-    if weight is None:
-        if iaomix is not None:
-            weight = iaomix if isinstance(iaomix, (float, int)) else (iaomix[0] if iaomix else 0.5)
-        else:
-            if "fpiao" in p_method: weight = 1.0
-            elif "dfpiao" in p_method: weight = 0.5
-            else: weight = 0.5
-
-    # 3. Extract basis
-    # Basis can be in p_suffix or iaoref
-    res_basis = p_suffix.strip()
-    if not res_basis:
-        res_basis = iaoref if iaoref else ""
-    
-    # Clean basis name (remove extension, take filename)
-    if "/" in res_basis:
-        res_basis = res_basis.split("/")[-1].replace("_ref_basis.dat", "").replace("_polar_basis.dat", "").lower()
-    elif res_basis.lower() == "minao":
-        res_basis = ""
-    else:
-        res_basis = res_basis.lower()
-
-    # 4. Construct final label
-    if "fpiao" in base or "dfpiao" in base or "xiao" in base:
-        # Avoid double dots like 1.00
-        w_str = f"{weight:g}" if weight != int(weight) else f"{weight:.1f}"
-        if "(" not in base:
-            base += f"({w_str})"
-        else:
-            base = re.sub(r"\(.*?\)", f"({w_str})", base)
-
-    label = base
-    # Only append reference basis for IAO variants
-    is_iao = "iao" in base or "piao" in base or "xiao" in base
-    if is_iao and res_basis:
-        label += f" {res_basis}"
-        
-    return label.lower()
+        return partition
 def format_short_partition(partition):
 
     # Split to preserve case for paths/basis names if needed
@@ -401,7 +345,7 @@ def format_short_partition(partition):
         return "mul"
     elif partition == "lowdin":
         return "low"
-    elif partition == "meta-lowdin":
+    elif partition == "meta_lowdin":
         return "metalow"
     elif partition == "iao-effao-lowdin":
         return "iao-effao-low"
