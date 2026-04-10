@@ -783,7 +783,20 @@ class IndicatorsUnrest:
         :returns: The HOMER value.
         :rtype: float
         """
-        return compute_homer(self._rings, self._molinfo, self._homerrefs)
+        if not self._rings:
+            return None
+            
+        # Localization to avoid IndexError in compute_homer due to faulty indexing in that function
+        local_arr = list(range(1, len(self._rings) + 1))
+        local_symbols = [self._molinfo["symbols"][i-1] for i in self._rings]
+        orig_geom = self._molinfo["geom"]
+        local_geom = np.array([orig_geom[i-1] for i in self._rings])
+        
+        local_molinfo = self._molinfo.copy()
+        local_molinfo["symbols"] = local_symbols
+        local_molinfo["geom"] = local_geom
+        
+        return compute_homer(local_arr, local_molinfo, self._homerrefs)
 
     def _blas(self):
         """
