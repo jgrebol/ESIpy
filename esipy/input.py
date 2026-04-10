@@ -157,7 +157,7 @@ class ESIInput:
                             pass
                     i += 1
                 i -= 1
-            elif line.startswith('$FINDRINGS'):
+            elif line.startswith('$FINDRING'):
                 obj.findrings = True
             elif line.startswith('$NORING'):
                 obj.noring = True
@@ -165,6 +165,8 @@ class ESIInput:
                 obj.rings = None
             elif line.strip().startswith('$NOMCI'):
                 obj.domci = False
+            elif line.strip().startswith('$MCI') or line.strip().startswith('$DOMCI'):
+                obj.domci = True
             elif line.startswith('$MINLEN'):
                 i += 1
                 obj.minlen = int(lines[i])
