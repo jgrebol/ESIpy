@@ -260,7 +260,7 @@ class IndicatorsRest:
         :returns: The EN value.
         :rtype: float
         """
-        return self._homa()[1]
+        res = self._homa(); return res[1] if res is not None else None
 
     @property
     def geo(self):
@@ -270,7 +270,7 @@ class IndicatorsRest:
         :returns: The GEO value.
         :rtype: float
         """
-        return self._homa()[2]
+        res = self._homa(); return res[2] if res is not None else None
 
     def _bla(self):
         """
@@ -745,6 +745,8 @@ class IndicatorsUnrest:
         :rtype: tuple
         """
         if not hasattr(self, '_done_homas'):
+            if self._molinfo.get('geom') is None:
+                return None
             self._done_homas = compute_homa(self._rings, self._molinfo, self._homarefs)
         return self._done_homas
 
@@ -768,7 +770,7 @@ class IndicatorsUnrest:
         :returns: The EN value.
         :rtype: float
         """
-        return self._homas()[1]
+        res = self._homas(); return res[1] if res is not None else None
 
     @property
     def geo(self):
@@ -778,7 +780,7 @@ class IndicatorsUnrest:
         :returns: The GEO value.
         :rtype: float
         """
-        return self._homas()[2]
+        res = self._homas(); return res[2] if res is not None else None
 
     @property
     def homer(self):
@@ -1044,6 +1046,8 @@ class IndicatorsNatorb:
         :rtype: tuple
         """
         if not hasattr(self, '_done_homas'):
+            if self._molinfo.get('geom') is None:
+                return None
             self._done_homas = compute_homa(self._rings, self._molinfo, self._homarefs)
         return self._done_homas
 
@@ -1067,7 +1071,7 @@ class IndicatorsNatorb:
         :returns: The EN value.
         :rtype: float
         """
-        return self._homas()[1]
+        res = self._homas(); return res[1] if res is not None else None
 
     @property
     def geo(self):
@@ -1077,7 +1081,7 @@ class IndicatorsNatorb:
         :returns: The GEO value.
         :rtype: float
         """
-        return self._homas()[2]
+        res = self._homas(); return res[2] if res is not None else None
 
     @property
     def homer(self):

@@ -325,6 +325,9 @@ def read_molinfo(path):
     molinfo = {
         "method": "Not specified",
         "basisset": "Not specified",
+        "xc": "Not specified",
+        "energy": "Not specified",
+        "calctype": "Not specified",
         "geom": None,
         "partition": "qtaim",
     }
@@ -358,6 +361,13 @@ def read_molinfo(path):
             if "The molecular energy from the wf" in line or "ENERGY" in line and not found_energy:
                 molinfo["energy"] = float(line.split()[-1])
                 found_energy = True
+            
+            if "Model:" in line:
+                molinfo["method"] = line.split("Model:")[1].strip()
+            if "Basis Set:" in line:
+                molinfo["basisset"] = line.split("Basis Set:")[1].strip()
+            if "Functional:" in line:
+                molinfo["xc"] = line.split("Functional:")[1].strip()
             
             if "Wfx File:" in line and "wfx_filename" not in molinfo:
                 molinfo["wfx_filename"] = line.split(":")[-1].strip()
