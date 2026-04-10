@@ -218,6 +218,7 @@ def arom_unrest(aom, rings, molinfo, indicators, mci=False, av1245=False, partit
                     print(" | Using the default HOMER references")
 
                 print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homer))
+                print(" ----------------------------------------------------------------------")
 
         if molinfo["geom"] is not None:
             bla = indicators[ring_index].bla

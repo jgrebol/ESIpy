@@ -185,12 +185,13 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
             print(" | EN           {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].en))
             print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].geo))
             print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homa))
+            print(" ----------------------------------------------------------------------")
 
         if homerrefs:
             print(" | ")
             print(" | Found custom HOMER references 'alpha' and 'r_opt'. Computing")
             print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homer))
-        print(" ----------------------------------------------------------------------")
+            print(" ----------------------------------------------------------------------")
 
         if molinfo["geom"] is not None:
             bla = indicators[ring_index].bla
