@@ -390,7 +390,8 @@ def read_wfx_info(path, wfx_filename=None):
     parent_path = os.path.dirname(abs_path)
 
     # Possible locations to look for the file
-    locations = [path, abs_path, parent_path, os.getcwd()]
+    # Prioritize current working directory and path parent
+    locations = [os.getcwd(), parent_path, path, abs_path]
     # Remove duplicates while preserving order
     unique_locations = []
     for loc in locations:

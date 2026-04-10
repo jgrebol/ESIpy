@@ -207,15 +207,25 @@ class IndicatorsRest:
     @property
     def homer(self):
         """
-        Compute the HOMER value.
+        Get the HOMER value.
 
         :returns: The HOMER value.
         :rtype: float
         """
-        if self._geom is None or self._homerrefs is None or self._connectivity is None:
+        if not self._rings or self._molinfo.get("geom") is None:
             return None
-        else:
-            return compute_homer(self._rings, self._molinfo, self._homerrefs)
+            
+        # Localization to avoid IndexError in compute_homer due to faulty indexing in that function
+        local_arr = list(range(1, len(self._rings) + 1))
+        local_symbols = [self._molinfo["symbols"][i-1] for i in self._rings]
+        orig_geom = self._molinfo["geom"]
+        local_geom = np.array([orig_geom[i-1] for i in self._rings])
+        
+        local_molinfo = self._molinfo.copy()
+        local_molinfo["symbols"] = local_symbols
+        local_molinfo["geom"] = local_geom
+        
+        return compute_homer(local_arr, local_molinfo, self._homerrefs)
 
     def _homa(self):
         """
@@ -283,9 +293,7 @@ class IndicatorsRest:
         :returns: The BLA value.
         :rtype: float
         """
-        if self._bla() is None:
-            return [None, None]
-        return self._bla()[0]
+        res = self._bla(); return res[0] if res is not None else None
 
     @property
     def bla_c(self):
@@ -295,10 +303,7 @@ class IndicatorsRest:
         :returns: The BLA_c value.
         :rtype: float
         """
-        if self._bla() is None:
-            return [None, None]
-        return self._bla()[1]
-
+        res = self._bla(); return res[1] if res is not None else None
 
 class IndicatorsUnrest:
     """
@@ -783,7 +788,7 @@ class IndicatorsUnrest:
         :returns: The HOMER value.
         :rtype: float
         """
-        if not self._rings:
+        if not self._rings or self._molinfo.get("geom") is None:
             return None
             
         # Localization to avoid IndexError in compute_homer due to faulty indexing in that function
@@ -828,7 +833,6 @@ class IndicatorsUnrest:
         :rtype: float
         """
         res = self._blas(); return res[1] if res is not None else None
-
 
 class IndicatorsNatorb:
     """
@@ -1012,15 +1016,25 @@ class IndicatorsNatorb:
     @property
     def homer(self):
         """
-        Compute the HOMER value.
+        Get the HOMER value.
 
         :returns: The HOMER value.
         :rtype: float
         """
-        if self._geom is None or self._homerrefs is None or self._connectivity is None:
+        if not self._rings or self._molinfo.get("geom") is None:
             return None
-        else:
-            return compute_homer(self._rings, self._mol, self._geom, self._homerrefs, self._connectivity)
+            
+        # Localization to avoid IndexError in compute_homer due to faulty indexing in that function
+        local_arr = list(range(1, len(self._rings) + 1))
+        local_symbols = [self._molinfo["symbols"][i-1] for i in self._rings]
+        orig_geom = self._molinfo["geom"]
+        local_geom = np.array([orig_geom[i-1] for i in self._rings])
+        
+        local_molinfo = self._molinfo.copy()
+        local_molinfo["symbols"] = local_symbols
+        local_molinfo["geom"] = local_geom
+        
+        return compute_homer(local_arr, local_molinfo, self._homerrefs)
 
     def _homas(self):
         """
@@ -1073,7 +1087,20 @@ class IndicatorsNatorb:
         :returns: The HOMER value.
         :rtype: float
         """
-        return compute_homer(self._rings, self._mol, self._homerrefs)
+        if not self._rings or self._molinfo.get("geom") is None:
+            return None
+            
+        # Localization to avoid IndexError in compute_homer due to faulty indexing in that function
+        local_arr = list(range(1, len(self._rings) + 1))
+        local_symbols = [self._molinfo["symbols"][i-1] for i in self._rings]
+        orig_geom = self._molinfo["geom"]
+        local_geom = np.array([orig_geom[i-1] for i in self._rings])
+        
+        local_molinfo = self._molinfo.copy()
+        local_molinfo["symbols"] = local_symbols
+        local_molinfo["geom"] = local_geom
+        
+        return compute_homer(local_arr, local_molinfo, self._homerrefs)
 
     def _blas(self):
         """
@@ -1105,7 +1132,6 @@ class IndicatorsNatorb:
         :rtype: float
         """
         res = self._blas(); return res[1] if res is not None else None
-
 
 class ESI:
     """
@@ -1650,4 +1676,3 @@ class ESI:
                 arom_no(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                     av1245=self.av1245,
                     flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap,)
-
