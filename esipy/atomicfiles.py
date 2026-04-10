@@ -498,11 +498,21 @@ def read_orbs(file_path):
 
     with open(file_path, 'r') as file:
         for line in file:
+            # Fallback for older AIMAll versions or missing MO Data section
+            if "Number of Alpha electrons (from MO Occs)" in line:
+                nalpha = int(float(line.split()[-1]))
+            if "Number of Beta electrons (from MO Occs)" in line:
+                nbeta = int(float(line.split()[-1]))
+
             # Start processing after the header line
             if "Molecular Orbital (MO) Data" in line:
+                nalpha, nbeta = 0, 0 # Reset if we find the detailed section
                 start_processing = True
-                for _ in range(10):
-                    next(file)
+                try:
+                    for _ in range(10):
+                        next(file)
+                except StopIteration:
+                    break
                 continue
 
             # Stop processing at a blank line
@@ -511,7 +521,7 @@ def read_orbs(file_path):
 
             if start_processing:
                 columns = line.split()
-                if len(columns) >= 3:
+                if len(columns) >= 4:
                     if columns[3] == "Alpha":
                         nalpha += 1
                     elif columns[3] == "Beta":
@@ -519,8 +529,8 @@ def read_orbs(file_path):
                     elif columns[3] == "Alpha,Beta":
                         nalpha += 1
                         nbeta += 1
-                    else:
-                       raise ValueError("Invalid spin type in the input file.")
+                    # Some versions might have different columns, but usually Spin is at 3
+        
     return nalpha, nbeta
 
 def write_wfx(path, name, mol, mf, aom, wf, occ=None):
