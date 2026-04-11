@@ -258,6 +258,7 @@ class MeanField2:
         self.path = path
         self.mole2 = mole2
         self.mol = mole2.pyscf_mol
+        self.pyscf_mol = mole2.pyscf_mol
 
         self.nao = self.mole2.numao  # AOs (Basis functions)
         self.nummo = self.mole2.nummo  # MOs (Independent functions)

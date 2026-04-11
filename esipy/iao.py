@@ -171,6 +171,10 @@ def get_reference_basis_dict(mol, source_basis='minao', pol_basis=None, x=1.0, h
     return ref_basis
 
 def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=1.0, heavy_only=False, full_basis=False):
+    from pyscf import gto
+    if not isinstance(mol, gto.Mole):
+        if hasattr(mol, 'pyscf_mol'): mol = mol.pyscf_mol
+        if hasattr(mol, 'mol'): mol = mol.mol
     from pyscf.lo import iao as pyscf_iao
     if hasattr(mol, 'pyscf_mol'): mol = mol.pyscf_mol
     if polarized and pol_basis is None: pol_basis = 'ano'
@@ -183,6 +187,10 @@ def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=
     return pyscf_iao.reference_mol(mol, minao=ref_basis)
 
 def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_only=False, full_basis=False, x=1.0):
+    from pyscf import gto
+    if not isinstance(mol, gto.Mole):
+        if hasattr(mol, 'pyscf_mol'): mol = mol.pyscf_mol
+        if hasattr(mol, 'mol'): mol = mol.mol
     pmol = reference_mol(mol, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis, x=x)
     minbas_total = pmol.nao
     veps_block = np.zeros((mol.nao, minbas_total))
@@ -259,6 +267,10 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
     return np.array(vaps_diag), veps_block, pmol
 
 def _do_iao(mol, coeffs, pmol=None, A_basis=None, heavy_only=False):
+    from pyscf import gto
+    if not isinstance(mol, gto.Mole):
+        if hasattr(mol, 'pyscf_mol'): mol = mol.pyscf_mol
+        if hasattr(mol, 'mol'): mol = mol.mol
     from pyscf.lo import iao as pyscf_iao
     from pyscf.lo import orth
     S1 = mol.intor('int1e_ovlp')
@@ -278,25 +290,51 @@ def _do_iao(mol, coeffs, pmol=None, A_basis=None, heavy_only=False):
         return orth.vec_lowdin(C_iao_nonorth, S1)
 
 def iao(mol, coeffs, source_basis='minao', heavy_only=False, full_basis=False):
+    from pyscf import gto
+    if not isinstance(mol, gto.Mole):
+        if hasattr(mol, 'pyscf_mol'): mol = mol.pyscf_mol
+        if hasattr(mol, 'mol'): mol = mol.mol
     pmol = reference_mol(mol, polarized=False, source_basis=source_basis, heavy_only=heavy_only, full_basis=full_basis)
     return _do_iao(mol, coeffs, pmol=pmol), pmol
 
 def fpiao(mol, coeffs, x=1.0, source_basis='minao', pol_basis='ano', heavy_only=True, full_basis=False):
+    from pyscf import gto
+    if not isinstance(mol, gto.Mole):
+        if hasattr(mol, 'pyscf_mol'): mol = mol.pyscf_mol
+        if hasattr(mol, 'mol'): mol = mol.mol
     pmol = reference_mol(mol, polarized=True, pol_basis=pol_basis, source_basis=source_basis, x=x, heavy_only=heavy_only, full_basis=full_basis)
     return _do_iao(mol, coeffs, pmol=pmol), pmol
 
 def autosad(mol, coeffs, polarized=False, heavy_only=False, full_basis=False, x=1.0):
+    from pyscf import gto
+    if not isinstance(mol, gto.Mole):
+        if hasattr(mol, 'pyscf_mol'): mol = mol.pyscf_mol
+        if hasattr(mol, 'mol'): mol = mol.mol
     w, A, pmol = get_effaos(mol, coeffs, free_atom=True, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis, x=x)
     return _do_iao(mol, coeffs, A_basis=A, heavy_only=heavy_only), pmol
 
 def effao(mol, coeffs, mode='net', polarized=False, heavy_only=False, full_basis=False, x=1.0):
+    from pyscf import gto
+    if not isinstance(mol, gto.Mole):
+        if hasattr(mol, 'pyscf_mol'): mol = mol.pyscf_mol
+        if hasattr(mol, 'mol'): mol = mol.mol
     w, A, pmol = get_effaos(mol, coeffs, free_atom=False, mode=mode, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis, x=x)
     return _do_iao(mol, coeffs, A_basis=A, heavy_only=heavy_only), pmol
 
 def dfpiao(mol, coeffs, x=0.5, source_basis='minao', pol_basis='ano', heavy_only=True, full_basis=False):
-    return fpiao(mol, coeffs, x=x, source_basis=source_basis, pol_basis=pol_basis, heavy_only=heavy_only, full_basis=full_basis)
+    from pyscf import gto
+    if not isinstance(mol, gto.Mole):
+        if hasattr(mol, 'pyscf_mol'): mol = mol.pyscf_mol
+        if hasattr(mol, 'mol'): mol = mol.mol
+    C_iao, pmol = iao(mol, coeffs, source_basis=source_basis, heavy_only=heavy_only, full_basis=full_basis)
+    C_fpiao, _ = fpiao(mol, coeffs, x=1.0, source_basis=source_basis, pol_basis=pol_basis, heavy_only=heavy_only, full_basis=full_basis)
+    return x * C_iao + (1.0 - x) * C_fpiao, pmol
 
 def wiao(mol, coeffs, heavy_only=False, full_basis=False):
+    from pyscf import gto
+    if not isinstance(mol, gto.Mole):
+        if hasattr(mol, 'pyscf_mol'): mol = mol.pyscf_mol
+        if hasattr(mol, 'mol'): mol = mol.mol
     from pyscf.lo.orth import orth_ao
     S1 = mol.intor('int1e_ovlp')
     P_AO = coeffs @ coeffs.T
