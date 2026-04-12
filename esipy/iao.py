@@ -321,15 +321,6 @@ def effao(mol, coeffs, mode='net', polarized=False, heavy_only=False, full_basis
     w, A, pmol = get_effaos(mol, coeffs, free_atom=False, mode=mode, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis, x=x)
     return _do_iao(mol, coeffs, A_basis=A, heavy_only=heavy_only), pmol
 
-def dfpiao(mol, coeffs, x=0.5, source_basis='minao', pol_basis='ano', heavy_only=True, full_basis=False):
-    from pyscf import gto
-    if not isinstance(mol, gto.Mole):
-        if hasattr(mol, 'pyscf_mol'): mol = mol.pyscf_mol
-        if hasattr(mol, 'mol'): mol = mol.mol
-    C_iao, pmol = iao(mol, coeffs, source_basis=source_basis, heavy_only=heavy_only, full_basis=full_basis)
-    C_fpiao, _ = fpiao(mol, coeffs, x=1.0, source_basis=source_basis, pol_basis=pol_basis, heavy_only=heavy_only, full_basis=full_basis)
-    return x * C_iao + (1.0 - x) * C_fpiao, pmol
-
 def wiao(mol, coeffs, heavy_only=False, full_basis=False):
     from pyscf import gto
     if not isinstance(mol, gto.Mole):

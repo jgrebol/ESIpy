@@ -28,7 +28,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
         except ImportError:
             import esipy.iao as iao_mod
         
-        iao, fpiao, dfpiao = iao_mod.iao, iao_mod.fpiao, iao_mod.dfpiao
+        iao, fpiao = iao_mod.iao, iao_mod.fpiao
         effao, autosad, wiao = iao_mod.effao, iao_mod.autosad, iao_mod.wiao
 
         p_type = p_type.lower()
@@ -65,7 +65,9 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
         local_w = w_override if w_override is not None else (string_w if string_w is not None else weight)
 
         if p_base == "dfpiao":
-            U_nonorth, pmol = dfpiao(mol, c, x=local_w, source_basis=ref_bas, pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis)
+            aom_iao = get_iao_aoms(f"iao {ref_bas}", c, current_mf, current_myhf=current_myhf)
+            aom_fpiao = get_iao_aoms(f"fpiao {ref_bas}", c, current_mf, w_override=1.0, current_myhf=current_myhf)
+            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(mol.natm)]
         elif p_base == "fpiao":
             U_nonorth, pmol = fpiao(mol, c, x=local_w, source_basis=ref_bas, pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis)
         elif p_base == "iao":
