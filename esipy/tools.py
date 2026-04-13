@@ -195,7 +195,7 @@ def av1245_pairs(arr):
             for i in range(len(arr))]
 
 
-def mol_info(mol=None, mf=None, save=None, partition=None, connec=None, iaoref=None, iaopol=None, iaomix=None, heavy_only=True, full_basis=False):
+def mol_info(mol=None, mf=None, save=None, partition=None, connec=None):
     """
     Obtains information from the molecule and the calculation to complement the main code function without requiring the 'mol' and 'mf' objects.
 
@@ -207,21 +207,12 @@ def mol_info(mol=None, mf=None, save=None, partition=None, connec=None, iaoref=N
     :type save: str
     :param partition: String with the name of the partition.
     :type partition: str
-    :param iaoref: Reference basis for IAO.
-    :type iaoref: str
-    :param iaopol: Polarization basis for IAO.
-    :type iaopol: str
-    :param iaomix: IAO mixing weight.
-    :type iaomix: float
     :returns: Dictionary with the information of the molecule and the calculation.
     :rtype: dict
     """
 
     info = {}
     info.update({"partition": partition})
-    if iaoref: info.update({"iaoref": iaoref})
-    if iaopol: info.update({"iaopol": iaopol})
-    if iaomix is not None: info.update({"iaomix": iaomix})
     if mol:
         info.update({
             "symbols": [mol.atom_symbol(i) for i in range(mol.natm)],
@@ -310,102 +301,30 @@ def process_fragments(aom, rings, done=False):
 
 
 
-def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_only=False):
-    import re
-    orig = partition
-    p_split = partition.split(None, 1)
-    p_method = p_split[0].lower()
-    p_suffix = p_split[1] if len(p_split) > 1 else ""
+def format_partition(partition):
+    p_method = partition.lower()
     
-    # 1. Standardize method name
-    if p_method in ["m", "mul", "mull", "mulliken"]: base = "mulliken"
-    elif p_method in ["l", "low", "lowdin"]: base = "lowdin"
-    elif p_method in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta_lowdin", "meta-lowdin"]: base = "meta_lowdin"
-    elif p_method in ["n", "nao", "natural", "nat"]: base = "nao"
-    elif p_method in ["i", "iao", "intrinsic", "intr"]: base = "iao"
-    elif p_method in ["iao-autosad", "iaoauto", "iaoa", "iaa", "ia", "a", "autosad", "iaosad", "autos"]: base = "iao-autosad"
-    elif p_method in ["iao-effao-gross", "iao-eg", "iaoeg", "iaog", "ig", "gross", "iag", "g"]: base = "iao-effao-gross"
-    elif p_method in ["iao-effao-net", "iao-en", "iaoen", "iaon", "in", "net", "ian", "ne"]: base = "iao-effao-net"
-    elif p_method in ["iao-effao-lowdin", "iaoel", "iaol", "il", "iel", "iae"]: base = "iao-effao-lowdin"
-    elif p_method in ["iao-effao-metalowdin", "iao-effao-meta-lowdin", "iaom", "im"]: base = "iao-effao-metalowdin"
-    elif p_method in ["sym", "ias", "is", "iao-effao-symmetric"]: base = "iao-effao-symmetric"
-    elif p_method in ["sps", "iao-effao-sps"]: base = "iao-effao-sps"
-    elif p_method in ["spsa", "iao-effao-spsa"]: base = "iao-effao-spsa"
-    elif p_method == "iao_basis": base = "iao-basis"
-    elif p_method == "fpiao": base = "fpiao"
-    elif p_method == "dfpiao": base = "dfpiao"
-    elif p_method == "xiao_dfpiao": base = "xiao_dfpiao"
-    else: base = p_method.lower()
-    
-    # 2. Extract weight if present
-    match_w = re.search(r"\(+(.*?)\)+", partition)
-    if match_w:
-        try:
-            weight = float(match_w.group(1))
-            base = re.sub(r"\(.*?\)", "", base).strip()
-        except: weight = None
-    else: weight = None
-        
-    if weight is None:
-        if iaomix is not None:
-            weight = iaomix if isinstance(iaomix, (float, int)) else (iaomix[0] if iaomix else 0.5)
-        else:
-            if "fpiao" in p_method: weight = 1.0
-            elif "dfpiao" in p_method: weight = 0.5
-            else: weight = 0.5
+    # Standardize method name
+    if p_method in ["m", "mul", "mull", "mulliken"]: return "mulliken"
+    elif p_method in ["l", "low", "lowdin"]: return "lowdin"
+    elif p_method in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta_lowdin", "meta-lowdin"]: return "meta_lowdin"
+    elif p_method in ["n", "nao", "natural", "nat"]: return "nao"
+    elif p_method in ["i", "iao", "intrinsic", "intr"]: return "iao"
+    else: return p_method
 
-    # 3. Extract basis
-    res_basis = p_suffix.strip()
-    if not res_basis: res_basis = iaoref if iaoref else ""
-    
-    if "/" in res_basis:
-        res_basis = res_basis.split("/")[-1].replace("_ref_basis.dat", "").replace("_polar_basis.dat", "").lower()
-    elif res_basis.lower() == "minao": res_basis = ""
-    else: res_basis = res_basis.lower()
-
-    # 4. Construct final label
-    if "fpiao" in base or "dfpiao" in base or "xiao" in base:
-        w_str = f"{weight:g}" if weight != int(weight) else f"{weight:.1f}"
-        if "(" not in base: base += f"({w_str})"
-        else: base = re.sub(r"\(.*?\)", f"({w_str})", base)
-
-    label = base
-    is_iao = "iao" in base or "piao" in base or "xiao" in base
-    if is_iao and res_basis: label += f" {res_basis}"
-        
-    return label.lower()
 def format_short_partition(partition):
+    p_method = partition.lower()
 
-    # Split to preserve case for paths/basis names if needed
-    p_split = partition.split(None, 1)
-    p_method = p_split[0].lower()
-    p_suffix = " " + p_split[1] if len(p_split) > 1 else ""
-    partition = p_method + p_suffix
-
-    if partition == "mulliken":
+    if p_method == "mulliken":
         return "mul"
-    elif partition == "lowdin":
+    elif p_method == "lowdin":
         return "low"
-    elif partition == "meta_lowdin":
+    elif p_method == "meta_lowdin":
         return "metalow"
-    elif partition == "iao-effao-lowdin":
-        return "iao-effao-low"
-    elif partition == "iao-effao-gross":
-        return "iao-effao-gross"
-    elif partition == "iao-effao-net":
-        return "iao-effao-net"
-    elif partition == "iao-ano":
-        return "iano"
-    elif partition == "piao":
-        return "p"
-    elif partition == "piao-iao":
-        return "pi"
-    elif partition == "piao-iao-ano":
-        return "pia"
-    elif partition in ("nao", "iao", "qtaim", "iao-autosad", "iao-effao"):
-        return partition
+    elif p_method in ("nao", "iao"):
+        return p_method
     else:
-        return partition
+        return p_method
 
 
 
@@ -574,10 +493,6 @@ def is_fused(arr, connec):
 def find_middle_nodes(connec2):
     return [key for key, vals in connec2.items() if len(vals) > 2]
 
-try:
-    from esipy.iao import iao, get_effaos, autosad
-except ImportError:
-    pass
 
 def permute_aos_rows(mat, mole2):
     """

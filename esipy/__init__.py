@@ -1172,9 +1172,8 @@ class ESI:
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
-                 ncores=1, save=None, readpath='.', read=False, iaomix=None,
-                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None,
-                 iaoref='minao', iaopol='ano', heavy_only=True, full_basis=False):
+                 ncores=1, save=None, readpath='.', read=False,
+                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
@@ -1195,15 +1194,10 @@ class ESI:
         self.frag = False
         # For other tools
         self.ncores = ncores
-        self.iaomix = iaomix
-        self.iaoref = iaoref
-        self.iaopol = iaopol
-        self.heavy_only = heavy_only
-        self.full_basis = full_basis
         self.save = save
         # Directory where files will be written. Use <save>_esipy to avoid cluttering working dir
         self.save_dir = save + '_esipy' if save else None
-        formatted_part = format_partition(self.partition, iaoref=self.iaoref, iaopol=self.iaopol, iaomix=self.iaomix, heavy_only=self.heavy_only)
+        formatted_part = format_partition(self.partition)
         self.saveaoms = save + '_' + formatted_part + ".aoms" if save else None
         self.savemolinfo = save + '_' + formatted_part + ".molinfo" if save else None
         self.readpath = readpath
@@ -1429,8 +1423,7 @@ class ESI:
                 molinfo_path = os.path.join(self.save_dir, os.path.basename(self.savemolinfo))
             else:
                 molinfo_path = self.savemolinfo
-            self._molinfo = mol_info(self.mol, self.mf, molinfo_path, self._partition, graph,
-                                     iaoref=self.iaoref, iaopol=self.iaopol, iaomix=self.iaomix, heavy_only=self.heavy_only, full_basis=self.full_basis)
+            self._molinfo = mol_info(self.mol, self.mf, molinfo_path, self._partition, graph)
         return self._molinfo
 
     @property
@@ -1465,8 +1458,7 @@ class ESI:
             if self.mol and self.mf and self.partition:
                 self._aom_loaded = True
                 # Don't save in make_aoms, we'll save it ourselves in the subdirectory
-                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf, heavy_only=self.heavy_only, 
-                                      iaomix=self.iaomix, iaoref=self.iaoref, iaopol=self.iaopol)
+                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf)
 
                 if self.saveaoms:
                     os.makedirs(self.save_dir, exist_ok=True)

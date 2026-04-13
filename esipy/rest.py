@@ -12,10 +12,7 @@ def info_rest(aom, molinfo, nfrags=0):
     :param molinfo: Information about the molecule and the calculation.
     :type: molinfo: dict
     """
-    partition = format_partition(molinfo["partition"], 
-                                 iaoref=molinfo.get("iaoref"), 
-                                 iaopol=molinfo.get("iaopol"),
-                                 iaomix=molinfo.get("iaomix", 0.5))
+    partition = format_partition(molinfo["partition"])
 
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     print(" | Number of Atoms:          {}".format(len(aom)-nfrags))

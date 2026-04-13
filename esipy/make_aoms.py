@@ -6,14 +6,10 @@ from pyscf import scf
 
 from esipy.tools import save_file, format_partition, get_natorbs, build_eta
 
-def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='minao', iaopol='ano', heavy_only=None, full_basis=False):
+def make_aoms(mol, mf, partition, myhf=None, save=None):
     """
     Build the Atomic Overlap Matrices (AOMs) in the Molecular Orbitals basis. 
     """
-
-    weight = iaomix
-    if isinstance(weight, list):
-        weight = weight[0]
 
     partition_label = format_partition(partition)
     
@@ -22,80 +18,16 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
     except:
         S = mol.intor('int1e_ovlp')
     
-    def get_iao_aoms(p_type, c, current_mf, w_override=None, current_myhf=None):
-        try:
-            import iao_dump as iao_mod
-        except ImportError:
-            import esipy.iao as iao_mod
+    def get_iao_aoms(p_type, c, current_mf):
+        from pyscf.lo import iao as pyscf_iao
+        from pyscf.lo import orth
         
-        iao, fpiao, dfpiao = iao_mod.iao, iao_mod.fpiao, iao_mod.dfpiao
-        effao, autosad, wiao = iao_mod.effao, iao_mod.autosad, iao_mod.wiao
-
-        p_type = p_type.lower()
-        if p_type.startswith("iao_"):
-            p_type = "iao " + p_type[4:]
-            
-        m_w = re.search(r"\(([\d\.]+)\)", p_type)
-        if m_w:
-            string_w = float(m_w.group(1))
-            p_type_clean = re.sub(r"\([\d\.]+\)", "", p_type).replace("  ", " ").strip()
-        else:
-            string_w = None
-            p_type_clean = p_type.strip()
-
-        # HPOL handling
-        local_heavy_only = heavy_only
-        if "$hpol" in p_type_clean:
-            local_heavy_only = False
-            p_type_clean = p_type_clean.replace("$hpol", "").strip()
-        
-        # Defaults for heavy_only if not specified
-        if local_heavy_only is None:
-            if "fpiao" in p_type_clean or "dfpiao" in p_type_clean:
-                local_heavy_only = True
-            else:
-                local_heavy_only = False
-
-        p_parts = p_type_clean.split()
-        p_base = p_parts[0]
-        if p_base == "iao-basis":
-            p_base = "iao"
-            
-        ref_bas = p_parts[1] if len(p_parts) > 1 else iaoref
-        local_w = w_override if w_override is not None else (string_w if string_w is not None else weight)
-
-        if p_base == "dfpiao":
-            aom_iao = get_iao_aoms(f"iao {ref_bas}", c, current_mf, current_myhf=current_myhf)
-            aom_fpiao = get_iao_aoms(f"fpiao {ref_bas}", c, current_mf, w_override=1.0, current_myhf=current_myhf)
-            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(mol.natm)]
-        elif p_base == "xiao_dfpiao":
-            aom_iao = get_iao_aoms(f"iao {ref_bas}", c, current_mf, current_myhf=current_myhf)
-            aom_fpiao = get_iao_aoms(f"fpiao {ref_bas}", c, current_mf, w_override=1.0, current_myhf=current_myhf)
-            return [(1.0 - local_w) * aom_iao[i] + local_w * aom_fpiao[i] for i in range(mol.natm)]
-        elif p_base == "fpiao":
-            U_nonorth, pmol = fpiao(mol, c, x=local_w, source_basis=ref_bas, pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis)
-        elif p_base == "iao":
-            U_nonorth, pmol = iao(mol, c, source_basis=ref_bas, heavy_only=local_heavy_only, full_basis=full_basis)
-        elif p_base == "iao-autosad":
-            U_nonorth, pmol = autosad(mol, c, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis)
-        elif p_base.startswith("iao-effao"):
-            mode = p_base.replace("iao-effao-", "").replace("iao-effao", "net")
-            if mode == "symmetric": mode = "sym"
-            U_nonorth, pmol = effao(mol, c, mode=mode, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis)
-        elif p_base == "wiao":
-            U_nonorth, pmol = wiao(mol, c, heavy_only=local_heavy_only, full_basis=full_basis)
-        elif p_base == "iao-pyscf":
-             from pyscf.lo import iao as pyscf_iao
-             from pyscf.lo import orth
-             C_iao_nonorth = pyscf_iao.iao(mol, c)
-             U_nonorth = orth.vec_lowdin(C_iao_nonorth, S)
-             pmol = mol
-        else:
-            raise NameError(f"Unknown IAO type: {p_base}")
+        # IAO from PySCF
+        C_iao_nonorth = pyscf_iao.iao(mol, c)
+        U_nonorth = orth.vec_lowdin(C_iao_nonorth, S)
         
         U = np.dot(S, U_nonorth)
-        from esipy.tools import build_eta
-        eta = build_eta(pmol)
+        eta = build_eta(mol)
         return [np.linalg.multi_dot((c.T, U, eta[i], U.T, c)) for i in range(mol.natm)]
 
     # 1. UNRESTRICTED

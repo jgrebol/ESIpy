@@ -31,11 +31,6 @@ class ESIInput:
         self.ncores = None
         self.mciaprox = []
         self.exclude = []
-        self.iaomix = None
-        self.iaoref = 'minao'
-        self.iaopol = 'ano'
-        self.heavy_only = True
-        self.full_basis = False
 
     @staticmethod
     def from_string(input_str):
@@ -60,26 +55,6 @@ class ESIInput:
                 i += 1
                 if i < len(lines):
                     obj.aomname = lines[i]
-            elif line.startswith('$IAOREF'):
-                i += 1
-                if i < len(lines) and not lines[i].startswith('$'):
-                    obj.iaoref = lines[i]
-                else:
-                    obj.iaoref = 'minao'
-                    i -= 1
-            elif line.startswith('$IAOPOL'):
-                i += 1
-                if i < len(lines) and not lines[i].startswith('$'):
-                    obj.iaopol = lines[i]
-                else:
-                    obj.iaopol = 'ano'
-                    i -= 1
-            elif line.startswith('$HNOPOL'):
-                obj.heavy_only = True
-            elif line.startswith('$HPOL'):
-                obj.heavy_only = False
-            elif line.startswith('$FULLBASIS'):
-                obj.full_basis = True
             elif line.startswith('$RING') or line.startswith('$RINGS'):
                 obj.rings = []
                 i += 1
@@ -111,41 +86,14 @@ class ESIInput:
                     p = lines[i].strip()
                     pup = p.upper()
                     
-                    all_fpiaos = [f"fpiao({x})" for x in [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]]
-                    all_dfpiaos = [f"dfpiao({x})" for x in [0.3, 0.4, 0.5, 0.6, 0.7]]
-                    all_effaos = ["iao-autosad", "iao-effao", "iao-effao-net", "iao-effao-gross", "iao-effao-lowdin", "iao-effao-ml", "iao-effao-symmetric", "iao-effao-sps", "iao-effao-spsa"]
-
-                    if pup == 'ALL':
+                    if pup in ('ALL', 'ROBUST', 'ALLWIP', 'WIPALL', 'ALLEDU', 'ALLEFFAO', 'ALLEFAO', 'ALLIAO'):
                         obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
-                    elif pup == 'ROBUST':
-                        obj.partition.extend(['meta_lowdin', 'nao', 'iao'])
-                        obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
-                    elif pup == "ALLWIP" or pup == "WIPALL":
-                        obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
-                        obj.partition.extend(all_effaos)
-                        obj.partition.extend(all_fpiaos)
-                        obj.partition.extend(all_dfpiaos)
-                        obj.partition.append('wiao')
-                    elif pup == "ALLEDU":
-                        obj.partition.append("iao")
-                        obj.partition.extend(all_fpiaos)
-                        obj.partition.extend(all_dfpiaos)
-                    elif pup == "ALLEFFAO" or pup == "ALLEFAO":
-                        obj.partition.append("iao")
-                        obj.partition.extend(all_effaos)
-                    elif pup == "ALLIAO":
-                        obj.partition.append("iao")
-                        obj.partition.append("iao-autosad")
-                        obj.partition.extend(all_effaos)
-                        obj.partition.append("iao_basis")
-                        obj.partition.extend(all_fpiaos)
-                        obj.partition.extend(all_dfpiaos)
                     else:
                         obj.partition.append(p)
                     i += 1
                 i -= 1
             elif line.upper().startswith('$ALLPARTS'):
-                obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'iao-autosad', 'iao-effao', 'iao-effao-lowdin']
+                obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
             elif line.startswith('$FLUREF'):
                 i += 1
                 obj.fluref = []
