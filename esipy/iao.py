@@ -307,23 +307,32 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
     T_orth = None
     
     if not free_atom:
-        if mode in ["lowdin", "meta-lowdin"]:
+        if mode in ["lowdin", "meta-lowdin", "ml", "mlowdin", "meta_lowdin", "metalowdin"]:
+            from pyscf import lo
             if mode == "lowdin":
-                T_orth = orth.lowdin(S_mol)
+                T_orth = lo.orth_ao(mol, method="lowdin")
             else:
-                T_orth = orth.lowdin(S_mol)
-                
-            T_inv = T_orth.T @ S_mol
+                T_orth = lo.orth_ao(mol, method="meta-lowdin")
+
+            T_inv = np.linalg.inv(T_orth)
+            
+            # Density matrix in orthogonal basis: P_orth = T_inv @ P_mol @ T_inv.T
             P_mol = T_inv @ P_mol @ T_inv.T
+            # Overlap in orthogonal basis is Identity
             S_mol = np.eye(mol.nao)
         elif mode == "gross":
+
             PS = P_mol @ S_mol
             P_mol = (PS + PS.T) * 0.5
             S_mol = np.eye(mol.nao)
+        elif mode in ["symmetric", "sym", "sps", "spsa"]:
+            # These modes might also benefit from consistent treatment
+            pass
             
     aoslices = mol.aoslice_by_atom()
     col_idx = 0
     
+    # We must ensure spherical_average uses the current S_mol (which is Identity for orthogonal modes)
     for ia in range(mol.natm):
         sym = mol.atom_pure_symbol(ia)
         p0, p1 = aoslices[ia, 2], aoslices[ia, 3]
@@ -365,7 +374,7 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
                 Sa, Pa = S_mol[p0:p1, p0:p1], P_mol[p0:p1, p0:p1]
                 mat_block = Sa @ Pa @ Sa
                 ovlp_block = Sa
-            elif mode == "gross" or mode in ["lowdin", "meta-lowdin"]:
+            elif mode == "gross" or mode in ["lowdin", "meta-lowdin", "ml", "mlowdin", "meta_lowdin", "metalowdin"]:
                 mat_block = P_mol[p0:p1, p0:p1]
                 ovlp_block = np.eye(p1 - p0)
             elif mode in ["symmetric", "sym"]:
