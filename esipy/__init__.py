@@ -1289,8 +1289,9 @@ class ESI:
 
     @property
     def rings(self):
-        if hasattr(self, "mol") and self.mol:
-            natms = self.mol.natm
+        mol_attr = getattr(self, "mol", None)
+        if mol_attr is not None:
+            natms = mol_attr.natm
         else:
             natms = len(self.molinfo.get("symbols"))
         if natms <= 1:

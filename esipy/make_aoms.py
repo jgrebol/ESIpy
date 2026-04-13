@@ -131,12 +131,38 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
         return aom
 
     # 2. RESTRICTED
-    else:
-        if hasattr(mf, 'mo_occ'):
-            coeff = mf.mo_coeff[:, mf.mo_occ > 0]
+    elif hasattr(mf, 'mo_occ'):
+        coeff = mf.mo_coeff[:, mf.mo_occ > 0]
+
+        if partition_label in ("lowdin", "meta_lowdin", "nao", "mulliken"):
+            aom = []
+            if partition_label == "lowdin":
+                U_inv = lowdin(S)
+            elif partition_label == "meta_lowdin":
+                from pyscf.lo import orth
+                U_inv = orth.orth_ao(mf, method="meta_lowdin")
+            elif partition_label == "nao":
+                U_inv = nao.nao(mol, mf, S)
+            
+            if partition_label == "mulliken":
+                eta = build_eta(mol)
+                for i in range(mol.natm):
+                    aom.append(np.linalg.multi_dot((coeff.T, S, eta[i], coeff)))
+            else:
+                U = np.linalg.inv(U_inv)
+                eta = build_eta(mol)
+                for i in range(mol.natm):
+                    aom.append(coeff.T @ U.T @ eta[i] @ U @ coeff)
         else:
-            occ, coeff = get_natorbs(mf, S)
-            coeff = coeff[:, occ > 1e-10]
+            aom = get_iao_aoms(partition_label, coeff, mf)
+            
+        if save: save_file(aom, save)
+        return aom
+
+    # 3. NATURAL ORBITALS
+    else:
+        occ, coeff = get_natorbs(mf, S)
+        coeff = coeff[:, occ > 1e-10]
 
         if partition_label in ("lowdin", "meta_lowdin", "nao", "mulliken"):
             aom = []

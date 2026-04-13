@@ -187,6 +187,8 @@ class Mole2:
         Calculates integrals setup (_bas, _env) and returns self.
         """
         # Forward arguments to the internal PySCF build
+        # Optimization: use verbose=0 and skip potential symmetry/expensive checks
+        kwargs.setdefault('verbose', 0)
         self.pyscf_mol.build(*args, **kwargs)
 
         # Match internal attributes
@@ -269,7 +271,11 @@ class MeanField2:
         self.e_tot = float(getattr(self.mole2.fchk, 'e_tot', 0.0))
         self.charge = int(getattr(self.mole2.fchk, 'charge', 0))
 
-        if self.mole2.fchk.unrestricted:
+        # Check for Beta MO coefficients to determine if it's UHF
+        beta_mo = read_from_fchk('Beta MO coefficients', path)
+        unrestricted = (len(beta_mo) > 0) or (self.mole2.spin != 0)
+
+        if unrestricted:
             self._scf = scf.UHF(self.mol)
             self.__name__ = "UHF"
         else:
@@ -278,7 +284,7 @@ class MeanField2:
             self.__name__ = "RHF"
 
         # Read MO coefficients from FCHK (Gaussian order) and reshape
-        wf = 'unrest' if self.mole2.fchk.unrestricted else 'rest'
+        wf = 'unrest' if unrestricted else 'rest'
         if wf == 'rest':
             mo_flat = read_list_from_fchk('Alpha MO coefficients', path)
             if len(mo_flat) == 0:
