@@ -384,7 +384,12 @@ def read_wfx_info(path):
 
     # Prefer the .wfx files we write; fallback to legacy .wfx
     if os.path.isdir(path):
-        wfx_files = [f for f in os.listdir(path) if f.endswith('.wfx') or f.endswith('.wfx')]
+        wfx_files = [f for f in os.listdir(path) if f.endswith('.wfx')]
+        if len(wfx_files) > 1:
+            basename = os.path.basename(path).split('_')[0]
+            filtered = [f for f in wfx_files if f.startswith(basename)]
+            if len(filtered) == 1:
+                wfx_files = filtered
     else:
         wfx_files = []
 
@@ -395,7 +400,12 @@ def read_wfx_info(path):
             previous_path = os.getcwd()
 
         if os.path.isdir(previous_path):
-            wfx_files = [f for f in os.listdir(previous_path) if f.endswith('.wfx') or f.endswith('.wfx')]
+            wfx_files = [f for f in os.listdir(previous_path) if f.endswith('.wfx')]
+            if len(wfx_files) > 1:
+                basename = os.path.basename(path).split('_')[0]
+                filtered = [f for f in wfx_files if f.startswith(basename)]
+                if len(filtered) == 1:
+                    wfx_files = filtered
         else:
             wfx_files = []
 

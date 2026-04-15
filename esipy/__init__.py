@@ -1462,15 +1462,16 @@ class ESI:
         # This will trigger NAO computation if needed via the molinfo property
         self._connec = self.molinfo.get("connec")
         
-        if self._connec is None and not self.read:
+        if self._connec is None:
             # Fallback if molinfo was somehow populated without connec
-            print(" | Building NAO AOMs to compute connectivity.")
             if self.mol is not None and self.mf is not None:
+                print(" | Building NAO AOMs to compute connectivity.")
                 mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf)
-            elif self.partition == 'nao':
+            elif self.aom is not None:
+                # Use current AOMs if available (even if they are not NAO)
                 mat = self.aom
             else:
-                raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs to get connectivity matrix.")
+                return None
             
             self._connec = build_connectivity(mat=mat, threshold=self.rings_thres)
             
