@@ -165,14 +165,19 @@ class ESIInput:
                 obj.rings = None
             elif line.strip().startswith('$NOMCI'):
                 obj.domci = False
+                obj.mci = False
             elif line.strip().startswith('$MCI') or line.strip().startswith('$DOMCI'):
                 obj.domci = True
+                obj.mci = True
             elif line.startswith('$MINLEN'):
                 i += 1
                 obj.minlen = int(lines[i])
             elif line.startswith('$MAXLEN'):
                 i += 1
                 obj.maxlen = int(lines[i])
+            elif line.startswith('$NCORES') or line.startswith('$NCORE'):
+                i += 1
+                obj.ncores = int(lines[i])
             elif line.startswith('$EXCLUDE'):
                 obj.exclude = []
                 i += 1
