@@ -281,6 +281,8 @@ def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=
     pmol.cart = mol.cart
     pmol.unit = mol.unit
     pmol.basis = ref_basis
+    pmol.charge = mol.charge
+    pmol.spin = mol.spin
     pmol.build()
     
     return pmol
