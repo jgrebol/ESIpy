@@ -91,6 +91,7 @@ def get_num_minbas_per_l(sym, polarized=False):
         elif z <= 18: d[2] = 1
         elif z <= 36: d[3] = 1
         elif z <= 54: d[3] = 1
+        else: d[3] = 1
     return d
 
 def _get_capped_target_l(mol, ia, polarized=False):
@@ -188,8 +189,8 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
         n_target = p1_ref - p0_ref
         target_l_counts = _get_capped_target_l(mol, ia, polarized=polarized)
         if free_atom:
-            atom_spins = {'H': 1, 'He': 0, 'Li': 1, 'Be': 0, 'B': 1, 'C': 2, 'N': 3, 'O': 2, 'F': 1, 'Ne': 0, 'Na': 1, 'Mg': 0, 'Al': 1, 'Si': 2, 'P': 3, 'S': 2, 'Cl': 1, 'Ar': 0}
-            atom_mol = gto.M(atom=f"{sym} 0 0 0", basis=mol.basis, spin=atom_spins.get(sym, 0), charge=0, cart=mol.cart)
+            atom_spins = {'H': 1, 'He': 0, 'Li': 1, 'Be': 0, 'B': 1, 'C': 2, 'N': 3, 'O': 2, 'F': 1, 'Ne': 0, 'Na': 1, 'Mg': 0, 'Al': 1, 'Si': 2, 'P': 3, 'S': 2, 'Cl': 1, 'Ar': 0, 'K': 1, 'Ca': 0, 'Sc': 1, 'Ti': 2, 'V': 3, 'Cr': 6, 'Mn': 5, 'Fe': 4, 'Co': 3, 'Ni': 2, 'Cu': 1, 'Zn': 0, 'Ga': 1, 'Ge': 2, 'As': 3, 'Se': 2, 'Br': 1, 'Kr': 0, 'Rb': 1, 'Sr': 0, 'Y': 1, 'Zr': 2, 'Nb': 5, 'Mo': 6, 'Tc': 5, 'Ru': 4, 'Rh': 3, 'Pd': 0, 'Ag': 1, 'Cd': 0, 'In': 1, 'Sn': 2, 'Sb': 3, 'Te': 2, 'I': 1, 'Xe': 0, 'Cs': 1, 'Ba': 0, 'La': 1, 'Ce': 2, 'Pr': 3, 'Nd': 4, 'Pm': 5, 'Sm': 6, 'Eu': 7, 'Gd': 8, 'Tb': 5, 'Dy': 4, 'Ho': 3, 'Er': 2, 'Tm': 1, 'Yb': 0, 'Lu': 1, 'Hf': 2, 'Ta': 3, 'W': 4, 'Re': 5, 'Os': 4, 'Ir': 3, 'Pt': 2, 'Au': 1, 'Hg': 0, 'Tl': 1, 'Pb': 2, 'Bi': 3, 'Po': 2, 'At': 1, 'Rn': 0, 'Fr': 1, 'Ra': 0, 'Ac': 1, 'Th': 2, 'Pa': 3, 'U': 4, 'Np': 5, 'Pu': 6, 'Am': 7, 'Cm': 8, 'Bk': 5, 'Cf': 4, 'Es': 3, 'Fm': 2, 'Md': 1, 'No': 0, 'Lr': 1, 'Rf': 2, 'Db': 3, 'Sg': 4, 'Bh': 5, 'Hs': 4, 'Mt': 3, 'Ds': 2, 'Rg': 1, 'Cn': 0, 'Nh': 1, 'Fl': 2, 'Mc': 3, 'Lv': 2, 'Ts': 1, 'Og': 0}
+            atom_mol = gto.M(atom=f"{sym} 0 0 0", basis=mol.basis, spin=atom_spins.get(sym, elements.charge(sym) % 2), charge=0, cart=mol.cart)
             atom_mf = scf.RHF(atom_mol) if atom_mol.spin == 0 else scf.UHF(atom_mol)
             atom_mf.verbose = 0; atom_mf.kernel()
             S_at = atom_mol.intor('int1e_ovlp'); P_at = atom_mf.make_rdm1()
