@@ -112,7 +112,7 @@ class ESIInput:
                     pup = p.upper()
                     
                     all_fpiaos = [f"fpiao({x})" for x in [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]]
-                    all_dfpiaos = [f"dfpiao({x})" for x in [0.3, 0.4, 0.5, 0.6, 0.7]]
+                    all_dfpiaos = [f"dfpiao({x})" for x in [0.5, 0.6, 0.7, 0.8, 0.9]]
                     all_effaos = ["iao-autosad", "iao-effao", "iao-effao-net", "iao-effao-gross", "iao-effao-lowdin", "iao-effao-ml", "iao-effao-symmetric", "iao-effao-sps", "iao-effao-spsa"]
 
                     if pup == 'ALL':
