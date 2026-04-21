@@ -1,7 +1,7 @@
 import os
 """
 Input parser for ESIpy custom input blocks.
-Supports keywords: $READFCHK, $RING, $PARTITION, $FLUREF, $FINDRINGS, $MINLEN, $MAXLEN
+Supports keywords: $READFCHK, $RING, $PARTITION, $FLUREF, $FINDRINGS, $AV1245, $MINLEN, $MAXLEN
 """
 
 
@@ -159,6 +159,8 @@ class ESIInput:
                 i -= 1
             elif line.startswith('$FINDRING'):
                 obj.findrings = True
+            elif line.startswith('$AV1245'):
+                obj.av1245 = True
             elif line.startswith('$NORING'):
                 obj.noring = True
                 obj.findrings = False
