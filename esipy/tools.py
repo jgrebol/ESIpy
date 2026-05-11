@@ -328,6 +328,7 @@ def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_
     elif p_method in ["iao-effao-net", "iao-en", "iaoen", "iaon", "in", "net", "ian", "ne"]: base = "iao-effao-net"
     elif p_method in ["iao-effao-lowdin", "iaoel", "iaol", "il", "iel", "iae"]: base = "iao-effao-lowdin"
     elif p_method in ["iao-effao-metalowdin", "iao-effao-meta-lowdin", "iaom", "im"]: base = "iao-effao-metalowdin"
+    elif p_method in ["iao-effao-nao", "iaonao"]: base = "iao-effao-nao"
     elif p_method in ["sym", "ias", "is", "iao-effao-symmetric"]: base = "iao-effao-symmetric"
     elif p_method in ["sps", "iao-effao-sps"]: base = "iao-effao-sps"
     elif p_method in ["spsa", "iao-effao-spsa"]: base = "iao-effao-spsa"
