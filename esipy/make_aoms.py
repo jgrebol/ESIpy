@@ -4,6 +4,11 @@ from pyscf.lo import nao
 from pyscf.lo.orth import lowdin
 from pyscf import scf
 
+try:
+    import iao_dump as iao_mod
+except ImportError:
+    import esipy.iao as iao_mod
+
 from esipy.tools import save_file, format_partition, get_natorbs, build_eta
 
 def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='minao', iaopol='ano', heavy_only=None, full_basis=False):
@@ -23,13 +28,9 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
         S = mol.intor('int1e_ovlp')
     
     def get_iao_aoms(p_type, c, current_mf, w_override=None, current_myhf=None):
-        try:
-            import iao_dump as iao_mod
-        except ImportError:
-            import esipy.iao as iao_mod
-        
         iao, fpiao = iao_mod.iao, iao_mod.fpiao
-        effao, autosad, wiao = iao_mod.effao, iao_mod.autosad, iao_mod.wiao
+        effao, autosad = iao_mod.effao, iao_mod.autosad
+        fpiao_effao = getattr(iao_mod, 'fpiao_effao', None)
 
         p_type = p_type.lower()
         if p_type.startswith("iao_"):
@@ -69,17 +70,21 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
             aom_fpiao = get_iao_aoms(f"fpiao {ref_bas}", c, current_mf, w_override=1.0, current_myhf=current_myhf)
             return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(mol.natm)]
         elif p_base == "fpiao":
-            U_nonorth, pmol = fpiao(mol, c, x=local_w, source_basis=ref_bas, pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis)
+            if ref_bas == "nao" and fpiao_effao is not None:
+                U_nonorth, pmol = fpiao_effao(mol, c, x=local_w, mode='nao', pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis)
+            else:
+                U_nonorth, pmol = fpiao(mol, c, x=local_w, source_basis=ref_bas, pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis)
         elif p_base == "iao":
-            U_nonorth, pmol = iao(mol, c, source_basis=ref_bas, heavy_only=local_heavy_only, full_basis=full_basis)
+            if ref_bas == "nao":
+                U_nonorth, pmol = effao(mol, c, mode='nao', polarized=False, heavy_only=local_heavy_only, full_basis=full_basis)
+            else:
+                U_nonorth, pmol = iao(mol, c, source_basis=ref_bas, heavy_only=local_heavy_only, full_basis=full_basis)
         elif p_base == "iao-autosad":
             U_nonorth, pmol = autosad(mol, c, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis)
         elif p_base.startswith("iao-effao"):
             mode = p_base.replace("iao-effao-", "").replace("iao-effao", "net")
             if mode == "symmetric": mode = "sym"
             U_nonorth, pmol = effao(mol, c, mode=mode, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis)
-        elif p_base == "wiao":
-            U_nonorth, pmol = wiao(mol, c, heavy_only=local_heavy_only, full_basis=full_basis)
         elif p_base == "iao-pyscf":
              from pyscf.lo import iao as pyscf_iao
              from pyscf.lo import orth

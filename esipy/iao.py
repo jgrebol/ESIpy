@@ -1,3 +1,5 @@
+import sys
+from pyscf import scf
 import os
 import numpy as np
 import scipy.linalg
@@ -176,9 +178,19 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
     veps_block = np.zeros((mol.nao, minbas_total)); vaps_diag = []
     S_mol = mol.intor("int1e_ovlp"); P_mol = coeffs @ coeffs.T; T_orth = None
     if not free_atom:
-        if mode in ["lowdin", "meta-lowdin", "ml", "mlowdin", "meta_lowdin", "metalowdin"]:
+        if mode in ["lowdin", "meta-lowdin", "ml", "mlowdin", "meta_lowdin", "metalowdin", "nao"]:
             from pyscf import lo
-            T_orth = lo.orth_ao(mol, method="lowdin" if mode == "lowdin" else "meta-lowdin")
+            if mode == "nao":
+                class DummyMF(scf.hf.SCF):
+                    def __init__(self, mol, dm): 
+                        self.mol = mol
+                        self._dm = dm
+                        self.verbose = 0
+                        self.stdout = sys.stdout
+                    def make_rdm1(self, *args, **kwargs): return self._dm
+                T_orth = lo.orth_ao(DummyMF(mol, P_mol), method="nao", s=S_mol)
+            else:
+                T_orth = lo.orth_ao(mol, method="lowdin" if mode == "lowdin" else "meta-lowdin")
             T_inv = np.linalg.inv(T_orth); P_mol = T_inv @ P_mol @ T_inv.T; S_mol = np.eye(mol.nao)
         elif mode == "gross":
             PS = P_mol @ S_mol; P_mol = (PS + PS.T) * 0.5; S_mol = np.eye(mol.nao)
@@ -199,7 +211,7 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
             w, c, l_map, shell_map = spherical_average(atom_mol, 0, mat_block, ovlp_block)
         else:
             if mode == "net": mat_block = S_mol[p0:p1, p0:p1] @ P_mol[p0:p1, p0:p1] @ S_mol[p0:p1, p0:p1]; ovlp_block = S_mol[p0:p1, p0:p1]
-            elif mode == "gross" or mode in ["lowdin", "meta-lowdin", "ml", "mlowdin", "meta_lowdin", "metalowdin"]: mat_block = P_mol[p0:p1, p0:p1]; ovlp_block = np.eye(p1 - p0)
+            elif mode == "gross" or mode in ["lowdin", "meta-lowdin", "ml", "mlowdin", "meta_lowdin", "metalowdin", "nao"]: mat_block = P_mol[p0:p1, p0:p1]; ovlp_block = np.eye(p1 - p0)
             elif mode in ["symmetric", "sym"]: mat_block = (P_mol[p0:p1, p0:p1] @ S_mol[p0:p1, p0:p1] + S_mol[p0:p1, p0:p1] @ P_mol[p0:p1, p0:p1]) / 2; ovlp_block = np.eye(p1 - p0)
             elif mode == "sps": mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1]; ovlp_block = np.eye(p1 - p0)
             elif mode == "spsa": mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1]; ovlp_block = S_mol[p0:p1, p0:p1]
@@ -249,21 +261,18 @@ def effao(mol, coeffs, mode='net', polarized=False, heavy_only=False, full_basis
     w, A, pmol = get_effaos(mol, coeffs, free_atom=False, mode=mode, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis, x=x)
     return _do_iao(mol, coeffs, A_basis=A, heavy_only=heavy_only), pmol
 
-def wiao(mol, coeffs, heavy_only=False, full_basis=False):
-    if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
-    S1 = mol.intor('int1e_ovlp'); P_AO = coeffs @ coeffs.T; T = orth.lowdin(S1); T_inv = T.T @ S1
-    P_ML = T_inv @ P_AO @ T_inv.T; B_whole = P_ML @ P_ML; natm = mol.natm; B_atom = np.zeros((natm, natm)); ao_loc = mol.ao_loc_nr()
-    for i in range(natm):
-        for j in range(natm):
-            if mol.atom_pure_symbol(i) == 'H' or mol.atom_pure_symbol(j) == 'H': B_atom[i, j] = 0.0
-            else: B_atom[i, j] = np.sum(B_whole[ao_loc[i]:ao_loc[i+1], ao_loc[j]:ao_loc[j+1]])
-    diag_B = np.diag(B_atom); diag_B = np.where(diag_B > 1e-6, diag_B, 1.0); PCC_atom = B_atom / np.sqrt(np.outer(diag_B, diag_B))
-    for i in range(natm):
-        if mol.atom_pure_symbol(i) == 'H': PCC_atom[i, :], PCC_atom[:, i] = 0.0, 0.0; PCC_atom[i, i] = 1.0
-        else: PCC_atom[i, i] = 1.0
-    _, A_tilde, pmol = get_effaos(mol, coeffs, free_atom=False, mode='meta-lowdin', polarized=False, heavy_only=heavy_only, full_basis=full_basis)
-    nmin = pmol.nao; PCC_min = np.zeros((nmin, nmin)); loc_min = pmol.ao_loc_nr()
-    for i in range(natm):
-        for j in range(natm): PCC_min[loc_min[i]:loc_min[i+1], loc_min[j]:loc_min[j+1]] = PCC_atom[i, j]
-    PCC_min = 0.999 * PCC_min + 0.001 * np.eye(nmin)
-    return _do_iao(mol, coeffs, A_basis=A_tilde @ PCC_min), pmol
+def fpiao_effao(mol, coeffs, x=1.0, mode='nao', pol_basis='ano', heavy_only=True, full_basis=False):
+    w, A_min, pmol_min = get_effaos(mol, coeffs, free_atom=False, mode=mode, polarized=False, heavy_only=heavy_only, full_basis=full_basis)
+    pmol_pol = reference_mol(mol, polarized=True, pol_basis=pol_basis, source_basis='minao', x=x, heavy_only=heavy_only, full_basis=full_basis)
+    S1 = mol.intor('int1e_ovlp')
+    from pyscf.gto.mole import intor_cross
+    S12 = intor_cross('int1e_ovlp', mol, pmol_pol)
+    A_ano_all = scipy.linalg.solve(S1, S12, assume_a='pos')
+    A_total = np.zeros((mol.nao, pmol_pol.nao))
+    aos_min = pmol_min.aoslice_by_atom(); aos_pol = pmol_pol.aoslice_by_atom()
+    for ia in range(mol.natm):
+        p0_m, p1_m = aos_min[ia, 2], aos_min[ia, 3]; p0_p, p1_p = aos_pol[ia, 2], aos_pol[ia, 3]
+        n_min = p1_m - p0_m
+        A_total[:, p0_p : p0_p + n_min] = A_min[:, p0_m:p1_m]
+        A_total[:, p0_p + n_min : p1_p] = A_ano_all[:, p0_p + n_min : p1_p]
+    return _do_iao(mol, coeffs, A_basis=A_total, heavy_only=heavy_only), pmol_pol
