@@ -71,20 +71,20 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
             return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(mol.natm)]
         elif p_base == "fpiao":
             if ref_bas == "nao" and fpiao_effao is not None:
-                U_nonorth, pmol = fpiao_effao(mol, c, x=local_w, mode='nao', pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis)
+                U_nonorth, pmol = fpiao_effao(mol, c, x=local_w, mode='nao', pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
             else:
                 U_nonorth, pmol = fpiao(mol, c, x=local_w, source_basis=ref_bas, pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis)
         elif p_base == "iao":
             if ref_bas == "nao":
-                U_nonorth, pmol = effao(mol, c, mode='nao', polarized=False, heavy_only=local_heavy_only, full_basis=full_basis)
+                U_nonorth, pmol = effao(mol, c, mode='nao', polarized=False, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
             else:
                 U_nonorth, pmol = iao(mol, c, source_basis=ref_bas, heavy_only=local_heavy_only, full_basis=full_basis)
         elif p_base == "iao-autosad":
-            U_nonorth, pmol = autosad(mol, c, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis)
+            U_nonorth, pmol = autosad(mol, c, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
         elif p_base.startswith("iao-effao"):
             mode = p_base.replace("iao-effao-", "").replace("iao-effao", "net")
             if mode == "symmetric": mode = "sym"
-            U_nonorth, pmol = effao(mol, c, mode=mode, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis)
+            U_nonorth, pmol = effao(mol, c, mode=mode, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
         elif p_base == "iao-pyscf":
              from pyscf.lo import iao as pyscf_iao
              from pyscf.lo import orth
