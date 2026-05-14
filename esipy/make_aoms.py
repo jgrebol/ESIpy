@@ -81,7 +81,10 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
         elif p_base == "peiao":
             peiao_func = getattr(iao_mod, 'peiao', None)
             if peiao_func is not None:
-                U_nonorth, pmol = peiao_func(mol, c, mode=ref_bas, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
+                # Map modes for PEIAO
+                mode_map = {'minao': 'nao', 'low': 'lowdin', 'ml': 'meta-lowdin', 'gross': 'gross'}
+                actual_mode = mode_map.get(ref_bas.lower(), ref_bas)
+                U_nonorth, pmol = peiao_func(mol, c, mode=actual_mode, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
             else:
                 raise NameError("PEIAO function not found in iao module")
         elif p_base == "iao":
@@ -92,7 +95,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
         elif p_base == "iao-autosad":
             U_nonorth, pmol = autosad(mol, c, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
         elif p_base.startswith("iao-effao"):
-            mode = p_base.replace("iao-effao-", "").replace("iao-effao", "net")
+            mode = p_base.replace("iao-effao-", "").replace("iao-effao", "nao")
             if mode == "symmetric": mode = "sym"
             U_nonorth, pmol = effao(mol, c, mode=mode, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
         elif p_base == "iao-pyscf":
