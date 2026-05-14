@@ -335,6 +335,8 @@ def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_
     elif p_method == "iao_basis": base = "iao-basis"
     elif p_method == "fpiao": base = "fpiao"
     elif p_method == "dfpiao": base = "dfpiao"
+    elif p_method == "peiao": base = "peiao"
+    elif p_method == "dpeiao": base = "dpeiao"
     elif p_method == "xiao_dfpiao": base = "xiao_dfpiao"
     else: base = p_method.lower()
     
@@ -351,8 +353,8 @@ def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_
         if iaomix is not None:
             weight = iaomix if isinstance(iaomix, (float, int)) else (iaomix[0] if iaomix else 0.5)
         else:
-            if "fpiao" in p_method: weight = 1.0
-            elif "dfpiao" in p_method: weight = 0.5
+            if "fpiao" in p_method or "peiao" in p_method: weight = 1.0
+            elif "dfpiao" in p_method or "dpeiao" in p_method: weight = 0.5
             else: weight = 0.5
 
     # 3. Extract basis
@@ -365,7 +367,7 @@ def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_
     else: res_basis = res_basis.lower()
 
     # 4. Construct final label
-    if "fpiao" in base or "dfpiao" in base or "xiao" in base:
+    if any(x in base for x in ["fpiao", "dfpiao", "dpeiao", "xiao"]):
         w_str = f"{weight:g}" if weight != int(weight) else f"{weight:.1f}"
         if "(" not in base: base += f"({w_str})"
         else: base = re.sub(r"\(.*?\)", f"({w_str})", base)

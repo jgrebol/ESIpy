@@ -113,7 +113,10 @@ class ESIInput:
                     
                     all_fpiaos = [f"fpiao({x})" for x in [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]]
                     all_dfpiaos = [f"dfpiao({x})" for x in [0.5, 0.6, 0.7, 0.8, 0.9]]
+                    all_peiaos = ["peiao"]
+                    all_dpeiaos = [f"dpeiao({x})" for x in [0.5, 0.6, 0.7, 0.8, 0.9]]
                     all_effaos = ["iao-autosad", "iao-effao-net", "iao-effao-gross", "iao-effao-lowdin", "iao-effao-ml", "iao-effao-nao", "iao-effao-symmetric", "iao-effao-sps", "iao-effao-spsa"]
+                    all_effaos = ["iao-autosad", "iao-effao-gross", "iao-effao-lowdin", "iao-effao-ml", "iao-effao-nao"] 
 
                     if pup == 'ALL':
                         obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
@@ -124,13 +127,17 @@ class ESIInput:
                         obj.partition.extend([x for x in all_effaos if x not in ['iao-effao-nao', 'iao-autosad']])
                         obj.partition.extend([f"fpiao({x})" for x in [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]])
                         obj.partition.extend([f"dfpiao({x})" for x in [0.5, 0.6, 0.7, 0.8, 0.9]])
+                        obj.partition.append("peiao")
+                        obj.partition.extend([f"dpeiao({x})" for x in [0.5, 0.6, 0.7, 0.8, 0.9]])
                         obj.partition.append('iao-effao-nao')
-                        obj.partition.extend([f"fpiao({x}) nao" for x in [1.5, 1.75, 2.0]])
-                        obj.partition.extend([f"dfpiao({x}) nao" for x in [0.6, 0.7]])
+                        #obj.partition.extend([f"fpiao({x}) nao" for x in [1.5, 1.75, 2.0]])
+                        #obj.partition.extend([f"dfpiao({x}) nao" for x in [0.6, 0.7]])
                     elif pup == "ALLWIPNAO":
                         obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'iao-effao-nao'])
                         obj.partition.extend([f"fpiao({x}) nao" for x in [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]])
                         obj.partition.extend([f"dfpiao({x}) nao" for x in [0.5, 0.6, 0.7, 0.8, 0.9]])
+                        obj.partition.append("peiao nao")
+                        obj.partition.extend([f"dpeiao({x}) nao" for x in [0.5, 0.6, 0.7, 0.8, 0.9]])
                     elif pup == "ALLEDU":
                         obj.partition.append("iao")
                         obj.partition.extend(all_fpiaos)

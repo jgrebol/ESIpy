@@ -190,7 +190,8 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
         sym = mol.atom_pure_symbol(ia); p0, p1 = aoslices[ia, 2], aoslices[ia, 3]
         p0_ref, p1_ref = pmol_aoslices[ia, 2], pmol_aoslices[ia, 3]
         n_target = p1_ref - p0_ref
-        target_l_counts = _get_capped_target_l(mol, ia, polarized=polarized)
+        is_pol = polarized and not (heavy_only and sym == "H")
+        target_l_counts = _get_capped_target_l(mol, ia, polarized=is_pol)
         if free_atom:
             atom_spins = {'H': 1, 'He': 0, 'Li': 1, 'Be': 0, 'B': 1, 'C': 2, 'N': 3, 'O': 2, 'F': 1, 'Ne': 0, 'Na': 1, 'Mg': 0, 'Al': 1, 'Si': 2, 'P': 3, 'S': 2, 'Cl': 1, 'Ar': 0, 'K': 1, 'Ca': 0, 'Sc': 1, 'Ti': 2, 'V': 3, 'Cr': 6, 'Mn': 5, 'Fe': 4, 'Co': 3, 'Ni': 2, 'Cu': 1, 'Zn': 0, 'Ga': 1, 'Ge': 2, 'As': 3, 'Se': 2, 'Br': 1, 'Kr': 0, 'Rb': 1, 'Sr': 0, 'Y': 1, 'Zr': 2, 'Nb': 5, 'Mo': 6, 'Tc': 5, 'Ru': 4, 'Rh': 3, 'Pd': 0, 'Ag': 1, 'Cd': 0, 'In': 1, 'Sn': 2, 'Sb': 3, 'Te': 2, 'I': 1, 'Xe': 0, 'Cs': 1, 'Ba': 0, 'La': 1, 'Ce': 2, 'Pr': 3, 'Nd': 4, 'Pm': 5, 'Sm': 6, 'Eu': 7, 'Gd': 8, 'Tb': 5, 'Dy': 4, 'Ho': 3, 'Er': 2, 'Tm': 1, 'Yb': 0, 'Lu': 1, 'Hf': 2, 'Ta': 3, 'W': 4, 'Re': 5, 'Os': 4, 'Ir': 3, 'Pt': 2, 'Au': 1, 'Hg': 0, 'Tl': 1, 'Pb': 2, 'Bi': 3, 'Po': 2, 'At': 1, 'Rn': 0, 'Fr': 1, 'Ra': 0, 'Ac': 1, 'Th': 2, 'Pa': 3, 'U': 4, 'Np': 5, 'Pu': 6, 'Am': 7, 'Cm': 8, 'Bk': 5, 'Cf': 4, 'Es': 3, 'Fm': 2, 'Md': 1, 'No': 0, 'Lr': 1, 'Rf': 2, 'Db': 3, 'Sg': 4, 'Bh': 5, 'Hs': 4, 'Mt': 3, 'Ds': 2, 'Rg': 1, 'Cn': 0, 'Nh': 1, 'Fl': 2, 'Mc': 3, 'Lv': 2, 'Ts': 1, 'Og': 0}
             atom_mol = gto.M(atom=f"{sym} 0 0 0", basis=mol.basis, spin=atom_spins.get(sym, elements.charge(sym) % 2), charge=0, cart=mol.cart)
@@ -267,3 +268,8 @@ def fpiao_effao(mol, coeffs, x=1.0, mode='nao', pol_basis='ano', heavy_only=True
         A_total[:, p0_p : p0_p + n_min] = A_min[:, p0_m:p1_m]
         A_total[:, p0_p + n_min : p1_p] = A_ano_all[:, p0_p + n_min : p1_p]
     return _do_iao(mol, coeffs, A_basis=A_total, heavy_only=heavy_only), pmol_pol
+
+def peiao(mol, coeffs, mode='nao', heavy_only=True, full_basis=False, mf=None):
+    # Polarized-Effao-IAO: Both minimal and polarization parts from effaos of the actual basis
+    w, A_both, pmol = get_effaos(mol, coeffs, free_atom=False, mode=mode, polarized=True, heavy_only=heavy_only, full_basis=full_basis, mf=mf)
+    return _do_iao(mol, coeffs, A_basis=A_both, heavy_only=heavy_only), pmol

@@ -69,11 +69,21 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
             aom_iao = get_iao_aoms(f"iao {ref_bas}", c, current_mf, current_myhf=current_myhf)
             aom_fpiao = get_iao_aoms(f"fpiao {ref_bas}", c, current_mf, w_override=1.0, current_myhf=current_myhf)
             return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(mol.natm)]
+        elif p_base == "dpeiao":
+            aom_iao = get_iao_aoms(f"iao {ref_bas}", c, current_mf, current_myhf=current_myhf)
+            aom_peiao = get_iao_aoms(f"peiao {ref_bas}", c, current_mf, current_myhf=current_myhf)
+            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_peiao[i] for i in range(mol.natm)]
         elif p_base == "fpiao":
             if ref_bas == "nao" and fpiao_effao is not None:
                 U_nonorth, pmol = fpiao_effao(mol, c, x=local_w, mode='nao', pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
             else:
                 U_nonorth, pmol = fpiao(mol, c, x=local_w, source_basis=ref_bas, pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis)
+        elif p_base == "peiao":
+            peiao_func = getattr(iao_mod, 'peiao', None)
+            if peiao_func is not None:
+                U_nonorth, pmol = peiao_func(mol, c, mode=ref_bas, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
+            else:
+                raise NameError("PEIAO function not found in iao module")
         elif p_base == "iao":
             if ref_bas == "nao":
                 U_nonorth, pmol = effao(mol, c, mode='nao', polarized=False, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
