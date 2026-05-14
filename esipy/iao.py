@@ -87,17 +87,9 @@ def get_num_minbas_per_l(sym, polarized=False):
         l = shell[0]; n_cont = len(shell[1]) - 1
         d[l] = d.get(l, 0) + n_cont
     if polarized:
-        z = elements.charge(sym)
-        if z <= 2: d[1] = 1 # H, He: p
-        elif z <= 10: # Li - Ne
-            if 1 not in d: d[1] = 1 # Li, Be: p
-            else: d[2] = 1 # B - Ne: d
-        elif z <= 18: # Na - Ar
-            if 2 not in d: d[2] = 1 # Na, Mg, Al...: d
-            else: d[3] = 1
-        else:
-            if 3 not in d: d[3] = 1 # K...: f
-            else: d[4] = 1
+        # Generalized logic: add the first shell of angular momentum not present in minimal basis
+        l_max = max(d.keys()) if d else -1
+        d[l_max + 1] = 1
     return d
 
 def _get_capped_target_l(mol, ia, polarized=False):
