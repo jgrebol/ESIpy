@@ -66,11 +66,17 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
         local_w = w_override if w_override is not None else (string_w if string_w is not None else weight)
 
         if p_base == "dfpiao":
-            aom_iao = get_iao_aoms(f"iao {ref_bas}", c, current_mf, current_myhf=current_myhf)
+            # DFPIAO blends IAO-EFFAO and FPIAO
+            mode_map = {'minao': 'nao', 'low': 'lowdin', 'ml': 'meta-lowdin', 'gross': 'gross'}
+            actual_mode = mode_map.get(ref_bas.lower(), ref_bas)
+            aom_iao = get_iao_aoms(f"iao-effao-{actual_mode}", c, current_mf, current_myhf=current_myhf)
             aom_fpiao = get_iao_aoms(f"fpiao {ref_bas}", c, current_mf, w_override=1.0, current_myhf=current_myhf)
             return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(mol.natm)]
         elif p_base == "dpeiao":
-            aom_iao = get_iao_aoms(f"iao {ref_bas}", c, current_mf, current_myhf=current_myhf)
+            # DPEIAO blends IAO-EFFAO and PEIAO
+            mode_map = {'minao': 'nao', 'low': 'lowdin', 'ml': 'meta-lowdin', 'gross': 'gross'}
+            actual_mode = mode_map.get(ref_bas.lower(), ref_bas)
+            aom_iao = get_iao_aoms(f"iao-effao-{actual_mode}", c, current_mf, current_myhf=current_myhf)
             aom_peiao = get_iao_aoms(f"peiao {ref_bas}", c, current_mf, current_myhf=current_myhf)
             return [local_w * aom_iao[i] + (1.0 - local_w) * aom_peiao[i] for i in range(mol.natm)]
         elif p_base == "fpiao":
