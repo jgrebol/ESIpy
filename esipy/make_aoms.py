@@ -52,10 +52,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
         
         # Defaults for heavy_only if not specified
         if local_heavy_only is None:
-            if "fpiao" in p_type_clean or "dfpiao" in p_type_clean:
-                local_heavy_only = True
-            else:
-                local_heavy_only = False
+            local_heavy_only = True
 
         p_parts = p_type_clean.split()
         p_base = p_parts[0]

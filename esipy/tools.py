@@ -310,7 +310,7 @@ def process_fragments(aom, rings, done=False):
 
 
 
-def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_only=False):
+def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_only=True):
     import re
     orig = partition
     p_split = partition.split(None, 1)

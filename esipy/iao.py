@@ -107,7 +107,7 @@ def get_num_minbas_ao(mol, ia, polarized=False, heavy_only=True):
     target_l = _get_capped_target_l(mol, ia, polarized=is_pol)
     return sum(count * (2*l + 1) for l, count in target_l.items())
 
-def get_reference_basis_dict(mol, source_basis='minao', pol_basis=None, x=1.0, heavy_only=False, full_basis=False):
+def get_reference_basis_dict(mol, source_basis='minao', pol_basis=None, x=1.0, heavy_only=True, full_basis=False):
     def get_minimal_part(sym, ia, source_basis_name):
         if full_basis: return _load_basis_wrapper(source_basis_name, sym), {}
         basis_source = _load_basis_wrapper(source_basis_name, sym)
@@ -154,7 +154,7 @@ def get_reference_basis_dict(mol, source_basis='minao', pol_basis=None, x=1.0, h
             ref_basis[sym] = min_basis + pol_basis_list
     return ref_basis
 
-def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=1.0, heavy_only=False, full_basis=False):
+def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=1.0, heavy_only=True, full_basis=False):
     if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
     if polarized and pol_basis is None: pol_basis = 'ano'
     elif not polarized: pol_basis = None
@@ -167,7 +167,7 @@ def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=
     pmol.charge = mol.charge; pmol.spin = mol.spin; pmol.build()
     return pmol
 
-def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_only=False, full_basis=False, x=1.0, mf=None):
+def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_only=True, full_basis=False, x=1.0, mf=None):
     if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
     pmol = reference_mol(mol, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis, x=x)
     minbas_total = pmol.nao; pmol_aoslices = pmol.aoslice_by_atom()
@@ -217,7 +217,7 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
     if T_orth is not None: veps_block = T_orth @ veps_block
     return np.array(vaps_diag), veps_block, pmol
 
-def _do_iao(mol, coeffs, pmol=None, A_basis=None, heavy_only=False):
+def _do_iao(mol, coeffs, pmol=None, A_basis=None, heavy_only=True):
     if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
     S1 = mol.intor('int1e_ovlp')
     if A_basis is not None:
@@ -233,7 +233,7 @@ def _do_iao(mol, coeffs, pmol=None, A_basis=None, heavy_only=False):
     IAO_nonorth = A_tilde + 2 * P_occ_P_proj_A - P_occ_A - P_proj_A
     return orth.vec_lowdin(IAO_nonorth, S1)
 
-def iao(mol, coeffs, source_basis='minao', heavy_only=False, full_basis=False):
+def iao(mol, coeffs, source_basis='minao', heavy_only=True, full_basis=False):
     pmol = reference_mol(mol, polarized=False, source_basis=source_basis, heavy_only=heavy_only, full_basis=full_basis)
     return _do_iao(mol, coeffs, pmol=pmol), pmol
 
@@ -241,11 +241,11 @@ def fpiao(mol, coeffs, x=1.0, source_basis='minao', pol_basis='ano', heavy_only=
     pmol = reference_mol(mol, polarized=True, pol_basis=pol_basis, source_basis=source_basis, x=x, heavy_only=heavy_only, full_basis=full_basis)
     return _do_iao(mol, coeffs, pmol=pmol), pmol
 
-def autosad(mol, coeffs, polarized=False, heavy_only=False, full_basis=False, x=1.0, mf=None):
+def autosad(mol, coeffs, polarized=False, heavy_only=True, full_basis=False, x=1.0, mf=None):
     w, A, pmol = get_effaos(mol, coeffs, free_atom=True, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis, x=x, mf=mf)
     return _do_iao(mol, coeffs, A_basis=A, heavy_only=heavy_only), pmol
 
-def effao(mol, coeffs, mode='net', polarized=False, heavy_only=False, full_basis=False, x=1.0, mf=None):
+def effao(mol, coeffs, mode='net', polarized=False, heavy_only=True, full_basis=False, x=1.0, mf=None):
     w, A, pmol = get_effaos(mol, coeffs, free_atom=False, mode=mode, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis, x=x, mf=mf)
     return _do_iao(mol, coeffs, A_basis=A, heavy_only=heavy_only), pmol
 
