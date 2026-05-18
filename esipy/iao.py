@@ -1,3 +1,5 @@
+import sys
+from pyscf import scf
 import os
 import numpy as np
 import scipy.linalg
@@ -85,13 +87,9 @@ def get_num_minbas_per_l(sym, polarized=False):
         l = shell[0]; n_cont = len(shell[1]) - 1
         d[l] = d.get(l, 0) + n_cont
     if polarized:
-        z = elements.charge(sym)
-        if z <= 2: d[1] = 1
-        elif z <= 10: d[2] = 1
-        elif z <= 18: d[2] = 1
-        elif z <= 36: d[3] = 1
-        elif z <= 54: d[3] = 1
-        else: d[3] = 1
+        # Generalized logic: add the first shell of angular momentum not present in minimal basis
+        l_max = max(d.keys()) if d else -1
+        d[l_max + 1] = 1
     return d
 
 def _get_capped_target_l(mol, ia, polarized=False):
@@ -109,7 +107,7 @@ def get_num_minbas_ao(mol, ia, polarized=False, heavy_only=True):
     target_l = _get_capped_target_l(mol, ia, polarized=is_pol)
     return sum(count * (2*l + 1) for l, count in target_l.items())
 
-def get_reference_basis_dict(mol, source_basis='minao', pol_basis=None, x=1.0, heavy_only=False, full_basis=False):
+def get_reference_basis_dict(mol, source_basis='minao', pol_basis=None, x=1.0, heavy_only=True, full_basis=False):
     def get_minimal_part(sym, ia, source_basis_name):
         if full_basis: return _load_basis_wrapper(source_basis_name, sym), {}
         basis_source = _load_basis_wrapper(source_basis_name, sym)
@@ -156,7 +154,7 @@ def get_reference_basis_dict(mol, source_basis='minao', pol_basis=None, x=1.0, h
             ref_basis[sym] = min_basis + pol_basis_list
     return ref_basis
 
-def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=1.0, heavy_only=False, full_basis=False):
+def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=1.0, heavy_only=True, full_basis=False):
     if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
     if polarized and pol_basis is None: pol_basis = 'ano'
     elif not polarized: pol_basis = None
@@ -169,16 +167,29 @@ def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=
     pmol.charge = mol.charge; pmol.spin = mol.spin; pmol.build()
     return pmol
 
-def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_only=False, full_basis=False, x=1.0):
+def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_only=True, full_basis=False, x=1.0, mf=None):
     if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
     pmol = reference_mol(mol, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis, x=x)
     minbas_total = pmol.nao; pmol_aoslices = pmol.aoslice_by_atom()
     veps_block = np.zeros((mol.nao, minbas_total)); vaps_diag = []
-    S_mol = mol.intor("int1e_ovlp"); P_mol = coeffs @ coeffs.T; T_orth = None
+    S_mol = mol.intor("int1e_ovlp")
+    # Use density matrix from mf if available (better for CASSCF/UHF)
+    P_mol = None
+    if not free_atom and mf is not None:
+        try:
+            P_mol = mf.make_rdm1()
+            if isinstance(P_mol, (list, np.ndarray)) and (isinstance(P_mol, list) or P_mol.ndim == 3):
+                P_mol = P_mol[0] + P_mol[1]
+        except: pass
+    if P_mol is None:
+        P_mol = coeffs @ coeffs.T
+    
+    T_orth = None
     if not free_atom:
-        if mode in ["lowdin", "meta-lowdin", "ml", "mlowdin", "meta_lowdin", "metalowdin"]:
+        if mode in ["lowdin", "meta-lowdin", "ml", "mlowdin", "meta_lowdin", "metalowdin", "nao"]:
             from pyscf import lo
-            T_orth = lo.orth_ao(mol, method="lowdin" if mode == "lowdin" else "meta-lowdin")
+            method = "nao" if mode == "nao" else ("lowdin" if mode in ["lowdin", "ml", "mlowdin"] else "meta-lowdin")
+            T_orth = lo.orth_ao(mf if mode == "nao" else mol, method=method, s=S_mol)
             T_inv = np.linalg.inv(T_orth); P_mol = T_inv @ P_mol @ T_inv.T; S_mol = np.eye(mol.nao)
         elif mode == "gross":
             PS = P_mol @ S_mol; P_mol = (PS + PS.T) * 0.5; S_mol = np.eye(mol.nao)
@@ -187,7 +198,8 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
         sym = mol.atom_pure_symbol(ia); p0, p1 = aoslices[ia, 2], aoslices[ia, 3]
         p0_ref, p1_ref = pmol_aoslices[ia, 2], pmol_aoslices[ia, 3]
         n_target = p1_ref - p0_ref
-        target_l_counts = _get_capped_target_l(mol, ia, polarized=polarized)
+        is_pol = polarized and not (heavy_only and sym == "H")
+        target_l_counts = _get_capped_target_l(mol, ia, polarized=is_pol)
         if free_atom:
             atom_spins = {'H': 1, 'He': 0, 'Li': 1, 'Be': 0, 'B': 1, 'C': 2, 'N': 3, 'O': 2, 'F': 1, 'Ne': 0, 'Na': 1, 'Mg': 0, 'Al': 1, 'Si': 2, 'P': 3, 'S': 2, 'Cl': 1, 'Ar': 0, 'K': 1, 'Ca': 0, 'Sc': 1, 'Ti': 2, 'V': 3, 'Cr': 6, 'Mn': 5, 'Fe': 4, 'Co': 3, 'Ni': 2, 'Cu': 1, 'Zn': 0, 'Ga': 1, 'Ge': 2, 'As': 3, 'Se': 2, 'Br': 1, 'Kr': 0, 'Rb': 1, 'Sr': 0, 'Y': 1, 'Zr': 2, 'Nb': 5, 'Mo': 6, 'Tc': 5, 'Ru': 4, 'Rh': 3, 'Pd': 0, 'Ag': 1, 'Cd': 0, 'In': 1, 'Sn': 2, 'Sb': 3, 'Te': 2, 'I': 1, 'Xe': 0, 'Cs': 1, 'Ba': 0, 'La': 1, 'Ce': 2, 'Pr': 3, 'Nd': 4, 'Pm': 5, 'Sm': 6, 'Eu': 7, 'Gd': 8, 'Tb': 5, 'Dy': 4, 'Ho': 3, 'Er': 2, 'Tm': 1, 'Yb': 0, 'Lu': 1, 'Hf': 2, 'Ta': 3, 'W': 4, 'Re': 5, 'Os': 4, 'Ir': 3, 'Pt': 2, 'Au': 1, 'Hg': 0, 'Tl': 1, 'Pb': 2, 'Bi': 3, 'Po': 2, 'At': 1, 'Rn': 0, 'Fr': 1, 'Ra': 0, 'Ac': 1, 'Th': 2, 'Pa': 3, 'U': 4, 'Np': 5, 'Pu': 6, 'Am': 7, 'Cm': 8, 'Bk': 5, 'Cf': 4, 'Es': 3, 'Fm': 2, 'Md': 1, 'No': 0, 'Lr': 1, 'Rf': 2, 'Db': 3, 'Sg': 4, 'Bh': 5, 'Hs': 4, 'Mt': 3, 'Ds': 2, 'Rg': 1, 'Cn': 0, 'Nh': 1, 'Fl': 2, 'Mc': 3, 'Lv': 2, 'Ts': 1, 'Og': 0}
             atom_mol = gto.M(atom=f"{sym} 0 0 0", basis=mol.basis, spin=atom_spins.get(sym, elements.charge(sym) % 2), charge=0, cart=mol.cart)
@@ -199,7 +211,7 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
             w, c, l_map, shell_map = spherical_average(atom_mol, 0, mat_block, ovlp_block)
         else:
             if mode == "net": mat_block = S_mol[p0:p1, p0:p1] @ P_mol[p0:p1, p0:p1] @ S_mol[p0:p1, p0:p1]; ovlp_block = S_mol[p0:p1, p0:p1]
-            elif mode == "gross" or mode in ["lowdin", "meta-lowdin", "ml", "mlowdin", "meta_lowdin", "metalowdin"]: mat_block = P_mol[p0:p1, p0:p1]; ovlp_block = np.eye(p1 - p0)
+            elif mode == "gross" or mode in ["lowdin", "meta-lowdin", "ml", "mlowdin", "meta_lowdin", "metalowdin", "nao"]: mat_block = P_mol[p0:p1, p0:p1]; ovlp_block = np.eye(p1 - p0)
             elif mode in ["symmetric", "sym"]: mat_block = (P_mol[p0:p1, p0:p1] @ S_mol[p0:p1, p0:p1] + S_mol[p0:p1, p0:p1] @ P_mol[p0:p1, p0:p1]) / 2; ovlp_block = np.eye(p1 - p0)
             elif mode == "sps": mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1]; ovlp_block = np.eye(p1 - p0)
             elif mode == "spsa": mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1]; ovlp_block = S_mol[p0:p1, p0:p1]
@@ -217,7 +229,7 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
     if T_orth is not None: veps_block = T_orth @ veps_block
     return np.array(vaps_diag), veps_block, pmol
 
-def _do_iao(mol, coeffs, pmol=None, A_basis=None, heavy_only=False):
+def _do_iao(mol, coeffs, pmol=None, A_basis=None, heavy_only=True):
     if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
     S1 = mol.intor('int1e_ovlp')
     if A_basis is not None:
@@ -241,13 +253,33 @@ def fpiao(mol, coeffs, x=1.0, source_basis='minao', pol_basis='ano', heavy_only=
     pmol = reference_mol(mol, polarized=True, pol_basis=pol_basis, source_basis=source_basis, x=x, heavy_only=heavy_only, full_basis=full_basis)
     return _do_iao(mol, coeffs, pmol=pmol), pmol
 
-def autosad(mol, coeffs, polarized=False, heavy_only=False, full_basis=False, x=1.0):
-    w, A, pmol = get_effaos(mol, coeffs, free_atom=True, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis, x=x)
+def autosad(mol, coeffs, polarized=False, heavy_only=True, full_basis=False, x=1.0, mf=None):
+    w, A, pmol = get_effaos(mol, coeffs, free_atom=True, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis, x=x, mf=mf)
     return _do_iao(mol, coeffs, A_basis=A, heavy_only=heavy_only), pmol
 
-def effao(mol, coeffs, mode='net', polarized=False, heavy_only=False, full_basis=False, x=1.0):
-    w, A, pmol = get_effaos(mol, coeffs, free_atom=False, mode=mode, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis, x=x)
+def effao(mol, coeffs, mode='net', polarized=False, heavy_only=False, full_basis=False, x=1.0, mf=None):
+    w, A, pmol = get_effaos(mol, coeffs, free_atom=False, mode=mode, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis, x=x, mf=mf)
     return _do_iao(mol, coeffs, A_basis=A, heavy_only=heavy_only), pmol
+
+def fpiao_effao(mol, coeffs, x=1.0, mode='nao', pol_basis='ano', heavy_only=True, full_basis=False, mf=None):
+    w, A_min, pmol_min = get_effaos(mol, coeffs, free_atom=False, mode=mode, polarized=False, heavy_only=heavy_only, full_basis=full_basis, mf=mf)
+    pmol_pol = reference_mol(mol, polarized=True, pol_basis=pol_basis, source_basis='minao', x=x, heavy_only=heavy_only, full_basis=full_basis)
+    S1 = mol.intor('int1e_ovlp')
+    from pyscf.gto.mole import intor_cross
+    S12 = intor_cross('int1e_ovlp', mol, pmol_pol)
+    A_ano_all = scipy.linalg.solve(S1, S12, assume_a='pos')
+    A_total = np.zeros((mol.nao, pmol_pol.nao))
+    aos_min = pmol_min.aoslice_by_atom(); aos_pol = pmol_pol.aoslice_by_atom()
+    for ia in range(mol.natm):
+        p0_m, p1_m = aos_min[ia, 2], aos_min[ia, 3]; p0_p, p1_p = aos_pol[ia, 2], aos_pol[ia, 3]
+        n_min = p1_m - p0_m
+        A_total[:, p0_p : p0_p + n_min] = A_min[:, p0_m:p1_m]
+        A_total[:, p0_p + n_min : p1_p] = A_ano_all[:, p0_p + n_min : p1_p]
+    return _do_iao(mol, coeffs, A_basis=A_total, heavy_only=heavy_only), pmol_pol
+
+def peiao(mol, coeffs, mode='nao', heavy_only=True, full_basis=False, mf=None, x=1.0):
+    w, A_both, pmol = get_effaos(mol, coeffs, free_atom=False, mode=mode, polarized=True, heavy_only=heavy_only, full_basis=full_basis, x=x, mf=mf)
+    return _do_iao(mol, coeffs, A_basis=A_both, heavy_only=heavy_only), pmol
 
 def wiao(mol, coeffs, heavy_only=False, full_basis=False):
     if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))

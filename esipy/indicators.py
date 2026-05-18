@@ -42,6 +42,8 @@ def compute_iring_no(arr, aom):
     """
 
     aom, occ = aom
+    if occ.ndim == 1:
+        occ = np.diag(occ)
     product = np.identity(aom[0].shape[0])
     for i in arr:
         product = np.dot(product, np.dot(occ, aom[i - 1]))

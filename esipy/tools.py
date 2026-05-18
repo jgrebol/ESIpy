@@ -147,7 +147,9 @@ def find_di_no(aom, i, j):
     """
 
     # Tr(Occ @ AOM_i @ Occ @ AOM_j)
-    occ = np.diag(aom[1])
+    occ = aom[1]
+    if occ.ndim == 1:
+        occ = np.diag(occ)
     return np.einsum('ij,jk,kl,li->', occ, aom[0][i - 1], occ, aom[0][j - 1])
 
 
@@ -687,14 +689,19 @@ def permute_aos_rows(mat, mole2):
         idx_list.extend(indices)
         scale_list.extend(scales)
 
-    p = np.array(idx_list)
+    p = np.array(idx_list, dtype=int)
     s = np.array(scale_list)
+    # print(f"DEBUG permute: mat.shape={mat.shape}, len(p)={len(p)}, s.shape={s.shape}")
 
     if mat.ndim == 2:
         if mat.shape[0] == len(p):  # (NAO, NMO) - Permute rows
-            return mat[p] * s[:, None]
+            res = mat[p] * s[:, None]
+            # print(f"DEBUG permute branch 1: res.shape={res.shape}")
+            return res
         else:  # (NMO, NAO) - Permute cols
-            return mat[:, p] * s[None, :]
+            res = mat[:, p] * s[None, :]
+            # print(f"DEBUG permute branch 2: res.shape={res.shape}")
+            return res
 
     if mat.ndim == 3:  # (Spin, NAO, NMO) or similar
         if mat.shape[1] == len(p):

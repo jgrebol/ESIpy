@@ -113,6 +113,7 @@ class ESIInput:
                     
                     all_fpiaos = [f"fpiao({x})" for x in [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]]
                     all_dfpiaos = [f"dfpiao({x})" for x in [0.5, 0.6, 0.7, 0.8, 0.9]]
+                    all_dpeiaos = [f"dpeiao({x})" for x in [0.5, 0.6, 0.7, 0.8, 0.9]]
                     all_effaos = ["iao-autosad", "iao-effao", "iao-effao-net", "iao-effao-gross", "iao-effao-lowdin", "iao-effao-ml", "iao-effao-symmetric", "iao-effao-sps", "iao-effao-spsa"]
 
                     if pup == 'ALL':
@@ -125,11 +126,14 @@ class ESIInput:
                         obj.partition.extend(all_effaos)
                         obj.partition.extend(all_fpiaos)
                         obj.partition.extend(all_dfpiaos)
+                        obj.partition.extend(all_dpeiaos)
+                        obj.partition.extend("peiao")
                         obj.partition.append('wiao')
                     elif pup == "ALLEDU":
                         obj.partition.append("iao")
                         obj.partition.extend(all_fpiaos)
                         obj.partition.extend(all_dfpiaos)
+                        obj.partition.extend(all_dpeiaos)
                     elif pup == "ALLEFFAO" or pup == "ALLEFAO":
                         obj.partition.append("iao")
                         obj.partition.extend(all_effaos)
@@ -140,6 +144,7 @@ class ESIInput:
                         obj.partition.append("iao_basis")
                         obj.partition.extend(all_fpiaos)
                         obj.partition.extend(all_dfpiaos)
+                        obj.partition.extend(all_dpeiaos)
                     else:
                         obj.partition.append(p)
                     i += 1

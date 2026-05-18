@@ -22,7 +22,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
     except:
         S = mol.intor('int1e_ovlp')
     
-    def get_iao_aoms(p_type, c, current_mf, w_override=None, current_myhf=None):
+    def get_iao_aoms(p_type, c, current_mf, w_override=None, current_myhf=None, c_full=None):
         try:
             import iao_dump as iao_mod
         except ImportError:
@@ -30,6 +30,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
         
         iao, fpiao = iao_mod.iao, iao_mod.fpiao
         effao, autosad, wiao = iao_mod.effao, iao_mod.autosad, iao_mod.wiao
+        reference_mol = iao_mod.reference_mol
 
         p_type = p_type.lower()
         if p_type.startswith("iao_"):
@@ -62,37 +63,64 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
             p_base = "iao"
             
         ref_bas = p_parts[1] if len(p_parts) > 1 else iaoref
-        local_w = w_override if w_override is not None else (string_w if string_w is not None else weight)
+        local_w = w_override if w_override is not None else (string_w if string_w is not None else (weight if weight is not None else 0.5))
+
+        # IAO construction for Natural Orbitals: 
+        # use first N_ref NOs for construction, but project all NOs
+        is_no = False
+        if hasattr(current_mf, 'mo_occ'):
+            occ_tmp = np.asarray(current_mf.mo_occ)
+            if np.any((occ_tmp > 1e-6) & (np.abs(occ_tmp - 1.0) > 1e-6) & (np.abs(occ_tmp - 2.0) > 1e-6)):
+                is_no = True
+
+        def get_c_src(is_pol):
+            src = c_full if c_full is not None else c
+            if not is_no: return src
+            pmol_ref = reference_mol(mol, polarized=is_pol, source_basis=ref_bas, heavy_only=local_heavy_only, full_basis=full_basis)
+            return src[:, :pmol_ref.nao]
 
         if p_base == "dfpiao":
-            aom_iao = get_iao_aoms(f"iao {ref_bas}", c, current_mf, current_myhf=current_myhf)
-            aom_fpiao = get_iao_aoms(f"fpiao {ref_bas}", c, current_mf, w_override=1.0, current_myhf=current_myhf)
+            aom_iao = get_iao_aoms(f"iao {ref_bas}", c, current_mf, current_myhf=current_myhf, c_full=c_full)
+            aom_fpiao = get_iao_aoms(f"fpiao {ref_bas}", c, current_mf, w_override=1.0, current_myhf=current_myhf, c_full=c_full)
             return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(mol.natm)]
         elif p_base == "fpiao":
-            U_nonorth, pmol = fpiao(mol, c, x=local_w, source_basis=ref_bas, pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis)
+            U_nonorth, pmol = fpiao(mol, get_c_src(True), x=local_w, source_basis=ref_bas, pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis)
         elif p_base == "iao":
-            U_nonorth, pmol = iao(mol, c, source_basis=ref_bas, heavy_only=local_heavy_only, full_basis=full_basis)
+            U_nonorth, pmol = iao(mol, get_c_src(False), source_basis=ref_bas, heavy_only=local_heavy_only, full_basis=full_basis)
         elif p_base == "iao-autosad":
-            U_nonorth, pmol = autosad(mol, c, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis)
+            U_nonorth, pmol = autosad(mol, get_c_src(False), polarized=False, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
         elif p_base.startswith("iao-effao"):
             mode = p_base.replace("iao-effao-", "").replace("iao-effao", "net")
             if mode == "symmetric": mode = "sym"
-            U_nonorth, pmol = effao(mol, c, mode=mode, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis)
+            U_nonorth, pmol = effao(mol, get_c_src(False), mode=mode, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
         elif p_base == "wiao":
-            U_nonorth, pmol = wiao(mol, c, heavy_only=local_heavy_only, full_basis=full_basis)
+            U_nonorth, pmol = wiao(mol, get_c_src(False), heavy_only=local_heavy_only, full_basis=full_basis)
         elif p_base == "iao-pyscf":
              from pyscf.lo import iao as pyscf_iao
              from pyscf.lo import orth
-             C_iao_nonorth = pyscf_iao.iao(mol, c)
+             C_iao_nonorth = pyscf_iao.iao(mol, get_c_src(False))
              U_nonorth = orth.vec_lowdin(C_iao_nonorth, S)
              pmol = mol
+        elif p_base == "peiao":
+            peiao_func = getattr(iao_mod, 'peiao', None)
+            if peiao_func is not None:
+                actual_mode = 'nao' if ref_bas == 'minao' else ref_bas
+                U_nonorth, pmol = peiao_func(mol, get_c_src(True), mode=actual_mode, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
+            else:
+                raise NameError("PEIAO function not found in iao module")
+        elif p_base == "dpeiao":
+            aom_peiao = get_iao_aoms(f"peiao {ref_bas}", c, current_mf, current_myhf=current_myhf, c_full=c_full)
+            aom_effao = get_iao_aoms(f"iao-effao-nao {ref_bas}", c, current_mf, current_myhf=current_myhf, c_full=c_full)
+            return [local_w * aom_effao[i] + (1.0 - local_w) * aom_peiao[i] for i in range(mol.natm)]
         else:
             raise NameError(f"Unknown IAO type: {p_base}")
         
         U = np.dot(S, U_nonorth)
         from esipy.tools import build_eta
         eta = build_eta(pmol)
-        return [np.linalg.multi_dot((c.T, U, eta[i], U.T, c)) for i in range(mol.natm)]
+        # Determine coefficients for AOM projection
+        proj_c = c_full if c_full is not None else c
+        return [np.linalg.multi_dot((proj_c.T, U, eta[i], U.T, proj_c)) for i in range(mol.natm)]
 
     # 1. UNRESTRICTED
     if isinstance(mf, scf.uhf.UHF) or (hasattr(mf, "__name__") and mf.__name__ == "UHF"):
@@ -132,7 +160,12 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
 
     # 2. RESTRICTED
     elif hasattr(mf, 'mo_occ'):
-        coeff = mf.mo_coeff[:, mf.mo_occ > 0]
+        occ = np.asarray(mf.mo_occ)
+        is_natorb = np.any((occ > 1e-6) & (np.abs(occ - 1.0) > 1e-6) & (np.abs(occ - 2.0) > 1e-6))
+        
+        mask = occ > 1e-10
+        coeff = mf.mo_coeff[:, mask]
+        occ = occ[mask]
 
         if partition_label in ("lowdin", "meta_lowdin", "nao", "mulliken"):
             aom = []
@@ -155,6 +188,9 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
                     aom.append(coeff.T @ U.T @ eta[i] @ U @ coeff)
         else:
             aom = get_iao_aoms(partition_label, coeff, mf)
+        
+        if is_natorb:
+            aom = [aom, np.diag(occ)]
             
         if save: save_file(aom, save)
         return aom
@@ -162,7 +198,14 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
     # 3. NATURAL ORBITALS
     else:
         occ, coeff = get_natorbs(mf, S)
-        coeff = coeff[:, occ > 1e-10]
+        mask = occ > 1e-10
+        coeff = coeff[:, mask]
+        occ = occ[mask]
+        from esipy.iao import reference_mol
+        pmol = reference_mol(mol, source_basis="minao")
+        n_no = pmol.nao
+        c_full = coeff
+        c_ref = coeff[:, :n_no]
 
         if partition_label in ("lowdin", "meta_lowdin", "nao", "mulliken"):
             aom = []
@@ -184,7 +227,9 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
                 for i in range(mol.natm):
                     aom.append(coeff.T @ U.T @ eta[i] @ U @ coeff)
         else:
-            aom = get_iao_aoms(partition_label, coeff, mf)
+            aom = get_iao_aoms(partition_label, c_ref, mf, c_full=c_full)
+        
+        aom = [aom, np.diag(occ)]
             
         if save: save_file(aom, save)
         return aom
