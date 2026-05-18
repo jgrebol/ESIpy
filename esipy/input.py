@@ -4,10 +4,30 @@ from pyscf import gto, scf
 
 class Input:
     def __init__(self):
-        self.fchk = None
+        # Infrastructure from main
+        self.fchk_file = None
+        self.rings = None
+        self.noring = False
         self.partition = []
         self.fragments = []
+        self.fluref = []
+        self.homaref = []
+        self.findrings = False
+        self.minlen = None
+        self.maxlen = None
+        self.domci = True
+        self.mci = None
+        self.av1245 = None
         self.save = None
+        self.writeaoms = False
+        self.mode = 'fchk'
+        self.readpath = None
+        self.aomname = None
+        self.ncores = None
+        self.mciaprox = []
+        self.exclude = []
+        
+        # New IAO fields from dev-iao
         self.iaomix = 0.5
         self.iaoref = 'minao'
         self.iaopol = 'ano'
@@ -30,44 +50,45 @@ def read_input(path):
             continue
 
         if line.startswith('$'):
-            if line.startswith('$FCHK'):
+            pup_line = line.upper()
+            if pup_line.startswith('$FCHK'):
                 i += 1
                 if i < len(lines):
-                    obj.fchk = lines[i].strip()
-            elif line.startswith('$SAVE'):
+                    obj.fchk_file = lines[i].strip()
+            elif pup_line.startswith('$SAVE'):
                 i += 1
                 if i < len(lines):
                     obj.save = lines[i].strip()
-            elif line.startswith('$IAOMIX'):
+            elif pup_line.startswith('$IAOMIX'):
                 i += 1
                 if i < len(lines):
                     obj.iaomix = float(lines[i].strip())
-            elif line.startswith('$IAOREF'):
+            elif pup_line.startswith('$IAOREF'):
                 i += 1
                 if i < len(lines):
                     obj.iaoref = lines[i].strip()
-            elif line.startswith('$IAOPOL'):
+            elif pup_line.startswith('$IAOPOL'):
                 i += 1
                 if i < len(lines):
                     obj.iaopol = lines[i].strip()
-            elif line.startswith('$HEAVY_ONLY'):
+            elif pup_line.startswith('$HEAVY_ONLY'):
                 i += 1
                 if i < len(lines):
                     val = lines[i].strip().upper()
                     obj.heavy_only = True if val in ('TRUE', 'YES', '1') else False
-            elif line.startswith('$FULL_BASIS'):
+            elif pup_line.startswith('$FULL_BASIS'):
                 i += 1
                 if i < len(lines):
                     val = lines[i].strip().upper()
                     obj.full_basis = True if val in ('TRUE', 'YES', '1') else False
-            elif line.startswith('$FRAGMENTS'):
+            elif pup_line.startswith('$FRAGMENTS'):
                 obj.fragments = []
                 i += 1
                 while i < len(lines) and not lines[i].strip().startswith('$'):
                     obj.fragments.append(set(map(int, lines[i].split())))
                     i += 1
                 i -= 1
-            elif line.startswith('$PARTITION'):
+            elif pup_line.startswith('$PARTITION'):
                 obj.partition = []
                 i += 1
                 while i < len(lines) and not lines[i].startswith('$'):
@@ -105,5 +126,71 @@ def read_input(path):
                         obj.partition.append(p)
                     i += 1
                 i -= 1
+            elif pup_line.startswith('$ALLPARTS'):
+                obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
+            elif pup_line.startswith('$RING') or pup_line.startswith('$RINGS'):
+                obj.rings = []
+                i += 1
+                while i < len(lines) and not lines[i].startswith('$'):
+                    obj.rings.append(list(map(int, lines[i].split())))
+                    i += 1
+                i -= 1
+            elif pup_line.startswith('$FLUREF'):
+                i += 1
+                obj.fluref = []
+                while i < len(lines) and not lines[i].startswith('$'):
+                    for tok in lines[i].split():
+                        try:
+                            obj.fluref.append(float(tok))
+                        except Exception:
+                            pass
+                    i += 1
+                i -= 1
+            elif pup_line.startswith('$FINDRINGS'):
+                obj.findrings = True
+            elif pup_line.startswith('$NORING'):
+                obj.noring = True
+                obj.findrings = False
+                obj.rings = None
+            elif pup_line.strip().startswith('$NOMCI'):
+                obj.domci = False
+            elif pup_line.startswith('$MINLEN'):
+                i += 1
+                obj.minlen = int(lines[i])
+            elif pup_line.startswith('$MAXLEN'):
+                i += 1
+                obj.maxlen = int(lines[i])
+            elif pup_line.startswith('$EXCLUDE'):
+                obj.exclude = []
+                i += 1
+                while i < len(lines) and not lines[i].startswith('$'):
+                    parts = lines[i].split()
+                    for p in parts:
+                        try:
+                            obj.exclude.append(int(p))
+                        except ValueError:
+                            obj.exclude.append(p)
+                    i += 1
+                i -= 1
+            elif pup_line.startswith('$NCORES'):
+                i += 1
+                if i < len(lines):
+                    obj.ncores = int(lines[i].strip())
+            elif pup_line.startswith('$AV1245'):
+                i += 1
+                if i < len(lines):
+                    obj.av1245 = float(lines[i].strip())
+            elif pup_line.startswith('$WRITEAOMS'):
+                obj.writeaoms = True
+            elif pup_line.startswith('$READINT'):
+                obj.mode = 'readint'
+                i += 1
+                if i < len(lines):
+                    obj.readpath = lines[i].strip()
+            elif pup_line.startswith('$READAOMS'):
+                obj.mode = 'readaoms'
+                i += 1
+                if i < len(lines):
+                    obj.aomname = lines[i].strip()
         i += 1
     return obj

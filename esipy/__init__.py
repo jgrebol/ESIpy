@@ -207,15 +207,25 @@ class IndicatorsRest:
     @property
     def homer(self):
         """
-        Compute the HOMER value.
+        Get the HOMER value.
 
         :returns: The HOMER value.
         :rtype: float
         """
-        if self._geom is None or self._homerrefs is None or self._connectivity is None:
+        if not self._rings or self._molinfo.get("geom") is None:
             return None
-        else:
-            return compute_homer(self._rings, self._molinfo, self._homerrefs)
+            
+        # Localization to avoid IndexError in compute_homer due to faulty indexing in that function
+        local_arr = list(range(1, len(self._rings) + 1))
+        local_symbols = [self._molinfo["symbols"][i-1] for i in self._rings]
+        orig_geom = self._molinfo["geom"]
+        local_geom = np.array([orig_geom[i-1] for i in self._rings])
+        
+        local_molinfo = self._molinfo.copy()
+        local_molinfo["symbols"] = local_symbols
+        local_molinfo["geom"] = local_geom
+        
+        return compute_homer(local_arr, local_molinfo, self._homerrefs)
 
     def _homa(self):
         """
@@ -250,7 +260,7 @@ class IndicatorsRest:
         :returns: The EN value.
         :rtype: float
         """
-        return self._homa()[1]
+        res = self._homa(); return res[1] if res is not None else None
 
     @property
     def geo(self):
@@ -260,7 +270,7 @@ class IndicatorsRest:
         :returns: The GEO value.
         :rtype: float
         """
-        return self._homa()[2]
+        res = self._homa(); return res[2] if res is not None else None
 
     def _bla(self):
         """
@@ -283,9 +293,7 @@ class IndicatorsRest:
         :returns: The BLA value.
         :rtype: float
         """
-        if self._bla() is None:
-            return [None, None]
-        return self._bla()[0]
+        res = self._bla(); return res[0] if res is not None else None
 
     @property
     def bla_c(self):
@@ -295,10 +303,7 @@ class IndicatorsRest:
         :returns: The BLA_c value.
         :rtype: float
         """
-        if self._bla() is None:
-            return [None, None]
-        return self._bla()[1]
-
+        res = self._bla(); return res[1] if res is not None else None
 
 class IndicatorsUnrest:
     """
@@ -740,6 +745,8 @@ class IndicatorsUnrest:
         :rtype: tuple
         """
         if not hasattr(self, '_done_homas'):
+            if self._molinfo.get('geom') is None:
+                return None
             self._done_homas = compute_homa(self._rings, self._molinfo, self._homarefs)
         return self._done_homas
 
@@ -763,7 +770,7 @@ class IndicatorsUnrest:
         :returns: The EN value.
         :rtype: float
         """
-        return self._homas()[1]
+        res = self._homas(); return res[1] if res is not None else None
 
     @property
     def geo(self):
@@ -773,7 +780,7 @@ class IndicatorsUnrest:
         :returns: The GEO value.
         :rtype: float
         """
-        return self._homas()[2]
+        res = self._homas(); return res[2] if res is not None else None
 
     @property
     def homer(self):
@@ -783,7 +790,20 @@ class IndicatorsUnrest:
         :returns: The HOMER value.
         :rtype: float
         """
-        return compute_homer(self._rings, self._molinfo, self._homerrefs)
+        if not self._rings or self._molinfo.get("geom") is None:
+            return None
+            
+        # Localization to avoid IndexError in compute_homer due to faulty indexing in that function
+        local_arr = list(range(1, len(self._rings) + 1))
+        local_symbols = [self._molinfo["symbols"][i-1] for i in self._rings]
+        orig_geom = self._molinfo["geom"]
+        local_geom = np.array([orig_geom[i-1] for i in self._rings])
+        
+        local_molinfo = self._molinfo.copy()
+        local_molinfo["symbols"] = local_symbols
+        local_molinfo["geom"] = local_geom
+        
+        return compute_homer(local_arr, local_molinfo, self._homerrefs)
 
     def _blas(self):
         """
@@ -815,7 +835,6 @@ class IndicatorsUnrest:
         :rtype: float
         """
         res = self._blas(); return res[1] if res is not None else None
-
 
 class IndicatorsNatorb:
     """
@@ -999,15 +1018,25 @@ class IndicatorsNatorb:
     @property
     def homer(self):
         """
-        Compute the HOMER value.
+        Get the HOMER value.
 
         :returns: The HOMER value.
         :rtype: float
         """
-        if self._geom is None or self._homerrefs is None or self._connectivity is None:
+        if not self._rings or self._molinfo.get("geom") is None:
             return None
-        else:
-            return compute_homer(self._rings, self._mol, self._geom, self._homerrefs, self._connectivity)
+            
+        # Localization to avoid IndexError in compute_homer due to faulty indexing in that function
+        local_arr = list(range(1, len(self._rings) + 1))
+        local_symbols = [self._molinfo["symbols"][i-1] for i in self._rings]
+        orig_geom = self._molinfo["geom"]
+        local_geom = np.array([orig_geom[i-1] for i in self._rings])
+        
+        local_molinfo = self._molinfo.copy()
+        local_molinfo["symbols"] = local_symbols
+        local_molinfo["geom"] = local_geom
+        
+        return compute_homer(local_arr, local_molinfo, self._homerrefs)
 
     def _homas(self):
         """
@@ -1017,6 +1046,8 @@ class IndicatorsNatorb:
         :rtype: tuple
         """
         if not hasattr(self, '_done_homas'):
+            if self._molinfo.get('geom') is None:
+                return None
             self._done_homas = compute_homa(self._rings, self._molinfo, self._homarefs)
         return self._done_homas
 
@@ -1040,7 +1071,7 @@ class IndicatorsNatorb:
         :returns: The EN value.
         :rtype: float
         """
-        return self._homas()[1]
+        res = self._homas(); return res[1] if res is not None else None
 
     @property
     def geo(self):
@@ -1050,7 +1081,7 @@ class IndicatorsNatorb:
         :returns: The GEO value.
         :rtype: float
         """
-        return self._homas()[2]
+        res = self._homas(); return res[2] if res is not None else None
 
     @property
     def homer(self):
@@ -1060,7 +1091,20 @@ class IndicatorsNatorb:
         :returns: The HOMER value.
         :rtype: float
         """
-        return compute_homer(self._rings, self._mol, self._homerrefs)
+        if not self._rings or self._molinfo.get("geom") is None:
+            return None
+            
+        # Localization to avoid IndexError in compute_homer due to faulty indexing in that function
+        local_arr = list(range(1, len(self._rings) + 1))
+        local_symbols = [self._molinfo["symbols"][i-1] for i in self._rings]
+        orig_geom = self._molinfo["geom"]
+        local_geom = np.array([orig_geom[i-1] for i in self._rings])
+        
+        local_molinfo = self._molinfo.copy()
+        local_molinfo["symbols"] = local_symbols
+        local_molinfo["geom"] = local_geom
+        
+        return compute_homer(local_arr, local_molinfo, self._homerrefs)
 
     def _blas(self):
         """
@@ -1092,7 +1136,6 @@ class IndicatorsNatorb:
         :rtype: float
         """
         res = self._blas(); return res[1] if res is not None else None
-
 
 class ESI:
     """
@@ -1129,9 +1172,8 @@ class ESI:
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
-                 ncores=1, save=None, readpath='.', read=False, iaomix=None,
-                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None,
-                 iaoref='minao', iaopol='ano', heavy_only=True, full_basis=False):
+                 ncores=1, save=None, readpath='.', read=False,
+                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
@@ -1152,15 +1194,10 @@ class ESI:
         self.frag = False
         # For other tools
         self.ncores = ncores
-        self.iaomix = iaomix
-        self.iaoref = iaoref
-        self.iaopol = iaopol
-        self.heavy_only = heavy_only
-        self.full_basis = full_basis
         self.save = save
         # Directory where files will be written. Use <save>_esipy to avoid cluttering working dir
         self.save_dir = save + '_esipy' if save else None
-        formatted_part = format_partition(self.partition, iaoref=self.iaoref, iaopol=self.iaopol, iaomix=self.iaomix, heavy_only=self.heavy_only)
+        formatted_part = format_partition(self.partition)
         self.saveaoms = save + '_' + formatted_part + ".aoms" if save else None
         self.savemolinfo = save + '_' + formatted_part + ".molinfo" if save else None
         self.readpath = readpath
@@ -1386,8 +1423,7 @@ class ESI:
                 molinfo_path = os.path.join(self.save_dir, os.path.basename(self.savemolinfo))
             else:
                 molinfo_path = self.savemolinfo
-            self._molinfo = mol_info(self.mol, self.mf, molinfo_path, self._partition, graph,
-                                     iaoref=self.iaoref, iaopol=self.iaopol, iaomix=self.iaomix, heavy_only=self.heavy_only, full_basis=self.full_basis)
+            self._molinfo = mol_info(self.mol, self.mf, molinfo_path, self._partition, graph)
         return self._molinfo
 
     @property
@@ -1422,8 +1458,7 @@ class ESI:
             if self.mol and self.mf and self.partition:
                 self._aom_loaded = True
                 # Don't save in make_aoms, we'll save it ourselves in the subdirectory
-                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf, heavy_only=self.heavy_only, 
-                                      iaomix=self.iaomix, iaoref=self.iaoref, iaopol=self.iaopol)
+                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf)
 
                 if self.saveaoms:
                     os.makedirs(self.save_dir, exist_ok=True)
@@ -1636,4 +1671,3 @@ class ESI:
                 arom_no(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                     av1245=self.av1245,
                     flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap,)
-

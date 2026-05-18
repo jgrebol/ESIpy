@@ -12,10 +12,7 @@ def info_rest(aom, molinfo, nfrags=0):
     :param molinfo: Information about the molecule and the calculation.
     :type: molinfo: dict
     """
-    partition = format_partition(molinfo["partition"], 
-                                 iaoref=molinfo.get("iaoref"), 
-                                 iaopol=molinfo.get("iaopol"),
-                                 iaomix=molinfo.get("iaomix", 0.5))
+    partition = format_partition(molinfo["partition"])
 
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     print(" | Number of Atoms:          {}".format(len(aom)-nfrags))
@@ -185,20 +182,17 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
             print(" | EN           {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].en))
             print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].geo))
             print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homa))
+            print(" ----------------------------------------------------------------------")
 
         if homerrefs:
             print(" | ")
             print(" | Found custom HOMER references 'alpha' and 'r_opt'. Computing")
             print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homer))
-        print(" ----------------------------------------------------------------------")
+            print(" ----------------------------------------------------------------------")
 
         if molinfo["geom"] is not None:
-            pass
-        else:
             bla = indicators[ring_index].bla
-            if bla[0] is None:
-                pass
-            else:
+            if bla is not None:
                 bla_c = indicators[ring_index].bla_c
                 print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, bla))
                 print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, bla_c))
