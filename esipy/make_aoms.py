@@ -124,8 +124,9 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         proj_c = c_full if c_full is not None else c
         return [np.linalg.multi_dot((proj_c.T, U, eta[i], U.T, proj_c)) for i in range(mol.natm)]
 
-    # 1. UNRESTRICTED
-    if isinstance(mf, scf.uhf.UHF) or (hasattr(mf, "__name__") and mf.__name__ == "UHF"):
+    # 1. UNRESTRICTED (check if actually unrestricted coefficients)
+    is_unrest = isinstance(mf, scf.uhf.UHF) or (hasattr(mf, "__name__") and mf.__name__ == "UHF")
+    if is_unrest and isinstance(mf.mo_coeff, (list, tuple)) and len(mf.mo_coeff) == 2:
         ca, cb = mf.mo_coeff
         oa, ob = np.asarray(mf.mo_occ[0]), np.asarray(mf.mo_occ[1])
         is_natorb = np.any((oa > 1e-6) & (np.abs(oa - 1.0) > 1e-6)) or np.any((ob > 1e-6) & (np.abs(ob - 1.0) > 1e-6))
@@ -151,18 +152,21 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         occ = np.asarray(mf.mo_occ)
         is_natorb = np.any((occ > 1e-6) & (np.abs(occ - 1.0) > 1e-6) & (np.abs(occ - 2.0) > 1e-6))
         
+        # If mf.mo_coeff was erroneously packed in UHF but actually restricted
+        coeff_src = mf.mo_coeff[0] if isinstance(mf.mo_coeff, (list, tuple)) else mf.mo_coeff
+
         if is_natorb:
             mask = occ > 1e-10
-            coeff = mf.mo_coeff[:, mask]
+            coeff = coeff_src[:, mask]
             occ_mask = occ[mask]
             from esipy.iao import reference_mol
             pmol = reference_mol(mol, source_basis="minao")
             n_ref = pmol.nao
-            aom = get_iao_aoms(partition_label, mf.mo_coeff[:, :n_ref], mf, c_full=coeff)
+            aom = get_iao_aoms(partition_label, coeff_src[:, :n_ref], mf, c_full=coeff)
             aom = [aom, np.diag(occ_mask)]
         else:
             mask = occ > 0.5
-            coeff = mf.mo_coeff[:, mask]
+            coeff = coeff_src[:, mask]
             if partition_label in ("lowdin", "meta_lowdin", "nao", "mulliken"):
                 aom = []
                 if partition_label == "lowdin": U_inv = lowdin(S)

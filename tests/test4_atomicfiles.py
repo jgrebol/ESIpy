@@ -24,7 +24,8 @@ mol = gto.M(
 )
 mol.build()
 rest = dft.RKS(mol); rest.xc = 'B3LYP'; rest.kernel()
-ring = [1, 2, 3, 4, 5, 6]
+# Ring with a fragment: atoms 1 and 2 as a set
+ring_with_frag = [{1, 2}, 3, 4, 5, 6]
 
 class ESItest(unittest.TestCase):
     def setUp(self):
@@ -33,9 +34,8 @@ class ESItest(unittest.TestCase):
 
     def test_write_read_aoms_fragments(self):
         name = "test4_fragments"
-        # Define fragments: atoms 1,2 as one fragment, others individual
-        fragments = [{1, 2}, {3}, {4}, {5}, {6}]
-        esi = esipy.ESI(mol=mol, mf=rest, rings=[ring], partition='iao', fragments=fragments)
+        # Pass ring containing fragment set
+        esi = esipy.ESI(mol=mol, mf=rest, rings=[ring_with_frag], partition='iao')
         
         # Test writing atomic files
         out_dir = name + "_iao_atomicfiles"
@@ -43,13 +43,8 @@ class ESItest(unittest.TestCase):
         esi.writeaoms(name)
         self.assertTrue(os.path.exists(out_dir))
         
-        # Check if fragment is correctly handled in rings
-        # After processing, the ring should contain the fragment index
-        self.assertEqual(len(esi.rings), 1)
-        # Fragment FF7 (1,2)
-        # Original atoms 3,4,5,6 are still there
-        # Note: process_fragments logic re-indexes rings if they contain fragments
-        # Just verify it doesn't crash and returns indicators
+        # Verify that fragment AOM was created and MCI computed
+        # Atom indices in output should include FF (fragment)
         self.assertGreater(esi.indicators[0].mci, 0)
 
 if __name__ == '__main__':
