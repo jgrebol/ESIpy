@@ -303,7 +303,6 @@ def process_fragments(aom, rings, done=False):
 
 
 
-<<<<<<< HEAD
 def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_only=True):
     import re
     orig = partition
@@ -371,19 +370,6 @@ def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_
     if is_iao and res_basis: label += f" {res_basis}"
         
     return label.lower()
-=======
-def format_partition(partition):
-    p_method = partition.lower()
-    
-    # Standardize method name
-    if p_method in ["m", "mul", "mull", "mulliken"]: return "mulliken"
-    elif p_method in ["l", "low", "lowdin"]: return "lowdin"
-    elif p_method in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta_lowdin", "meta-lowdin"]: return "meta_lowdin"
-    elif p_method in ["n", "nao", "natural", "nat"]: return "nao"
-    elif p_method in ["i", "iao", "intrinsic", "intr"]: return "iao"
-    else: return p_method
-
->>>>>>> main
 def format_short_partition(partition):
     p_method = partition.lower()
 

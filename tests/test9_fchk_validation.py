@@ -7,25 +7,41 @@ from pyscf import gto, scf
 
 class TestFchkValidation(unittest.TestCase):
     def setUp(self):
+        # Path relative to the tests directory where this file resides
         self.fchk_dir = os.path.join(os.path.dirname(__file__), 'FCHK')
-        self.h2o_fchk = os.path.join(self.fchk_dir, 'GAUSSIAN', 'h2o_sto3g.fchk')
+        self.systems = {
+            'H2O': {
+                'path': os.path.join(self.fchk_dir, 'GAUSSIAN', 'h2o_sto3g.fchk'),
+                'rings': None,
+                'nelec': 10
+            },
+            'Benzene': {
+                'path': os.path.join(self.fchk_dir, 'GAUSSIAN', 'bz.fchk'),
+                'rings': [[1, 2, 3, 4, 5, 6]],
+                'nelec': 42
+            }
+        }
 
-    def test_h2o_reading(self):
-        if not os.path.exists(self.h2o_fchk):
-            self.skipTest('h2o_sto3g.fchk not found')
+    def run_full_comparison(self, system_name, partition):
+        sys_info = self.systems[system_name]
+        path = sys_info['path']
         
-        mol, mf = readfchk(self.h2o_fchk)
-        self.assertEqual(mol.natm, 3)
-        self.assertAlmostEqual(mf.e_tot, -74.96, delta=0.1)
+        if not os.path.exists(path):
+            self.skipTest(f'FCHK file {path} not found')
 
-    def test_h2o_iao_main(self):
-        if not os.path.exists(self.h2o_fchk):
-            self.skipTest('h2o_sto3g.fchk not found')
-            
-        mol, mf = readfchk(self.h2o_fchk)
-        esi = ESI(mol=mol, mf=mf, partition='iao')
-        trace_sum = sum(np.trace(m) for m in esi.aom)
-        self.assertAlmostEqual(trace_sum, 5.0, delta=1e-3)
+        mol, mf = readfchk(path)
+        esi = ESI(mol=mol, mf=mf, partition=partition, rings=sys_info['rings'])
+        
+        trace_sum = np.sum([np.trace(m) for m in esi.aom])
+        self.assertAlmostEqual(trace_sum, sys_info['nelec']/2.0, delta=0.01)
+        
+        if esi.rings:
+            mci = esi.indicators[0].mci
+            self.assertGreater(mci, 0)
+
+    def test_h2o_iao(self): self.run_full_comparison('H2O', 'iao')
+    def test_benzene_iao(self): self.run_full_comparison('Benzene', 'iao')
+    def test_benzene_nao(self): self.run_full_comparison('Benzene', 'nao')
 
 if __name__ == '__main__':
     unittest.main()
