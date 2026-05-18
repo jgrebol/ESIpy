@@ -1,0 +1,8 @@
+$READFCHK
+bz.fchk
+$PARTITION
+lowdin
+$RING
+1 2 3 4 5 6
+$FLUREF
+CC 1.40

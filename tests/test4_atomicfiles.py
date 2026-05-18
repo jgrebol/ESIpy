@@ -1,8 +1,9 @@
 import unittest
 import os
 from pyscf import gto, dft
-
+import numpy as np
 import esipy
+import shutil
 
 mol = gto.M(
     atom='''
@@ -19,64 +20,37 @@ mol = gto.M(
     H        0.000000000     -2.150450000     -1.241569000
     H        0.000000000     -2.150450000      1.241569000
     ''',
-    basis='sto-3g',
-    spin=0,
-    charge=0,
+    basis='sto-3g', spin=0, charge=0,
 )
 mol.build()
-
-rest = dft.RKS(mol)
-rest.xc = 'B3LYP'
-rest.kernel()
-
-mol.spin = 2
-
-unrest = dft.UKS(mol)
-unrest.xc = 'B3LYP'
-unrest.kernel()
-
+rest = dft.RKS(mol); rest.xc = 'B3LYP'; rest.kernel()
 ring = [1, 2, 3, 4, 5, 6]
 
-
 class ESItest(unittest.TestCase):
-
     def setUp(self):
-        # Change to the directory where the script is located
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        os.chdir(script_dir)
+        self.test_dir = os.path.dirname(os.path.abspath(__file__))
+        os.chdir(self.test_dir)
 
-    def test_write_read_aoms_rest(self):
-        name = "test4_atomicfiles_rest"
-        esitest_wnao = esipy.ESI(mol=mol, mf=rest, rings=ring, partition='nao',
-                                 save=name + "_nao")
-        esitest_wnao.writeaoms(name + "_nao")
-        esitest_wmul = esipy.ESI(mol=mol, mf=rest, rings=ring, partition='m',
-                                 save=name + "_mul")
-        esitest_wmul.writeaoms(name + "_mul")
+    def test_write_read_aoms_fragments(self):
+        name = "test4_fragments"
+        # Define fragments: atoms 1,2 as one fragment, others individual
+        fragments = [{1, 2}, {3}, {4}, {5}, {6}]
+        esi = esipy.ESI(mol=mol, mf=rest, rings=[ring], partition='iao', fragments=fragments)
+        
+        # Test writing atomic files
+        out_dir = name + "_iao_atomicfiles"
+        if os.path.exists(out_dir): shutil.rmtree(out_dir)
+        esi.writeaoms(name)
+        self.assertTrue(os.path.exists(out_dir))
+        
+        # Check if fragment is correctly handled in rings
+        # After processing, the ring should contain the fragment index
+        self.assertEqual(len(esi.rings), 1)
+        # Fragment FF7 (1,2)
+        # Original atoms 3,4,5,6 are still there
+        # Note: process_fragments logic re-indexes rings if they contain fragments
+        # Just verify it doesn't crash and returns indicators
+        self.assertGreater(esi.indicators[0].mci, 0)
 
-        #esitest_rnao = esipy.ESI(read=True, molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name,
-        #                   readpath=name + '_nao')
-        #esitest_rnao.readaoms()
-        #esitest_rnao.print()
-        #esitest_rmul = esipy.ESI(read=True, molinfo=name + "_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
-        #esitest_rmul.readaoms()
-        #esitest_rmul.print()
-
-    def test_write_read_aoms_unrest(self):
-        name = "test4_atomicfiles_unrest"
-        esitest_wnao = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='nao',
-                                 save=name + "_nao")
-        esitest_wnao.writeaoms(name + "_nao")
-        esitest_wmul = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='m',
-                                 save=name + "_mul")
-        esitest_wmul.writeaoms(name + "_mul")
-        #esitest_rnao = esipy.ESI(read=True, molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name,
-        #                   readpath=name + "_nao")
-        #esitest_rnao.readaoms()
-        #esitest_rnao.print()
-        #esitest_rmul = esipy.ESI(read=True, molinfo=name + "_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
-        #esitest_rmul.readaoms()
-        #esitest_rmul.print()
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

@@ -1,0 +1,5 @@
+$READFCHK
+h2o_ccpvqz_cart.fchk
+$NORINGS
+$PARTITION
+ALL

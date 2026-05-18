@@ -1,0 +1,10 @@
+%chk=h2o_631gss.chk
+#p HF/6-31G(d,p) 6D pop=full gfprint
+
+Water 6-31G** (SP shells, Cartesian 6D)
+
+ 0 1
+ O      0.000000    0.000000    0.117300
+ H      0.000000    0.757200   -0.469200
+ H      0.000000   -0.757200   -0.469200
+

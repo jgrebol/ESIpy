@@ -1,0 +1,5 @@
+$READFCHK
+h2o_ccpvdz_sph.fchk
+$NORINGS
+$PARTITION
+ALL
