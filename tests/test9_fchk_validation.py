@@ -11,11 +11,11 @@ class TestFchkValidation(unittest.TestCase):
     """
 
     def setUp(self):
-        self.fchk_dir = os.path.join(os.path.dirname(__file__), "..", "FCHK")
+        self.fchk_dir = os.path.join(os.path.dirname(__file__), "FCHK")
         self.systems = {
             "H2O": {
-                "g_path": os.path.join(self.fchk_dir, "GAUSSIAN", "h2o.fchk"),
-                "q_path": os.path.join(self.fchk_dir, "QCHEM", "h2o.fchk"),
+                "g_path": os.path.join(self.fchk_dir, "GAUSSIAN", "h2o_sto3g.fchk"),
+                "q_path": os.path.join(self.fchk_dir, "QCHEM", "h2o_sto3g.fchk"),
                 "rings": None,
                 "nelec": 10
             },
