@@ -172,7 +172,19 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
     pmol = reference_mol(mol, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis, x=x)
     minbas_total = pmol.nao; pmol_aoslices = pmol.aoslice_by_atom()
     veps_block = np.zeros((mol.nao, minbas_total)); vaps_diag = []
-    S_mol = mol.intor("int1e_ovlp"); P_mol = coeffs @ coeffs.T; T_orth = None
+    S_mol = mol.intor("int1e_ovlp")
+    # Use density matrix from mf if available (better for CASSCF/UHF)
+    P_mol = None
+    if not free_atom and mf is not None:
+        try:
+            P_mol = mf.make_rdm1()
+            if isinstance(P_mol, (list, np.ndarray)) and (isinstance(P_mol, list) or P_mol.ndim == 3):
+                P_mol = P_mol[0] + P_mol[1]
+        except: pass
+    if P_mol is None:
+        P_mol = coeffs @ coeffs.T
+    
+    T_orth = None
     if not free_atom:
         if mode in ["lowdin", "meta-lowdin", "ml", "mlowdin", "meta_lowdin", "metalowdin", "nao"]:
             from pyscf import lo
@@ -233,7 +245,7 @@ def _do_iao(mol, coeffs, pmol=None, A_basis=None, heavy_only=True):
     IAO_nonorth = A_tilde + 2 * P_occ_P_proj_A - P_occ_A - P_proj_A
     return orth.vec_lowdin(IAO_nonorth, S1)
 
-def iao(mol, coeffs, source_basis='minao', heavy_only=True, full_basis=False):
+def iao(mol, coeffs, source_basis='minao', heavy_only=False, full_basis=False):
     pmol = reference_mol(mol, polarized=False, source_basis=source_basis, heavy_only=heavy_only, full_basis=full_basis)
     return _do_iao(mol, coeffs, pmol=pmol), pmol
 
@@ -265,7 +277,26 @@ def fpiao_effao(mol, coeffs, x=1.0, mode='nao', pol_basis='ano', heavy_only=True
         A_total[:, p0_p + n_min : p1_p] = A_ano_all[:, p0_p + n_min : p1_p]
     return _do_iao(mol, coeffs, A_basis=A_total, heavy_only=heavy_only), pmol_pol
 
-def peiao(mol, coeffs, mode='nao', heavy_only=True, full_basis=False, mf=None):
+def peiao(mol, coeffs, mode='nao', heavy_only=True, full_basis=False, mf=None, x=1.0):
     # Polarized-Effao-IAO: Both minimal and polarization parts from effaos of the actual basis
-    w, A_both, pmol = get_effaos(mol, coeffs, free_atom=False, mode=mode, polarized=True, heavy_only=heavy_only, full_basis=full_basis, mf=mf)
+    w, A_both, pmol = get_effaos(mol, coeffs, free_atom=False, mode=mode, polarized=True, heavy_only=heavy_only, full_basis=full_basis, x=x, mf=mf)
     return _do_iao(mol, coeffs, A_basis=A_both, heavy_only=heavy_only), pmol
+
+def wiao(mol, coeffs, heavy_only=False, full_basis=False):
+    if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
+    S1 = mol.intor('int1e_ovlp'); P_AO = coeffs @ coeffs.T; T = orth.lowdin(S1); T_inv = T.T @ S1
+    P_ML = T_inv @ P_AO @ T_inv.T; B_whole = P_ML @ P_ML; natm = mol.natm; B_atom = np.zeros((natm, natm)); ao_loc = mol.ao_loc_nr()
+    for i in range(natm):
+        for j in range(natm):
+            if mol.atom_pure_symbol(i) == 'H' or mol.atom_pure_symbol(j) == 'H': B_atom[i, j] = 0.0
+            else: B_atom[i, j] = np.sum(B_whole[ao_loc[i]:ao_loc[i+1], ao_loc[j]:ao_loc[j+1]])
+    diag_B = np.diag(B_atom); diag_B = np.where(diag_B > 1e-6, diag_B, 1.0); PCC_atom = B_atom / np.sqrt(np.outer(diag_B, diag_B))
+    for i in range(natm):
+        if mol.atom_pure_symbol(i) == 'H': PCC_atom[i, :], PCC_atom[:, i] = 0.0, 0.0; PCC_atom[i, i] = 1.0
+        else: PCC_atom[i, i] = 1.0
+    _, A_tilde, pmol = get_effaos(mol, coeffs, free_atom=False, mode='meta-lowdin', polarized=False, heavy_only=heavy_only, full_basis=full_basis)
+    nmin = pmol.nao; PCC_min = np.zeros((nmin, nmin)); loc_min = pmol.ao_loc_nr()
+    for i in range(natm):
+        for j in range(natm): PCC_min[loc_min[i]:loc_min[i+1], loc_min[j]:loc_min[j+1]] = PCC_atom[i, j]
+    PCC_min = 0.999 * PCC_min + 0.001 * np.eye(nmin)
+    return _do_iao(mol, coeffs, A_basis=A_tilde @ PCC_min), pmol

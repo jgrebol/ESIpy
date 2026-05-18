@@ -283,35 +283,88 @@ class MeanField2:
             self._scf = scf.RHF(self.mol)
             self.__name__ = "RHF"
 
-        # Read MO coefficients from FCHK (Gaussian order) and reshape
-        wf = 'unrest' if unrestricted else 'rest'
-        if wf == 'rest':
-            mo_flat = read_list_from_fchk('Alpha MO coefficients', path)
-            if len(mo_flat) == 0:
-                raise RuntimeError('No MO coefficients found in FCHK')
-            mo_arr = np.array(mo_flat, dtype=float).reshape(self.nummo, self.nao).T
-            self.mo_coeff = permute_aos_rows(mo_arr, self.mole2)
+        # Try reading post-HF densities (Total and Spin)
+        d_labels = [
+            ('Total CI Rho(1) Density', 'Spin CI Rho(1) Density'),
+            ('Total CI Density', 'Spin CI Density'),
+            ('Total CC Density', 'Spin CC Density'),
+            ('Total MP2 Density', 'Spin MP2 Density'),
+            ('Total SCF Density', 'Spin SCF Density'),
+        ]
+        
+        found_density = False
+        for t_lbl, s_lbl in d_labels:
+                dt_flat = read_list_from_fchk(t_lbl, path)
+                if len(dt_flat) > 0:
+                    print(f" | Found density: {t_lbl}")
+                    found_density = True
+                    ds_flat = read_list_from_fchk(s_lbl, path)
+                    
+                    def rebuild(flat):
+                        n = self.nao
+                        mat_gau = np.zeros((n, n))
+                        idx = 0
+                        for i in range(n):
+                            for j in range(i + 1):
+                                mat_gau[i, j] = mat_gau[j, i] = flat[idx]
+                                idx += 1
+                        from esipy.tools import permute_aos_rows
+                        mat_pyscf = permute_aos_rows(mat_gau, self.mole2)
+                        return permute_aos_rows(mat_pyscf.T, self.mole2).T
 
-            nocc = (self.nalpha + self.nbeta) // 2
-            self.mo_occ = np.zeros(self.nummo)
-            self.mo_occ[:nocc] = 2.0
-        else:
-            # For Unrestricted, treat alpha and beta separately
+                    dt = rebuild(dt_flat)
+                    if len(ds_flat) > 0:
+
+                        print(f" | Found spin density: {s_lbl}")
+                        ds = rebuild(ds_flat)
+                        da = (dt + ds) / 2.0
+                        db = (dt - ds) / 2.0
+                        rdm1 = np.array([da, db])
+                        if not isinstance(self._scf, scf.uhf.UHF):
+                            self._scf = scf.UHF(self.mol)
+                            self.__name__ = "UHF"
+                    else:
+                        rdm1 = dt
+                    
+                    # Get NOs from total density
+                    s_ovlp = self.mol.intor_symmetric('int1e_ovlp')
+                    s_ovlp = 0.5 * (s_ovlp + s_ovlp.T)
+                    from scipy.linalg import eigh
+                    occ, coeff = eigh(s_ovlp @ dt @ s_ovlp, b=s_ovlp)
+                    idx_no = np.argsort(occ)[::-1]
+                    self.mo_occ = occ[idx_no]
+                    self.mo_coeff = coeff[:, idx_no]
+                    self.mo_occ[self.mo_occ < 1e-12] = 0.0
+
+                    self._scf.make_rdm1 = lambda *args, **kwargs: rdm1
+                    break
+        
+        if not found_density:
+            # Fallback to MO coefficients
             mo_flat_a = read_list_from_fchk('Alpha MO coefficients', path)
-            mo_flat_b = read_list_from_fchk('Beta MO coefficients', path)
-
+            if len(mo_flat_a) == 0:
+                raise RuntimeError('No MO coefficients found in FCHK')
+            
             mo_arr_a = np.array(mo_flat_a, dtype=float).reshape(self.nummo, self.nao).T
-            mo_arr_b = np.array(mo_flat_b, dtype=float).reshape(self.nummo, self.nao).T
-            mo_arr_a = permute_aos_rows(mo_arr_a, self.mole2)
-            mo_arr_b = permute_aos_rows(mo_arr_b, self.mole2)
-            mo_arr = [mo_arr_a, mo_arr_b]
-            self.mo_coeff = mo_arr
-
-            self.mo_occ = [np.zeros(self.nummo), np.zeros(self.nummo)]
-            print("Number of alpha electrons", self.nalpha)
-            print("Number of beta electrons", self.nbeta)
-            self.mo_occ[0][:self.nalpha] = 1.0
-            self.mo_occ[1][:self.nbeta] = 1.0
+            from esipy.tools import permute_aos_rows
+            mo_coeff_a = permute_aos_rows(mo_arr_a, self.mole2)
+            
+            mo_flat_b = read_list_from_fchk('Beta MO coefficients', path)
+            if len(mo_flat_b) > 0:
+                mo_arr_b = np.array(mo_flat_b, dtype=float).reshape(self.nummo, self.nao).T
+                mo_coeff_b = permute_aos_rows(mo_arr_b, self.mole2)
+                self.mo_coeff = [mo_coeff_a, mo_coeff_b]
+                self.mo_occ = [np.zeros(self.nummo), np.zeros(self.nummo)]
+                self.mo_occ[0][:self.nalpha] = 1.0
+                self.mo_occ[1][:self.nbeta] = 1.0
+                if not isinstance(self._scf, scf.uhf.UHF):
+                    self._scf = scf.UHF(self.mol)
+                    self.__name__ = "UHF"
+            else:
+                self.mo_coeff = mo_coeff_a
+                nocc = (self.nalpha + self.nbeta) // 2
+                self.mo_occ = np.zeros(self.nummo)
+                self.mo_occ[:nocc] = 2.0
 
         self._scf.mo_coeff = self.mo_coeff
         self._scf.mo_occ = self.mo_occ
@@ -399,8 +452,17 @@ class FchkMolecule:
             self.c1 = read_list_from_fchk('Contraction coefficients', path)
             self.c2 = None
 
-        self.nummo = int(read_from_fchk('Number of independent functions', path)[-1])
-        self.numao = int(read_from_fchk('Number of basis functions', path)[-1])
+        res_mo = read_from_fchk('Number of independent functions', path)
+        res_ao = read_from_fchk('Number of basis functions', path)
+        if res_ao:
+            self.numao = int(res_ao[-1])
+        else:
+            self.numao = 0 # Should not happen in valid FCHK
+            
+        if res_mo:
+            self.nummo = int(res_mo[-1])
+        else:
+            self.nummo = self.numao
 
         frag_info = read_list_from_fchk('Atom fragment info', path)
         self.fragments = []
@@ -551,4 +613,8 @@ def readfchk(path):
     #exit()
 
     # Return _scf to inherit PySCF class, so PySCF methods work
+    if hasattr(mf2, 'mf_posthf') and mf2.mf_posthf is not None:
+        return mol2, mf2.mf_posthf, mf2._scf
+    if hasattr(mf2, 'mf_posthf') and mf2.mf_posthf is not None:
+        return mol2, mf2.mf_posthf, mf2._scf
     return mol2, mf2._scf
