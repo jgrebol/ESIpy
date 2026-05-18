@@ -52,6 +52,8 @@ def deloc_no(aom, molinfo, fragmap={}):
     """
 
     aom, occ = aom
+    if occ.ndim == 1:
+        occ = np.diag(occ)
     presymbols = molinfo["symbols"]
     symbols = presymbols + ["FF"] * (len(aom)-len(presymbols))
     if len(aom)-len(presymbols) > 0:
@@ -69,6 +71,8 @@ def deloc_no(aom, molinfo, fragmap={}):
         # Trace(sqrt(occ) @ AOM_i @ sqrt(occ) @ AOM_i)
         # Using einsum for Trace(M1 @ M2 @ M3 @ M4)
         occ_half = np.diag(np.sqrt(np.diag(occ)))
+        if occ_half.ndim == 1:
+            occ_half = np.diag(occ_half)
         lif = np.einsum('ij,jk,kl,li->', occ_half, aom[i], occ_half, aom[i])
         lix = 0.5 * np.einsum('ij,jk,kl,li->', occ, aom[i], occ, aom[i])
         lifs.append(lif)
@@ -112,6 +116,8 @@ def deloc_no(aom, molinfo, fragmap={}):
                     symbols[i], i + 1, symbols[j], j + 1, lifs[i], lixs[i]))
             else:
                 occ_half = np.diag(np.sqrt(np.diag(occ)))
+                if occ_half.ndim == 1:
+                    occ_half = np.diag(occ_half)
                 dif = 2 * np.einsum('ij,jk,kl,li->', occ_half, aom[i], occ_half, aom[j])
                 dix = np.einsum('ij,jk,kl,li->', occ, aom[i], occ, aom[j])
                 if symbols[i] != "FF" and symbols[j] != "FF":  # Exclude FF atoms from contributing

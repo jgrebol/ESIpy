@@ -4,7 +4,7 @@ from pyscf.lo import nao
 from pyscf.lo.orth import lowdin
 from pyscf import scf
 
-from esipy.tools import save_file, format_partition, get_natorbs, build_eta
+from esipy.tools import save_file, format_partition, build_eta
 
 def make_aoms(mol, mf, partition, myhf=None, save=None):
     """
@@ -22,7 +22,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         from pyscf.lo import iao as pyscf_iao
         from pyscf.lo import orth
         
-        # IAO from PySCF
+        # Standard IAO from PySCF
         C_iao_nonorth = pyscf_iao.iao(mol, c)
         U_nonorth = orth.vec_lowdin(C_iao_nonorth, S)
         
@@ -33,19 +33,18 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
     # 1. UNRESTRICTED
     if isinstance(mf, scf.uhf.UHF) or (hasattr(mf, "__name__") and mf.__name__ == "UHF"):
         ca, cb = mf.mo_coeff
-        oa, ob = mf.mo_occ
-        coeff_alpha = ca[:, oa > 0]
-        coeff_beta = cb[:, ob > 0]
-
+        oa, ob = np.asarray(mf.mo_occ[0]), np.asarray(mf.mo_occ[1])
+        
+        coeff_alpha = ca[:, oa > 0.5]
+        coeff_beta = cb[:, ob > 0.5]
+        
         if partition_label in ("lowdin", "meta_lowdin", "nao", "mulliken"):
             aom_alpha, aom_beta = [], []
-            if partition_label == "lowdin":
-                U_inv = lowdin(S)
+            if partition_label == "lowdin": U_inv = lowdin(S)
             elif partition_label == "meta_lowdin":
                 from pyscf.lo import orth
                 U_inv = orth.orth_ao(mf, method="meta_lowdin")
-            elif partition_label == "nao":
-                U_inv = nao.nao(mol, mf, S)
+            elif partition_label == "nao": U_inv = nao.nao(mol, mf, S)
             
             if partition_label == "mulliken":
                 eta = build_eta(mol)
@@ -53,8 +52,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                     aom_alpha.append(np.linalg.multi_dot((coeff_alpha.T, S, eta[i], coeff_alpha)))
                     aom_beta.append(np.linalg.multi_dot((coeff_beta.T, S, eta[i], coeff_beta)))
             else:
-                U = np.linalg.inv(U_inv)
-                eta = build_eta(mol)
+                U = np.linalg.inv(U_inv); eta = build_eta(mol)
                 for i in range(mol.natm):
                     aom_alpha.append(coeff_alpha.T @ U.T @ eta[i] @ U @ coeff_alpha)
                     aom_beta.append(coeff_beta.T @ U.T @ eta[i] @ U @ coeff_beta)
@@ -68,31 +66,24 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
 
     # 2. RESTRICTED
     else:
-        if hasattr(mf, 'mo_occ'):
-            coeff = mf.mo_coeff[:, mf.mo_occ > 0]
-        else:
-            occ, coeff = get_natorbs(mf, S)
-            coeff = coeff[:, occ > 1e-10]
-
+        occ = np.asarray(mf.mo_occ)
+        mask = occ > 0.5
+        coeff = mf.mo_coeff[:, mask]
+        
         if partition_label in ("lowdin", "meta_lowdin", "nao", "mulliken"):
             aom = []
-            if partition_label == "lowdin":
-                U_inv = lowdin(S)
+            if partition_label == "lowdin": U_inv = lowdin(S)
             elif partition_label == "meta_lowdin":
                 from pyscf.lo import orth
                 U_inv = orth.orth_ao(mf, method="meta_lowdin")
-            elif partition_label == "nao":
-                U_inv = nao.nao(mol, mf, S)
+            elif partition_label == "nao": U_inv = nao.nao(mol, mf, S)
             
             if partition_label == "mulliken":
                 eta = build_eta(mol)
-                for i in range(mol.natm):
-                    aom.append(np.linalg.multi_dot((coeff.T, S, eta[i], coeff)))
+                for i in range(mol.natm): aom.append(np.linalg.multi_dot((coeff.T, S, eta[i], coeff)))
             else:
-                U = np.linalg.inv(U_inv)
-                eta = build_eta(mol)
-                for i in range(mol.natm):
-                    aom.append(coeff.T @ U.T @ eta[i] @ U @ coeff)
+                U = np.linalg.inv(U_inv); eta = build_eta(mol)
+                for i in range(mol.natm): aom.append(coeff.T @ U.T @ eta[i] @ U @ coeff)
         else:
             aom = get_iao_aoms(partition_label, coeff, mf)
             

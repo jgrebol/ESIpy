@@ -1326,8 +1326,9 @@ class ESI:
 
     @property
     def rings(self):
-        if hasattr(self, "mol") and self.mol:
-            natms = self.mol.natm
+        mol_attr = getattr(self, "mol", None)
+        if mol_attr is not None:
+            natms = mol_attr.natm
         else:
             natms = len(self.molinfo.get("symbols"))
         if natms <= 1:
@@ -1345,16 +1346,15 @@ class ESI:
                 print(f" | WARNING: Could not find rings for {self.partition} partition. Mulliken and Lowdin bond orders cannot be used to build the connectivity matrix.")
                 print(f" | Skipping ring analysis for {self.partition} partition.")
                 self._rings = None
-            if self.connec:
-                graph = self.connec
-            else:
-                graph = self.molinfo.get("connec")
+            
+            graph = self.connec
             if not graph:
                 print(f" | WARNING: Could not find the connectivity matrix for {self.partition} partition.")
                 print(f" | Skipping ring analysis for {self.partition} partition.")
                 self._rings = None
-
-            self._rings = find_rings(graph, self.minlen, self.maxlen, exclude=self.exclude)
+            else:
+                self._rings = find_rings(graph, self.minlen, self.maxlen, exclude=self.exclude)
+            
             endrings = time()
 
             if not self._rings:
@@ -1485,8 +1485,7 @@ class ESI:
     @property
     def connec(self):
         """
-        Get the connectivity matrix. If the partition is 'mulliken' or 'lowdin',
-        build the NAO AOMs and compute the connectivity matrix from there.
+        Get the connectivity matrix. Always uses NAO AOMs to build the connectivity matrix.
         The computation is controlled by the 'done_connec' flag. Based on the DIs.
 
         :returns: The connectivity matrix.
@@ -1494,24 +1493,24 @@ class ESI:
         """
         if self._connec is not None:
             return self._connec
-        if hasattr(self, "molinfo") and self.molinfo.get("connec") is not None:
-            return self.molinfo.get("connec")
-        if not hasattr(self, 'done_connec') or not self.done_connec:
-            if self.molinfo.get("connec") is not None:
-                self._connec = self.molinfo.get("connec")
-                self.done_connec = True
-                return self._connec
-
-            if self.partition in ['mulliken', 'lowdin']:
+        
+        # This will trigger NAO computation if needed via the molinfo property
+        self._connec = self.molinfo.get("connec")
+        
+        if self._connec is None:
+            # Fallback if molinfo was somehow populated without connec
+            if self.mol is not None and self.mf is not None:
                 print(" | Building NAO AOMs to compute connectivity.")
-                if self.mol is None or self.mf is None:
-                    raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs to get connectivity matrix.")
                 mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf)
-            else:
+            elif self.aom is not None:
+                # Use current AOMs if available (even if they are not NAO)
                 mat = self.aom
+            else:
+                return None
+            
             self._connec = build_connectivity(mat=mat, threshold=self.rings_thres)
-            self.done_connec = True
-            return self._connec
+            
+        return self._connec
 
     @property
     def mci(self):

@@ -1,17 +1,15 @@
 import os
-"""
-Input parser for ESIpy custom input blocks.
-Supports keywords: $READFCHK, $RING, $PARTITION, $FLUREF, $FINDRINGS, $MINLEN, $MAXLEN
-"""
+import numpy as np
+from pyscf import gto, scf
 
-
-class ESIInput:
+class Input:
     def __init__(self):
+        # Infrastructure from main/dev-iao
         self.fchk_file = None
         self.rings = None
         self.noring = False
-        self.partition = None
-        self.fragments = None
+        self.partition = []
+        self.fragments = []
         self.fluref = []
         self.homaref = []
         self.findrings = False
@@ -20,81 +18,73 @@ class ESIInput:
         self.domci = True
         self.mci = None
         self.av1245 = None
-        self.save = False
+        self.save = None
         self.writeaoms = False
-        # input mode: 'fchk' (default), 'readint', 'readaoms'
         self.mode = 'fchk'
-        # for readint: directory containing .int files
         self.readpath = None
-        # for readaoms: base name (without extension) to construct aoms/molinfo per partition
         self.aomname = None
         self.ncores = None
         self.mciaprox = []
         self.exclude = []
 
-    @staticmethod
-    def from_string(input_str):
-        obj = ESIInput()
-        lines = [line.strip() for line in input_str.strip().splitlines() if line.strip()]
+def read_input(path):
+    obj = Input()
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Input file {path} not found")
 
-        i = 0
-        while i < len(lines):
-            line = lines[i]
-            if line.startswith('$READFCHK'):
-                obj.mode = 'fchk'
+    with open(path, 'r') as f:
+        lines = f.readlines()
+
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        if not line or line.startswith('#'):
+            i += 1
+            continue
+
+        if line.startswith('$'):
+            pup_line = line.upper()
+            if pup_line.startswith('$FCHK'):
                 i += 1
                 if i < len(lines):
-                    obj.fchk_file = lines[i]
-            elif line.startswith('$READINT'):
-                obj.mode = 'readint'
+                    obj.fchk_file = lines[i].strip()
+            elif pup_line.startswith('$SAVE'):
                 i += 1
                 if i < len(lines):
-                    obj.readpath = lines[i]
-            elif line.startswith('$READAOM'):
-                obj.mode = 'readaoms'
-                i += 1
-                if i < len(lines):
-                    obj.aomname = lines[i]
-            elif line.startswith('$RING') or line.startswith('$RINGS'):
-                obj.rings = []
-                i += 1
-                while i < len(lines) and not lines[i].strip().startswith('$'):
-                    parts = lines[i].split()
-                    ring = []
-                    for p in parts:
-                        if p.upper().startswith('F'):
-                            ring.append(p.upper())
-                        else:
-                            try:
-                                ring.append(int(p))
-                            except ValueError:
-                                ring.append(p)
-                    obj.rings.append(ring)
-                    i += 1
-                i -= 1
-            elif line.startswith('$FRAGMENTS'):
+                    obj.save = lines[i].strip()
+            elif pup_line.startswith('$FRAGMENTS'):
                 obj.fragments = []
                 i += 1
                 while i < len(lines) and not lines[i].strip().startswith('$'):
                     obj.fragments.append(set(map(int, lines[i].split())))
                     i += 1
                 i -= 1
-            elif line.startswith('$PARTITION'):
+            elif pup_line.startswith('$PARTITION'):
                 obj.partition = []
                 i += 1
                 while i < len(lines) and not lines[i].startswith('$'):
                     p = lines[i].strip()
+                    if not p:
+                        i += 1
+                        continue
                     pup = p.upper()
                     
-                    if pup in ('ALL', 'ROBUST', 'ALLWIP', 'WIPALL', 'ALLEDU', 'ALLEFFAO', 'ALLEFAO', 'ALLIAO'):
+                    if pup in ('ALL', 'ROBUST', 'ALLPARTS'):
                         obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
                     else:
                         obj.partition.append(p)
                     i += 1
                 i -= 1
-            elif line.upper().startswith('$ALLPARTS'):
+            elif pup_line.startswith('$ALLPARTS'):
                 obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
-            elif line.startswith('$FLUREF'):
+            elif pup_line.startswith('$RING') or pup_line.startswith('$RINGS'):
+                obj.rings = []
+                i += 1
+                while i < len(lines) and not lines[i].startswith('$'):
+                    obj.rings.append(list(map(int, lines[i].split())))
+                    i += 1
+                i -= 1
+            elif pup_line.startswith('$FLUREF'):
                 i += 1
                 obj.fluref = []
                 while i < len(lines) and not lines[i].startswith('$'):
@@ -105,27 +95,21 @@ class ESIInput:
                             pass
                     i += 1
                 i -= 1
-            elif line.startswith('$FINDRINGS'):
+            elif pup_line.startswith('$FINDRINGS'):
                 obj.findrings = True
-            elif line.startswith('$NORING'):
+            elif pup_line.startswith('$NORING'):
                 obj.noring = True
                 obj.findrings = False
                 obj.rings = None
-            elif line.strip().startswith('$NOMCI'):
+            elif pup_line.strip().startswith('$NOMCI'):
                 obj.domci = False
-            elif line.startswith('$MINLEN'):
+            elif pup_line.startswith('$MINLEN'):
                 i += 1
                 obj.minlen = int(lines[i])
-            elif line.startswith('$MAXLEN'):
+            elif pup_line.startswith('$MAXLEN'):
                 i += 1
                 obj.maxlen = int(lines[i])
-            elif line.startswith('$NCORES') or line.startswith('$NCORE'):
-                i += 1
-                obj.ncores = int(lines[i])
-            elif line.startswith('$AV1245'):
-                i += 1
-                obj.av1245 = float(lines[i])
-            elif line.startswith('$EXCLUDE'):
+            elif pup_line.startswith('$EXCLUDE'):
                 obj.exclude = []
                 i += 1
                 while i < len(lines) and not lines[i].startswith('$'):
@@ -137,10 +121,25 @@ class ESIInput:
                             obj.exclude.append(p)
                     i += 1
                 i -= 1
-            i += 1
-        return obj
-
-    @staticmethod
-    def from_file(filepath):
-        with open(filepath, 'r') as f:
-            return ESIInput.from_string(f.read())
+            elif pup_line.startswith('$NCORES'):
+                i += 1
+                if i < len(lines):
+                    obj.ncores = int(lines[i].strip())
+            elif pup_line.startswith('$AV1245'):
+                i += 1
+                if i < len(lines):
+                    obj.av1245 = float(lines[i].strip())
+            elif pup_line.startswith('$WRITEAOMS'):
+                obj.writeaoms = True
+            elif pup_line.startswith('$READINT'):
+                obj.mode = 'readint'
+                i += 1
+                if i < len(lines):
+                    obj.readpath = lines[i].strip()
+            elif pup_line.startswith('$READAOMS'):
+                obj.mode = 'readaoms'
+                i += 1
+                if i < len(lines):
+                    obj.aomname = lines[i].strip()
+        i += 1
+    return obj

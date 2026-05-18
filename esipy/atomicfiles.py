@@ -72,7 +72,7 @@ def read_aoms(path='.'):
 
                     # We first get the number of shape of the alpha-alpha matrix
                     na, nb = read_orbs(intfile_path)
-                    if wf == 'unrest':
+                    if wf == "unrest":
                         nt = na + nb
                     else:
                         nt = na
@@ -218,7 +218,7 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
             f.write("              L   0.00000000000000E+01\n\n")
 
             if wf == "unrest":
-                occ = np.diag([1.0] * (len(aom[0][i]) + len(aom[1][i])))
+                occ_tmp = np.diag([1.0] * (len(aom[0][i]) + len(aom[1][i])))
                 f.write("\n The Atomic Overlap Matrix:\n\n Unrestricted\n\n")
                 alpha_size = len(aom[0][i])
                 beta_size = len(aom[1][i])
@@ -237,7 +237,6 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
                                 f.write("{:.16E}  ".format(fill[j][k]))
                         f.write("\n")
             elif wf == "rest":
-                occ = np.diag([2.0] * len(aom[i]))
                 f.write("\n The Atomic Overlap Matrix:\n\n Restricted, closed-shell\n\n  ")
                 if partition == "mulliken":
                     for j in range(len(aom[i])):
@@ -282,15 +281,20 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
                 "---------------------------------------------------------------------------------------------------\n")
 
             if wf == "unrest":
-                for j, occup in enumerate(np.diag(occ[beta_size:])):
+                for j, occup in enumerate(np.diag(occ_tmp[beta_size:])):
                     f.write(
                         f"       {j + 1:<8}{j + 1:<12}{float(1.):<15.10f}{'Alpha':<15}{0.0:<15.10f}{0.0:<15.10f}{0.0:<15.10f}\n"
                     )
-                for j, occup in enumerate(np.diag(occ[:beta_size])):
+                for j, occup in enumerate(np.diag(occ_tmp[:beta_size])):
                     f.write(
                         f"       {j + 1 + alpha_size:<8}{j + 1 + alpha_size:<12}{float(occup):<15.10f}{'Beta':<15}{0.0:<15.10f}{0.0:<15.10f}{0.0:<15.10f}\n"
                     )
-            else:
+            elif wf == "rest":
+                for j in range(len(aom[i])):
+                    f.write(
+                        f"       {j + 1:<8}{j + 1:<12}{float(2.0):<15.10f}{'Alpha,Beta':<15}{0.0:<15.10f}{0.0:<15.10f}{0.0:<15.10f}\n"
+                    )
+            else: # no
                 for j, occup in enumerate(np.diag(occ)):
                     f.write(
                         f"       {j + 1:<8}{j + 1:<12}{float(occup):<15.10f}{'Alpha,Beta':<15}{0.0:<15.10f}{0.0:<15.10f}{0.0:<15.10f}\n"
@@ -400,8 +404,7 @@ def read_wfx_info(path, wfx_filename=None):
     parent_path = os.path.dirname(abs_path)
 
     # Possible locations to look for the file
-    # Prioritize current working directory and path parent
-    locations = [os.getcwd(), parent_path, path, abs_path]
+    locations = [path, abs_path, parent_path, os.getcwd()]
     # Remove duplicates while preserving order
     unique_locations = []
     for loc in locations:
@@ -453,15 +456,18 @@ def read_wfx_info(path, wfx_filename=None):
     start_coords = False
     coordinates = []
     for line in lines:
-        if "<Nuclear Cartesian Coordinates>" in line:
+        if "<Nuclear Cartesian Coordinates>" in line or "<Atomic Positions>" in line:
             start_coords = True
             continue
-        if "</Nuclear Cartesian Coordinates>" in line:
+        if "</Nuclear Cartesian Coordinates>" in line or "</Atomic Positions>" in line:
             break
         if start_coords:
             parts = line.split()
+            # Handle both standard WFX (3 values) and some variants (4 values: Z X Y Z)
             if len(parts) == 3:
                 coordinates.append([float(x) for x in parts])
+            elif len(parts) == 4:
+                coordinates.append([float(x) for x in parts[1:]])
 
     if not coordinates:
         raise ValueError(f"No coordinates found in the .wfx file: {wfx_file}")
