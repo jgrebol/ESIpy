@@ -358,7 +358,12 @@ class FchkMolecule:
         self.nelec = (self.nalpha, self.nbeta)
         self.natoms = int(read_from_fchk('Number of atoms', path)[-1])
         self.ncshell = int(read_from_fchk('Number of contracted shells', path)[-1])
-        self.charge = int(read_from_fchk('Charge', path)[-1])
+        # Bug fix: Charge can be a list or a single number in FCHK
+        res_charge = read_from_fchk('Charge', path)
+        if isinstance(res_charge, list):
+            self.charge = int(res_charge[-1])
+        else:
+            self.charge = int(res_charge)
 
         self.atomic_numbers = [int(i) for i in read_list_from_fchk('Atomic numbers', path)]
         self.atomic_symbols = read_atomic_symbols(self.atomic_numbers)
