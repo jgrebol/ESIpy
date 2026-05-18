@@ -31,7 +31,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         return [np.linalg.multi_dot((c.T, U, eta[i], U.T, c)) for i in range(mol.natm)]
 
     # 1. UNRESTRICTED
-    if isinstance(mf, scf.uhf.UHF) or (hasattr(mf, "__name__") and mf.__name__ == "UHF"):
+    is_unrest = isinstance(mf, scf.uhf.UHF) or (hasattr(mf, "__name__") and mf.__name__ == "UHF")
+    if is_unrest and isinstance(mf.mo_coeff, (list, tuple)) and len(mf.mo_coeff) == 2:
         ca, cb = mf.mo_coeff
         oa, ob = np.asarray(mf.mo_occ[0]), np.asarray(mf.mo_occ[1])
         
@@ -68,7 +69,9 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
     else:
         occ = np.asarray(mf.mo_occ)
         mask = occ > 0.5
-        coeff = mf.mo_coeff[:, mask]
+        # Robust source handling
+        coeff_src = mf.mo_coeff[0] if isinstance(mf.mo_coeff, (list, tuple)) else mf.mo_coeff
+        coeff = coeff_src[:, mask]
         
         if partition_label in ("lowdin", "meta_lowdin", "nao", "mulliken"):
             aom = []
