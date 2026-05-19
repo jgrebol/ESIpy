@@ -1,0 +1,10 @@
+%chk=h2o_ccpvqz_cart.chk
+#p HF/cc-pVQZ 6D 10F 15G pop=full gfprint
+
+Water cc-pVQZ (Cartesian 6D, 10F, 15G)
+
+ 0 1
+ O      0.000000    0.000000    0.117300
+ H      0.000000    0.757200   -0.469200
+ H      0.000000   -0.757200   -0.469200
+

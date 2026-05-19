@@ -1,0 +1,11 @@
+$READFCHK
+bz.fchk
+$PARTITION
+ALL
+$FINDRINGS
+$MINLEN
+6
+$MAXLEN
+6
+$SAVE
+bz_all

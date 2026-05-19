@@ -1,0 +1,5 @@
+$READFCHK
+unrest.fchk
+$PARTITION
+ROBUST
+$FINDRINGS

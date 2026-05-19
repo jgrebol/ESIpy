@@ -1,0 +1,5 @@
+$READFCHK
+h2o_631gss.fchk
+$NORINGS
+$PARTITION
+ALL

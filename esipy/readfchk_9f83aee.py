@@ -10,24 +10,13 @@ class FchkReader:
         self.path = path
         with open(path, 'r') as f:
             self.lines = [ln.rstrip('\n') for ln in f]
-        self._index = {}
-        for i, line in enumerate(self.lines):
-            if len(line) >= 43 and line[43:45] in ['I ', 'R ', 'C ', 'L ']:
-                label = line[:43].strip()
-                if label not in self._index:
-                    self._index[label] = i
+        self.text = '\n'.join(self.lines)
         self._single_cache = {}
         self._list_cache = {}
 
     def find_first(self, prefix):
         if prefix in self._single_cache:
             return self._single_cache[prefix]
-        if prefix in self._index:
-            line = self.lines[self._index[prefix]]
-            tokens = line.split()
-            self._single_cache[prefix] = tokens
-            return tokens
-        # Fallback to linear scan for prefixes that are not exact labels
         for line in self.lines:
             if line.startswith(prefix):
                 tokens = line.split()
@@ -36,31 +25,31 @@ class FchkReader:
         return None
 
     def read_list(self, start, count=None):
+        # If count not provided, parse integer from header line last token
         key = (start, count)
         if key in self._list_cache:
             return self._list_cache[key]
-        
-        start_idx = self._index.get(start)
-        if start_idx is None:
-            # Fallback for non-exact labels
-            for i, line in enumerate(self.lines):
-                if line.startswith(start):
-                    start_idx = i
-                    break
-        
-        if start_idx is None:
-            self._list_cache[key] = []
-            return []
-
-        header = self.lines[start_idx]
+        out = []
+        found = False
+        start_idx = None
+        header = ""
+        for i, line in enumerate(self.lines):
+            if line.startswith(start):
+                start_idx = i
+                header = line
+                found = True
+                break
+        if not found:
+            self._list_cache[key] = out
+            return out
+        # Determine count if not provided
         if count is None:
             last_tok = header.split()[-1]
             import re
             m = re.search(r"(\d+)", last_tok)
             if m:
                 count = int(m.group(1))
-
-        out = []
+        # Collect numbers from subsequent lines
         j = start_idx + 1
         while j < len(self.lines) and (count is None or len(out) < count):
             line = self.lines[j].strip()
@@ -71,6 +60,7 @@ class FchkReader:
                 try:
                     out.append(float(tok))
                 except Exception:
+                    # ignore non-numeric tokens
                     pass
                 if count is not None and len(out) >= count:
                     break
@@ -313,10 +303,11 @@ class MeanField2:
                     def rebuild(flat):
                         n = self.nao
                         mat_gau = np.zeros((n, n))
-                        tril_idx = np.tril_indices(n)
-                        mat_gau[tril_idx] = flat
-                        mat_gau = mat_gau + mat_gau.T - np.diag(np.diag(mat_gau))
-                        
+                        idx = 0
+                        for i in range(n):
+                            for j in range(i + 1):
+                                mat_gau[i, j] = mat_gau[j, i] = flat[idx]
+                                idx += 1
                         from esipy.tools import permute_aos_rows
                         mat_pyscf = permute_aos_rows(mat_gau, self.mole2)
                         return permute_aos_rows(mat_pyscf.T, self.mole2).T

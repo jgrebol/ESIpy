@@ -461,7 +461,7 @@ class IndicatorsUnrest:
         :returns: The AV1245 value.
         :rtype: float
         """
-        return 2 * (self._avs()[0][0] + self._avs()[1][0])
+        return self._avs()[0][0] + self._avs()[1][0]
 
     @property
     def av1245_alpha(self):
@@ -471,7 +471,7 @@ class IndicatorsUnrest:
         :returns: The AV1245_alpha value.
         :rtype: float
         """
-        return 2 * self._avs()[0][0]
+        return self._avs()[0][0]
 
     @property
     def av1245_beta(self):
@@ -481,7 +481,7 @@ class IndicatorsUnrest:
         :returns: The AV1245_beta value.
         :rtype: float
         """
-        return 2 * self._avs()[1][0]
+        return self._avs()[1][0]
 
     @property
     def avmin(self):
@@ -531,7 +531,7 @@ class IndicatorsUnrest:
         :returns: The list of 4c-MCIs that form the AV1245_alpha.
         :rtype: numpy.ndarray
         """
-        return 2 * np.array(self._avs()[0][2])
+        return np.array(self._avs()[0][2])
 
     @property
     def av1245_list_beta(self):
@@ -541,7 +541,7 @@ class IndicatorsUnrest:
         :returns: The list of 4c-MCIs that form the AV1245_beta.
         :rtype: numpy.ndarray
         """
-        return 2 * np.array(self._avs()[1][2])
+        return np.array(self._avs()[1][2])
 
     def _pdis(self):
         """
@@ -565,7 +565,7 @@ class IndicatorsUnrest:
         :returns: The PDI value.
         :rtype: float
         """
-        return 2 * (self._pdis()[0][0] + self._pdis()[1][0])
+        return self._pdis()[0][0] + self._pdis()[1][0]
 
     @property
     def pdi_alpha(self):
@@ -575,7 +575,7 @@ class IndicatorsUnrest:
         :returns: The PDI_alpha value.
         :rtype: float
         """
-        return 2 * self._pdis()[0][0]
+        return self._pdis()[0][0]
 
     @property
     def pdi_beta(self):
@@ -585,7 +585,7 @@ class IndicatorsUnrest:
         :returns: The PDI_beta value.
         :rtype: float
         """
-        return 2 * self._pdis()[1][0]
+        return self._pdis()[1][0]
 
     @property
     def pdi_list(self):
@@ -595,7 +595,7 @@ class IndicatorsUnrest:
         :returns: The list of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return 2 * (self._pdis()[0][1] + self._pdis()[1][1])
+        return self._pdis()[0][1] + self._pdis()[1][1]
 
     @property
     def pdi_list_alpha(self):
@@ -605,7 +605,7 @@ class IndicatorsUnrest:
         :returns: The list of the alpha component of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return 2 * self._pdis()[0][1]
+        return self._pdis()[0][1]
 
     @property
     def pdi_list_beta(self):
@@ -615,7 +615,7 @@ class IndicatorsUnrest:
         :returns: The list of the beta component of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return 2 * self._pdis()[1][1]
+        return self._pdis()[1][1]
 
     def _flus(self):
         """
@@ -1173,7 +1173,7 @@ class ESI:
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
                  ncores=1, save=None, readpath='.', read=False,
-                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None):
+                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None, **kwargs):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
@@ -1182,7 +1182,7 @@ class ESI:
         self.mf = mf
         self.myhf = myhf
         self._molinfo = molinfo
-        self._partition = partition
+        self._partition = format_partition(partition) if partition else None
         self._mci = mci
         self._av1245 = av1245
         # For custom references
@@ -1197,9 +1197,8 @@ class ESI:
         self.save = save
         # Directory where files will be written. Use <save>_esipy to avoid cluttering working dir
         self.save_dir = save + '_esipy' if save else None
-        formatted_part = format_partition(self.partition)
-        self.saveaoms = save + '_' + formatted_part + ".aoms" if save else None
-        self.savemolinfo = save + '_' + formatted_part + ".molinfo" if save else None
+        self.saveaoms = save + '_' + self.partition + ".aoms" if save and self.partition else None
+        self.savemolinfo = save + '_' + self.partition + ".molinfo" if save and self.partition else None
         self.readpath = readpath
         self.read = read
         # For finding rings
@@ -1326,9 +1325,8 @@ class ESI:
 
     @property
     def rings(self):
-        mol_attr = getattr(self, "mol", None)
-        if mol_attr is not None:
-            natms = mol_attr.natm
+        if hasattr(self, "mol") and self.mol:
+            natms = self.mol.natm
         else:
             natms = len(self.molinfo.get("symbols"))
         if natms <= 1:
@@ -1346,15 +1344,16 @@ class ESI:
                 print(f" | WARNING: Could not find rings for {self.partition} partition. Mulliken and Lowdin bond orders cannot be used to build the connectivity matrix.")
                 print(f" | Skipping ring analysis for {self.partition} partition.")
                 self._rings = None
-            
-            graph = self.connec
+            if self.connec:
+                graph = self.connec
+            else:
+                graph = self.molinfo.get("connec")
             if not graph:
                 print(f" | WARNING: Could not find the connectivity matrix for {self.partition} partition.")
                 print(f" | Skipping ring analysis for {self.partition} partition.")
                 self._rings = None
-            else:
-                self._rings = find_rings(graph, self.minlen, self.maxlen, exclude=self.exclude)
-            
+
+            self._rings = find_rings(graph, self.minlen, self.maxlen, exclude=self.exclude)
             endrings = time()
 
             if not self._rings:
@@ -1485,7 +1484,8 @@ class ESI:
     @property
     def connec(self):
         """
-        Get the connectivity matrix. Always uses NAO AOMs to build the connectivity matrix.
+        Get the connectivity matrix. If the partition is 'mulliken' or 'lowdin',
+        build the NAO AOMs and compute the connectivity matrix from there.
         The computation is controlled by the 'done_connec' flag. Based on the DIs.
 
         :returns: The connectivity matrix.
@@ -1493,24 +1493,24 @@ class ESI:
         """
         if self._connec is not None:
             return self._connec
-        
-        # This will trigger NAO computation if needed via the molinfo property
-        self._connec = self.molinfo.get("connec")
-        
-        if self._connec is None:
-            # Fallback if molinfo was somehow populated without connec
-            if self.mol is not None and self.mf is not None:
+        if hasattr(self, "molinfo") and self.molinfo.get("connec") is not None:
+            return self.molinfo.get("connec")
+        if not hasattr(self, 'done_connec') or not self.done_connec:
+            if self.molinfo.get("connec") is not None:
+                self._connec = self.molinfo.get("connec")
+                self.done_connec = True
+                return self._connec
+
+            if self.partition in ['mulliken', 'lowdin']:
                 print(" | Building NAO AOMs to compute connectivity.")
+                if self.mol is None or self.mf is None:
+                    raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs to get connectivity matrix.")
                 mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf)
-            elif self.aom is not None:
-                # Use current AOMs if available (even if they are not NAO)
-                mat = self.aom
             else:
-                return None
-            
+                mat = self.aom
             self._connec = build_connectivity(mat=mat, threshold=self.rings_thres)
-            
-        return self._connec
+            self.done_connec = True
+            return self._connec
 
     @property
     def mci(self):

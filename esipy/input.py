@@ -2,9 +2,9 @@ import os
 import numpy as np
 from pyscf import gto, scf
 
-class Input:
+class ESIInput:
     def __init__(self):
-        # Infrastructure from main
+        # Infrastructure from main/dev-iao
         self.fchk_file = None
         self.rings = None
         self.noring = False
@@ -26,16 +26,19 @@ class Input:
         self.ncores = None
         self.mciaprox = []
         self.exclude = []
-        
-        # New IAO fields from dev-iao
-        self.iaomix = 0.5
-        self.iaoref = 'minao'
-        self.iaopol = 'ano'
-        self.heavy_only = None
+        # New IAO/other fields from script
+        self.iaomix = None
+        self.iaoref = None
+        self.iaopol = None
+        self.heavy_only = False
         self.full_basis = False
 
+    @classmethod
+    def from_file(cls, path):
+        return read_input(path)
+
 def read_input(path):
-    obj = Input()
+    obj = ESIInput()
     if not os.path.exists(path):
         raise FileNotFoundError(f"Input file {path} not found")
 
@@ -51,7 +54,7 @@ def read_input(path):
 
         if line.startswith('$'):
             pup_line = line.upper()
-            if pup_line.startswith('$FCHK'):
+            if pup_line.startswith('$FCHK') or pup_line.startswith('$READFCHK'):
                 i += 1
                 if i < len(lines):
                     obj.fchk_file = lines[i].strip()
@@ -59,28 +62,6 @@ def read_input(path):
                 i += 1
                 if i < len(lines):
                     obj.save = lines[i].strip()
-            elif pup_line.startswith('$IAOMIX'):
-                i += 1
-                if i < len(lines):
-                    obj.iaomix = float(lines[i].strip())
-            elif pup_line.startswith('$IAOREF'):
-                i += 1
-                if i < len(lines):
-                    obj.iaoref = lines[i].strip()
-            elif pup_line.startswith('$IAOPOL'):
-                i += 1
-                if i < len(lines):
-                    obj.iaopol = lines[i].strip()
-            elif pup_line.startswith('$HEAVY_ONLY'):
-                i += 1
-                if i < len(lines):
-                    val = lines[i].strip().upper()
-                    obj.heavy_only = True if val in ('TRUE', 'YES', '1') else False
-            elif pup_line.startswith('$FULL_BASIS'):
-                i += 1
-                if i < len(lines):
-                    val = lines[i].strip().upper()
-                    obj.full_basis = True if val in ('TRUE', 'YES', '1') else False
             elif pup_line.startswith('$FRAGMENTS'):
                 obj.fragments = []
                 i += 1
@@ -98,35 +79,13 @@ def read_input(path):
                         continue
                     pup = p.upper()
                     
-                    all_fpiaos = [f"fpiao({x})" for x in [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]]
-                    all_dfpiaos = [f"dfpiao({x})" for x in [0.5, 0.6, 0.7, 0.8, 0.9]]
-                    all_peiaos = ["peiao"]
-                    all_dpeiaos = [f"dpeiao({x})" for x in [0.5, 0.6, 0.7, 0.8, 0.9]]
-                    all_effaos = ["iao-autosad", "iao-effao-gross", "iao-effao-lowdin", "iao-effao-ml", "iao-effao-nao", "wiao"]
-
-                    if pup == 'ALL':
+                    if pup in ('ALL', 'ROBUST', 'ALLPARTS', 'ALLWIP'):
                         obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
-                    elif pup == 'ROBUST':
-                        obj.partition.extend(['meta_lowdin', 'nao', 'iao'])
-                    elif pup == "ALLWIP" or pup == "WIPALL":
-                        obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'iao-autosad'])
-                        obj.partition.extend([x for x in all_effaos if x not in ['iao-effao-nao', 'iao-autosad']])
-                        obj.partition.extend(all_fpiaos)
-                        obj.partition.extend(all_dfpiaos)
-                        obj.partition.append("peiao")
-                        obj.partition.extend(all_dpeiaos)
-                        obj.partition.append('iao-effao-nao')
-                    elif pup == "ALLWIPNAO":
-                        obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'iao-effao-nao'])
-                        obj.partition.extend([f"fpiao({x}) nao" for x in [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]])
-                        obj.partition.extend([f"dfpiao({x}) nao" for x in [0.5, 0.6, 0.7, 0.8, 0.9]])
-                        obj.partition.append("peiao nao")
-                        obj.partition.extend([f"dpeiao({x}) nao" for x in [0.5, 0.6, 0.7, 0.8, 0.9]])
                     else:
                         obj.partition.append(p)
                     i += 1
                 i -= 1
-            elif pup_line.startswith('$ALLPARTS'):
+            elif pup_line.startswith('$ALLPARTS') or pup_line.startswith('$ALLWIP'):
                 obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
             elif pup_line.startswith('$RING') or pup_line.startswith('$RINGS'):
                 obj.rings = []
@@ -192,5 +151,22 @@ def read_input(path):
                 i += 1
                 if i < len(lines):
                     obj.aomname = lines[i].strip()
+            elif pup_line.startswith('$IAOMIX'):
+                i += 1
+                if i < len(lines):
+                    obj.iaomix = lines[i].strip()
+            elif pup_line.startswith('$IAOREF'):
+                i += 1
+                if i < len(lines):
+                    obj.iaoref = lines[i].strip()
+            elif pup_line.startswith('$IAOPOL'):
+                i += 1
+                if i < len(lines):
+                    obj.iaopol = lines[i].strip()
+            elif pup_line.startswith('$HEAVYONLY'):
+                obj.heavy_only = True
+            elif pup_line.startswith('$FULLBASIS'):
+                obj.full_basis = True
         i += 1
     return obj
+

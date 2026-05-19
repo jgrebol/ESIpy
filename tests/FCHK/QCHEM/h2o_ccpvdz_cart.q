@@ -1,0 +1,15 @@
+$molecule
+ 0 1
+ O      0.000000    0.000000    0.117300
+ H      0.000000    0.757200   -0.469200
+ H      0.000000   -0.757200   -0.469200
+$end
+
+$rem
+ METHOD = HF
+ BASIS = cc-pVDZ
+ PURECART = 2
+ GUI = 2
+ PRINT_ORBITALS = TRUE
+ PRINT_GENERAL_BASIS = TRUE
+$end
