@@ -147,9 +147,7 @@ def find_di_no(aom, i, j):
     """
 
     # Tr(Occ @ AOM_i @ Occ @ AOM_j)
-    occ = aom[1]
-    if occ.ndim == 1:
-        occ = np.diag(occ)
+    occ = np.diag(aom[1])
     return np.einsum('ij,jk,kl,li->', occ, aom[0][i - 1], occ, aom[0][j - 1])
 
 
@@ -303,73 +301,17 @@ def process_fragments(aom, rings, done=False):
 
 
 
-def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_only=True):
-    import re
-    orig = partition
-    p_split = partition.split(None, 1)
-    p_method = p_split[0].lower()
-    p_suffix = p_split[1] if len(p_split) > 1 else ""
+def format_partition(partition):
+    p_method = partition.lower()
     
-    # 1. Standardize method name
-    if p_method in ["m", "mul", "mull", "mulliken"]: base = "mulliken"
-    elif p_method in ["l", "low", "lowdin"]: base = "lowdin"
-    elif p_method in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta_lowdin", "meta-lowdin"]: base = "meta_lowdin"
-    elif p_method in ["n", "nao", "natural", "nat"]: base = "nao"
-    elif p_method in ["i", "iao", "intrinsic", "intr"]: base = "iao"
-    elif p_method in ["iao-autosad", "iaoauto", "iaoa", "iaa", "ia", "a", "autosad", "iaosad", "autos"]: base = "iao-autosad"
-    elif p_method in ["iao-effao-gross", "iao-eg", "iaoeg", "iaog", "ig", "gross", "iag", "g"]: base = "iao-effao-gross"
-    elif p_method in ["iao-effao-net", "iao-en", "iaoen", "iaon", "in", "net", "ian", "ne"]: base = "iao-effao-net"
-    elif p_method in ["iao-effao-lowdin", "iaoel", "iaol", "il", "iel", "iae"]: base = "iao-effao-lowdin"
-    elif p_method in ["iao-effao-metalowdin", "iao-effao-meta-lowdin", "iaom", "im"]: base = "iao-effao-metalowdin"
-    elif p_method in ["iao-effao-nao", "iaonao"]: base = "iao-effao-nao"
-    elif p_method in ["sym", "ias", "is", "iao-effao-symmetric"]: base = "iao-effao-symmetric"
-    elif p_method in ["sps", "iao-effao-sps"]: base = "iao-effao-sps"
-    elif p_method in ["spsa", "iao-effao-spsa"]: base = "iao-effao-spsa"
-    elif p_method == "iao_basis": base = "iao-basis"
-    elif p_method == "fpiao": base = "fpiao"
-    elif p_method == "dfpiao": base = "dfpiao"
-    elif p_method == "peiao": base = "peiao"
-    elif p_method == "dpeiao": base = "dpeiao"
-    elif p_method == "xiao_dfpiao": base = "xiao_dfpiao"
-    else: base = p_method.lower()
-    
-    # 2. Extract weight if present
-    match_w = re.search(r"\(+(.*?)\)+", partition)
-    if match_w:
-        try:
-            weight = float(match_w.group(1))
-            base = re.sub(r"\(.*?\)", "", base).strip()
-        except: weight = None
-    else: weight = None
-        
-    if weight is None:
-        if iaomix is not None:
-            weight = iaomix if isinstance(iaomix, (float, int)) else (iaomix[0] if iaomix else 0.5)
-        else:
-            if "fpiao" in p_method or "peiao" in p_method: weight = 1.0
-            elif "dfpiao" in p_method or "dpeiao" in p_method: weight = 0.5
-            else: weight = 0.5
+    # Standardize method name
+    if p_method in ["m", "mul", "mull", "mulliken"]: return "mulliken"
+    elif p_method in ["l", "low", "lowdin"]: return "lowdin"
+    elif p_method in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta_lowdin", "meta-lowdin"]: return "meta_lowdin"
+    elif p_method in ["n", "nao", "natural", "nat"]: return "nao"
+    elif p_method in ["i", "iao", "intrinsic", "intr"]: return "iao"
+    else: return p_method
 
-    # 3. Extract basis
-    res_basis = p_suffix.strip()
-    if not res_basis: res_basis = iaoref if iaoref else ""
-    
-    if "/" in res_basis:
-        res_basis = res_basis.split("/")[-1].replace("_ref_basis.dat", "").replace("_polar_basis.dat", "").lower()
-    elif res_basis.lower() == "minao": res_basis = ""
-    else: res_basis = res_basis.lower()
-
-    # 4. Construct final label
-    if any(x in base for x in ["fpiao", "dfpiao", "dpeiao", "xiao"]):
-        w_str = f"{weight:g}" if weight != int(weight) else f"{weight:.1f}"
-        if "(" not in base: base += f"({w_str})"
-        else: base = re.sub(r"\(.*?\)", f"({w_str})", base)
-
-    label = base
-    is_iao = "iao" in base or "piao" in base or "xiao" in base
-    if is_iao and res_basis: label += f" {res_basis}"
-        
-    return label.lower()
 def format_short_partition(partition):
     p_method = partition.lower()
 
@@ -660,19 +602,14 @@ def permute_aos_rows(mat, mole2):
         idx_list.extend(indices)
         scale_list.extend(scales)
 
-    p = np.array(idx_list, dtype=int)
+    p = np.array(idx_list)
     s = np.array(scale_list)
-    # print(f"DEBUG permute: mat.shape={mat.shape}, len(p)={len(p)}, s.shape={s.shape}")
 
     if mat.ndim == 2:
         if mat.shape[0] == len(p):  # (NAO, NMO) - Permute rows
-            res = mat[p] * s[:, None]
-            # print(f"DEBUG permute branch 1: res.shape={res.shape}")
-            return res
+            return mat[p] * s[:, None]
         else:  # (NMO, NAO) - Permute cols
-            res = mat[:, p] * s[None, :]
-            # print(f"DEBUG permute branch 2: res.shape={res.shape}")
-            return res
+            return mat[:, p] * s[None, :]
 
     if mat.ndim == 3:  # (Spin, NAO, NMO) or similar
         if mat.shape[1] == len(p):

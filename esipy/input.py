@@ -2,7 +2,7 @@ import os
 import numpy as np
 from pyscf import gto, scf
 
-class Input:
+class ESIInput:
     def __init__(self):
         # Infrastructure from main/dev-iao
         self.fchk_file = None
@@ -26,9 +26,19 @@ class Input:
         self.ncores = None
         self.mciaprox = []
         self.exclude = []
+        # New IAO/other fields from script
+        self.iaomix = None
+        self.iaoref = None
+        self.iaopol = None
+        self.heavy_only = False
+        self.full_basis = False
+
+    @classmethod
+    def from_file(cls, path):
+        return read_input(path)
 
 def read_input(path):
-    obj = Input()
+    obj = ESIInput()
     if not os.path.exists(path):
         raise FileNotFoundError(f"Input file {path} not found")
 
@@ -44,7 +54,7 @@ def read_input(path):
 
         if line.startswith('$'):
             pup_line = line.upper()
-            if pup_line.startswith('$FCHK'):
+            if pup_line.startswith('$FCHK') or pup_line.startswith('$READFCHK'):
                 i += 1
                 if i < len(lines):
                     obj.fchk_file = lines[i].strip()
@@ -69,13 +79,13 @@ def read_input(path):
                         continue
                     pup = p.upper()
                     
-                    if pup in ('ALL', 'ROBUST', 'ALLPARTS'):
+                    if pup in ('ALL', 'ROBUST', 'ALLPARTS', 'ALLWIP'):
                         obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
                     else:
                         obj.partition.append(p)
                     i += 1
                 i -= 1
-            elif pup_line.startswith('$ALLPARTS'):
+            elif pup_line.startswith('$ALLPARTS') or pup_line.startswith('$ALLWIP'):
                 obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
             elif pup_line.startswith('$RING') or pup_line.startswith('$RINGS'):
                 obj.rings = []
@@ -141,5 +151,22 @@ def read_input(path):
                 i += 1
                 if i < len(lines):
                     obj.aomname = lines[i].strip()
+            elif pup_line.startswith('$IAOMIX'):
+                i += 1
+                if i < len(lines):
+                    obj.iaomix = lines[i].strip()
+            elif pup_line.startswith('$IAOREF'):
+                i += 1
+                if i < len(lines):
+                    obj.iaoref = lines[i].strip()
+            elif pup_line.startswith('$IAOPOL'):
+                i += 1
+                if i < len(lines):
+                    obj.iaopol = lines[i].strip()
+            elif pup_line.startswith('$HEAVYONLY'):
+                obj.heavy_only = True
+            elif pup_line.startswith('$FULLBASIS'):
+                obj.full_basis = True
         i += 1
     return obj
+

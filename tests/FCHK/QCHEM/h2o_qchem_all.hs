@@ -1,0 +1,4 @@
+$READFCHK
+h2o_631gss.fchk
+$PARTITION
+ALL
