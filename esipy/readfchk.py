@@ -396,6 +396,8 @@ class MeanField2:
             return np.dot(c * self.mo_occ, c.T)
 
     def get_ovlp(self):
+        if hasattr(self.mole2.fchk, 'overlap_matrix') and self.mole2.fchk.overlap_matrix is not None:
+            return self.mole2.fchk.overlap_matrix
         return self.mol.intor_symmetric('int1e_ovlp')
 
     def bas_len(self, ib):
@@ -405,6 +407,14 @@ class MeanField2:
 class FchkMolecule:
     def __init__(self, path):
         self.path = path
+        # Detect Q-Chem
+        with open(path, "r") as f:
+            first_line = f.readline()
+            if "Q-Chem" in first_line or "Q-CHEM" in first_line or "Jobname.Temp" in first_line:
+                print(" | FCHK from Q-Chem")
+                self.is_qchem = True
+            else:
+                self.is_qchem = False
         # basic scalars
         self.nalpha = int(read_from_fchk('Number of alpha electrons', path)[-1])
         self.mult = int(read_from_fchk('Multiplicity', path)[-1])
@@ -475,6 +485,22 @@ class FchkMolecule:
 
         frag_info = read_list_from_fchk('Atom fragment info', path)
         self.fragments = []
+
+        # Read Overlap Matrix if Q-Chem
+        self.overlap_matrix = None
+        if self.is_qchem:
+            ovlp_flat = read_list_from_fchk("Overlap Matrix", path)
+            if ovlp_flat:
+                nbasis = self.numao
+                if len(ovlp_flat) == nbasis * (nbasis + 1) // 2:
+                    self.overlap_matrix = np.zeros((nbasis, nbasis))
+                    idx = 0
+                    for i in range(nbasis):
+                        for j in range(i + 1):
+                            self.overlap_matrix[i, j] = self.overlap_matrix[j, i] = ovlp_flat[idx]
+                            idx += 1
+                elif len(ovlp_flat) == nbasis * nbasis:
+                    self.overlap_matrix = np.array(ovlp_flat).reshape(nbasis, nbasis)
         if frag_info:
             from collections import defaultdict
             fdict = defaultdict(set)
