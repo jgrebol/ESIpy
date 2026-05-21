@@ -52,7 +52,13 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             p_base = "iao"
             
         # Defaults
-        iaoref = 'minao'
+        if p_base == "iao":
+            iaoref = 'minao'
+        elif p_base in ["iao2", "iao-effao", "iao-autosad", "peiao", "dpeiao", "fpiao", "dfpiao"] or p_base.startswith("iao-effao"):
+            iaoref = 'valence'
+        else:
+            iaoref = 'minao'
+            
         ref_bas = p_parts[1] if len(p_parts) > 1 else iaoref
         weight = 0.5
         local_w = w_override if w_override is not None else (string_w if string_w is not None else (weight if weight is not None else 0.5))
@@ -96,7 +102,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
                 U_nonorth, pmol = peiao_func(mol, get_c_src(True), mode=actual_mode, heavy_only=local_heavy_only, full_basis=False, mf=current_mf, x=local_w)
             else:
                 raise NameError("PEIAO function not found in iao module")
-        elif p_base == "iao":
+        elif p_base in ["iao", "iao2"]:
             if ref_bas == "nao":
                 U_nonorth, pmol = effao(mol, get_c_src(False), mode='nao', polarized=False, heavy_only=local_heavy_only, full_basis=False, mf=current_mf)
             else:
