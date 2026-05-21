@@ -311,14 +311,14 @@ def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_
     # 1. Standardize method name
     if p_method in ["m", "mul", "mull", "mulliken"]: base = "mulliken"
     elif p_method in ["l", "low", "lowdin"]: base = "lowdin"
-    elif p_method in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta_lowdin", "meta-lowdin"]: base = "meta_lowdin"
+    elif p_method in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta_lowdin", "meta-lowdin"]: base = "meta-lowdin"
     elif p_method in ["n", "nao", "natural", "nat"]: base = "nao"
     elif p_method in ["i", "iao", "intrinsic", "intr"]: base = "iao"
     elif p_method in ["iao-autosad", "iaoauto", "iaoa", "iaa", "ia", "a", "autosad", "iaosad", "autos"]: base = "iao-autosad"
     elif p_method in ["iao-effao-gross", "iao-eg", "iaoeg", "iaog", "ig", "gross", "iag", "g"]: base = "iao-effao-gross"
     elif p_method in ["iao-effao-net", "iao-en", "iaoen", "iaon", "in", "net", "ian", "ne"]: base = "iao-effao-net"
     elif p_method in ["iao-effao-lowdin", "iaoel", "iaol", "il", "iel", "iae"]: base = "iao-effao-lowdin"
-    elif p_method in ["iao-effao-metalowdin", "iao-effao-meta-lowdin", "iaom", "im"]: base = "iao-effao-metalowdin"
+    elif p_method in ["iao-effao-metalowdin", "iao-effao-meta-lowdin", "iaom", "im"]: base = "iao-effao-meta-lowdin"
     elif p_method in ["iao-effao-nao", "iaonao"]: base = "iao-effao-nao"
     elif p_method in ["sym", "ias", "is", "iao-effao-symmetric"]: base = "iao-effao-symmetric"
     elif p_method in ["sps", "iao-effao-sps"]: base = "iao-effao-sps"
@@ -375,7 +375,7 @@ def format_short_partition(partition):
         return "mul"
     elif p_method == "lowdin":
         return "low"
-    elif p_method == "meta_lowdin":
+    elif p_method == "meta-lowdin":
         return "metalow"
     elif p_method in ("nao", "iao"):
         return p_method
