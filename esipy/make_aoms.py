@@ -112,9 +112,13 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         elif p_base == "iao-pyscf":
              from pyscf.lo import iao as pyscf_iao
              from pyscf.lo import orth
+             try:
+                 from esipy.iao import reference_mol
+             except ImportError:
+                 from iao import reference_mol
+             pmol = reference_mol(mol)
              C_iao_nonorth = pyscf_iao.iao(mol, get_c_src(False))
              U_nonorth = orth.vec_lowdin(C_iao_nonorth, S)
-             pmol = mol
         else:
             raise NameError(f"Unknown IAO type: {p_base}")
         
