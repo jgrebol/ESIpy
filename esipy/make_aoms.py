@@ -139,12 +139,13 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         oa, ob = np.asarray(mo_occ[0]), np.asarray(mo_occ[1])
         is_natorb = np.any((oa > 1e-6) & (np.abs(oa - 1.0) > 1e-6)) or np.any((ob > 1e-6) & (np.abs(ob - 1.0) > 1e-6))
         
-        if partition_label in ("lowdin", "meta_lowdin", "nao", "mulliken"):
+        if partition_label in ("lowdin", "meta-lowdin", "nao", "mulliken"):
             aom_alpha, aom_beta = [], []
             if partition_label == "lowdin": U_inv = lowdin(S)
-            elif partition_label == "meta_lowdin":
+            elif partition_label == "meta-lowdin":
                 from pyscf.lo import orth
-                U_inv = orth.orth_ao(mf, method="meta_lowdin")
+                U_inv = orth.orth_ao(mol, method="meta-lowdin")
+
             elif partition_label == "nao": U_inv = nao.nao(mol, mf, S)
             
             if partition_label == "mulliken":
@@ -194,12 +195,13 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             
         coeff = coeff_src[:, mask]
 
-        if partition_label in ("lowdin", "meta_lowdin", "nao", "mulliken"):
+        if partition_label in ("lowdin", "meta-lowdin", "nao", "mulliken"):
             aom = []
             if partition_label == "lowdin": U_inv = lowdin(S)
-            elif partition_label == "meta_lowdin":
+            elif partition_label == "meta-lowdin":
                 from pyscf.lo import orth
-                U_inv = orth.orth_ao(mf, method="meta_lowdin")
+                U_inv = orth.orth_ao(mol, method="meta-lowdin")
+
             elif partition_label == "nao": U_inv = nao.nao(mol, mf, S)
             
             if partition_label == "mulliken":
