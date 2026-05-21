@@ -79,28 +79,36 @@ def read_input(path):
                         continue
                     pup = p.upper()
                     
+                    # Define Families
+                    original_family = ['mulliken', 'lowdin', 'meta-lowdin', 'nao', 'iao', 'iao2', 'iao-autosad']
+                    effao_family = ['iao-effao-gross', 'iao-effao-net', 'iao-effao-lowdin', 'iao-effao-meta-lowdin', 
+                                    'iao-effao-nao', 'iao-effao-symmetric', 'iao-effao-sps', 'iao-effao-spsa']
+                    fpiao_family = ['fpiao(1.0)', 'fpiao(1.25)', 'fpiao(1.5)', 'fpiao(1.75)', 'fpiao(2.0)']
+                    dfpiao_family = ['dfpiao(0.5)', 'dfpiao(0.6)', 'dfpiao(0.7)', 'dfpiao(0.8)', 'dfpiao(0.9)']
+                    peiao_family = ['peiao', 'dpeiao(0.5)', 'dpeiao(0.6)', 'dpeiao(0.7)', 'dpeiao(0.8)', 'dpeiao(0.9)']
+
                     if pup in ('ALL', 'ROBUST', 'ALLPARTS', 'ALLWIP'):
-                        obj.partition.extend(['mulliken', 'lowdin', 'meta-lowdin', 'nao', 'iao', 'iao2',
-                                              'iao-effao-gross', 'iao-effao-net', 'iao-effao-lowdin', 'iao-effao-meta-lowdin', 
-                                              'iao-effao-nao', 'iao-effao-symmetric', 'iao-effao-sps', 'iao-effao-spsa',
-                                              'iao-autosad',
-                                              'fpiao(1.0)', 'fpiao(1.25)', 'fpiao(1.5)', 'fpiao(1.75)', 'fpiao(2.0)',
-                                              'dfpiao(0.5)', 'dfpiao(0.6)', 'dfpiao(0.7)', 'dfpiao(0.8)', 'dfpiao(0.9)',
-                                              'peiao',
-                                              'dpeiao(0.5)', 'dpeiao(0.6)', 'dpeiao(0.7)', 'dpeiao(0.8)', 'dpeiao(0.9)'])
+                        obj.partition.extend(original_family + effao_family + fpiao_family + dfpiao_family + peiao_family)
+                    elif pup == 'ALLEFFAO':
+                        obj.partition.extend(original_family + effao_family)
+                    elif pup == 'ALLFPIAO':
+                        obj.partition.extend(original_family + fpiao_family)
+                    elif pup == 'ALLDFPIAO':
+                        obj.partition.extend(original_family + dfpiao_family)
+                    elif pup == 'ALLPEIAO':
+                        obj.partition.extend(original_family + peiao_family)
                     else:
                         obj.partition.append(p)
                     i += 1
                 i -= 1
             elif pup_line.startswith('$ALLPARTS') or pup_line.startswith('$ALLWIP'):
-                obj.partition = ['mulliken', 'lowdin', 'meta-lowdin', 'nao', 'iao', 'iao2',
-                                 'iao-effao-gross', 'iao-effao-net', 'iao-effao-lowdin', 'iao-effao-meta-lowdin', 
-                                 'iao-effao-nao', 'iao-effao-symmetric', 'iao-effao-sps', 'iao-effao-spsa',
-                                 'iao-autosad',
-                                 'fpiao(1.0)', 'fpiao(1.25)', 'fpiao(1.5)', 'fpiao(1.75)', 'fpiao(2.0)',
-                                 'dfpiao(0.5)', 'dfpiao(0.6)', 'dfpiao(0.7)', 'dfpiao(0.8)', 'dfpiao(0.9)',
-                                 'peiao',
-                                 'dpeiao(0.5)', 'dpeiao(0.6)', 'dpeiao(0.7)', 'dpeiao(0.8)', 'dpeiao(0.9)']
+                original_family = ['mulliken', 'lowdin', 'meta-lowdin', 'nao', 'iao', 'iao2', 'iao-autosad']
+                effao_family = ['iao-effao-gross', 'iao-effao-net', 'iao-effao-lowdin', 'iao-effao-meta-lowdin', 
+                                'iao-effao-nao', 'iao-effao-symmetric', 'iao-effao-sps', 'iao-effao-spsa']
+                fpiao_family = ['fpiao(1.0)', 'fpiao(1.25)', 'fpiao(1.5)', 'fpiao(1.75)', 'fpiao(2.0)']
+                dfpiao_family = ['dfpiao(0.5)', 'dfpiao(0.6)', 'dfpiao(0.7)', 'dfpiao(0.8)', 'dfpiao(0.9)']
+                peiao_family = ['peiao', 'dpeiao(0.5)', 'dpeiao(0.6)', 'dpeiao(0.7)', 'dpeiao(0.8)', 'dpeiao(0.9)']
+                obj.partition = original_family + effao_family + fpiao_family + dfpiao_family + peiao_family
             elif pup_line.startswith('$RING') or pup_line.startswith('$RINGS'):
                 obj.rings = []
                 i += 1
