@@ -80,13 +80,27 @@ def read_input(path):
                     pup = p.upper()
                     
                     if pup in ('ALL', 'ROBUST', 'ALLPARTS', 'ALLWIP'):
-                        obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
+                        obj.partition.extend(['mulliken', 'lowdin', 'meta-lowdin', 'nao', 'iao', 'iao2',
+                                              'iao-effao-gross', 'iao-effao-net', 'iao-effao-lowdin', 'iao-effao-meta-lowdin', 
+                                              'iao-effao-nao', 'iao-effao-symmetric', 'iao-effao-sps', 'iao-effao-spsa',
+                                              'iao-autosad',
+                                              'fpiao(1.0)', 'fpiao(1.25)', 'fpiao(1.5)', 'fpiao(1.75)', 'fpiao(2.0)',
+                                              'dfpiao(0.5)', 'dfpiao(0.6)', 'dfpiao(0.7)', 'dfpiao(0.8)', 'dfpiao(0.9)',
+                                              'peiao',
+                                              'dpeiao(0.5)', 'dpeiao(0.6)', 'dpeiao(0.7)', 'dpeiao(0.8)', 'dpeiao(0.9)'])
                     else:
                         obj.partition.append(p)
                     i += 1
                 i -= 1
             elif pup_line.startswith('$ALLPARTS') or pup_line.startswith('$ALLWIP'):
-                obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
+                obj.partition = ['mulliken', 'lowdin', 'meta-lowdin', 'nao', 'iao', 'iao2',
+                                 'iao-effao-gross', 'iao-effao-net', 'iao-effao-lowdin', 'iao-effao-meta-lowdin', 
+                                 'iao-effao-nao', 'iao-effao-symmetric', 'iao-effao-sps', 'iao-effao-spsa',
+                                 'iao-autosad',
+                                 'fpiao(1.0)', 'fpiao(1.25)', 'fpiao(1.5)', 'fpiao(1.75)', 'fpiao(2.0)',
+                                 'dfpiao(0.5)', 'dfpiao(0.6)', 'dfpiao(0.7)', 'dfpiao(0.8)', 'dfpiao(0.9)',
+                                 'peiao',
+                                 'dpeiao(0.5)', 'dpeiao(0.6)', 'dpeiao(0.7)', 'dpeiao(0.8)', 'dpeiao(0.9)']
             elif pup_line.startswith('$RING') or pup_line.startswith('$RINGS'):
                 obj.rings = []
                 i += 1
