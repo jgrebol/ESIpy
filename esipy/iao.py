@@ -84,30 +84,17 @@ def spherical_average(mol, ia, mat, overlap):
     return np.array(all_w), all_c, np.array(l_map), np.array(shell_map)
 
 def get_num_minbas_per_l(sym, polarized=False, source_basis='minao'):
-    if source_basis == 'minao':
-        basis = gto.basis.load('minao', sym)
-        d = {}
-        for shell in basis:
-            l = shell[0]; n_cont = len(shell[1]) - 1
-            d[l] = d.get(l, 0) + n_cont
-    else:
-        # VALENCE logic (STO-3G size) for all other variants
-        z = gto.elements.charge(sym)
-        if z <= 2: d = {0: 1} # H, He: 1s
-        elif z <= 10: d = {0: 2, 1: 1} # Li-Ne: 2s, 1p
-        elif z <= 18: d = {0: 3, 1: 2} # Na-Ar: 3s, 2p
-        elif z <= 20: d = {0: 4, 1: 3} # K, Ca: 4s, 3p
-        elif z <= 30: d = {0: 4, 1: 3, 2: 1} # Sc-Zn: 4s, 3p, 3d
-        else:
-            # Fallback to STO-3G for heavier atoms
-            basis = gto.basis.load('sto-3g', sym)
-            d = {}
-            for shell in basis:
-                l = shell[0]; n_cont = len(shell[1]) - 1
-                d[l] = d.get(l, 0) + n_cont
+    # If source_basis is 'minao', we use minao counts.
+    # Otherwise, we always use sto-3g counts (valence layer).
+    target_basis = 'minao' if source_basis == 'minao' else 'sto-3g'
+    basis = gto.basis.load(target_basis, sym)
+    d = {}
+    for shell in basis:
+        l = shell[0]; n_cont = len(shell[1]) - 1
+        d[l] = d.get(l, 0) + n_cont
     
     if polarized:
-        # Polarization part: next layer
+        # Polarization part: next layer of angular momentum
         l_max = max(d.keys()) if d else -1
         d[l_max + 1] = 1
     return d
