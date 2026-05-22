@@ -304,6 +304,7 @@ def process_fragments(aom, rings, done=False):
 def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_only=True):
     import re
     orig = partition
+    p_method = partition.split()[0].lower()
     p_split = partition.split(None, 1)
     p_method = p_split[0].lower()
     p_suffix = p_split[1] if len(p_split) > 1 else ""
