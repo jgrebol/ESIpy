@@ -4,208 +4,173 @@ from pyscf.lo import nao
 from pyscf.lo.orth import lowdin
 from pyscf import scf
 
-try:
-    import iao_dump as iao_mod
-except ImportError:
-    import esipy.iao as iao_mod
-
 from esipy.tools import save_file, format_partition, get_natorbs, build_eta
 
-def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='minao', iaopol='ano', heavy_only=None, full_basis=False):
+def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
     """
     Build the Atomic Overlap Matrices (AOMs) in the Molecular Orbitals basis. 
     """
 
-    weight = iaomix
-    if isinstance(weight, list):
-        weight = weight[0]
-
     partition_label = format_partition(partition)
+    iaoref = 'sto-3g' if partition_label == 'iao2' else 'minao'
     
     try:
         S = mf.get_ovlp()
     except:
         S = mol.intor('int1e_ovlp')
     
-    def get_iao_aoms(p_type, c, current_mf, w_override=None, current_myhf=None):
-        iao, fpiao = iao_mod.iao, iao_mod.fpiao
-        effao, autosad = iao_mod.effao, iao_mod.autosad
-        fpiao_effao = getattr(iao_mod, 'fpiao_effao', None)
-
-        p_type = p_type.lower()
-        if p_type.startswith("iao_"):
-            p_type = "iao " + p_type[4:]
-            
-        m_w = re.search(r"\(([\d\.]+)\)", p_type)
-        if m_w:
-            string_w = float(m_w.group(1))
-            p_type_clean = re.sub(r"\([\d\.]+\)", "", p_type).replace("  ", " ").strip()
-        else:
-            string_w = None
-            p_type_clean = p_type.strip()
-
-        # HPOL handling
-        local_heavy_only = heavy_only
-        if "$hpol" in p_type_clean:
-            local_heavy_only = False
-            p_type_clean = p_type_clean.replace("$hpol", "").strip()
-        
-        # Defaults for heavy_only if not specified
-        if local_heavy_only is None:
-            local_heavy_only = True
-
-        p_parts = p_type_clean.split()
-        p_base = p_parts[0]
-        if p_base == "iao-basis":
-            p_base = "iao"
-            
-        ref_bas = p_parts[1] if len(p_parts) > 1 else iaoref
-        local_w = w_override if w_override is not None else (string_w if string_w is not None else weight)
-
-        if p_base == "dfpiao":
-            # DFPIAO blends IAO-EFFAO and FPIAO
-            mode_map = {'minao': 'nao', 'low': 'lowdin', 'ml': 'meta-lowdin', 'gross': 'gross'}
-            actual_mode = mode_map.get(ref_bas.lower(), ref_bas)
-            aom_iao = get_iao_aoms(f"iao-effao-{actual_mode}", c, current_mf, current_myhf=current_myhf)
-            aom_fpiao = get_iao_aoms(f"fpiao {ref_bas}", c, current_mf, w_override=1.0, current_myhf=current_myhf)
-            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(mol.natm)]
-        elif p_base == "dpeiao":
-            # DPEIAO blends IAO-EFFAO and PEIAO
-            mode_map = {'minao': 'nao', 'low': 'lowdin', 'ml': 'meta-lowdin', 'gross': 'gross'}
-            actual_mode = mode_map.get(ref_bas.lower(), ref_bas)
-            aom_iao = get_iao_aoms(f"iao-effao-{actual_mode}", c, current_mf, current_myhf=current_myhf)
-            aom_peiao = get_iao_aoms(f"peiao {ref_bas}", c, current_mf, current_myhf=current_myhf)
-            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_peiao[i] for i in range(mol.natm)]
-        elif p_base == "fpiao":
-            if ref_bas == "nao" and fpiao_effao is not None:
-                U_nonorth, pmol = fpiao_effao(mol, c, x=local_w, mode='nao', pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
-            else:
-                U_nonorth, pmol = fpiao(mol, c, x=local_w, source_basis=ref_bas, pol_basis=iaopol, heavy_only=local_heavy_only, full_basis=full_basis)
-        elif p_base == "peiao":
-            peiao_func = getattr(iao_mod, 'peiao', None)
-            if peiao_func is not None:
-                # Map modes for PEIAO
-                mode_map = {'minao': 'nao', 'low': 'lowdin', 'ml': 'meta-lowdin', 'gross': 'gross'}
-                actual_mode = mode_map.get(ref_bas.lower(), ref_bas)
-                U_nonorth, pmol = peiao_func(mol, c, mode=actual_mode, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
-            else:
-                raise NameError("PEIAO function not found in iao module")
-        elif p_base == "iao":
-            if ref_bas == "nao":
-                U_nonorth, pmol = effao(mol, c, mode='nao', polarized=False, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
-            else:
-                U_nonorth, pmol = iao(mol, c, source_basis=ref_bas, heavy_only=local_heavy_only, full_basis=full_basis)
-        elif p_base == "iao-autosad":
-            U_nonorth, pmol = autosad(mol, c, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
-        elif p_base.startswith("iao-effao"):
-            mode = p_base.replace("iao-effao-", "").replace("iao-effao", "nao")
-            if mode == "symmetric": mode = "sym"
-            U_nonorth, pmol = effao(mol, c, mode=mode, polarized=False, heavy_only=local_heavy_only, full_basis=full_basis, mf=current_mf)
-        elif p_base == "iao-pyscf":
-             from pyscf.lo import iao as pyscf_iao
-             from pyscf.lo import orth
-             C_iao_nonorth = pyscf_iao.iao(mol, c)
-             U_nonorth = orth.vec_lowdin(C_iao_nonorth, S)
-             pmol = mol
-        else:
-            raise NameError(f"Unknown IAO type: {p_base}")
-        
-        U = np.dot(S, U_nonorth)
-        from esipy.tools import build_eta
-        eta = build_eta(pmol)
-        return [np.linalg.multi_dot((c.T, U, eta[i], U.T, c)) for i in range(mol.natm)]
-
-    # 1. UNRESTRICTED
-    if isinstance(mf, scf.uhf.UHF) or (hasattr(mf, "__name__") and mf.__name__ == "UHF"):
-        ca, cb = mf.mo_coeff
-        oa, ob = mf.mo_occ
-        coeff_alpha = ca[:, oa > 0]
-        coeff_beta = cb[:, ob > 0]
-
-        if partition_label in ("lowdin", "meta_lowdin", "nao", "mulliken"):
-            aom_alpha, aom_beta = [], []
-            if partition_label == "lowdin":
-                U_inv = lowdin(S)
-            elif partition_label == "meta_lowdin":
+    def get_iao_aoms(p_type, coeffs, current_mf, iaoref='minao', c_full=None):
+        try:
+            from esipy import iao as esipy_iao
+        except ImportError:
+            try:
+                import iao as esipy_iao
+            except ImportError:
+                # Fallback to simple pyscf iao if iao.py is missing
+                from pyscf.lo import iao as pyscf_iao
                 from pyscf.lo import orth
-                U_inv = orth.orth_ao(mf, method="meta_lowdin")
-            elif partition_label == "nao":
-                U_inv = nao.nao(mol, mf, S)
+                C_iao = pyscf_iao.iao(mol, coeffs)
+                U = orth.vec_lowdin(C_iao, S)
+                U_ao = S @ U
+                proj_c = c_full if c_full is not None else coeffs
+                return [proj_c.T @ U_ao[:, start:end] @ U_ao[:, start:end].T @ proj_c for start, end in mol.aoslice_by_atom()[:, -2:]]
+
+        # Use the new methodology from iao.py
+        p_type = p_type.lower()
+        if p_type == 'peiao':
+            C_iao, pmol = esipy_iao.peiao(mol, coeffs, source_basis=iaoref)
+        elif p_type == 'effao':
+            C_iao, pmol = esipy_iao.effao(mol, coeffs, source_basis=iaoref)
+        elif p_type == 'fpiao':
+            C_iao, pmol = esipy_iao.fpiao(mol, coeffs, source_basis=iaoref)
+        else:
+            C_iao, pmol = esipy_iao.iao(mol, coeffs, source_basis=iaoref)
+        
+        # C_iao is in AO basis. Orthonormal.
+        U_ao = S @ C_iao
+        proj_c = c_full if c_full is not None else coeffs
+        # Get atom slices from pmol (reference basis)
+        return [proj_c.T @ U_ao[:, start:end] @ U_ao[:, start:end].T @ proj_c for start, end in pmol.aoslice_by_atom()[:, -2:]]
+
+    # Determine dimensions
+    mo_coeff = mf.mo_coeff
+    mo_occ = mf.mo_occ
+    is_unrest = (isinstance(mo_coeff, (list, tuple)) and len(mo_coeff) == 2) or \
+                (isinstance(mo_coeff, np.ndarray) and mo_coeff.ndim == 3 and mo_coeff.shape[0] == 2)
+    
+    # 1. UNRESTRICTED
+    if is_unrest:
+        ca, cb = mo_coeff[0], mo_coeff[1]
+        oa, ob = np.asarray(mo_occ[0]), np.asarray(mo_occ[1])
+        is_natorb = False
+        
+        from esipy.tools import is_natorb_wf
+        if is_fchk:
+            d_lbl = getattr(mf, 'density_label', '')
+            if 'MP2' in d_lbl or 'CC' in d_lbl or 'CI' in d_lbl:
+                is_natorb = True
+            elif 'SCF' in d_lbl:
+                is_natorb = False
+        else:
+            if is_natorb_wf(mf):
+                is_natorb = True
+
+        if partition_label in ("lowdin", "meta-lowdin", "nao", "mulliken"):
+            aom_alpha, aom_beta = [], []
+            if partition_label == "lowdin": U_inv = lowdin(S)
+            elif partition_label == "meta-lowdin":
+                from pyscf.lo import orth
+                U_inv = orth.orth_ao(mol, method="meta-lowdin")
+            elif partition_label == "nao": U_inv = nao.nao(mol, mf, S)
+            
+            mask_a = oa > 1e-10 if is_natorb else oa > 0.5
+            mask_b = ob > 1e-10 if is_natorb else ob > 0.5
             
             if partition_label == "mulliken":
                 eta = build_eta(mol)
                 for i in range(mol.natm):
-                    aom_alpha.append(np.linalg.multi_dot((coeff_alpha.T, S, eta[i], coeff_alpha)))
-                    aom_beta.append(np.linalg.multi_dot((coeff_beta.T, S, eta[i], coeff_beta)))
+                    aom_alpha.append(np.linalg.multi_dot((ca[:, mask_a].T, S, eta[i], ca[:, mask_a])))
+                    aom_beta.append(np.linalg.multi_dot((cb[:, mask_b].T, S, eta[i], cb[:, mask_b])))
             else:
-                U = np.linalg.inv(U_inv)
-                eta = build_eta(mol)
+                U = np.linalg.inv(U_inv); eta = build_eta(mol)
                 for i in range(mol.natm):
-                    aom_alpha.append(coeff_alpha.T @ U.T @ eta[i] @ U @ coeff_alpha)
-                    aom_beta.append(coeff_beta.T @ U.T @ eta[i] @ U @ coeff_beta)
+                    aom_alpha.append(ca[:, mask_a].T @ U.T @ eta[i] @ U @ ca[:, mask_a])
+                    aom_beta.append(cb[:, mask_b].T @ U.T @ eta[i] @ U @ cb[:, mask_b])
+            
+            if is_natorb and (not is_fchk or np.any(np.abs(oa - 1.0) > 1e-6)):
+                aom = [[aom_alpha, aom_beta], [oa[mask_a], ob[mask_b]]]
+            else:
+                aom = [aom_alpha, aom_beta]
         else:
-            aom_alpha = get_iao_aoms(partition_label, coeff_alpha, mf)
-            aom_beta = get_iao_aoms(partition_label, coeff_beta, mf)
+            # IAO logic
+            mask_a = oa > 1e-10 if is_natorb else oa > 0.5
+            mask_b = ob > 1e-10 if is_natorb else ob > 0.5
+            aom_alpha = get_iao_aoms(partition_label, ca[:, mask_a], mf, iaoref=iaoref, c_full=ca[:, mask_a])
+            aom_beta = get_iao_aoms(partition_label, cb[:, mask_b], mf, iaoref=iaoref, c_full=cb[:, mask_b])
+            if is_natorb:
+                aom = [[aom_alpha, aom_beta], [oa[mask_a], ob[mask_b]]]
+            else:
+                aom = [aom_alpha, aom_beta]
         
-        aom = [aom_alpha, aom_beta]
         if save: save_file(aom, save)
         return aom
 
     # 2. RESTRICTED
-    elif hasattr(mf, 'mo_occ') and mf.mo_occ is not None and not is_natorb_wf(mf):
-        coeff = mf.mo_coeff[:, mf.mo_occ > 0]
+    else:
+        mo_coeff = mf.mo_coeff
+        mo_occ = np.asarray(mf.mo_occ)
+        if isinstance(mo_coeff, (list, tuple)) and len(mo_coeff) == 1:
+            mo_coeff = mo_coeff[0]
+            mo_occ = mo_occ[0]
+            
+        occ = mo_occ
+        is_natorb = False
+        if occ is not None and np.asarray(occ).dtype != object:
+            is_natorb = np.any((occ > 1e-6) & (np.abs(occ - 1.0) > 1e-6) & (np.abs(occ - 2.0) > 1e-6))
+        
+        if is_fchk:
+            d_lbl = getattr(mf, 'density_label', '')
+            if 'MP2' in d_lbl or 'CC' in d_lbl or 'CI' in d_lbl:
+                is_natorb = True
+            elif 'SCF' in d_lbl:
+                is_natorb = False
+        else:
+            from esipy.tools import is_natorb_wf
+            if is_natorb_wf(mf):
+                is_natorb = True
+                occ, mo_coeff = get_natorbs(mf, S)
+                
+        coeff_src = mo_coeff
 
-        if partition_label in ("lowdin", "meta_lowdin", "nao", "mulliken"):
+        if partition_label in ("lowdin", "meta-lowdin", "nao", "mulliken"):
+            mask = (occ > 1e-10) if is_natorb else (occ > 0.5)
+            coeff = coeff_src[:, mask]
             aom = []
-            if partition_label == "lowdin":
-                U_inv = lowdin(S)
-            elif partition_label == "meta_lowdin":
+            if partition_label == "lowdin": U_inv = lowdin(S)
+            elif partition_label == "meta-lowdin":
                 from pyscf.lo import orth
-                U_inv = orth.orth_ao(mf, method="meta_lowdin")
-            elif partition_label == "nao":
-                U_inv = nao.nao(mol, mf, S)
+                U_inv = orth.orth_ao(myhf if myhf is not None else mf, method="meta-lowdin")
+            elif partition_label == "nao": U_inv = nao.nao(mol, mf, S)
             
             if partition_label == "mulliken":
                 eta = build_eta(mol)
-                for i in range(mol.natm):
-                    aom.append(np.linalg.multi_dot((coeff.T, S, eta[i], coeff)))
+                for i in range(mol.natm): aom.append(np.linalg.multi_dot((coeff.T, S, eta[i], coeff)))
             else:
-                U = np.linalg.inv(U_inv)
-                eta = build_eta(mol)
-                for i in range(mol.natm):
-                    aom.append(coeff.T @ U.T @ eta[i] @ U @ coeff)
-        else:
-            aom = get_iao_aoms(partition_label, coeff, mf)
+                U = np.linalg.inv(U_inv); eta = build_eta(mol)
+                for i in range(mol.natm): aom.append(coeff.T @ U.T @ eta[i] @ U @ coeff)
             
+            if is_natorb and (not is_fchk or np.any(np.abs(occ - 2.0) > 1e-6)):
+                aom = [aom, occ[mask]]
+        else:
+            # IAO logic
+            mask = (occ > 1e-10) if is_natorb else (occ > 0.5)
+            coeff = coeff_src[:, mask]
+
+            aom_list = get_iao_aoms(partition_label, coeff, mf, iaoref=iaoref, c_full=coeff)
+            if is_natorb:
+                aom = [aom_list, occ[mask]]
+            else:
+                aom = aom_list
+                
         if save: save_file(aom, save)
         return aom
-
-    # 3. NATURAL ORBITALS
-    else:
-        occ, coeff = get_natorbs(mf, S)
-        coeff = coeff[:, occ > 1e-10]
-
-        if partition_label in ("lowdin", "meta_lowdin", "nao", "mulliken"):
-            aom = []
-            if partition_label == "lowdin":
-                U_inv = lowdin(S)
-            elif partition_label == "meta_lowdin":
-                from pyscf.lo import orth
-                U_inv = orth.orth_ao(mf, method="meta_lowdin")
-            elif partition_label == "nao":
-                U_inv = nao.nao(mol, mf, S)
-            
-            if partition_label == "mulliken":
-                eta = build_eta(mol)
-                for i in range(mol.natm):
-                    aom.append(np.linalg.multi_dot((coeff.T, S, eta[i], coeff)))
-            else:
-                U = np.linalg.inv(U_inv)
-                eta = build_eta(mol)
-                for i in range(mol.natm):
-                    aom.append(coeff.T @ U.T @ eta[i] @ U @ coeff)
-        else:
-            aom = get_iao_aoms(partition_label, coeff, mf)
-            
-        if save: save_file(aom, save)
-        return [aom, occ[occ > 1e-10]]

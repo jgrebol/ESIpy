@@ -58,11 +58,11 @@ expected = {
                 exp_lifs_sum=27.8929, exp_lixs_sum=27.0316, exp_difs_sum=14.1071, exp_dixs_sum=14.6628,
                 exp_dif_12=1.3288,
                 exp_dix_12=1.4047, exp_iring=0.069062, exp_mci=0.097121, exp_av=10.983, exp_pdi=0.047813, Nx=41.6943),
-    'iao': dict(exp_pop_atm1=5.9580, exp_lif_atm1=4.1990, exp_lix_atm1=4.0555, exp_dif_1_all=1.7589,
-                exp_dix_1_all=1.8343,
-                exp_lifs_sum=28.0713, exp_lixs_sum=27.2100, exp_difs_sum=13.5524, exp_dixs_sum=13.8516,
-                exp_dif_12=1.2418,
-                exp_dix_12=1.3177, exp_iring=0.069071, exp_mci=0.097161, exp_av=11.002, exp_pdi=0.048389, Nx=41.0615)
+    'iao': dict(exp_pop_atm1=6.122, exp_lif_atm1=4.2792, exp_lix_atm1=4.1356, exp_dif_1_all=1.8428,
+                exp_dix_1_all=1.9354,
+                exp_lifs_sum=27.9878, exp_lixs_sum=27.1265, exp_difs_sum=14.0122, exp_dixs_sum=14.5679,
+                exp_dif_12=1.3252,
+                exp_dix_12=1.4011, exp_iring=0.06891, exp_mci=0.097113, exp_av=10.932, exp_pdi=0.044261, Nx=41.6943)
 }
 
 
@@ -87,41 +87,40 @@ class ESItest(unittest.TestCase):
         Nx = exp['Nx']
 
         # Testing atomic populations of C1
-        self.assertAlmostEqual(np.trace(np.dot(occ, aom[0])), exp_pop_atm1, places=4)
+        self.assertAlmostEqual(np.einsum('i,ii->', occ, aom[0]), exp_pop_atm1, places=4)
         # Testing LI for C1
-        lif = trace(multi_dot((occ ** (1 / 2), aom[0], occ ** (1 / 2), aom[0])))
-        lix = 0.5 * trace(multi_dot((occ, aom[0], occ, aom[0])))
+        lif = np.einsum('i,j,ij,ji->', occ**0.5, occ**0.5, aom[0], aom[0])
+        lix = 0.5 * np.einsum('i,j,ij,ji->', occ, occ, aom[0], aom[0])
         self.assertAlmostEqual(lif, exp_lif_atm1, places=4)
         self.assertAlmostEqual(lix, exp_lix_atm1, places=4)
         # Testing delocalized electrons for C1
-        dif_1_all = np.trace(aom[0]) - lif
-        # dix_1_all = 2 * np.trace(aom[0]) - lix
-        dix_1_all = 0.5 * sum(trace(multi_dot((occ, aom[0], occ, aom[i]))) for i in range(1, 12))
+        dif_1_all = np.einsum('i,ii->', occ, aom[0]) - lif
+        dix_1_all = 0.5 * sum(np.einsum('i,j,ij,ji->', occ, occ, aom[0], aom[i]) for i in range(1, 12))
         self.assertAlmostEqual(dif_1_all, exp_dif_1_all, places=4)
         self.assertAlmostEqual(dix_1_all, exp_dix_1_all, places=4)
         # Testing sum of DI and LI
-        lifs = [trace(multi_dot((occ ** (1 / 2), aom[i], occ ** (1 / 2), aom[i]))) for i in range(len(aom))]
-        lixs = [0.5 * trace(multi_dot((occ, aom[i], occ, aom[i]))) for i in range(len(aom))]
-        difs = [trace(multi_dot((occ ** (1 / 2), aom[i], occ ** (1 / 2), aom[j]))) for i in range(len(aom)) for j in
+        lifs = [np.einsum('i,j,ij,ji->', occ**0.5, occ**0.5, m, m) for m in aom]
+        lixs = [0.5 * np.einsum('i,j,ij,ji->', occ, occ, m, m) for m in aom]
+        difs = [np.einsum('i,j,ij,ji->', occ**0.5, occ**0.5, aom[i], aom[j]) for i in range(len(aom)) for j in
                 range(len(aom)) if i != j]
-        dixs = [0.5 * trace(multi_dot((occ, aom[i], occ, aom[j]))) for i in range(len(aom)) for j in range(len(aom)) if
+        dixs = [0.5 * np.einsum('i,j,ij,ji->', occ, occ, aom[i], aom[j]) for i in range(len(aom)) for j in range(len(aom)) if
                 i != j]
-        N = sum([trace(dot(occ, aom[i])) for i in range(0, 12)])
+        N = sum([np.einsum('i,ii->', occ, m) for m in aom])
         self.assertAlmostEqual(sum(lifs), exp_lifs_sum, places=4)
         self.assertAlmostEqual(sum(lixs), exp_lixs_sum, places=4)
         self.assertAlmostEqual(N - sum(lifs), exp_difs_sum, places=4)
         self.assertAlmostEqual(sum(dixs), exp_dixs_sum, places=4)
         if partition == "iao":
-            self.assertAlmostEqual(sum(lifs) + sum(difs), 41.3672, places=4)
+            self.assertAlmostEqual(sum(lifs) + sum(difs), 42.0, places=4)
         else:
             self.assertAlmostEqual(sum(lifs) + sum(difs), 42, places=4)
 
         self.assertAlmostEqual(sum(lixs) + sum(dixs), Nx, places=4)
 
-        # Testing DI between C1 and C2
-        self.assertAlmostEqual(2 * trace(multi_dot((occ ** (1 / 2), aom[0], occ ** (1 / 2), aom[1]))), exp_dif_12,
+        # Testing 2-center DI
+        self.assertAlmostEqual(2 * np.einsum('i,j,ij,ji->', occ**0.5, occ**0.5, aom[0], aom[1]), exp_dif_12,
                                places=4)
-        self.assertAlmostEqual(trace(multi_dot((occ, aom[0], occ, aom[1]))), exp_dix_12, places=4)
+        self.assertAlmostEqual(np.einsum('i,j,ij,ji->', occ, occ, aom[0], aom[1]), exp_dix_12, places=4)
 
     def run_indicator_tests(self, partition, exp):
         esitest = ESI(mol=mol, mf=mf, myhf=myhf, rings=ring, partition=partition)

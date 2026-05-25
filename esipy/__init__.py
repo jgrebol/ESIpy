@@ -207,15 +207,25 @@ class IndicatorsRest:
     @property
     def homer(self):
         """
-        Compute the HOMER value.
+        Get the HOMER value.
 
         :returns: The HOMER value.
         :rtype: float
         """
-        if self._geom is None or self._homerrefs is None or self._connectivity is None:
+        if not self._rings or self._molinfo.get("geom") is None:
             return None
-        else:
-            return compute_homer(self._rings, self._molinfo, self._homerrefs)
+            
+        # Localization to avoid IndexError in compute_homer due to faulty indexing in that function
+        local_arr = list(range(1, len(self._rings) + 1))
+        local_symbols = [self._molinfo["symbols"][i-1] for i in self._rings]
+        orig_geom = self._molinfo["geom"]
+        local_geom = np.array([orig_geom[i-1] for i in self._rings])
+        
+        local_molinfo = self._molinfo.copy()
+        local_molinfo["symbols"] = local_symbols
+        local_molinfo["geom"] = local_geom
+        
+        return compute_homer(local_arr, local_molinfo, self._homerrefs)
 
     def _homa(self):
         """
@@ -250,7 +260,7 @@ class IndicatorsRest:
         :returns: The EN value.
         :rtype: float
         """
-        return self._homa()[1]
+        res = self._homa(); return res[1] if res is not None else None
 
     @property
     def geo(self):
@@ -260,7 +270,7 @@ class IndicatorsRest:
         :returns: The GEO value.
         :rtype: float
         """
-        return self._homa()[2]
+        res = self._homa(); return res[2] if res is not None else None
 
     def _bla(self):
         """
@@ -283,9 +293,7 @@ class IndicatorsRest:
         :returns: The BLA value.
         :rtype: float
         """
-        if self._bla() is None:
-            return [None, None]
-        return self._bla()[0]
+        res = self._bla(); return res[0] if res is not None else None
 
     @property
     def bla_c(self):
@@ -295,10 +303,7 @@ class IndicatorsRest:
         :returns: The BLA_c value.
         :rtype: float
         """
-        if self._bla() is None:
-            return [None, None]
-        return self._bla()[1]
-
+        res = self._bla(); return res[1] if res is not None else None
 
 class IndicatorsUnrest:
     """
@@ -456,7 +461,7 @@ class IndicatorsUnrest:
         :returns: The AV1245 value.
         :rtype: float
         """
-        return 2 * (self._avs()[0][0] + self._avs()[1][0])
+        return self._avs()[0][0] + self._avs()[1][0]
 
     @property
     def av1245_alpha(self):
@@ -466,7 +471,7 @@ class IndicatorsUnrest:
         :returns: The AV1245_alpha value.
         :rtype: float
         """
-        return 2 * self._avs()[0][0]
+        return self._avs()[0][0]
 
     @property
     def av1245_beta(self):
@@ -476,7 +481,7 @@ class IndicatorsUnrest:
         :returns: The AV1245_beta value.
         :rtype: float
         """
-        return 2 * self._avs()[1][0]
+        return self._avs()[1][0]
 
     @property
     def avmin(self):
@@ -526,7 +531,7 @@ class IndicatorsUnrest:
         :returns: The list of 4c-MCIs that form the AV1245_alpha.
         :rtype: numpy.ndarray
         """
-        return 2 * np.array(self._avs()[0][2])
+        return np.array(self._avs()[0][2])
 
     @property
     def av1245_list_beta(self):
@@ -536,7 +541,7 @@ class IndicatorsUnrest:
         :returns: The list of 4c-MCIs that form the AV1245_beta.
         :rtype: numpy.ndarray
         """
-        return 2 * np.array(self._avs()[1][2])
+        return np.array(self._avs()[1][2])
 
     def _pdis(self):
         """
@@ -560,7 +565,7 @@ class IndicatorsUnrest:
         :returns: The PDI value.
         :rtype: float
         """
-        return 2 * (self._pdis()[0][0] + self._pdis()[1][0])
+        return self._pdis()[0][0] + self._pdis()[1][0]
 
     @property
     def pdi_alpha(self):
@@ -570,7 +575,7 @@ class IndicatorsUnrest:
         :returns: The PDI_alpha value.
         :rtype: float
         """
-        return 2 * self._pdis()[0][0]
+        return self._pdis()[0][0]
 
     @property
     def pdi_beta(self):
@@ -580,7 +585,7 @@ class IndicatorsUnrest:
         :returns: The PDI_beta value.
         :rtype: float
         """
-        return 2 * self._pdis()[1][0]
+        return self._pdis()[1][0]
 
     @property
     def pdi_list(self):
@@ -590,7 +595,7 @@ class IndicatorsUnrest:
         :returns: The list of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return 2 * (self._pdis()[0][1] + self._pdis()[1][1])
+        return self._pdis()[0][1] + self._pdis()[1][1]
 
     @property
     def pdi_list_alpha(self):
@@ -600,7 +605,7 @@ class IndicatorsUnrest:
         :returns: The list of the alpha component of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return 2 * self._pdis()[0][1]
+        return self._pdis()[0][1]
 
     @property
     def pdi_list_beta(self):
@@ -610,7 +615,7 @@ class IndicatorsUnrest:
         :returns: The list of the beta component of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return 2 * self._pdis()[1][1]
+        return self._pdis()[1][1]
 
     def _flus(self):
         """
@@ -740,6 +745,8 @@ class IndicatorsUnrest:
         :rtype: tuple
         """
         if not hasattr(self, '_done_homas'):
+            if self._molinfo.get('geom') is None:
+                return None
             self._done_homas = compute_homa(self._rings, self._molinfo, self._homarefs)
         return self._done_homas
 
@@ -763,7 +770,7 @@ class IndicatorsUnrest:
         :returns: The EN value.
         :rtype: float
         """
-        return self._homas()[1]
+        res = self._homas(); return res[1] if res is not None else None
 
     @property
     def geo(self):
@@ -773,7 +780,7 @@ class IndicatorsUnrest:
         :returns: The GEO value.
         :rtype: float
         """
-        return self._homas()[2]
+        res = self._homas(); return res[2] if res is not None else None
 
     @property
     def homer(self):
@@ -783,7 +790,20 @@ class IndicatorsUnrest:
         :returns: The HOMER value.
         :rtype: float
         """
-        return compute_homer(self._rings, self._molinfo, self._homerrefs)
+        if not self._rings or self._molinfo.get("geom") is None:
+            return None
+            
+        # Localization to avoid IndexError in compute_homer due to faulty indexing in that function
+        local_arr = list(range(1, len(self._rings) + 1))
+        local_symbols = [self._molinfo["symbols"][i-1] for i in self._rings]
+        orig_geom = self._molinfo["geom"]
+        local_geom = np.array([orig_geom[i-1] for i in self._rings])
+        
+        local_molinfo = self._molinfo.copy()
+        local_molinfo["symbols"] = local_symbols
+        local_molinfo["geom"] = local_geom
+        
+        return compute_homer(local_arr, local_molinfo, self._homerrefs)
 
     def _blas(self):
         """
@@ -815,7 +835,6 @@ class IndicatorsUnrest:
         :rtype: float
         """
         res = self._blas(); return res[1] if res is not None else None
-
 
 class IndicatorsNatorb:
     """
@@ -866,7 +885,7 @@ class IndicatorsNatorb:
         :returns: The Iring value.
         :rtype: float
         """
-        return 4 * compute_iring_no(self._rings, self._aom)
+        return compute_iring_no(self._rings, self._aom)
 
     @property
     def mci(self):
@@ -881,7 +900,7 @@ class IndicatorsNatorb:
                 self._done_mci = sequential_mci_no(self._rings, self._aom, self._partition)
             else:
                 self._done_mci = multiprocessing_mci_no(self._rings, self._aom, self._ncores, self._partition)
-        return 4 * self._done_mci
+        return self._done_mci
 
     def _av_no(self):
         """
@@ -899,10 +918,10 @@ class IndicatorsNatorb:
         """
         Get the AV1245 value.
 
-        :returns: The AV1245 value
+        :returns: The AV1245 value.
         :rtype: float
         """
-        return 4 * self._av_no()[0]
+        return self._av_no()[0]
 
     @property
     def avmin(self):
@@ -912,7 +931,7 @@ class IndicatorsNatorb:
         :returns: The AVmin value.
         :rtype: float
         """
-        return 4 * self._av_no()[1]
+        return self._av_no()[1]
 
     @property
     def av1245_list(self):
@@ -943,7 +962,7 @@ class IndicatorsNatorb:
         :returns: The PDI value.
         :rtype: float
         """
-        return 4 * self._pdi_no()[0]
+        return self._pdi_no()[0]
 
     @property
     def pdi_list(self):
@@ -953,7 +972,7 @@ class IndicatorsNatorb:
         :returns: The list of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return 4 * self._pdi_no()[1]
+        return self._pdi_no()[1]
 
     @property
     def flu(self):
@@ -999,15 +1018,25 @@ class IndicatorsNatorb:
     @property
     def homer(self):
         """
-        Compute the HOMER value.
+        Get the HOMER value.
 
         :returns: The HOMER value.
         :rtype: float
         """
-        if self._geom is None or self._homerrefs is None or self._connectivity is None:
+        if not self._rings or self._molinfo.get("geom") is None:
             return None
-        else:
-            return compute_homer(self._rings, self._mol, self._geom, self._homerrefs, self._connectivity)
+            
+        # Localization to avoid IndexError in compute_homer due to faulty indexing in that function
+        local_arr = list(range(1, len(self._rings) + 1))
+        local_symbols = [self._molinfo["symbols"][i-1] for i in self._rings]
+        orig_geom = self._molinfo["geom"]
+        local_geom = np.array([orig_geom[i-1] for i in self._rings])
+        
+        local_molinfo = self._molinfo.copy()
+        local_molinfo["symbols"] = local_symbols
+        local_molinfo["geom"] = local_geom
+        
+        return compute_homer(local_arr, local_molinfo, self._homerrefs)
 
     def _homas(self):
         """
@@ -1017,6 +1046,8 @@ class IndicatorsNatorb:
         :rtype: tuple
         """
         if not hasattr(self, '_done_homas'):
+            if self._molinfo.get('geom') is None:
+                return None
             self._done_homas = compute_homa(self._rings, self._molinfo, self._homarefs)
         return self._done_homas
 
@@ -1040,7 +1071,7 @@ class IndicatorsNatorb:
         :returns: The EN value.
         :rtype: float
         """
-        return self._homas()[1]
+        res = self._homas(); return res[1] if res is not None else None
 
     @property
     def geo(self):
@@ -1050,7 +1081,7 @@ class IndicatorsNatorb:
         :returns: The GEO value.
         :rtype: float
         """
-        return self._homas()[2]
+        res = self._homas(); return res[2] if res is not None else None
 
     @property
     def homer(self):
@@ -1060,7 +1091,20 @@ class IndicatorsNatorb:
         :returns: The HOMER value.
         :rtype: float
         """
-        return compute_homer(self._rings, self._mol, self._homerrefs)
+        if not self._rings or self._molinfo.get("geom") is None:
+            return None
+            
+        # Localization to avoid IndexError in compute_homer due to faulty indexing in that function
+        local_arr = list(range(1, len(self._rings) + 1))
+        local_symbols = [self._molinfo["symbols"][i-1] for i in self._rings]
+        orig_geom = self._molinfo["geom"]
+        local_geom = np.array([orig_geom[i-1] for i in self._rings])
+        
+        local_molinfo = self._molinfo.copy()
+        local_molinfo["symbols"] = local_symbols
+        local_molinfo["geom"] = local_geom
+        
+        return compute_homer(local_arr, local_molinfo, self._homerrefs)
 
     def _blas(self):
         """
@@ -1092,7 +1136,6 @@ class IndicatorsNatorb:
         :rtype: float
         """
         res = self._blas(); return res[1] if res is not None else None
-
 
 class ESI:
     """
@@ -1129,18 +1172,18 @@ class ESI:
     def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None,
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
-                 ncores=1, save=None, readpath='.', read=False, iaomix=None,
-                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None,
-                 iaoref='minao', iaopol='ano', heavy_only=True, full_basis=False):
+                 ncores=1, save=None, readpath='.', read=False,
+                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None, is_fchk=False, **kwargs):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
         self._rings = rings
         self.mol = mol
         self.mf = mf
+        self.is_fchk = is_fchk or getattr(mf, 'is_fchk', False)
         self.myhf = myhf
         self._molinfo = molinfo
-        self._partition = partition
+        self._partition = format_partition(partition) if partition else None
         self._mci = mci
         self._av1245 = av1245
         # For custom references
@@ -1152,17 +1195,11 @@ class ESI:
         self.frag = False
         # For other tools
         self.ncores = ncores
-        self.iaomix = iaomix
-        self.iaoref = iaoref
-        self.iaopol = iaopol
-        self.heavy_only = heavy_only
-        self.full_basis = full_basis
         self.save = save
         # Directory where files will be written. Use <save>_esipy to avoid cluttering working dir
         self.save_dir = save + '_esipy' if save else None
-        formatted_part = format_partition(self.partition, iaoref=self.iaoref, iaopol=self.iaopol, iaomix=self.iaomix, heavy_only=self.heavy_only)
-        self.saveaoms = save + '_' + formatted_part + ".aoms" if save else None
-        self.savemolinfo = save + '_' + formatted_part + ".molinfo" if save else None
+        self.saveaoms = save + '_' + self.partition + ".aoms" if save and self.partition else None
+        self.savemolinfo = save + '_' + self.partition + ".molinfo" if save and self.partition else None
         self.readpath = readpath
         self.read = read
         # For finding rings
@@ -1289,9 +1326,8 @@ class ESI:
 
     @property
     def rings(self):
-        mol_attr = getattr(self, "mol", None)
-        if mol_attr is not None:
-            natms = mol_attr.natm
+        if hasattr(self, "mol") and self.mol:
+            natms = self.mol.natm
         else:
             natms = len(self.molinfo.get("symbols"))
         if natms <= 1:
@@ -1309,15 +1345,16 @@ class ESI:
                 print(f" | WARNING: Could not find rings for {self.partition} partition. Mulliken and Lowdin bond orders cannot be used to build the connectivity matrix.")
                 print(f" | Skipping ring analysis for {self.partition} partition.")
                 self._rings = None
-            
-            graph = self.connec
+            if self.connec:
+                graph = self.connec
+            else:
+                graph = self.molinfo.get("connec")
             if not graph:
                 print(f" | WARNING: Could not find the connectivity matrix for {self.partition} partition.")
                 print(f" | Skipping ring analysis for {self.partition} partition.")
                 self._rings = None
-            else:
-                self._rings = find_rings(graph, self.minlen, self.maxlen, exclude=self.exclude)
-            
+
+            self._rings = find_rings(graph, self.minlen, self.maxlen, exclude=self.exclude)
             endrings = time()
 
             if not self._rings:
@@ -1378,7 +1415,7 @@ class ESI:
             print(" | Building NAO AOMs to compute connectivity.")
             if self.mol is None or self.mf is None:
                 raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs.")
-            mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf)
+            mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf, is_fchk=self.is_fchk)
             graph = build_connectivity(mat=mat, threshold=self.rings_thres)
             
             if self.save:
@@ -1386,8 +1423,7 @@ class ESI:
                 molinfo_path = os.path.join(self.save_dir, os.path.basename(self.savemolinfo))
             else:
                 molinfo_path = self.savemolinfo
-            self._molinfo = mol_info(self.mol, self.mf, molinfo_path, self._partition, graph,
-                                     iaoref=self.iaoref, iaopol=self.iaopol, iaomix=self.iaomix, heavy_only=self.heavy_only, full_basis=self.full_basis)
+            self._molinfo = mol_info(self.mol, self.mf, molinfo_path, self._partition, graph)
         return self._molinfo
 
     @property
@@ -1422,8 +1458,7 @@ class ESI:
             if self.mol and self.mf and self.partition:
                 self._aom_loaded = True
                 # Don't save in make_aoms, we'll save it ourselves in the subdirectory
-                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf, heavy_only=self.heavy_only, 
-                                      iaomix=self.iaomix, iaoref=self.iaoref, iaopol=self.iaopol)
+                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf, is_fchk=self.is_fchk)
 
                 if self.saveaoms:
                     os.makedirs(self.save_dir, exist_ok=True)
@@ -1450,7 +1485,8 @@ class ESI:
     @property
     def connec(self):
         """
-        Get the connectivity matrix. Always uses NAO AOMs to build the connectivity matrix.
+        Get the connectivity matrix. If the partition is 'mulliken' or 'lowdin',
+        build the NAO AOMs and compute the connectivity matrix from there.
         The computation is controlled by the 'done_connec' flag. Based on the DIs.
 
         :returns: The connectivity matrix.
@@ -1458,24 +1494,24 @@ class ESI:
         """
         if self._connec is not None:
             return self._connec
-        
-        # This will trigger NAO computation if needed via the molinfo property
-        self._connec = self.molinfo.get("connec")
-        
-        if self._connec is None:
-            # Fallback if molinfo was somehow populated without connec
-            if self.mol is not None and self.mf is not None:
+        if hasattr(self, "molinfo") and self.molinfo.get("connec") is not None:
+            return self.molinfo.get("connec")
+        if not hasattr(self, 'done_connec') or not self.done_connec:
+            if self.molinfo.get("connec") is not None:
+                self._connec = self.molinfo.get("connec")
+                self.done_connec = True
+                return self._connec
+
+            if self.partition in ['mulliken', 'lowdin']:
                 print(" | Building NAO AOMs to compute connectivity.")
-                mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf)
-            elif self.aom is not None:
-                # Use current AOMs if available (even if they are not NAO)
-                mat = self.aom
+                if self.mol is None or self.mf is None:
+                    raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs to get connectivity matrix.")
+                mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf, is_fchk=self.is_fchk)
             else:
-                return None
-            
+                mat = self.aom
             self._connec = build_connectivity(mat=mat, threshold=self.rings_thres)
-            
-        return self._connec
+            self.done_connec = True
+            return self._connec
 
     @property
     def mci(self):
@@ -1636,4 +1672,3 @@ class ESI:
                 arom_no(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                     av1245=self.av1245,
                     flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap,)
-

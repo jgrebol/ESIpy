@@ -195,6 +195,7 @@ def compute_pdi_no(arr, aom):
     :rtype: tuple
     """
     aom, occ = aom
+    if occ.ndim == 1: occ = np.diag(occ)
 
     if len(arr) == 6:
 

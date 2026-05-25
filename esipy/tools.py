@@ -2,6 +2,38 @@ import os
 from collections import deque, defaultdict
 import numpy as np
 
+def is_natorb_wf(mf):
+    """
+    Checks if the given mean-field or post-HF object contains natural orbitals.
+    For PySCF objects, it checks the class name. For FCHK objects, it checks
+    if it was already processed as a natural orbital object during reading.
+    """
+    from pyscf import mp, cc, ci, mcscf
+    
+    try:
+        if isinstance(mf, (mp.mp2.MP2, cc.ccsd.CCSD, ci.cisd.CISD)):
+            return True
+        if hasattr(mcscf, 'casci') and hasattr(mcscf.casci, 'CASCI'):
+            if isinstance(mf, mcscf.casci.CASCI):
+                return True
+        if hasattr(mcscf, 'mc1step') and hasattr(mcscf.mc1step, 'CASSCF'):
+            if isinstance(mf, mcscf.mc1step.CASSCF):
+                return True
+    except TypeError:
+        pass
+        
+    # 2. Check for ESIpy FCHK flags
+    if getattr(mf, 'is_fchk', False):
+        # In our readfchk, we already converted correlated densities to NOs
+        # and we set __name__ to UHF/RHF. We can check occupations.
+        occ = np.asarray(mf.mo_occ)
+        if occ.ndim == 2: # list-like or alpha/beta
+            return np.any((occ > 1e-6) & (np.abs(occ - 1.0) > 1e-6))
+        return np.any((occ > 1e-6) & (np.abs(occ - 1.0) > 1e-6) & (np.abs(occ - 2.0) > 1e-6))
+        
+    return False
+
+
 def wf_type(aom):
     """
     Checks the topology of the AOMs to obtain the type of wavefunction.
@@ -147,7 +179,9 @@ def find_di_no(aom, i, j):
     """
 
     # Tr(Occ @ AOM_i @ Occ @ AOM_j)
-    occ = np.diag(aom[1])
+    occ = aom[1]
+    if occ.ndim == 1:
+        occ = np.diag(occ)
     return np.einsum('ij,jk,kl,li->', occ, aom[0][i - 1], occ, aom[0][j - 1])
 
 
@@ -195,7 +229,7 @@ def av1245_pairs(arr):
             for i in range(len(arr))]
 
 
-def mol_info(mol=None, mf=None, save=None, partition=None, connec=None, iaoref=None, iaopol=None, iaomix=None, heavy_only=True, full_basis=False):
+def mol_info(mol=None, mf=None, save=None, partition=None, connec=None):
     """
     Obtains information from the molecule and the calculation to complement the main code function without requiring the 'mol' and 'mf' objects.
 
@@ -207,21 +241,12 @@ def mol_info(mol=None, mf=None, save=None, partition=None, connec=None, iaoref=N
     :type save: str
     :param partition: String with the name of the partition.
     :type partition: str
-    :param iaoref: Reference basis for IAO.
-    :type iaoref: str
-    :param iaopol: Polarization basis for IAO.
-    :type iaopol: str
-    :param iaomix: IAO mixing weight.
-    :type iaomix: float
     :returns: Dictionary with the information of the molecule and the calculation.
     :rtype: dict
     """
 
     info = {}
     info.update({"partition": partition})
-    if iaoref: info.update({"iaoref": iaoref})
-    if iaopol: info.update({"iaopol": iaopol})
-    if iaomix is not None: info.update({"iaomix": iaomix})
     if mol:
         info.update({
             "symbols": [mol.atom_symbol(i) for i in range(mol.natm)],
@@ -312,103 +337,32 @@ def process_fragments(aom, rings, done=False):
 
 def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_only=True):
     import re
-    orig = partition
-    p_split = partition.split(None, 1)
-    p_method = p_split[0].lower()
-    p_suffix = p_split[1] if len(p_split) > 1 else ""
-    
+
+    p_method = partition.split()[0].lower()
     # 1. Standardize method name
+    base = p_method
     if p_method in ["m", "mul", "mull", "mulliken"]: base = "mulliken"
     elif p_method in ["l", "low", "lowdin"]: base = "lowdin"
-    elif p_method in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta_lowdin", "meta-lowdin"]: base = "meta_lowdin"
+    elif p_method in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta_lowdin", "meta-lowdin"]: base = "meta-lowdin"
     elif p_method in ["n", "nao", "natural", "nat"]: base = "nao"
     elif p_method in ["i", "iao", "intrinsic", "intr"]: base = "iao"
-    elif p_method in ["iao-autosad", "iaoauto", "iaoa", "iaa", "ia", "a", "autosad", "iaosad", "autos"]: base = "iao-autosad"
-    elif p_method in ["iao-effao-gross", "iao-eg", "iaoeg", "iaog", "ig", "gross", "iag", "g"]: base = "iao-effao-gross"
-    elif p_method in ["iao-effao-net", "iao-en", "iaoen", "iaon", "in", "net", "ian", "ne"]: base = "iao-effao-net"
-    elif p_method in ["iao-effao-lowdin", "iaoel", "iaol", "il", "iel", "iae"]: base = "iao-effao-lowdin"
-    elif p_method in ["iao-effao-metalowdin", "iao-effao-meta-lowdin", "iaom", "im"]: base = "iao-effao-metalowdin"
-    elif p_method in ["iao-effao-nao", "iaonao"]: base = "iao-effao-nao"
-    elif p_method in ["sym", "ias", "is", "iao-effao-symmetric"]: base = "iao-effao-symmetric"
-    elif p_method in ["sps", "iao-effao-sps"]: base = "iao-effao-sps"
-    elif p_method in ["spsa", "iao-effao-spsa"]: base = "iao-effao-spsa"
-    elif p_method == "iao_basis": base = "iao-basis"
-    elif p_method == "fpiao": base = "fpiao"
-    elif p_method == "dfpiao": base = "dfpiao"
-    elif p_method == "peiao": base = "peiao"
-    elif p_method == "dpeiao": base = "dpeiao"
-    elif p_method == "xiao_dfpiao": base = "xiao_dfpiao"
-    else: base = p_method.lower()
-    
-    # 2. Extract weight if present
-    match_w = re.search(r"\(+(.*?)\)+", partition)
-    if match_w:
-        try:
-            weight = float(match_w.group(1))
-            base = re.sub(r"\(.*?\)", "", base).strip()
-        except: weight = None
-    else: weight = None
-        
-    if weight is None:
-        if iaomix is not None:
-            weight = iaomix if isinstance(iaomix, (float, int)) else (iaomix[0] if iaomix else 0.5)
-        else:
-            if "fpiao" in p_method or "peiao" in p_method: weight = 1.0
-            elif "dfpiao" in p_method or "dpeiao" in p_method: weight = 0.5
-            else: weight = 0.5
 
-    # 3. Extract basis
-    res_basis = p_suffix.strip()
-    if not res_basis: res_basis = iaoref if iaoref else ""
-    
-    if "/" in res_basis:
-        res_basis = res_basis.split("/")[-1].replace("_ref_basis.dat", "").replace("_polar_basis.dat", "").lower()
-    elif res_basis.lower() == "minao": res_basis = ""
-    else: res_basis = res_basis.lower()
+    return base
 
-    # 4. Construct final label
-    if any(x in base for x in ["fpiao", "dfpiao", "dpeiao", "xiao"]):
-        w_str = f"{weight:g}" if weight != int(weight) else f"{weight:.1f}"
-        if "(" not in base: base += f"({w_str})"
-        else: base = re.sub(r"\(.*?\)", f"({w_str})", base)
-
-    label = base
-    is_iao = "iao" in base or "piao" in base or "xiao" in base
-    if is_iao and res_basis: label += f" {res_basis}"
-        
-    return label.lower()
 def format_short_partition(partition):
+    p_method = partition.lower()
 
-    # Split to preserve case for paths/basis names if needed
-    p_split = partition.split(None, 1)
-    p_method = p_split[0].lower()
-    p_suffix = " " + p_split[1] if len(p_split) > 1 else ""
-    partition = p_method + p_suffix
-
-    if partition == "mulliken":
+    if p_method == "mulliken":
         return "mul"
-    elif partition == "lowdin":
+    elif p_method == "lowdin":
         return "low"
-    elif partition == "meta_lowdin":
+    elif p_method == "meta-lowdin":
         return "metalow"
-    elif partition == "iao-effao-lowdin":
-        return "iao-effao-low"
-    elif partition == "iao-effao-gross":
-        return "iao-effao-gross"
-    elif partition == "iao-effao-net":
-        return "iao-effao-net"
-    elif partition == "iao-ano":
-        return "iano"
-    elif partition == "piao":
-        return "p"
-    elif partition == "piao-iao":
-        return "pi"
-    elif partition == "piao-iao-ano":
-        return "pia"
-    elif partition in ("nao", "iao", "qtaim", "iao-autosad", "iao-effao"):
-        return partition
+    elif p_method in ("nao", "iao"):
+
+        return p_method
     else:
-        return partition
+        return p_method
 
 
 
@@ -443,7 +397,16 @@ def get_natorbs(mf, S):
     import numpy as np
     print(" | Obtaining Natural Orbitals from the 1-RDM...")
 
-    rdm1 = mf.make_rdm1(ao_repr=True)
+    if 'ccsd' in str(mf.__class__).lower():
+        from pyscf import lib
+        old_backend = getattr(lib.numpy_helper, 'EINSUM_BACKEND', 'pyscf')
+        lib.numpy_helper.EINSUM_BACKEND = 'numpy'
+        try:
+            rdm1 = mf.make_rdm1(ao_repr=True)
+        finally:
+            lib.numpy_helper.EINSUM_BACKEND = old_backend
+    else:
+        rdm1 = mf.make_rdm1(ao_repr=True)
     rdm1_arr = np.asarray(rdm1)
 
     if rdm1_arr.ndim == 3:
@@ -467,26 +430,6 @@ def get_natorbs(mf, S):
     occ = occ[::-1]
     occ[occ < 1e-12] = 0.0 # Small values set to zero
     return occ, coeff
-
-def is_natorb_wf(mf):
-    """
-    Checks if the given mean-field or post-HF object contains natural orbitals.
-    For PySCF objects, it checks the class name. For FCHK objects, it checks
-    if it was already processed as a natural orbital object during reading.
-    """
-    from pyscf import mp, cc, ci, mcscf
-    
-    try:
-        if isinstance(mf, (mp.mp2.MP2, cc.ccsd.CCSD, ci.cisd.CISD, mcscf.casci.CASCI, mcscf.mc1step.CASSCF)):
-            return True
-    except:
-        pass
-    
-    # Check for FCHK case where we might have patched the object
-    if hasattr(mf, "density_label") and any(x in mf.density_label for x in ["MP2", "CC", "CI", "CAS"]):
-        return True
-    
-    return False
 
 
 def build_eta(mol):
@@ -597,10 +540,6 @@ def is_fused(arr, connec):
 def find_middle_nodes(connec2):
     return [key for key, vals in connec2.items() if len(vals) > 2]
 
-try:
-    from esipy.iao import iao, get_effaos, autosad
-except ImportError:
-    pass
 
 def permute_aos_rows(mat, mole2):
     """
