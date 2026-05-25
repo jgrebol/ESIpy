@@ -2,6 +2,7 @@ import unittest
 
 from numpy import trace, dot
 import numpy as np
+import numpy as np
 from numpy.linalg import multi_dot
 from pyscf import gto, scf, cc
 
