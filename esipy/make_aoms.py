@@ -152,7 +152,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
         return aom
 
     # 2. RESTRICTED
-    elif hasattr(mf, 'mo_occ'):
+    elif hasattr(mf, 'mo_occ') and mf.mo_occ is not None and not is_natorb_wf(mf):
         coeff = mf.mo_coeff[:, mf.mo_occ > 0]
 
         if partition_label in ("lowdin", "meta_lowdin", "nao", "mulliken"):
@@ -208,4 +208,4 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, iaomix=0.5, iaoref='mina
             aom = get_iao_aoms(partition_label, coeff, mf)
             
         if save: save_file(aom, save)
-        return aom
+        return [aom, occ[occ > 1e-10]]

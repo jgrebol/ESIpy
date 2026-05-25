@@ -468,6 +468,26 @@ def get_natorbs(mf, S):
     occ[occ < 1e-12] = 0.0 # Small values set to zero
     return occ, coeff
 
+def is_natorb_wf(mf):
+    """
+    Checks if the given mean-field or post-HF object contains natural orbitals.
+    For PySCF objects, it checks the class name. For FCHK objects, it checks
+    if it was already processed as a natural orbital object during reading.
+    """
+    from pyscf import mp, cc, ci, mcscf
+    
+    try:
+        if isinstance(mf, (mp.mp2.MP2, cc.ccsd.CCSD, ci.cisd.CISD, mcscf.casci.CASCI, mcscf.mc1step.CASSCF)):
+            return True
+    except:
+        pass
+    
+    # Check for FCHK case where we might have patched the object
+    if hasattr(mf, "density_label") and any(x in mf.density_label for x in ["MP2", "CC", "CI", "CAS"]):
+        return True
+    
+    return False
+
 
 def build_eta(mol):
     """

@@ -29,6 +29,9 @@ def compute_iring(arr, aom):
 
 
 def compute_iring_no(arr, aom):
+    aom_list, occ = aom
+    if occ.ndim == 1: occ = np.diag(occ)
+    aom = (aom_list, occ)
     """
     Calculation of the Iring aromaticity index for correlated wavefunctions.
 
@@ -60,6 +63,9 @@ def sequential_mci(arr, aom, partition):
     return _mci.compute_mci(arr, aom, partition=partition, n_cores=1)
 
 def sequential_mci_no(arr, aom, partition):
+    aom_list, occ = aom
+    if occ.ndim == 1: occ = np.diag(occ)
+    aom = (aom_list, occ)
     """
     Computes the MCI for correlated wavefunctions sequentially by computing the Iring without storing the permutations.
     """
@@ -116,6 +122,9 @@ def compute_av1245(arr, aom, partition):
 
 
 def compute_av1245_no(arr, aom, partition):
+    aom_list, occ = aom
+    if occ.ndim == 1: occ = np.diag(occ)
+    aom = (aom_list, occ)
     """
      Computes the AV1245 and AVmin indices for correlated wavefunctions. Not available for rings smaller than 6 members.
 
@@ -171,6 +180,9 @@ def compute_pdi(arr, aom):
 
 
 def compute_pdi_no(arr, aom):
+    aom_list, occ = aom
+    if occ.ndim == 1: occ = np.diag(occ)
+    aom = (aom_list, occ)
     """
     Computes the PDI for the given 6-membered ring connectivity. Only computed for rings n=6.
 
