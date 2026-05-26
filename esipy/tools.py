@@ -37,22 +37,16 @@ def is_natorb_wf(mf):
 def wf_type(aom):
     """
     Checks the topology of the AOMs to obtain the type of wavefunction.
-
-    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-    :returns: A string with the type of wave function ('rest', 'unrest' or 'no').
     """
-    # Restricted: list of 2D matrices
-    if isinstance(aom[0], np.ndarray) and aom[0].ndim == 2:
+    # NOs return format [list, array]
+    if isinstance(aom, list) and len(aom) == 2 and isinstance(aom[1], np.ndarray):
+        return "no"
+    # Restricted: list of matrices
+    if isinstance(aom, list) and isinstance(aom[0], np.ndarray) and aom[0].ndim == 2:
         return "rest"
-    
-    # Unrestricted or Natural Orbitals: [list, list/array]
-    if isinstance(aom, list) and len(aom) == 2:
-        # Natural Orbitals: [list of matrices, 1D/2D array of occupations]
-        if isinstance(aom[1], np.ndarray) and aom[1].ndim in [1, 2]:
-            return "no"
-        # Unrestricted: [list of alpha matrices, list of beta matrices]
-        if isinstance(aom[1], list) and isinstance(aom[1][0], np.ndarray) and aom[1][0].ndim == 2:
-            return "unrest"
+    # Unrestricted: [list, list]
+    if isinstance(aom, list) and len(aom) == 2 and isinstance(aom[0], list):
+        return "unrest"
             
     raise NameError("Could not find the type of wave function from the AOMs")
 
@@ -177,12 +171,11 @@ def find_di_no(aom, i, j):
     :returns: DI between the atoms i and j.
     :rtype: float
     """
-
-    # Tr(Occ @ AOM_i @ Occ @ AOM_j)
     occ = aom[1]
-    if occ.ndim == 1:
+    if occ.ndim == 2:
         occ = np.diag(occ)
-    return np.einsum('ij,jk,kl,li->', occ, aom[0][i - 1], occ, aom[0][j - 1])
+    # Sum over k,j: occ_k * occ_j * (Pi)_kj * (Pj)_jk
+    return np.einsum('k,j,kj,jk->', occ, occ, aom[0][i - 1], aom[0][j - 1])
 
 
 def find_lis(arr, aom):
@@ -397,7 +390,7 @@ def get_natorbs(mf, S):
     import numpy as np
     print(" | Obtaining Natural Orbitals from the 1-RDM...")
 
-    if 'ccsd' in str(mf.__class__).lower():
+    if 'ccsd' in str(mf.__class__).lower() or 'mp2' in str(mf.__class__).lower():
         from pyscf import lib
         old_backend = getattr(lib.numpy_helper, 'EINSUM_BACKEND', 'pyscf')
         lib.numpy_helper.EINSUM_BACKEND = 'numpy'
@@ -410,8 +403,7 @@ def get_natorbs(mf, S):
     rdm1_arr = np.asarray(rdm1)
 
     if rdm1_arr.ndim == 3:
-        raise NotImplementedError(" | Natural Orbitals for unrestricted calculations are not implemented yet.")
-        #D = np.sum(rdm1_arr, axis=0)
+        D = np.sum(rdm1_arr, axis=0)
     elif rdm1_arr.ndim == 2:
         D = rdm1_arr
     else:
