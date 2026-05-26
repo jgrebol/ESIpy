@@ -1,0 +1,239 @@
+#!python
+import os
+import sys
+import numpy as np
+import argparse
+import re
+from pyscf import scf, lib, lo
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from mpl_toolkits.mplot3d import axes3d
+import tkinter as tk
+from tkinter import filedialog, ttk, messagebox
+
+from esipy.readfchk import readfchk
+from esipy.tools import build_eta, get_natorbs, build_connectivity, format_partition
+from esipy.iao import iao, fpiao, dfpiao, effao, autosad, reference_mol, get_effaos, _do_iao
+
+ATOM_COLORS = {
+    1: 'white', 6: 'grey', 7: 'blue', 8: 'red', 15: 'orange', 16: 'yellow', 17: 'green', 35: 'brown', 53: 'purple'
+}
+
+PARTITION_FAMILIES = {
+    "--- ORIGINAL ---": ["mulliken", "lowdin", "meta-lowdin", "nao", "iao", "iao-autosad"],
+    "--- EFFAO ---": ["effao-net", "effao-gross", "effao-sym", "effao-sps", "effao-spsa", "effao-lowdin", "effao-meta-lowdin"],
+    "--- IAO-EFFAO ---": ["iao-effao-net", "iao-effao-gross", "iao-effao-sym", "iao-effao-sps", "iao-effao-spsa", "iao-effao-lowdin", "iao-effao-meta-lowdin"],
+    "--- POLARIZED ---": ["fpiao", "dfpiao"]
+}
+
+def get_atom_style(at_val):
+    from pyscf.data import elements
+    try: at_num = int(at_val)
+    except: at_num = elements.charge(at_val)
+    color = ATOM_COLORS.get(at_num, 'green')
+    size = 80 + at_num * 10
+    if size > 600: size = 600
+    return color, size
+
+def get_transformation_matrix(mol, mf, partition, iaomix=0.5, iaoref='minao', spin='alpha'):
+    S = mf.get_ovlp()
+    partition = partition.lower()
+    is_unrest = isinstance(mf, scf.uhf.UHF)
+    
+    mo_coeff = mf.mo_coeff
+    if is_unrest:
+        nocc_a = mf.mo_occ[0].astype(int).sum()
+        nocc_b = mf.mo_occ[1].astype(int).sum()
+        if spin == 'beta': 
+            c_occ = mo_coeff[1][:, :nocc_b]
+            p_total = mo_coeff[1][:, :nocc_b] @ mo_coeff[1][:, :nocc_b].T
+        elif spin == 'total':
+            c_occ = np.hstack([mo_coeff[0][:, :nocc_a], mo_coeff[1][:, :nocc_b]])
+            p_total = mo_coeff[0][:, :nocc_a] @ mo_coeff[0][:, :nocc_a].T + mo_coeff[1][:, :nocc_b] @ mo_coeff[1][:, :nocc_b].T
+        else:
+            c_occ = mo_coeff[0][:, :nocc_a]
+            p_total = mo_coeff[0][:, :nocc_a] @ mo_coeff[0][:, :nocc_a].T
+    else:
+        nocc = mf.mo_occ.astype(int).sum()
+        c_occ = mo_coeff[:, :nocc]
+        p_total = c_occ @ c_occ.T
+
+    def get_occ(U, S, P):
+        return np.diag(np.linalg.multi_dot((U.T, S, P, S, U)))
+
+    if partition == 'mulliken':
+        U = np.eye(mol.nao); return U, mol, get_occ(U, S, p_total)
+    elif partition == 'lowdin':
+        U = lo.orth.lowdin(S); return U, mol, get_occ(U, S, p_total)
+    elif partition == 'nao':
+        U = lo.nao.nao(mol, mf, S); return U, mol, get_occ(U, S, p_total)
+    elif partition == 'meta-lowdin':
+        U = lo.orth_ao(mol, 'meta-lowdin'); return U, mol, get_occ(U, S, p_total)
+    elif partition == 'iao':
+        U, pmol = iao(mol, c_occ, source_basis=iaoref); return U, pmol, get_occ(U, S, p_total)
+    elif partition == 'iao-autosad':
+        U, pmol = autosad(mol, c_occ); return U, pmol, get_occ(U, S, p_total)
+    elif partition.startswith('effao-') or partition.startswith('iao-effao-'):
+        is_iao = partition.startswith('iao-')
+        mode = partition.replace('iao-effao-', '') if is_iao else partition.replace('effao-', '')
+        if mode == 'symmetric': mode = 'sym'
+        if mode in ['lowdin', 'meta-lowdin']:
+            T_orth = lo.orth.lowdin(S) if mode == 'lowdin' else lo.orth_ao(mol, 'meta-lowdin')
+            T_inv = T_orth.T @ S
+            c_occ_orth = T_inv @ c_occ
+            w, C_effao_orth, pmol = get_effaos(mol, c_occ_orth, free_atom=False, mode='gross')
+            A_basis = T_orth @ C_effao_orth
+            if is_iao:
+                U = _do_iao(mol, c_occ, A_basis=A_basis); return U, pmol, get_occ(U, S, p_total)
+            else: return A_basis, pmol, w
+        else:
+            if is_iao:
+                U, pmol = effao(mol, c_occ, mode=mode); return U, pmol, get_occ(U, S, p_total)
+            else:
+                w, veps, pmol = get_effaos(mol, c_occ, free_atom=False, mode=mode); return veps, pmol, w
+    elif partition == 'fpiao':
+        U, pmol = fpiao(mol, c_occ, x=iaomix, source_basis=iaoref); return U, pmol, get_occ(U, S, p_total)
+    elif partition == 'dfpiao':
+        U, pmol = dfpiao(mol, c_occ, x=iaomix, source_basis=iaoref); return U, pmol, get_occ(U, S, p_total)
+    return np.eye(mol.nao), mol, np.zeros(mol.nao)
+
+class ParameterDialog(tk.Toplevel):
+    def __init__(self, parent, title, initial_x):
+        super().__init__(parent); self.title(title); self.result = initial_x
+        tk.Label(self, text="Mixing parameter (x):").pack(padx=20, pady=10)
+        self.entry = tk.Entry(self); self.entry.insert(0, str(initial_x)); self.entry.pack(padx=20, pady=5)
+        tk.Button(self, text="OK", command=self.on_ok).pack(pady=15); self.transient(parent); self.grab_set(); self.wait_window()
+    def on_ok(self):
+        try: self.result = float(self.entry.get()); self.destroy()
+        except: messagebox.showerror("Error", "Enter a float")
+
+class ESIpyVizApp:
+    def __init__(self, args):
+        self.root = tk.Tk(); self.root.title("ESIpy-Viz: Molecular Orbital Visualizer"); self.root.geometry("1400x950")
+        self.args = args; self.fchk_path = args.fchk; self.mol = None; self.mf = None
+        self.U1 = None; self.U2 = None; self.w1 = None; self.w2 = None; self.pmol1 = None; self.pmol2 = None; self.grid_data = None 
+        self.x1 = 0.5; self.x2 = 0.5; self.setup_ui()
+        if self.fchk_path: self.load_molecule(self.fchk_path)
+        else: self.on_browse()
+
+    def setup_ui(self):
+        self.main_pane = tk.PanedWindow(self.root, orient=tk.HORIZONTAL); self.main_pane.pack(fill=tk.BOTH, expand=True)
+        self.plot_frame = tk.Frame(self.main_pane); self.main_pane.add(self.plot_frame, stretch="always")
+        self.fig = plt.figure(figsize=(9, 9)); self.ax = self.fig.add_subplot(111, projection='3d')
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.plot_frame); self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.plot_frame); self.toolbar.update()
+        self.ctrl_canvas = tk.Canvas(self.main_pane, width=450); self.scrollbar = ttk.Scrollbar(self.main_pane, orient="vertical", command=self.ctrl_canvas.yview)
+        self.scroll_frame = tk.Frame(self.ctrl_canvas, padx=15, pady=15); self.scroll_frame.bind("<Configure>", lambda e: self.ctrl_canvas.configure(scrollregion=self.ctrl_canvas.bbox("all")))
+        self.ctrl_canvas.create_window((0, 0), window=self.scroll_frame, anchor="nw", width=400); self.ctrl_canvas.configure(yscrollcommand=self.scrollbar.set)
+        self.main_pane.add(self.ctrl_canvas); self.main_pane.add(self.scrollbar)
+        tk.Label(self.scroll_frame, text="ESIpy-Viz Controls", font=("Arial", 18, "bold")).pack(pady=10)
+        glob_frame = tk.LabelFrame(self.scroll_frame, text="Global Settings", font=("Arial", 10, "bold")); glob_frame.pack(fill=tk.X, pady=10)
+        tk.Label(glob_frame, text="Isocontour Value:").pack(anchor=tk.W, padx=5)
+        self.iso_var = tk.DoubleVar(value=0.05); self.iso_entry = ttk.Entry(glob_frame, textvariable=self.iso_var); self.iso_entry.pack(fill=tk.X, padx=5, pady=2); self.iso_entry.bind("<Return>", lambda e: self.draw())
+        self.iso_scale = tk.Scale(glob_frame, from_=0.001, to=0.3, resolution=0.001, orient=tk.HORIZONTAL, variable=self.iso_var, command=lambda v: self.draw()); self.iso_scale.pack(fill=tk.X, padx=5, pady=5)
+        tk.Label(glob_frame, text="Grid Resolution:").pack(anchor=tk.W, padx=5)
+        self.res_var = tk.IntVar(value=40); res_cb = ttk.Combobox(glob_frame, textvariable=self.res_var, values=[20, 30, 40, 50, 60], state="readonly")
+        res_cb.pack(fill=tk.X, padx=5, pady=5); res_cb.bind("<<ComboboxSelected>>", lambda e: self.build_grid_base())
+        self.cfg1_frame = tk.LabelFrame(self.scroll_frame, text="Orbital P1", font=("Arial", 10, "bold"), fg="darkblue"); self.cfg1_frame.pack(fill=tk.X, pady=10)
+        self.setup_config_ui(self.cfg1_frame, 1); self.diff_var = tk.BooleanVar(value=False); tk.Checkbutton(self.scroll_frame, text="Enable Difference Mode (P1 - P2)", variable=self.diff_var, command=self.on_toggle_diff, font=("Arial", 11, "bold")).pack(pady=10)
+        self.cfg2_frame = tk.LabelFrame(self.scroll_frame, text="Orbital P2", font=("Arial", 10, "bold"), fg="darkred"); self.cfg2_frame.pack(fill=tk.X, pady=10)
+        self.setup_config_ui(self.cfg2_frame, 2); self.toggle_cfg2(False)
+        tk.Button(self.scroll_frame, text="REDRAW", command=self.draw, bg="lightgreen", font=("Arial", 12, "bold"), height=2).pack(fill=tk.X, pady=20)
+        tk.Button(self.scroll_frame, text="Load FCHK", command=self.on_browse).pack(fill=tk.X, pady=2); tk.Button(self.scroll_frame, text="Save Image", command=self.on_save).pack(fill=tk.X, pady=2)
+
+    def setup_config_ui(self, frame, num):
+        combo_values = []
+        for family, parts in PARTITION_FAMILIES.items(): combo_values.append(family); combo_values.extend(parts)
+        tk.Label(frame, text="Partition:").pack(anchor=tk.W, padx=5)
+        part_var = tk.StringVar(value="iao"); setattr(self, f"part_var{num}", part_var)
+        cb = ttk.Combobox(frame, textvariable=part_var, values=combo_values, state="readonly"); cb.pack(fill=tk.X, padx=5, pady=2); cb.bind("<<ComboboxSelected>>", lambda e: self.on_part_change(num))
+        spin_var = tk.StringVar(value="alpha"); setattr(self, f"spin_var{num}", spin_var)
+        sf = tk.Frame(frame); sf.pack(fill=tk.X, padx=5)
+        for s in ["alpha", "beta", "total"]: tk.Radiobutton(sf, text=s, variable=spin_var, value=s, command=lambda: self.update_transformation(num)).pack(side=tk.LEFT)
+        tk.Label(frame, text="Index:").pack(anchor=tk.W, padx=5)
+        idx_var = tk.IntVar(value=0); setattr(self, f"idx_var{num}", idx_var); sp = tk.Spinbox(frame, from_=0, to=2000, textvariable=idx_var, command=self.draw)
+        sp.pack(fill=tk.X, padx=5, pady=2); setattr(self, f"idx_spin{num}", sp)
+        tk.Button(frame, text="Set Params (x)", command=lambda: self.on_set_params(num)).pack(fill=tk.X, padx=5, pady=5)
+
+    def toggle_cfg2(self, state):
+        new_state = 'normal' if state else 'disabled'
+        def rec(w):
+            try:
+                if 'state' in w.configure(): w.configure(state=new_state)
+            except: pass
+            for child in w.winfo_children(): rec(child)
+        rec(self.cfg2_frame)
+
+    def on_toggle_diff(self): self.toggle_cfg2(self.diff_var.get()); self.update_transformation(2); self.draw()
+    def on_part_change(self, num):
+        part = getattr(self, f"part_var{num}").get()
+        if part.startswith("---"): getattr(self, f"part_var{num}").set("iao"); return
+        if part in ["fpiao", "dfpiao"]: self.on_set_params(num)
+        self.update_transformation(num)
+    def on_set_params(self, num):
+        curr_x = getattr(self, f"x{num}"); diag = ParameterDialog(self.root, "Parameters", curr_x); setattr(self, f"x{num}", diag.result); self.update_transformation(num)
+    def on_browse(self):
+        path = filedialog.askopenfilename(filetypes=[("FCHK files", "*.fchk")]); self.load_molecule(path) if path else None
+    def load_molecule(self, path):
+        self.fchk_path = path; self.mol, self.mf = readfchk(path); self.build_grid_base(); self.update_transformation(1); self.draw()
+    def update_transformation(self, num):
+        if not self.mol: return
+        part = getattr(self, f"part_var{num}").get(); spin = getattr(self, f"spin_var{num}").get(); x = getattr(self, f"x{num}")
+        try:
+            U, pmol, w = get_transformation_matrix(self.mol, self.mf, part, iaomix=x, spin=spin)
+            setattr(self, f"U{num}", U); setattr(self, f"pmol{num}", pmol); setattr(self, f"w{num}", w)
+            getattr(self, f"idx_spin{num}").config(to=U.shape[1]-1); self.draw()
+        except Exception as e: print(f"Error U{num}: {e}")
+    def build_grid_base(self):
+        if not self.mol: return
+        nx = self.res_var.get(); margin = 3.5; coords = self.mol.atom_coords()
+        self.extent = [[np.min(coords[:,0]) - margin, np.max(coords[:,0]) + margin], [np.min(coords[:,1]) - margin, np.max(coords[:,1]) + margin], [np.min(coords[:,2]) - margin, np.max(coords[:,2]) + margin]]
+        xs = np.linspace(*self.extent[0], nx); ys = np.linspace(*self.extent[1], nx); zs = np.linspace(*self.extent[2], nx)
+        X, Y, Z = np.meshgrid(xs, ys, zs, indexing='ij'); pts = np.vstack([X.ravel(), Y.ravel(), Z.ravel()]).T
+        ao_vals = self.mol.pyscf_mol.eval_gto('GTOval', pts); self.grid_data = (X, Y, Z, ao_vals); self.draw()
+    def draw(self):
+        if not self.mol or self.U1 is None or self.grid_data is None: return
+        self.ax.clear(); coords = self.mol.atom_coords()
+        for i in range(self.mol.natm):
+            for j in range(i + 1, self.mol.natm):
+                d = np.linalg.norm(coords[i] - coords[j])
+                if d < 1.85: self.ax.plot([coords[i,0], coords[j,0]], [coords[i,1], coords[j,1]], [coords[i,2], coords[j,2]], color='black', lw=2.0, alpha=0.6, zorder=5)
+        for i, z in enumerate([a[0] for a in self.mol.pyscf_mol.atom]):
+            color, size = get_atom_style(z); symbol = self.mol.pyscf_mol.atom_symbol(i)
+            self.ax.scatter([coords[i,0]], [coords[i,1]], [coords[i,2]], color=color, s=size, edgecolors='black', linewidth=1.5, zorder=10)
+            self.ax.text(coords[i,0]+0.15, coords[i,1]+0.15, coords[i,2]+0.15, symbol, fontsize=12, fontweight='bold', zorder=11)
+        X, Y, Z, ao_vals = self.grid_data; idx1 = self.idx_var1.get(); coeff = self.U1[:, idx1]; n1 = self.w1[idx1]
+        title = f"P1({self.part_var1.get().upper()}, {idx1}, n={n1:.3f})"
+        if self.diff_var.get() and self.U2 is not None:
+            idx2 = self.idx_var2.get(); coeff = coeff - self.U2[:, idx2]; n2 = self.w2[idx2]
+            title = f"{title} - P2({self.part_var2.get().upper()}, {idx2}, n={n2:.3f})"
+        vals = np.dot(ao_vals, coeff).reshape(X.shape); isoval = self.iso_var.get()
+        mask_pos = vals > isoval; mask_neg = vals < -isoval
+        if np.any(mask_pos): self.ax.scatter(X[mask_pos], Y[mask_pos], Z[mask_pos], color='blue', alpha=0.25, s=3, marker='o')
+        if np.any(mask_neg): self.ax.scatter(X[mask_neg], Y[mask_neg], Z[mask_neg], color='red', alpha=0.25, s=3, marker='o')
+        self.ax.set_xlim(self.extent[0]); self.ax.set_ylim(self.extent[1]); self.ax.set_zlim(self.extent[2])
+        self.ax.set_title(f"Orbital Analysis\n{title}", pad=10); self.ax.set_axis_off(); self.canvas.draw_idle()
+    def on_save(self):
+        path = filedialog.asksaveasfilename(defaultextension=".png")
+        if path: self.fig.savefig(path, dpi=300, bbox_inches='tight')
+    def run(self): self.root.mainloop()
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Visualize Atomic Orbitals from various partitions.")
+    parser.add_argument("fchk", nargs="?", help="Input FCHK file")
+    parser.add_argument("-p", "--partition", help="Partition scheme")
+    parser.add_argument("-i", "--index", help="Initial orbital index")
+    parser.add_argument("-v", "--isoval", type=float, help="Initial isocontour value")
+    parser.add_argument("-s", "--save", help="Save plot to file")
+    parser.add_argument("--spin", choices=['alpha', 'beta', 'total'], help="Initial spin for UHF")
+    
+    args = parser.parse_args()
+    if args.save:
+        import matplotlib; matplotlib.use('Agg')
+    app = ESIpyVizApp(args)
+    if args.save:
+        app.draw()
+        app.fig.savefig(args.save, dpi=300, bbox_inches='tight')
+        print(f"Saved to {args.save}")
+        sys.exit(0)
+    app.run()

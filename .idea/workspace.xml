@@ -1,0 +1,1300 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="e589c0c7-3023-4016-b8be-86fd1ff51230" name="Changes" comment="Added more IAO for tests">
+      <change beforePath="$PROJECT_DIR$/esipy/iao.py" beforeDir="false" afterPath="$PROJECT_DIR$/esipy/iao.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/esipy/indicators.py" beforeDir="false" afterPath="$PROJECT_DIR$/esipy/indicators.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/esipy/input.py" beforeDir="false" afterPath="$PROJECT_DIR$/esipy/input.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/esipy/make_aoms.py" beforeDir="false" afterPath="$PROJECT_DIR$/esipy/make_aoms.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/esipy/tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/esipy/tools.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CopilotPersistence">
+    <persistenceIdMap>
+      <entry key="_/home/joan/PycharmProjects/ESIpy" value="2pep2eo59DjBuSXXqfWE99YzeZP" />
+    </persistenceIdMap>
+  </component>
+  <component name="CopilotUserSelectedModel">
+    <selectedModels>
+      <entry key="edit-panel" value="GPT-5 mini" />
+      <entry key="chat-panel" value="GPT-5 mini" />
+      <entry key="agent-panel" value="GPT-5 mini" />
+    </selectedModels>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Merge.Settings">
+    <option name="BRANCH" value="dev-readfchk2" />
+  </component>
+  <component name="Git.Settings">
+    <option name="PUSH_AUTO_UPDATE" value="true" />
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="main" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;jgrebol&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;git@github.com:jgrebol/ESIpy.git&quot;,
+    &quot;accountId&quot;: &quot;7bfdafaa-2b1d-44cb-a566-9cf1ac65d9f8&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 1
+}</component>
+  <component name="ProjectId" id="2pep2eo59DjBuSXXqfWE99YzeZP" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python docs.Docutils Task in index.rst.executor": "Run",
+    "Python tests.Doctest via pytest for h.iao.executor": "Run",
+    "Python tests.Doctest via pytest in fchkiao.py.executor": "Run",
+    "Python tests.Doctest via pytest in h.py.executor": "Run",
+    "Python tests.Python tests for test2_rest_indicators.ESItest.executor": "Run",
+    "Python tests.Python tests for test3_unrest_indicators.ESItest.executor": "Run",
+    "Python tests.Python tests for test4_atomicfiles.ESItest.test_read_aoms_unrest.executor": "Run",
+    "Python tests.Python tests for test4_atomicfiles.ESItest.test_write_read_aoms_rest.executor": "Run",
+    "Python tests.Python tests for test5_casscf_indicators.ESItest.executor": "Run",
+    "Python tests.Python tests for test6_ccsd_indicators.ESItest.executor": "Run",
+    "Python tests.Python tests for test6_ccsd_indicators.ESItest.test_nao.executor": "Run",
+    "Python tests.Python tests in runtests.py.executor": "Run",
+    "Python tests.Python tests in test1_class.py.executor": "Run",
+    "Python tests.Python tests in test2_rest_indicators.py.executor": "Run",
+    "Python tests.Python tests in test4_atomicfiles.py.executor": "Run",
+    "Python tests.Python tests in tests.executor": "Run",
+    "Python tests.Unittests in tests.executor": "Run",
+    "Python tests.pytest for test7_rings.test_rings_behavior.executor": "Run",
+    "Python tests.pytest in test2_rest_indicators.py.executor": "Run",
+    "Python tests.pytest in test5_casscf_indicators.py.executor": "Run",
+    "Python tests.pytest in test7_rings.py.executor": "Run",
+    "Python tests.pytest in tests.executor": "Run",
+    "Python.16p-porphyrin.executor": "Run",
+    "Python.18p-porphyrin.executor": "Run",
+    "Python.acetylene.executor": "Run",
+    "Python.alldens.executor": "Run",
+    "Python.autosad.executor": "Run",
+    "Python.bench_10x60.executor": "Run",
+    "Python.bench_mci.executor": "Run",
+    "Python.benchmark_mci.executor": "Run",
+    "Python.berga.executor": "Run",
+    "Python.bz.executor": "Run",
+    "Python.bz2.executor": "Run",
+    "Python.bz_mp2.executor": "Run",
+    "Python.c4h4.executor": "Run",
+    "Python.cart2spherical.executor": "Run",
+    "Python.compare_minao_vs_fchk.executor": "Profiler",
+    "Python.compare_overlap.executor": "Run",
+    "Python.compare_pyscf_esipy.executor": "Run",
+    "Python.conec.executor": "Run",
+    "Python.conf.executor": "Run",
+    "Python.cor.executor": "Run",
+    "Python.countour.executor": "Run",
+    "Python.countour2.executor": "Run",
+    "Python.countour3.executor": "Run",
+    "Python.countour4.executor": "Run",
+    "Python.countour5.executor": "Run",
+    "Python.cubes.executor": "Run",
+    "Python.cubificator.executor": "Run",
+    "Python.cubificator2.executor": "Run",
+    "Python.cubificator3.executor": "Run",
+    "Python.cubificator5.executor": "Run",
+    "Python.density.executor": "Run",
+    "Python.diag_d_orbs.executor": "Run",
+    "Python.efos.executor": "Run",
+    "Python.example01.executor": "Run",
+    "Python.example02.executor": "Run",
+    "Python.example03.executor": "Run",
+    "Python.example04.executor": "Run",
+    "Python.example05.executor": "Run",
+    "Python.example06.executor": "Run",
+    "Python.example07.executor": "Run",
+    "Python.example08.executor": "Run",
+    "Python.example09.executor": "Run",
+    "Python.example10.executor": "Run",
+    "Python.example11.executor": "Run",
+    "Python.fchk2esi.executor": "Run",
+    "Python.fchkiao.executor": "Run",
+    "Python.fci.executor": "Run",
+    "Python.fromfile.executor": "Run",
+    "Python.godaprox.executor": "Run",
+    "Python.h.executor": "Run",
+    "Python.h2o.executor": "Run",
+    "Python.hola.executor": "Run",
+    "Python.homa.executor": "Run",
+    "Python.iao-autosad.executor": "Run",
+    "Python.iao-cas.executor": "Run",
+    "Python.iao-effao.executor": "Run",
+    "Python.indicators.executor": "Run",
+    "Python.make_aoms.executor": "Run",
+    "Python.mci_wrapper.executor": "Run",
+    "Python.mokit_test.executor": "Run",
+    "Python.mp.executor": "Run",
+    "Python.nanoring.executor": "Run",
+    "Python.plot_c7h7_iao.executor": "Run",
+    "Python.porphyrins.executor": "Run",
+    "Python.profile.executor": "Run",
+    "Python.profile2.executor": "Run",
+    "Python.qtaim.executor": "Run",
+    "Python.read (1).executor": "Run",
+    "Python.read.executor": "Run",
+    "Python.readfchk.executor": "Run",
+    "Python.readfchk3.executor": "Run",
+    "Python.sn12.executor": "Run",
+    "Python.tddft.executor": "Run",
+    "Python.test (1).executor": "Run",
+    "Python.test.executor": "Run",
+    "Python.test1.executor": "Run",
+    "Python.test2.executor": "Run",
+    "Python.test4.executor": "Run",
+    "Python.tmp_compare_esipy.executor": "Run",
+    "Python.tools.executor": "Run",
+    "Python.vers.executor": "Run",
+    "Python.vis.executor": "Run",
+    "Python.vis2.executor": "Run",
+    "Python.vis_aom.executor": "Run",
+    "Python.vis_density.executor": "Run",
+    "Python.vis_orbitals.executor": "Run",
+    "Python.vis_qtaim.executor": "Run",
+    "Python.write.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "dev-iao",
+    "last_opened_file_path": "/home/joan/PycharmProjects/ESIpy/joan",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "reference.settingsdialog.IDE.editor.postfix.templates",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/joan" />
+      <recent name="$PROJECT_DIR$/input_tests" />
+      <recent name="$PROJECT_DIR$/esipy" />
+      <recent name="$PROJECT_DIR$/FINGERPRINT" />
+      <recent name="$PROJECT_DIR$/scripts" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/" />
+      <recent name="$PROJECT_DIR$/src" />
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/docs/source/_static" />
+      <recent name="$PROJECT_DIR$/docs" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.iao-effao">
+    <configuration name="autosad" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="ESIpy" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/joan" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/joan/autosad.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="bz" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="ESIpy" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/joan" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/joan/bz.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="c4h4" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="ESIpy" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/joan" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/joan/c4h4.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="iao-effao" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="ESIpy" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/joan" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/joan/iao-effao.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Python tests in /home/joan/PycharmProjects/ESIpy/input_tests/runtests.py" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
+      <module name="ESIpy" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/input_tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/input_tests/runtests.py&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Unittests in tests" type="tests" factoryName="Unittests" nameIsGenerated="true">
+      <module name="ESIpy" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="$PROJECT_DIR$/.venv/bin/python" />
+      <option name="SDK_NAME" value="Python 3.10 (ESIpy)" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_pattern" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/tests&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Unittests in tests" type="tests" factoryName="Unittests" nameIsGenerated="true">
+      <module name="ESIpy" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="$PROJECT_DIR$/.venv/bin/python" />
+      <option name="SDK_NAME" value="Python 3.10 (ESIpy)" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_pattern" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/tests&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Python.c4h4" />
+      <item itemvalue="Python.iao-effao" />
+      <item itemvalue="Python.autosad" />
+      <item itemvalue="Python.bz" />
+      <item itemvalue="Python tests.Unittests in tests" />
+      <item itemvalue="Python tests.Python tests in /home/joan/PycharmProjects/ESIpy/input_tests/runtests.py" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.iao-effao" />
+        <item itemvalue="Python.c4h4" />
+        <item itemvalue="Python.bz" />
+        <item itemvalue="Python.autosad" />
+        <item itemvalue="Python tests.Python tests in /home/joan/PycharmProjects/ESIpy/input_tests/runtests.py" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-14d54ed193d7-64d779b69b7a-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-251.28774.16" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="SvnConfiguration">
+    <configuration>$USER_HOME$/.subversion</configuration>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="e589c0c7-3023-4016-b8be-86fd1ff51230" name="Changes" comment="" />
+      <created>1733136190048</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1733136190048</updated>
+      <workItem from="1746697444416" duration="4498000" />
+      <workItem from="1746711880318" duration="738000" />
+      <workItem from="1746712628495" duration="170000" />
+      <workItem from="1746712810145" duration="3089000" />
+      <workItem from="1746778674879" duration="7910000" />
+      <workItem from="1746793872429" duration="4744000" />
+      <workItem from="1747035880486" duration="6835000" />
+      <workItem from="1747046813537" duration="1926000" />
+      <workItem from="1747053218938" duration="3026000" />
+      <workItem from="1747129913044" duration="8146000" />
+      <workItem from="1747148380347" duration="36000" />
+      <workItem from="1747148426080" duration="3056000" />
+      <workItem from="1747208848756" duration="6855000" />
+      <workItem from="1747285604329" duration="9654000" />
+      <workItem from="1747485868212" duration="100000" />
+      <workItem from="1747733344380" duration="1497000" />
+      <workItem from="1747743143315" duration="7664000" />
+      <workItem from="1747814325448" duration="11539000" />
+      <workItem from="1747827018181" duration="2274000" />
+      <workItem from="1747901608689" duration="4339000" />
+      <workItem from="1747909697426" duration="11031000" />
+      <workItem from="1747926040867" duration="1244000" />
+      <workItem from="1747986054445" duration="3685000" />
+      <workItem from="1747990196808" duration="401000" />
+      <workItem from="1747993734026" duration="10291000" />
+      <workItem from="1748245066397" duration="9141000" />
+      <workItem from="1748255870226" duration="5863000" />
+      <workItem from="1748269746654" duration="749000" />
+      <workItem from="1748331305093" duration="3571000" />
+      <workItem from="1748335695202" duration="8547000" />
+      <workItem from="1748352500131" duration="2712000" />
+      <workItem from="1748358520346" duration="1213000" />
+      <workItem from="1748417642570" duration="1162000" />
+      <workItem from="1748420794640" duration="600000" />
+      <workItem from="1748422429570" duration="3857000" />
+      <workItem from="1748428259656" duration="1348000" />
+      <workItem from="1748440767384" duration="3455000" />
+      <workItem from="1748591353034" duration="869000" />
+      <workItem from="1748598675219" duration="2766000" />
+      <workItem from="1748615269173" duration="1593000" />
+      <workItem from="1748685337442" duration="1996000" />
+      <workItem from="1748711782643" duration="1051000" />
+      <workItem from="1748722079796" duration="852000" />
+      <workItem from="1748775333894" duration="2514000" />
+      <workItem from="1749044266003" duration="530000" />
+      <workItem from="1749045316998" duration="8677000" />
+      <workItem from="1749198811061" duration="6610000" />
+      <workItem from="1749457428702" duration="1525000" />
+      <workItem from="1749461587331" duration="1259000" />
+      <workItem from="1749475762731" duration="2034000" />
+      <workItem from="1749483789168" duration="451000" />
+      <workItem from="1749547693921" duration="1704000" />
+      <workItem from="1749556613953" duration="4712000" />
+      <workItem from="1749561510675" duration="2390000" />
+      <workItem from="1749720865484" duration="11000" />
+      <workItem from="1749733115959" duration="1358000" />
+      <workItem from="1749740380386" duration="1782000" />
+      <workItem from="1749807879652" duration="1090000" />
+      <workItem from="1749824075876" duration="387000" />
+      <workItem from="1749824841672" duration="1583000" />
+      <workItem from="1749898151936" duration="5051000" />
+      <workItem from="1749909650370" duration="587000" />
+      <workItem from="1749919631641" duration="2908000" />
+      <workItem from="1750068903429" duration="897000" />
+      <workItem from="1750069990266" duration="8144000" />
+      <workItem from="1750148508277" duration="3851000" />
+      <workItem from="1750173031162" duration="1611000" />
+      <workItem from="1750243990278" duration="6616000" />
+      <workItem from="1750319778196" duration="5403000" />
+      <workItem from="1750328352880" duration="7655000" />
+      <workItem from="1750348127533" duration="6659000" />
+      <workItem from="1750409235684" duration="11660000" />
+      <workItem from="1750421869724" duration="7008000" />
+      <workItem from="1750431504220" duration="4702000" />
+      <workItem from="1750439707517" duration="19000" />
+      <workItem from="1750439778878" duration="801000" />
+      <workItem from="1750511343713" duration="5870000" />
+      <workItem from="1750684360426" duration="625000" />
+      <workItem from="1750748326797" duration="396000" />
+      <workItem from="1750753658652" duration="2336000" />
+      <workItem from="1750757504015" duration="520000" />
+      <workItem from="1750772094054" duration="1348000" />
+      <workItem from="1750776994801" duration="2237000" />
+      <workItem from="1750779732248" duration="711000" />
+      <workItem from="1750832563883" duration="223000" />
+      <workItem from="1750837016630" duration="3209000" />
+      <workItem from="1750843517143" duration="536000" />
+      <workItem from="1750936739272" duration="4425000" />
+      <workItem from="1751014495427" duration="3921000" />
+      <workItem from="1751038054827" duration="2956000" />
+      <workItem from="1751281377286" duration="3360000" />
+      <workItem from="1751361067486" duration="5474000" />
+      <workItem from="1751542392863" duration="2954000" />
+      <workItem from="1751617941897" duration="8867000" />
+      <workItem from="1751645026612" duration="350000" />
+      <workItem from="1751647434705" duration="1922000" />
+      <workItem from="1751723073160" duration="3804000" />
+      <workItem from="1751870982833" duration="2785000" />
+      <workItem from="1751886944295" duration="1340000" />
+      <workItem from="1751893121875" duration="691000" />
+      <workItem from="1751968978867" duration="2465000" />
+      <workItem from="1751973049264" duration="1335000" />
+      <workItem from="1751992297872" duration="2066000" />
+      <workItem from="1752053068750" duration="1501000" />
+      <workItem from="1752138442231" duration="4071000" />
+      <workItem from="1752151696754" duration="2302000" />
+      <workItem from="1752155010461" duration="2457000" />
+      <workItem from="1752239980123" duration="988000" />
+      <workItem from="1752256595033" duration="1909000" />
+      <workItem from="1752424202839" duration="1728000" />
+      <workItem from="1752432767416" duration="1778000" />
+      <workItem from="1752479973017" duration="7681000" />
+      <workItem from="1752489871836" duration="11565000" />
+      <workItem from="1752565917425" duration="2979000" />
+      <workItem from="1752576958227" duration="7026000" />
+      <workItem from="1752589690640" duration="1440000" />
+      <workItem from="1752591605408" duration="1086000" />
+      <workItem from="1752658343819" duration="3545000" />
+      <workItem from="1752664385993" duration="6102000" />
+      <workItem from="1752739624394" duration="2062000" />
+      <workItem from="1752749865200" duration="3328000" />
+      <workItem from="1752824716472" duration="5639000" />
+      <workItem from="1752832263887" duration="6486000" />
+      <workItem from="1752845767700" duration="5730000" />
+      <workItem from="1752852709075" duration="226000" />
+      <workItem from="1752852961215" duration="1448000" />
+      <workItem from="1752922948747" duration="1000000" />
+      <workItem from="1753085337123" duration="15962000" />
+      <workItem from="1753106026395" duration="5740000" />
+      <workItem from="1753111788999" duration="150000" />
+      <workItem from="1753170645348" duration="22038000" />
+      <workItem from="1753256433094" duration="25579000" />
+      <workItem from="1753347307465" duration="7579000" />
+      <workItem from="1753364192651" duration="8451000" />
+      <workItem from="1753373326855" duration="4298000" />
+      <workItem from="1753457961284" duration="2679000" />
+      <workItem from="1753609026002" duration="1319000" />
+      <workItem from="1753697787091" duration="304000" />
+      <workItem from="1753698894155" duration="260000" />
+      <workItem from="1753712030998" duration="2299000" />
+      <workItem from="1753722479241" duration="1689000" />
+      <workItem from="1753772345159" duration="659000" />
+      <workItem from="1753859011781" duration="4084000" />
+      <workItem from="1753868726960" duration="1211000" />
+      <workItem from="1753947966599" duration="1158000" />
+      <workItem from="1753974352608" duration="5332000" />
+      <workItem from="1753982033732" duration="6000" />
+      <workItem from="1753982120456" duration="476000" />
+      <workItem from="1754035696404" duration="6251000" />
+      <workItem from="1754900230691" duration="10294000" />
+      <workItem from="1754922327201" duration="3361000" />
+      <workItem from="1754986260919" duration="10539000" />
+      <workItem from="1755510445774" duration="419000" />
+      <workItem from="1755511041814" duration="504000" />
+      <workItem from="1755694821492" duration="1277000" />
+      <workItem from="1755772954917" duration="662000" />
+      <workItem from="1756892707639" duration="1712000" />
+      <workItem from="1756910772911" duration="2190000" />
+      <workItem from="1757511563922" duration="897000" />
+      <workItem from="1757685505061" duration="2071000" />
+      <workItem from="1757687815531" duration="1620000" />
+      <workItem from="1757829888329" duration="3897000" />
+      <workItem from="1757842285009" duration="2845000" />
+      <workItem from="1757925591376" duration="1906000" />
+      <workItem from="1757931624158" duration="1378000" />
+      <workItem from="1758014626140" duration="1059000" />
+      <workItem from="1758016110987" duration="602000" />
+      <workItem from="1759915891324" duration="4807000" />
+      <workItem from="1759921217782" duration="9636000" />
+      <workItem from="1760004289165" duration="3480000" />
+      <workItem from="1760018447260" duration="6955000" />
+      <workItem from="1760084105467" duration="6070000" />
+      <workItem from="1760099407274" duration="5750000" />
+      <workItem from="1760112699965" duration="3573000" />
+      <workItem from="1760340955360" duration="8304000" />
+      <workItem from="1760350249252" duration="11225000" />
+      <workItem from="1760428125606" duration="785000" />
+      <workItem from="1760429872537" duration="7070000" />
+      <workItem from="1760450151478" duration="599000" />
+      <workItem from="1761817342789" duration="76000" />
+      <workItem from="1761817680919" duration="440000" />
+      <workItem from="1761822547225" duration="1518000" />
+      <workItem from="1761842480619" duration="328000" />
+      <workItem from="1761848831009" duration="606000" />
+      <workItem from="1761900807114" duration="29000" />
+      <workItem from="1761900845409" duration="701000" />
+      <workItem from="1761913706075" duration="605000" />
+      <workItem from="1761998673275" duration="608000" />
+      <workItem from="1762003377181" duration="737000" />
+      <workItem from="1762118332771" duration="602000" />
+      <workItem from="1762161892327" duration="154000" />
+      <workItem from="1762162081995" duration="599000" />
+      <workItem from="1762169739112" duration="605000" />
+      <workItem from="1762178609411" duration="1502000" />
+      <workItem from="1762245153628" duration="947000" />
+      <workItem from="1762257516401" duration="599000" />
+      <workItem from="1762332212337" duration="619000" />
+      <workItem from="1762336033451" duration="599000" />
+      <workItem from="1762339970553" duration="12431000" />
+      <workItem from="1762354006057" duration="6198000" />
+      <workItem from="1762418457145" duration="6830000" />
+      <workItem from="1762426610158" duration="7313000" />
+      <workItem from="1762511587501" duration="8000" />
+      <workItem from="1762529112201" duration="369000" />
+      <workItem from="1762529599717" duration="8318000" />
+      <workItem from="1762624756907" duration="259000" />
+      <workItem from="1762764456391" duration="10713000" />
+      <workItem from="1762776594633" duration="6383000" />
+      <workItem from="1762785891003" duration="5292000" />
+      <workItem from="1762852965220" duration="20716000" />
+      <workItem from="1762878381790" duration="1011000" />
+      <workItem from="1762936653143" duration="19697000" />
+      <workItem from="1763023476569" duration="21007000" />
+      <workItem from="1763101424993" duration="6790000" />
+      <workItem from="1763109669465" duration="173000" />
+      <workItem from="1763371597382" duration="6693000" />
+      <workItem from="1763378724650" duration="2174000" />
+      <workItem from="1763381103958" duration="15430000" />
+      <workItem from="1763408616736" duration="2389000" />
+      <workItem from="1763415176223" duration="2483000" />
+      <workItem from="1763458079334" duration="11795000" />
+      <workItem from="1763478148525" duration="1856000" />
+      <workItem from="1763491111153" duration="686000" />
+      <workItem from="1763542725106" duration="12727000" />
+      <workItem from="1763558226667" duration="638000" />
+      <workItem from="1763629625841" duration="8516000" />
+      <workItem from="1763714385105" duration="9799000" />
+      <workItem from="1763743333356" duration="119000" />
+      <workItem from="1763972561560" duration="609000" />
+      <workItem from="1763991310676" duration="617000" />
+      <workItem from="1764059902467" duration="2698000" />
+      <workItem from="1764068261854" duration="10403000" />
+      <workItem from="1764084765238" duration="10672000" />
+      <workItem from="1764153858940" duration="13982000" />
+      <workItem from="1764233558260" duration="16355000" />
+      <workItem from="1764261027870" duration="4865000" />
+      <workItem from="1764266202716" duration="3707000" />
+      <workItem from="1764318757644" duration="3938000" />
+      <workItem from="1764325210848" duration="14630000" />
+      <workItem from="1764343309734" duration="6938000" />
+      <workItem from="1764409770457" duration="3946000" />
+      <workItem from="1764416630066" duration="1251000" />
+      <workItem from="1764418192389" duration="1640000" />
+      <workItem from="1764421094850" duration="520000" />
+      <workItem from="1764430106895" duration="10500000" />
+      <workItem from="1764442572403" duration="1065000" />
+      <workItem from="1764495950243" duration="2895000" />
+      <workItem from="1764499920033" duration="1985000" />
+      <workItem from="1764504468781" duration="1115000" />
+      <workItem from="1764513729323" duration="1132000" />
+      <workItem from="1764521327511" duration="592000" />
+      <workItem from="1764578369924" duration="1107000" />
+      <workItem from="1764587238541" duration="9633000" />
+      <workItem from="1764604844180" duration="1874000" />
+      <workItem from="1764664974749" duration="10263000" />
+      <workItem from="1764677332316" duration="6447000" />
+      <workItem from="1764750893998" duration="9479000" />
+      <workItem from="1764765148375" duration="3829000" />
+      <workItem from="1764781962722" duration="3338000" />
+      <workItem from="1764785883476" duration="913000" />
+      <workItem from="1764795201475" duration="3029000" />
+      <workItem from="1765043170745" duration="1238000" />
+      <workItem from="1765053283769" duration="3425000" />
+      <workItem from="1765105127163" duration="4149000" />
+      <workItem from="1765113551754" duration="9333000" />
+      <workItem from="1765136608169" duration="781000" />
+      <workItem from="1765137850598" duration="1259000" />
+      <workItem from="1765205340618" duration="4674000" />
+      <workItem from="1765210549055" duration="2029000" />
+      <workItem from="1765224327024" duration="4344000" />
+      <workItem from="1765615155969" duration="2899000" />
+      <workItem from="1765735142530" duration="7290000" />
+      <workItem from="1765788494667" duration="4742000" />
+      <workItem from="1765794441034" duration="4193000" />
+      <workItem from="1765800083892" duration="4407000" />
+      <workItem from="1765811485628" duration="4323000" />
+      <workItem from="1765875142400" duration="1280000" />
+      <workItem from="1765877431782" duration="12151000" />
+      <workItem from="1765893753265" duration="3472000" />
+      <workItem from="1765962875561" duration="5116000" />
+      <workItem from="1765981053311" duration="5574000" />
+      <workItem from="1766050134429" duration="9461000" />
+      <workItem from="1766067299477" duration="6272000" />
+      <workItem from="1766074337292" duration="609000" />
+      <workItem from="1766145334877" duration="107000" />
+      <workItem from="1766151356534" duration="877000" />
+      <workItem from="1766152678867" duration="4091000" />
+      <workItem from="1766157486236" duration="5940000" />
+      <workItem from="1766228781760" duration="605000" />
+      <workItem from="1766470940215" duration="937000" />
+      <workItem from="1766485721157" duration="3388000" />
+      <workItem from="1767020514984" duration="5506000" />
+      <workItem from="1767087279403" duration="6820000" />
+      <workItem from="1767095039797" duration="5639000" />
+      <workItem from="1767175073818" duration="5945000" />
+      <workItem from="1767181492215" duration="4912000" />
+      <workItem from="1767206382611" duration="1890000" />
+      <workItem from="1767286242970" duration="3464000" />
+      <workItem from="1767354949848" duration="2075000" />
+      <workItem from="1767361640334" duration="5592000" />
+      <workItem from="1767367868778" duration="4176000" />
+      <workItem from="1767523493320" duration="5060000" />
+      <workItem from="1767609545868" duration="4189000" />
+      <workItem from="1767891192763" duration="6176000" />
+      <workItem from="1767947966858" duration="419000" />
+      <workItem from="1767955056765" duration="3307000" />
+      <workItem from="1767967752293" duration="7001000" />
+      <workItem from="1767982118477" duration="711000" />
+      <workItem from="1768207148136" duration="2673000" />
+      <workItem from="1768293511302" duration="710000" />
+      <workItem from="1768391547884" duration="3380000" />
+      <workItem from="1768584063374" duration="641000" />
+      <workItem from="1768585786664" duration="2296000" />
+      <workItem from="1768811718173" duration="8085000" />
+      <workItem from="1768823331393" duration="6925000" />
+      <workItem from="1768840626959" duration="1863000" />
+      <workItem from="1768986714327" duration="1468000" />
+      <workItem from="1769087683633" duration="1763000" />
+      <workItem from="1769091821436" duration="8878000" />
+      <workItem from="1769162054118" duration="2834000" />
+      <workItem from="1769179748327" duration="616000" />
+      <workItem from="1769425930415" duration="3146000" />
+      <workItem from="1769430547679" duration="7340000" />
+      <workItem from="1769442245475" duration="2228000" />
+      <workItem from="1769510864840" duration="643000" />
+      <workItem from="1769515393783" duration="5582000" />
+      <workItem from="1769602427581" duration="5460000" />
+      <workItem from="1769617287989" duration="587000" />
+      <workItem from="1769680485529" duration="4214000" />
+      <workItem from="1769690073494" duration="3651000" />
+      <workItem from="1769700125186" duration="3902000" />
+      <workItem from="1769764767424" duration="1088000" />
+      <workItem from="1769790515247" duration="340000" />
+      <workItem from="1769879109356" duration="28000" />
+      <workItem from="1770217555544" duration="1332000" />
+      <workItem from="1770280934487" duration="11538000" />
+      <workItem from="1770299518540" duration="5178000" />
+      <workItem from="1770311197258" duration="1194000" />
+      <workItem from="1770375809019" duration="1700000" />
+      <workItem from="1770807454231" duration="1530000" />
+      <workItem from="1770809668753" duration="3876000" />
+      <workItem from="1770993886325" duration="241000" />
+      <workItem from="1771418223452" duration="4268000" />
+      <workItem from="1771430178272" duration="1087000" />
+      <workItem from="1771495065664" duration="3294000" />
+      <workItem from="1771511317334" duration="5418000" />
+      <workItem from="1771517358883" duration="2117000" />
+      <workItem from="1771585608908" duration="9388000" />
+      <workItem from="1771930991688" duration="2721000" />
+      <workItem from="1772009497538" duration="1343000" />
+      <workItem from="1772019721840" duration="2010000" />
+      <workItem from="1772115869996" duration="1097000" />
+      <workItem from="1772185585989" duration="256000" />
+      <workItem from="1772185966887" duration="1504000" />
+      <workItem from="1772188616118" duration="2865000" />
+      <workItem from="1772205362488" duration="6120000" />
+      <workItem from="1772295286311" duration="2876000" />
+      <workItem from="1772716406695" duration="1465000" />
+      <workItem from="1772720354122" duration="2774000" />
+      <workItem from="1772725788661" duration="1315000" />
+      <workItem from="1772793425564" duration="1656000" />
+      <workItem from="1772806616613" duration="699000" />
+      <workItem from="1772899174395" duration="3644000" />
+      <workItem from="1773074951617" duration="2256000" />
+      <workItem from="1773167263395" duration="70000" />
+      <workItem from="1773227459517" duration="1738000" />
+      <workItem from="1773420467452" duration="429000" />
+      <workItem from="1773651540669" duration="413000" />
+    </task>
+    <task id="LOCAL-00381" summary="Merged ReadFCHK into MCIAPROX">
+      <option name="closed" value="true" />
+      <created>1768213495852</created>
+      <option name="number" value="00381" />
+      <option name="presentableId" value="LOCAL-00381" />
+      <option name="project" value="LOCAL" />
+      <updated>1768213495852</updated>
+    </task>
+    <task id="LOCAL-00382" summary="Merged ReadFCHK into MCIAPROX">
+      <option name="closed" value="true" />
+      <created>1768214477471</created>
+      <option name="number" value="00382" />
+      <option name="presentableId" value="LOCAL-00382" />
+      <option name="project" value="LOCAL" />
+      <updated>1768214477471</updated>
+    </task>
+    <task id="LOCAL-00383" summary="Merged ReadFCHK into MCIAPROX">
+      <option name="closed" value="true" />
+      <created>1768821492051</created>
+      <option name="number" value="00383" />
+      <option name="presentableId" value="LOCAL-00383" />
+      <option name="project" value="LOCAL" />
+      <updated>1768821492052</updated>
+    </task>
+    <task id="LOCAL-00384" summary="Merged ReadFCHK into MCIAPROX">
+      <option name="closed" value="true" />
+      <created>1768823694794</created>
+      <option name="number" value="00384" />
+      <option name="presentableId" value="LOCAL-00384" />
+      <option name="project" value="LOCAL" />
+      <updated>1768823694794</updated>
+    </task>
+    <task id="LOCAL-00385" summary="Merged ReadFCHK into MCIAPROX">
+      <option name="closed" value="true" />
+      <created>1768823786446</created>
+      <option name="number" value="00385" />
+      <option name="presentableId" value="LOCAL-00385" />
+      <option name="project" value="LOCAL" />
+      <updated>1768823786446</updated>
+    </task>
+    <task id="LOCAL-00386" summary="Changed documentation settings">
+      <option name="closed" value="true" />
+      <created>1768824403850</created>
+      <option name="number" value="00386" />
+      <option name="presentableId" value="LOCAL-00386" />
+      <option name="project" value="LOCAL" />
+      <updated>1768824403850</updated>
+    </task>
+    <task id="LOCAL-00387" summary="Fixed small bug">
+      <option name="closed" value="true" />
+      <created>1768824544146</created>
+      <option name="number" value="00387" />
+      <option name="presentableId" value="LOCAL-00387" />
+      <option name="project" value="LOCAL" />
+      <updated>1768824544146</updated>
+    </task>
+    <task id="LOCAL-00388" summary="Fixed small bug">
+      <option name="closed" value="true" />
+      <created>1768824622768</created>
+      <option name="number" value="00388" />
+      <option name="presentableId" value="LOCAL-00388" />
+      <option name="project" value="LOCAL" />
+      <updated>1768824622768</updated>
+    </task>
+    <task id="LOCAL-00389" summary="Fixed small bug">
+      <option name="closed" value="true" />
+      <created>1768824847829</created>
+      <option name="number" value="00389" />
+      <option name="presentableId" value="LOCAL-00389" />
+      <option name="project" value="LOCAL" />
+      <updated>1768824847830</updated>
+    </task>
+    <task id="LOCAL-00390" summary="Fixed documentation bug">
+      <option name="closed" value="true" />
+      <created>1768825147220</created>
+      <option name="number" value="00390" />
+      <option name="presentableId" value="LOCAL-00390" />
+      <option name="project" value="LOCAL" />
+      <updated>1768825147221</updated>
+    </task>
+    <task id="LOCAL-00391" summary="Fixed documentation bug">
+      <option name="closed" value="true" />
+      <created>1768825268627</created>
+      <option name="number" value="00391" />
+      <option name="presentableId" value="LOCAL-00391" />
+      <option name="project" value="LOCAL" />
+      <updated>1768825268627</updated>
+    </task>
+    <task id="LOCAL-00392" summary="Fixed documentation bug">
+      <option name="closed" value="true" />
+      <created>1768826399977</created>
+      <option name="number" value="00392" />
+      <option name="presentableId" value="LOCAL-00392" />
+      <option name="project" value="LOCAL" />
+      <updated>1768826399977</updated>
+    </task>
+    <task id="LOCAL-00393" summary="Changed CSS for the webpage">
+      <option name="closed" value="true" />
+      <created>1768831447752</created>
+      <option name="number" value="00393" />
+      <option name="presentableId" value="LOCAL-00393" />
+      <option name="project" value="LOCAL" />
+      <updated>1768831447753</updated>
+    </task>
+    <task id="LOCAL-00394" summary="Changed CSS for the webpage">
+      <option name="closed" value="true" />
+      <created>1768831808305</created>
+      <option name="number" value="00394" />
+      <option name="presentableId" value="LOCAL-00394" />
+      <option name="project" value="LOCAL" />
+      <updated>1768831808305</updated>
+    </task>
+    <task id="LOCAL-00395" summary="Changed CSS for the webpage">
+      <option name="closed" value="true" />
+      <created>1768832277463</created>
+      <option name="number" value="00395" />
+      <option name="presentableId" value="LOCAL-00395" />
+      <option name="project" value="LOCAL" />
+      <updated>1768832277464</updated>
+    </task>
+    <task id="LOCAL-00396" summary="Fixed small bugs">
+      <option name="closed" value="true" />
+      <created>1768832850235</created>
+      <option name="number" value="00396" />
+      <option name="presentableId" value="LOCAL-00396" />
+      <option name="project" value="LOCAL" />
+      <updated>1768832850235</updated>
+    </task>
+    <task id="LOCAL-00397" summary="Fixed small bugs">
+      <option name="closed" value="true" />
+      <created>1768833059068</created>
+      <option name="number" value="00397" />
+      <option name="presentableId" value="LOCAL-00397" />
+      <option name="project" value="LOCAL" />
+      <updated>1768833059069</updated>
+    </task>
+    <task id="LOCAL-00398" summary="Fixed small bugs">
+      <option name="closed" value="true" />
+      <created>1768833413317</created>
+      <option name="number" value="00398" />
+      <option name="presentableId" value="LOCAL-00398" />
+      <option name="project" value="LOCAL" />
+      <updated>1768833413317</updated>
+    </task>
+    <task id="LOCAL-00399" summary="Fixed small bugs">
+      <option name="closed" value="true" />
+      <created>1768841066480</created>
+      <option name="number" value="00399" />
+      <option name="presentableId" value="LOCAL-00399" />
+      <option name="project" value="LOCAL" />
+      <updated>1768841066480</updated>
+    </task>
+    <task id="LOCAL-00400" summary="Fixed small bugs">
+      <option name="closed" value="true" />
+      <created>1768841464312</created>
+      <option name="number" value="00400" />
+      <option name="presentableId" value="LOCAL-00400" />
+      <option name="project" value="LOCAL" />
+      <updated>1768841464312</updated>
+    </task>
+    <task id="LOCAL-00401" summary="Fixed small bugs">
+      <option name="closed" value="true" />
+      <created>1768841673834</created>
+      <option name="number" value="00401" />
+      <option name="presentableId" value="LOCAL-00401" />
+      <option name="project" value="LOCAL" />
+      <updated>1768841673834</updated>
+    </task>
+    <task id="LOCAL-00402" summary="Fixed small bugs">
+      <option name="closed" value="true" />
+      <created>1768841786817</created>
+      <option name="number" value="00402" />
+      <option name="presentableId" value="LOCAL-00402" />
+      <option name="project" value="LOCAL" />
+      <updated>1768841786817</updated>
+    </task>
+    <task id="LOCAL-00403" summary="Fixed small bugs">
+      <option name="closed" value="true" />
+      <created>1768842020122</created>
+      <option name="number" value="00403" />
+      <option name="presentableId" value="LOCAL-00403" />
+      <option name="project" value="LOCAL" />
+      <updated>1768842020122</updated>
+    </task>
+    <task id="LOCAL-00404" summary="Fixed small bugs">
+      <option name="closed" value="true" />
+      <created>1768842306981</created>
+      <option name="number" value="00404" />
+      <option name="presentableId" value="LOCAL-00404" />
+      <option name="project" value="LOCAL" />
+      <updated>1768842306981</updated>
+    </task>
+    <task id="LOCAL-00405" summary="Fixed small bugs">
+      <option name="closed" value="true" />
+      <created>1768842396145</created>
+      <option name="number" value="00405" />
+      <option name="presentableId" value="LOCAL-00405" />
+      <option name="project" value="LOCAL" />
+      <updated>1768842396145</updated>
+    </task>
+    <task id="LOCAL-00406" summary="Fixed small bugs">
+      <option name="closed" value="true" />
+      <created>1768987587578</created>
+      <option name="number" value="00406" />
+      <option name="presentableId" value="LOCAL-00406" />
+      <option name="project" value="LOCAL" />
+      <updated>1768987587579</updated>
+    </task>
+    <task id="LOCAL-00407" summary="WIP - Added IAO-AUTOSAD">
+      <option name="closed" value="true" />
+      <created>1769522020665</created>
+      <option name="number" value="00407" />
+      <option name="presentableId" value="LOCAL-00407" />
+      <option name="project" value="LOCAL" />
+      <updated>1769522020665</updated>
+    </task>
+    <task id="LOCAL-00408" summary="Removed required Numpy version - Will match with PySCF">
+      <option name="closed" value="true" />
+      <created>1769523356869</created>
+      <option name="number" value="00408" />
+      <option name="presentableId" value="LOCAL-00408" />
+      <option name="project" value="LOCAL" />
+      <updated>1769523356869</updated>
+    </task>
+    <task id="LOCAL-00409" summary="Added partitions IAO-AUTOSAD-FREEATOM and IAO-AUTOSAD-MULL">
+      <option name="closed" value="true" />
+      <created>1769682243985</created>
+      <option name="number" value="00409" />
+      <option name="presentableId" value="LOCAL-00409" />
+      <option name="project" value="LOCAL" />
+      <updated>1769682243985</updated>
+    </task>
+    <task id="LOCAL-00410" summary="Added partitions IAO-AUTOSAD-FREEATOM and IAO-AUTOSAD-MULL">
+      <option name="closed" value="true" />
+      <created>1769682652924</created>
+      <option name="number" value="00410" />
+      <option name="presentableId" value="LOCAL-00410" />
+      <option name="project" value="LOCAL" />
+      <updated>1769682652924</updated>
+    </task>
+    <task id="LOCAL-00411" summary="Fixed bug - Read QTAIM wfx + Added exclude in ring finding">
+      <option name="closed" value="true" />
+      <created>1769702796816</created>
+      <option name="number" value="00411" />
+      <option name="presentableId" value="LOCAL-00411" />
+      <option name="project" value="LOCAL" />
+      <updated>1769702796817</updated>
+    </task>
+    <task id="LOCAL-00412" summary="Fixed bug - Read QTAIM wfx + Added exclude in ring finding">
+      <option name="closed" value="true" />
+      <created>1770217859345</created>
+      <option name="number" value="00412" />
+      <option name="presentableId" value="LOCAL-00412" />
+      <option name="project" value="LOCAL" />
+      <updated>1770217859345</updated>
+    </task>
+    <task id="LOCAL-00413" summary="Added IAO-AUTOSAD, IAO-EFFAO and IAO-EFFAO-LOWDIN">
+      <option name="closed" value="true" />
+      <created>1770300616324</created>
+      <option name="number" value="00413" />
+      <option name="presentableId" value="LOCAL-00413" />
+      <option name="project" value="LOCAL" />
+      <updated>1770300616325</updated>
+    </task>
+    <task id="LOCAL-00414" summary="Added IAO-AUTOSAD, IAO-EFFAO and IAO-EFFAO-LOWDIN">
+      <option name="closed" value="true" />
+      <created>1770300891523</created>
+      <option name="number" value="00414" />
+      <option name="presentableId" value="LOCAL-00414" />
+      <option name="project" value="LOCAL" />
+      <updated>1770300891523</updated>
+    </task>
+    <task id="LOCAL-00415" summary="Added IAO-AUTOSAD, IAO-EFFAO and IAO-EFFAO-LOWDIN">
+      <option name="closed" value="true" />
+      <created>1770311262252</created>
+      <option name="number" value="00415" />
+      <option name="presentableId" value="LOCAL-00415" />
+      <option name="project" value="LOCAL" />
+      <updated>1770311262252</updated>
+    </task>
+    <task id="LOCAL-00416" summary="IAO-AUTOSAD - Updated minimal basis size for all atoms">
+      <option name="closed" value="true" />
+      <created>1770376248864</created>
+      <option name="number" value="00416" />
+      <option name="presentableId" value="LOCAL-00416" />
+      <option name="project" value="LOCAL" />
+      <updated>1770376248865</updated>
+    </task>
+    <task id="LOCAL-00417" summary="Merged + Added algorithm 5 - Shortest odd distance (if none, even)">
+      <option name="closed" value="true" />
+      <created>1771519474883</created>
+      <option name="number" value="00417" />
+      <option name="presentableId" value="LOCAL-00417" />
+      <option name="project" value="LOCAL" />
+      <updated>1771519474884</updated>
+    </task>
+    <task id="LOCAL-00418" summary="Updated algorithm 4 - Separate by contributions with minimum odd distance (if none, even)">
+      <option name="closed" value="true" />
+      <created>1771586660481</created>
+      <option name="number" value="00418" />
+      <option name="presentableId" value="LOCAL-00418" />
+      <option name="project" value="LOCAL" />
+      <updated>1771586660481</updated>
+    </task>
+    <task id="LOCAL-00419" summary="Updated algorithm 4 - Separate by contributions with minimum odd distance (if none, even)">
+      <option name="closed" value="true" />
+      <created>1771589075733</created>
+      <option name="number" value="00419" />
+      <option name="presentableId" value="LOCAL-00419" />
+      <option name="project" value="LOCAL" />
+      <updated>1771589075733</updated>
+    </task>
+    <task id="LOCAL-00420" summary="More robust input">
+      <option name="closed" value="true" />
+      <created>1771590802378</created>
+      <option name="number" value="00420" />
+      <option name="presentableId" value="LOCAL-00420" />
+      <option name="project" value="LOCAL" />
+      <updated>1771590802378</updated>
+    </task>
+    <task id="LOCAL-00421" summary="Fixed approx MCI bug">
+      <option name="closed" value="true" />
+      <created>1771596063654</created>
+      <option name="number" value="00421" />
+      <option name="presentableId" value="LOCAL-00421" />
+      <option name="project" value="LOCAL" />
+      <updated>1771596063654</updated>
+    </task>
+    <task id="LOCAL-00422" summary="Fixed IAO-EFFAOS bug">
+      <option name="closed" value="true" />
+      <created>1772720945082</created>
+      <option name="number" value="00422" />
+      <option name="presentableId" value="LOCAL-00422" />
+      <option name="project" value="LOCAL" />
+      <updated>1772720945083</updated>
+    </task>
+    <task id="LOCAL-00423" summary="Fixed IAO-EFFAOS bug">
+      <option name="closed" value="true" />
+      <created>1772722394336</created>
+      <option name="number" value="00423" />
+      <option name="presentableId" value="LOCAL-00423" />
+      <option name="project" value="LOCAL" />
+      <updated>1772722394336</updated>
+    </task>
+    <task id="LOCAL-00424" summary="Fixed IAO-EFFAOS bug">
+      <option name="closed" value="true" />
+      <created>1772722434532</created>
+      <option name="number" value="00424" />
+      <option name="presentableId" value="LOCAL-00424" />
+      <option name="project" value="LOCAL" />
+      <updated>1772722434532</updated>
+    </task>
+    <task id="LOCAL-00425" summary="Fixed IAO-EFFAOS bug">
+      <option name="closed" value="true" />
+      <created>1772722803361</created>
+      <option name="number" value="00425" />
+      <option name="presentableId" value="LOCAL-00425" />
+      <option name="project" value="LOCAL" />
+      <updated>1772722803361</updated>
+    </task>
+    <task id="LOCAL-00426" summary="Fixed IAO-EFFAOS bug">
+      <option name="closed" value="true" />
+      <created>1772723045914</created>
+      <option name="number" value="00426" />
+      <option name="presentableId" value="LOCAL-00426" />
+      <option name="project" value="LOCAL" />
+      <updated>1772723045914</updated>
+    </task>
+    <task id="LOCAL-00427" summary="Fixed IAO-EFFAOS bug">
+      <option name="closed" value="true" />
+      <created>1772726466598</created>
+      <option name="number" value="00427" />
+      <option name="presentableId" value="LOCAL-00427" />
+      <option name="project" value="LOCAL" />
+      <updated>1772726466599</updated>
+    </task>
+    <task id="LOCAL-00428" summary="Fixed IAO-EFFAOS bug">
+      <option name="closed" value="true" />
+      <created>1772794373594</created>
+      <option name="number" value="00428" />
+      <option name="presentableId" value="LOCAL-00428" />
+      <option name="project" value="LOCAL" />
+      <updated>1772794373594</updated>
+    </task>
+    <task id="LOCAL-00429" summary="Added more IAO for tests">
+      <option name="closed" value="true" />
+      <created>1773228576862</created>
+      <option name="number" value="00429" />
+      <option name="presentableId" value="LOCAL-00429" />
+      <option name="project" value="LOCAL" />
+      <updated>1773228576862</updated>
+    </task>
+    <option name="localTasksCounter" value="430" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName="*.bib" />
+    <option featureType="com.intellij.fileTypeFactory" implementationName="Makefile" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="CUSTOM_BOOLEAN_PROPERTIES">
+                <map>
+                  <entry key="Show.Git.Branches" value="true" />
+                </map>
+              </option>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="dev-readfchk" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="READFCHK - WIP" />
+    <MESSAGE value="MCIAPROX - Bugfix multiprocessing" />
+    <MESSAGE value="READFCHK - Improved MCI + FCHK works + Needs refinement" />
+    <MESSAGE value="READFCHK - Improved MCI + FCHK works + Final tests needed" />
+    <MESSAGE value="READFCHK - Removed test readfchk3.py" />
+    <MESSAGE value="READFCHK - Clean-up and done" />
+    <MESSAGE value="Reverted changes" />
+    <MESSAGE value="Merged ReadFCHK into MCIAPROX" />
+    <MESSAGE value="Changed documentation settings" />
+    <MESSAGE value="Fixed small bug" />
+    <MESSAGE value="Fixed documentation bug" />
+    <MESSAGE value="Changed CSS for the webpage" />
+    <MESSAGE value="Fixed small bugs" />
+    <MESSAGE value="WIP - Added IAO-AUTOSAD" />
+    <MESSAGE value="Removed required Numpy version - Will match with PySCF" />
+    <MESSAGE value="Added partitions IAO-AUTOSAD-FREEATOM and IAO-AUTOSAD-MULL" />
+    <MESSAGE value="Fixed bug - Read QTAIM wfx + Added exclude in ring finding" />
+    <MESSAGE value="Added IAO-AUTOSAD, IAO-EFFAO and IAO-EFFAO-LOWDIN" />
+    <MESSAGE value="IAO-AUTOSAD - Updated minimal basis size for all atoms" />
+    <MESSAGE value="Merged + Added algorithm 5 - Shortest odd distance (if none, even)" />
+    <MESSAGE value="Updated algorithm 4 - Separate by contributions with minimum odd distance (if none, even)" />
+    <MESSAGE value="More robust input" />
+    <MESSAGE value="Fixed approx MCI bug" />
+    <MESSAGE value="Fixed IAO-EFFAOS bug" />
+    <MESSAGE value="Added more IAO for tests" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added more IAO for tests" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/ESIpy$vis.coverage" NAME="vis Coverage Results" MODIFIED="1747734672873" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan" />
+    <SUITE FILE_PATH="coverage/ESIpy$.coverage" NAME=" Coverage Results" MODIFIED="1770292914129" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/ESIpy$compare_pyscf_esipy.coverage" NAME="compare_pyscf_esipy Coverage Results" MODIFIED="1762789196285" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts" />
+    <SUITE FILE_PATH="coverage/ESIpy$sn12.coverage" NAME="sn12 Coverage Results" MODIFIED="1762946701940" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts" />
+    <SUITE FILE_PATH="coverage/ESIpy$pytest_in_test7_rings_py.coverage" NAME="pytest in test7_rings.py Coverage Results" MODIFIED="1752577233371" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/ESIpy$example01.coverage" NAME="example01 Coverage Results" MODIFIED="1762788595661" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
+    <SUITE FILE_PATH="coverage/ESIpy$autosad.coverage" NAME="autosad Coverage Results" MODIFIED="1772295653440" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan" />
+    <SUITE FILE_PATH="coverage/ESIpy$bench_mci.coverage" NAME="bench_mci Coverage Results" MODIFIED="1762430520680" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts" />
+    <SUITE FILE_PATH="coverage/ESIpy$cor.coverage" NAME="cor Coverage Results" MODIFIED="1749204873433" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$pytest_for_test7_rings_test_rings_behavior.coverage" NAME="pytest for test7_rings.test_rings_behavior Coverage Results" MODIFIED="1746801288897" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/ESIpy$benchmark_mci.coverage" NAME="benchmark_mci Coverage Results" MODIFIED="1765983634603" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/ESIpy$cubes.coverage" NAME="cubes Coverage Results" MODIFIED="1747752298110" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$vis_density.coverage" NAME="vis_density Coverage Results" MODIFIED="1750256823331" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$test2.coverage" NAME="test2 Coverage Results" MODIFIED="1767208232662" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/input_tests" />
+    <SUITE FILE_PATH="coverage/ESIpy$vis2.coverage" NAME="vis2 Coverage Results" MODIFIED="1747749703458" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan2" />
+    <SUITE FILE_PATH="coverage/ESIpy$vis_orbitals.coverage" NAME="vis_orbitals Coverage Results" MODIFIED="1752139063487" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$read.coverage" NAME="read Coverage Results" MODIFIED="1747286528925" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan2" />
+    <SUITE FILE_PATH="coverage/ESIpy$h2o.coverage" NAME="h2o Coverage Results" MODIFIED="1771495421707" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan" />
+    <SUITE FILE_PATH="coverage/ESIpy$pytest_in_tests.coverage" NAME="pytest in tests Coverage Results" MODIFIED="1752577297822" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
+    <SUITE FILE_PATH="coverage/ESIpy$c4h4.coverage" NAME="c4h4 Coverage Results" MODIFIED="1772806633198" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan" />
+    <SUITE FILE_PATH="coverage/ESIpy$Doctest_via_pytest_for_h_iao.coverage" NAME="Doctest via pytest for h.iao Coverage Results" MODIFIED="1760115436179" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan" />
+    <SUITE FILE_PATH="coverage/ESIpy$bench_10x60.coverage" NAME="bench_10x60 Coverage Results" MODIFIED="1762430611296" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts" />
+    <SUITE FILE_PATH="coverage/ESIpy$density.coverage" NAME="density Coverage Results" MODIFIED="1747752173046" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$example09.coverage" NAME="example09 Coverage Results" MODIFIED="1752591984631" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
+    <SUITE FILE_PATH="coverage/ESIpy$readfchk.coverage" NAME="readfchk Coverage Results" MODIFIED="1762787374670" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/esipy" />
+    <SUITE FILE_PATH="coverage/ESIpy$qtaim.coverage" NAME="qtaim Coverage Results" MODIFIED="1749903073301" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$mci_wrapper.coverage" NAME="mci_wrapper Coverage Results" MODIFIED="1762350732857" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/esipy" />
+    <SUITE FILE_PATH="coverage/ESIpy$make_aoms.coverage" NAME="make_aoms Coverage Results" MODIFIED="1770994084424" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/esipy" />
+    <SUITE FILE_PATH="coverage/ESIpy$porphyrins.coverage" NAME="porphyrins Coverage Results" MODIFIED="1747219349322" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan2" />
+    <SUITE FILE_PATH="coverage/ESIpy$vis_aom.coverage" NAME="vis_aom Coverage Results" MODIFIED="1747824791373" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$countour5.coverage" NAME="countour5 Coverage Results" MODIFIED="1752831343570" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$vis_qtaim.coverage" NAME="vis_qtaim Coverage Results" MODIFIED="1748341373717" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$countour.coverage" NAME="countour Coverage Results" MODIFIED="1749562665804" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$cubificator2.coverage" NAME="cubificator2 Coverage Results" MODIFIED="1752138637435" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$test.coverage" NAME="test Coverage Results" MODIFIED="1763029282054" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts" />
+    <SUITE FILE_PATH="coverage/ESIpy$countour2.coverage" NAME="countour2 Coverage Results" MODIFIED="1750513117893" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$tmp_compare_esipy.coverage" NAME="tmp_compare_esipy Coverage Results" MODIFIED="1763373845226" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts" />
+    <SUITE FILE_PATH="coverage/ESIpy$18p_porphyrin.coverage" NAME="18p-porphyrin Coverage Results" MODIFIED="1747143434308" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan2" />
+    <SUITE FILE_PATH="coverage/ESIpy$test1.coverage" NAME="test1 Coverage Results" MODIFIED="1765743576238" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/input_tests" />
+    <SUITE FILE_PATH="coverage/ESIpy$cubificator5.coverage" NAME="cubificator5 Coverage Results" MODIFIED="1752434292167" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$Doctest_via_pytest_in_fchkiao_py.coverage" NAME="Doctest via pytest in fchkiao.py Coverage Results" MODIFIED="1760115471719" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan2" />
+    <SUITE FILE_PATH="coverage/ESIpy$cubificator.coverage" NAME="cubificator Coverage Results" MODIFIED="1749825985572" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$iao_autosad.coverage" NAME="iao-autosad Coverage Results" MODIFIED="1765792395232" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan2" />
+    <SUITE FILE_PATH="coverage/ESIpy$Doctest_via_pytest_in_h_py.coverage" NAME="Doctest via pytest in h.py Coverage Results" MODIFIED="1760346032793" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan" />
+    <SUITE FILE_PATH="coverage/ESIpy$Unittests_in_tests.coverage" NAME="Unittests in tests Coverage Results" MODIFIED="1770292785674" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/ESIpy$cart2spherical.coverage" NAME="cart2spherical Coverage Results" MODIFIED="1764695167266" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/ESIpy$alldens.coverage" NAME="alldens Coverage Results" MODIFIED="1748422628725" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$berga.coverage" NAME="berga Coverage Results" MODIFIED="1755511434272" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan" />
+    <SUITE FILE_PATH="coverage/ESIpy$iao_effao.coverage" NAME="iao-effao Coverage Results" MODIFIED="1773076261959" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan" />
+    <SUITE FILE_PATH="coverage/ESIpy$example11.coverage" NAME="example11 Coverage Results" MODIFIED="1747292198546" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
+    <SUITE FILE_PATH="coverage/ESIpy$bz.coverage" NAME="bz Coverage Results" MODIFIED="1772794346923" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan" />
+    <SUITE FILE_PATH="coverage/ESIpy$read__1_.coverage" NAME="read (1) Coverage Results" MODIFIED="1747290817766" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan" />
+    <SUITE FILE_PATH="coverage/ESIpy$tools.coverage" NAME="tools Coverage Results" MODIFIED="1762420393164" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/esipy" />
+    <SUITE FILE_PATH="coverage/ESIpy$h.coverage" NAME="h Coverage Results" MODIFIED="1760363542701" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan" />
+    <SUITE FILE_PATH="coverage/ESIpy$countour3.coverage" NAME="countour3 Coverage Results" MODIFIED="1752830990363" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$readfchk3.coverage" NAME="readfchk3 Coverage Results" MODIFIED="1762537276146" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/esipy" />
+    <SUITE FILE_PATH="coverage/ESIpy$fchkiao.coverage" NAME="fchkiao Coverage Results" MODIFIED="1760115692806" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan2" />
+    <SUITE FILE_PATH="coverage/ESIpy$acetylene.coverage" NAME="acetylene Coverage Results" MODIFIED="1769697780114" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan" />
+    <SUITE FILE_PATH="coverage/ESIpy$compare_overlap.coverage" NAME="compare_overlap Coverage Results" MODIFIED="1762877450946" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts" />
+    <SUITE FILE_PATH="coverage/ESIpy$bz2.coverage" NAME="bz2 Coverage Results" MODIFIED="1747286520318" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan2" />
+    <SUITE FILE_PATH="coverage/ESIpy$mp.coverage" NAME="mp Coverage Results" MODIFIED="1771430281071" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan" />
+    <SUITE FILE_PATH="coverage/ESIpy$countour4.coverage" NAME="countour4 Coverage Results" MODIFIED="1752151769950" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$test4.coverage" NAME="test4 Coverage Results" MODIFIED="1763031544523" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/input_tests" />
+    <SUITE FILE_PATH="coverage/ESIpy$diag_d_orbs.coverage" NAME="diag_d_orbs Coverage Results" MODIFIED="1764267303604" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts" />
+    <SUITE FILE_PATH="coverage/ESIpy$cubificator3.coverage" NAME="cubificator3 Coverage Results" MODIFIED="1752742666652" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/vis" />
+    <SUITE FILE_PATH="coverage/ESIpy$plot_c7h7_iao.coverage" NAME="plot_c7h7_iao Coverage Results" MODIFIED="1769097298044" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts" />
+    <SUITE FILE_PATH="coverage/ESIpy$nanoring.coverage" NAME="nanoring Coverage Results" MODIFIED="1770810630156" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan" />
+    <SUITE FILE_PATH="coverage/ESIpy$compare_minao_vs_fchk.coverage" NAME="compare_minao_vs_fchk Coverage Results" MODIFIED="1760348296802" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts" />
+    <SUITE FILE_PATH="coverage/ESIpy$mokit_test.coverage" NAME="mokit_test Coverage Results" MODIFIED="1767356080279" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/input_tests" />
+    <SUITE FILE_PATH="coverage/ESIpy$16p_porphyrin.coverage" NAME="16p-porphyrin Coverage Results" MODIFIED="1747143307904" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/joan2" />
+    <SUITE FILE_PATH="coverage/ESIpy$example06.coverage" NAME="example06 Coverage Results" MODIFIED="1752591932345" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
+  </component>
+</project>
