@@ -8,6 +8,7 @@ Supports keywords: $READFCHK, $RING, $PARTITION, $FLUREF, $FINDRINGS, $AV1245, $
 class ESIInput:
     def __init__(self):
         self.fchk_file = None
+        self.ecp = None
         self.rings = None
         self.noring = False
         self.partition = None
@@ -55,6 +56,13 @@ class ESIInput:
                 i += 1
                 if i < len(lines):
                     obj.readpath = lines[i]
+            elif line.startswith('$ECP'):
+                parts = line.split()
+                if len(parts) > 1:
+                    obj.ecp = parts[1].strip()
+                else:
+                    i += 1
+                    if i < len(lines): obj.ecp = lines[i].strip()
             elif line.startswith('$READAOM'):
                 obj.mode = 'readaoms'
                 i += 1

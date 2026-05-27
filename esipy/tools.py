@@ -39,7 +39,7 @@ def wf_type(aom):
     Checks the topology of the AOMs to obtain the type of wavefunction.
     """
     # NOs return format [list, array]
-    if isinstance(aom, list) and len(aom) == 2 and isinstance(aom[1], np.ndarray):
+    if isinstance(aom, list) and len(aom) == 2 and isinstance(aom[1], np.ndarray) and aom[1].ndim == 1:
         return "no"
     # Restricted: list of matrices
     if isinstance(aom, list) and isinstance(aom[0], np.ndarray) and aom[0].ndim == 2:
@@ -127,34 +127,21 @@ def find_distances(arr, geom):
 
 
 def find_dis(arr, aom):
-    """
-    Collects the DIs between the atoms in ring connectivity.
-
-    :param arr: Indices of the atoms in ring connectivity.
-    :type arr: list of int
-    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :returns: List containing the DIs of the members of the ring.
-    :rtype: list of float
-    """
-
-    return [4 * np.einsum('ij,ji->', aom[arr[i] - 1], aom[arr[(i + 1) % len(arr)] - 1]) for i in range(len(arr))]
+    wf = wf_type(aom)
+    if wf == "no":
+        return [2 * find_di(aom, arr[j], arr[(j + 1) % len(arr)]) for j in range(len(arr))]
+    return [4 * np.einsum('ij,ji->', aom[arr[j] - 1], aom[arr[(j + 1) % len(arr)] - 1]) for j in range(len(arr))]
 
 
 def find_di(aom, i, j):
-    """
-    Collects the DI between two atoms.
-
-    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :param i: Index of the first atom.
-    :type i: int
-    :param j: Index of the second atom.
-    :type j: int
-    :returns: DI between the atoms i and j.
-    :rtype: float
-    """
-
+    wf = wf_type(aom)
+    if wf == "no":
+        aom_list, occ = aom
+        if occ.ndim == 2: occ = np.diag(occ)
+        sq = np.sqrt(occ)
+        Da = sq[:, None] * aom_list[i-1] * sq[None, :]
+        Db = sq[:, None] * aom_list[j-1] * sq[None, :]
+        return 2 * np.einsum('ij,ji->', Da, Db)
     return 2 * np.einsum('ij,ji->', aom[i - 1], aom[j - 1])
 
 
@@ -179,33 +166,26 @@ def find_di_no(aom, i, j):
 
 
 def find_lis(arr, aom):
-    """
-    Collects the LIs between the atoms in ring connectivity.
-
-    :param arr: Indices of the atoms in ring connectivity.
-    :type arr: list of int
-    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :returns: List containing the DIs of the members of the ring.
-    :rtype: list of float
-    """
-
-    return [2 * np.einsum('ij,ji->', aom[arr[i] - 1], aom[arr[i] - 1]) for i in range(len(arr))]
+    wf = wf_type(aom)
+    if wf == "no":
+        aom_list, occ = aom
+        if occ.ndim == 2: occ = np.diag(occ)
+        sq = np.sqrt(occ)
+        res = []
+        for j in range(len(arr)):
+            D = sq[:, None] * aom_list[arr[j]-1] * sq[None, :]
+            res.append(np.einsum('ij,ji->', D, D))
+        return res
+    return [2 * np.einsum('ij,ji->', aom[arr[j] - 1], aom[arr[j] - 1]) for j in range(len(arr))]
 
 
 def find_ns(arr, aom):
-    """
-    Collects the atomic populations of all the atoms in the ring.
-
-    :param arr: Indices of the atoms in ring connectivity.
-    :type arr: list of int
-    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :returns: List containing the atomic populations of the members of the ring.
-    :rtype: list of float
-    """
-
-    return [2 * np.trace(aom[arr[i] - 1]) for i in range(len(arr))]
+    wf = wf_type(aom)
+    if wf == "no":
+        aom_list, occ = aom
+        if occ.ndim == 2: occ = np.diag(occ)
+        return [np.sum(occ * np.diag(aom_list[arr[j] - 1])) for j in range(len(arr))]
+    return [2 * np.trace(aom[arr[j] - 1]) for j in range(len(arr))]
 
 
 def av1245_pairs(arr):
@@ -390,16 +370,25 @@ def get_natorbs(mf, S):
     import numpy as np
     print(" | Obtaining Natural Orbitals from the 1-RDM...")
 
-    if 'ccsd' in str(mf.__class__).lower() or 'mp2' in str(mf.__class__).lower():
-        from pyscf import lib
-        old_backend = getattr(lib.numpy_helper, 'EINSUM_BACKEND', 'pyscf')
-        lib.numpy_helper.EINSUM_BACKEND = 'numpy'
-        try:
-            rdm1 = mf.make_rdm1(ao_repr=True)
-        finally:
-            lib.numpy_helper.EINSUM_BACKEND = old_backend
-    else:
+    try:
         rdm1 = mf.make_rdm1(ao_repr=True)
+    except ValueError:
+        # Fallback for environments with broken PySCF einsum (e.g. Anaconda/PySCF 2.4.0)
+        # We manually transform the MO-basis RDM to AO-basis.
+        dm_mo = mf.make_rdm1(ao_repr=False)
+        mo_coeff = mf.mo_coeff
+        
+        if isinstance(dm_mo, (list, tuple)) or (isinstance(dm_mo, np.ndarray) and dm_mo.ndim == 3):
+            # Unrestricted or Spin-separated
+            rdm1 = []
+            for i in range(len(dm_mo)):
+                c = mo_coeff[i]
+                d = dm_mo[i]
+                rdm1.append(c @ d @ c.T.conj())
+        else:
+            # Restricted
+            rdm1 = mo_coeff @ dm_mo @ mo_coeff.T.conj()
+
     rdm1_arr = np.asarray(rdm1)
 
     if rdm1_arr.ndim == 3:

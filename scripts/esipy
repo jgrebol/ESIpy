@@ -33,7 +33,7 @@ def main():
         if not os.path.isfile(inp.fchk_file):
             print(f"Error: The file '{inp.fchk_file}' does not exist.")
             sys.exit(1)
-        mol, mf = readfchk(inp.fchk_file)
+        mol, mf = readfchk(inp.fchk_file, ecp=inp.ecp)
         molname = os.path.splitext(os.path.basename(inp.fchk_file))[0]
 
     elif inp.mode == 'readint':
