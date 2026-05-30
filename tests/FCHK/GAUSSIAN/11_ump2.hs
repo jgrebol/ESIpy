@@ -1,0 +1,7 @@
+$READFCHK
+11_ump2.fchk
+$RING
+1 2
+$PARTITION
+ALL
+

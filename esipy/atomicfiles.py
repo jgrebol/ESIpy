@@ -121,7 +121,7 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
     :type aom: list
     :param ring: Connectivity of the atoms in the ring. Can be more than one ring as a list of lists.
     :type ring: list of int, optional
-    :param partition: Partition scheme for the AOMs. Options are "mulliken", "lowdin", "meta_lowdin", "nao", "iao".
+    :param partition: Partition scheme for the AOMs. Options are "mulliken", "lowdin", "meta-lowdin", "nao", "iao".
     :type partition: str, optional
 
     :returns: None
@@ -196,7 +196,7 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
                 f.write(" Using Mulliken atomic definition\n")
             elif partition == "lowdin":
                 f.write(" Using Lowdin atomic definition\n")
-            elif partition == "meta_lowdin":
+            elif partition == "meta-lowdin":
                 f.write(" Using Meta-Lowdin atomic definition\n")
             elif partition == "nao":
                 f.write(" Using NAO atomic definition\n")
@@ -218,7 +218,7 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
             f.write("              L   0.00000000000000E+01\n\n")
 
             if wf == "unrest":
-                occ_tmp = np.diag([1.0] * (len(aom[0][i]) + len(aom[1][i])))
+                occ = np.diag([1.0] * (len(aom[0][i]) + len(aom[1][i])))
                 f.write("\n The Atomic Overlap Matrix:\n\n Unrestricted\n\n")
                 alpha_size = len(aom[0][i])
                 beta_size = len(aom[1][i])
@@ -237,6 +237,7 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
                                 f.write("{:.16E}  ".format(fill[j][k]))
                         f.write("\n")
             elif wf == "rest":
+                occ = np.diag([2.0] * len(aom[i]))
                 f.write("\n The Atomic Overlap Matrix:\n\n Restricted, closed-shell\n\n  ")
                 if partition == "mulliken":
                     for j in range(len(aom[i])):
@@ -281,20 +282,15 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
                 "---------------------------------------------------------------------------------------------------\n")
 
             if wf == "unrest":
-                for j, occup in enumerate(np.diag(occ_tmp[beta_size:])):
+                for j, occup in enumerate(np.diag(occ[beta_size:])):
                     f.write(
                         f"       {j + 1:<8}{j + 1:<12}{float(1.):<15.10f}{'Alpha':<15}{0.0:<15.10f}{0.0:<15.10f}{0.0:<15.10f}\n"
                     )
-                for j, occup in enumerate(np.diag(occ_tmp[:beta_size])):
+                for j, occup in enumerate(np.diag(occ[:beta_size])):
                     f.write(
                         f"       {j + 1 + alpha_size:<8}{j + 1 + alpha_size:<12}{float(occup):<15.10f}{'Beta':<15}{0.0:<15.10f}{0.0:<15.10f}{0.0:<15.10f}\n"
                     )
-            elif wf == "rest":
-                for j in range(len(aom[i])):
-                    f.write(
-                        f"       {j + 1:<8}{j + 1:<12}{float(2.0):<15.10f}{'Alpha,Beta':<15}{0.0:<15.10f}{0.0:<15.10f}{0.0:<15.10f}\n"
-                    )
-            else: # no
+            else:
                 for j, occup in enumerate(np.diag(occ)):
                     f.write(
                         f"       {j + 1:<8}{j + 1:<12}{float(occup):<15.10f}{'Alpha,Beta':<15}{0.0:<15.10f}{0.0:<15.10f}{0.0:<15.10f}\n"
@@ -329,9 +325,6 @@ def read_molinfo(path):
     molinfo = {
         "method": "Not specified",
         "basisset": "Not specified",
-        "xc": "Not specified",
-        "energy": "Not specified",
-        "calctype": "Not specified",
         "geom": None,
         "partition": "qtaim",
     }
@@ -339,8 +332,8 @@ def read_molinfo(path):
     symbs, atm_nums = [], []
     found_energy = False
     ints = [intfile for intfile in os.listdir(path) if
-            intfile.endswith(".int") and os.path.isfile(os.path.join(path, intfile))]
-    int_files = sorted(ints, key=lambda x: int(re.search(r"\d+", x).group()))
+            intfile.endswith('.int') and os.path.isfile(os.path.join(path, intfile))]
+    int_files = sorted(ints, key=lambda x: int(re.search(r'\d+', x).group()))
 
     if not int_files:
         raise FileNotFoundError(f"No *.int files found in the directory '{path}'.")
@@ -352,7 +345,7 @@ def read_molinfo(path):
 
         for line in lines:
             if "Integration is" in line or "INTEGRATION IS" in line:
-                parts = re.findall(r"[A-Za-z]+|\d+", line.split()[-1].strip())
+                parts = re.findall(r'[A-Za-z]+|\d+', line.split()[-1].strip())
                 symbs.append(parts[-2])
                 atm_nums.append(parts[-1])
             if "Restricted, closed-shell" in line or "Restricted Closed-Shell":
@@ -365,116 +358,90 @@ def read_molinfo(path):
             if "The molecular energy from the wf" in line or "ENERGY" in line and not found_energy:
                 molinfo["energy"] = float(line.split()[-1])
                 found_energy = True
-            
-            if "Model:" in line:
-                molinfo["method"] = line.split("Model:")[1].strip()
-            if "Basis Set:" in line:
-                molinfo["basisset"] = line.split("Basis Set:")[1].strip()
-            if "Functional:" in line:
-                molinfo["xc"] = line.split("Functional:")[1].strip()
-            
-            if "Wfx File:" in line and "wfx_filename" not in molinfo:
-                molinfo["wfx_filename"] = line.split(":")[-1].strip()
-
     molinfo["symbols"] = symbs
     molinfo["atom_numbers"] = atm_nums
-    molinfo["geom"] = read_wfx_info(path, molinfo.get("wfx_filename"))
+    molinfo["geom"] = read_wfx_info(path)
 
     return molinfo
 
-def read_wfx_info(path, wfx_filename=None):
+def read_wfx_info(path):
     """
     Searches for a .wfx file in the given path or the previous path, reads the coordinates and charges,
     and stores them in molinfo["geom"].
 
     :param path: Directory path containing the file.
     :type path: str
-    :param wfx_filename: Optional filename of the .wfx file.
-    :type wfx_filename: str
-    :returns: NumPy array with coordinates.
+    :param molinfo: Dictionary to store molecular information.
+    :type molinfo: dict
+    :returns: NumPy array with <symbol> <x> <y> <z>.
     :rtype: numpy.ndarray
     """
     global wfxnotfound
 
-    # Normalize paths
+    # Look for a .wfx file in the given path (guard against empty or non-existing paths)
     if not path:
         path = os.getcwd()
-    path = os.path.normpath(path)
-    abs_path = os.path.abspath(path)
-    parent_path = os.path.dirname(abs_path)
 
-    # Possible locations to look for the file
-    locations = [path, abs_path, parent_path, os.getcwd()]
-    # Remove duplicates while preserving order
-    unique_locations = []
-    for loc in locations:
-        if loc and loc not in unique_locations:
-            unique_locations.append(loc)
+    # Prefer the .wfx files we write; fallback to legacy .wfx
+    if os.path.isdir(path):
+        wfx_files = [f for f in os.listdir(path) if f.endswith('.wfx')]
+        if len(wfx_files) > 1:
+            basename = os.path.basename(path).split('_')[0]
+            filtered = [f for f in wfx_files if f.startswith(basename)]
+            if len(filtered) == 1:
+                wfx_files = filtered
+    else:
+        wfx_files = []
 
-    wfx_file = None
+    if not wfx_files or len(wfx_files) > 1:
+        # Try the previous path (parent directory) if no .wfx file is found
+        previous_path = os.path.dirname(path)
+        if not previous_path:
+            previous_path = os.getcwd()
 
-    # If we have a specific filename, look for it
-    if wfx_filename:
-        # It might be an absolute path already
-        if os.path.isabs(wfx_filename) and os.path.isfile(wfx_filename):
-            wfx_file = wfx_filename
+        if os.path.isdir(previous_path):
+            wfx_files = [f for f in os.listdir(previous_path) if f.endswith('.wfx')]
+            if len(wfx_files) > 1:
+                basename = os.path.basename(path).split('_')[0]
+                filtered = [f for f in wfx_files if f.startswith(basename)]
+                if len(filtered) == 1:
+                    wfx_files = filtered
         else:
-            # Look for this specific filename in all locations
-            base_wfx = os.path.basename(wfx_filename)
-            for loc in unique_locations:
-                if loc and os.path.isdir(loc):
-                    candidate = os.path.join(loc, base_wfx)
-                    if os.path.isfile(candidate):
-                        wfx_file = candidate
-                        break
+            wfx_files = []
 
-    # Fallback to searching for any .wfx file if not found yet
-    if not wfx_file:
-        for loc in unique_locations:
-            if loc and os.path.isdir(loc):
-                files = [f for f in os.listdir(loc) if f.lower().endswith(".wfx")]
-                if len(files) == 1:
-                    wfx_file = os.path.join(loc, files[0])
-                    break
-                elif len(files) > 1:
-                    # If multiple, maybe one matches the "path" name?
-                    basename = os.path.basename(path).replace("_atomicfiles", "")
-                    matches = [f for f in files if basename in f]
-                    if len(matches) == 1:
-                        wfx_file = os.path.join(loc, matches[0])
-                        break
-    
-    if not wfx_file:
-        if not wfxnotfound:
-            print(f" | Could not find .wfx file in any of: {unique_locations}")
-            wfxnotfound = True
-        return None
+        if not wfx_files or len(wfx_files) > 1:
+            # Print the diagnostic message at most once per process
+            if not wfxnotfound:
+                print(" | Could not find .wfx file in", path, "\n | or", previous_path)
+                wfxnotfound = True
+            return None
 
-    with open(wfx_file, "r") as file:
+        path = previous_path
+
+    wfx_file = os.path.join(path, wfx_files[0])
+    with open(wfx_file, 'r') as file:
         lines = file.readlines()
 
     start_coords = False
     coordinates = []
     for line in lines:
-        if "<Nuclear Cartesian Coordinates>" in line or "<Atomic Positions>" in line:
+        if "<Nuclear Cartesian Coordinates>" in line:
             start_coords = True
             continue
-        if "</Nuclear Cartesian Coordinates>" in line or "</Atomic Positions>" in line:
+        if "</Nuclear Cartesian Coordinates>" in line:
             break
         if start_coords:
             parts = line.split()
-            # Handle both standard WFX (3 values) and some variants (4 values: Z X Y Z)
             if len(parts) == 3:
                 coordinates.append([float(x) for x in parts])
-            elif len(parts) == 4:
-                coordinates.append([float(x) for x in parts[1:]])
 
     if not coordinates:
-        raise ValueError(f"No coordinates found in the .wfx file: {wfx_file}")
+        raise ValueError("No coordinates found in the .wfx file.")
 
     # Combine symbols and coordinates into a NumPy array
     geom = np.array([coordinates[i] for i in range(len(coordinates))], dtype=object)
 
+    # Store the coordinates in molinfo["geom"]
     return geom
 
 

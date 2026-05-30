@@ -6,12 +6,13 @@ from pyscf import scf
 
 from esipy.tools import save_file, format_partition, get_natorbs, build_eta
 
-def make_aoms(mol, mf, partition, myhf=None, save=None):
+def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
     """
     Build the Atomic Overlap Matrices (AOMs) in the Molecular Orbitals basis. 
     """
 
     partition_label = format_partition(partition)
+    iaoref = 'sto-3g' if partition_label == 'iao2' else 'minao'
     
     try:
         S = mf.get_ovlp()
@@ -23,7 +24,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             import iao_dump as iao_mod
         except ImportError:
             import esipy.iao as iao_mod
-        
+
         iao, fpiao = iao_mod.iao, iao_mod.fpiao
         effao, autosad, wiao = iao_mod.effao, iao_mod.autosad, iao_mod.wiao
         reference_mol = iao_mod.reference_mol
@@ -31,11 +32,11 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         p_type = p_type.lower()
         if p_type.startswith("iao_"):
             p_type = "iao " + p_type[4:]
-            
-        m_w = re.search(r"\(([\d\.]+)\)", p_type)
+
+        m_w = re.search(r"\(+([\d\.]+)\)+", p_type)
         if m_w:
             string_w = float(m_w.group(1))
-            p_type_clean = re.sub(r"\([\d\.]+\)", "", p_type).replace("  ", " ").strip()
+            p_type_clean = re.sub(r"\(+[\d\.]+\)+", "", p_type).replace("  ", " ").strip()
         else:
             string_w = None
             p_type_clean = p_type.strip()
@@ -50,7 +51,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
         p_base = p_parts[0]
         if p_base == "iao-basis":
             p_base = "iao"
-            
+
         # Defaults
         if p_base == "iao":
             iaoref = 'minao'
@@ -58,15 +59,15 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             iaoref = 'valence'
         else:
             iaoref = 'minao'
-            
+
         ref_bas = p_parts[1] if len(p_parts) > 1 else iaoref
         weight = 0.5
         local_w = w_override if w_override is not None else (string_w if string_w is not None else (weight if weight is not None else 0.5))
 
-        # IAO construction for Natural Orbitals: 
+        # IAO construction for Natural Orbitals:
         # use first N_ref NOs for construction, but project all NOs
         is_no = False
-        if hasattr(current_mf, 'mo_occ'):
+        if hasattr(current_mf, 'mo_occ') and getattr(current_mf, 'mo_occ', None) is not None:
             occ_tmp = np.asarray(current_mf.mo_occ)
             if np.any((occ_tmp > 1e-6) & (np.abs(occ_tmp - 1.0) > 1e-6) & (np.abs(occ_tmp - 2.0) > 1e-6)):
                 is_no = True
@@ -127,57 +128,90 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
              U_nonorth = orth.vec_lowdin(C_iao_nonorth, S)
         else:
             raise NameError(f"Unknown IAO type: {p_base}")
-        
+
         U = np.dot(S, U_nonorth)
         from esipy.tools import build_eta
         eta = build_eta(pmol)
         proj_c = c_full if c_full is not None else c
         return [np.linalg.multi_dot((proj_c.T, U, eta[i], U.T, proj_c)) for i in range(mol.natm)]
 
-    # 1. UNRESTRICTED
     mo_coeff = mf.mo_coeff
     mo_occ = mf.mo_occ
+    if mo_occ is None and hasattr(mf, '_scf'):
+        mo_occ = mf._scf.mo_occ
+        
     is_unrest = (isinstance(mo_coeff, (list, tuple)) and len(mo_coeff) == 2) or \
                 (isinstance(mo_coeff, np.ndarray) and mo_coeff.ndim == 3 and mo_coeff.shape[0] == 2)
     
+    from esipy.tools import is_natorb_wf
+    
+    # 1. UNRESTRICTED
     if is_unrest:
-        ca, cb = mo_coeff[0], mo_coeff[1]
-        oa, ob = np.asarray(mo_occ[0]), np.asarray(mo_occ[1])
-        is_natorb = np.any((oa > 1e-6) & (np.abs(oa - 1.0) > 1e-6)) or np.any((ob > 1e-6) & (np.abs(ob - 1.0) > 1e-6))
-        
+        is_natorb = False
+        if is_fchk:
+            d_lbl = getattr(mf, 'density_label', '')
+            if 'MP2' in d_lbl or 'CC' in d_lbl or 'CI' in d_lbl:
+                is_natorb = True
+            else:
+                if mo_occ is not None and np.asarray(mo_occ).dtype != object:
+                    occ_flat = np.asarray(mo_occ).flatten()
+                    is_natorb = np.any((occ_flat > 1e-6) & (np.abs(occ_flat - 1.0) > 1e-6) & (np.abs(occ_flat - 2.0) > 1e-6))
+        else:
+            if is_natorb_wf(mf):
+                is_natorb = True
+
+        if is_natorb:
+            occ, coeff = get_natorbs(mf, S)
+            if isinstance(occ, list):
+                oa, ob = np.asarray(occ[0]), np.asarray(occ[1])
+                ca, cb = coeff[0], coeff[1]
+            else:
+                oa, ob = np.asarray(occ), np.asarray(occ)
+                ca, cb = coeff, coeff
+            mask_a = np.ones(len(oa), dtype=bool)
+            mask_b = np.ones(len(ob), dtype=bool)
+        else:
+            ca, cb = mo_coeff[0], mo_coeff[1]
+            oa, ob = np.asarray(mo_occ[0]), np.asarray(mo_occ[1])
+            mask_a = oa > 0.5
+            mask_b = ob > 0.5
+            
         if partition_label in ("lowdin", "meta-lowdin", "nao", "mulliken"):
             aom_alpha, aom_beta = [], []
             if partition_label == "lowdin": U_inv = lowdin(S)
             elif partition_label == "meta-lowdin":
                 from pyscf.lo import orth
-                U_inv = orth.orth_ao(mol, method="meta-lowdin")
-
+                U_inv = orth.orth_ao(myhf if myhf is not None else mf, method="meta-lowdin")
             elif partition_label == "nao": U_inv = nao.nao(mol, mf, S)
             
             if partition_label == "mulliken":
                 eta = build_eta(mol)
                 for i in range(mol.natm):
-                    aom_alpha.append(np.linalg.multi_dot((ca[:, oa>0].T, S, eta[i], ca[:, oa>0])))
-                    aom_beta.append(np.linalg.multi_dot((cb[:, ob>0].T, S, eta[i], cb[:, ob>0])))
+                    aom_alpha.append(np.linalg.multi_dot((ca[:, mask_a].T, S, eta[i], ca[:, mask_a])))
+                    aom_beta.append(np.linalg.multi_dot((cb[:, mask_b].T, S, eta[i], cb[:, mask_b])))
             else:
                 U = np.linalg.inv(U_inv); eta = build_eta(mol)
                 for i in range(mol.natm):
-                    aom_alpha.append(ca[:, oa>0].T @ U.T @ eta[i] @ U @ ca[:, oa>0])
-                    aom_beta.append(cb[:, ob>0].T @ U.T @ eta[i] @ U @ cb[:, ob>0])
-            aom = [aom_alpha, aom_beta]
+                    aom_alpha.append(ca[:, mask_a].T @ U.T @ eta[i] @ U @ ca[:, mask_a])
+                    aom_beta.append(cb[:, mask_b].T @ U.T @ eta[i] @ U @ cb[:, mask_b])
+            
+            if is_natorb and (not is_fchk or np.any(np.abs(oa - 1.0) > 1e-6)):
+                aom = [[aom_alpha, aom_beta], [oa[mask_a], ob[mask_b]]]
+            else:
+                aom = [aom_alpha, aom_beta]
         else:
+            # IAO logic
             if is_natorb:
-                mask_a, mask_b = oa > 1e-10, ob > 1e-10
                 from esipy.iao import reference_mol
                 pmol = reference_mol(mol, source_basis="minao")
                 n_ref = pmol.nao
                 aom_alpha = get_iao_aoms(partition_label, ca[:, :n_ref], mf, c_full=ca[:, mask_a])
                 aom_beta = get_iao_aoms(partition_label, cb[:, :n_ref], mf, c_full=cb[:, mask_b])
-                aom = [[aom_alpha, aom_beta], [np.diag(oa[mask_a]), np.diag(ob[mask_b])]]
+                aom = [[aom_alpha, aom_beta], [oa[mask_a], ob[mask_b]]]
             else:
-                coeff_alpha = ca[:, oa > 0.5]
-                coeff_beta = cb[:, ob > 0.5]
-                aom = [get_iao_aoms(partition_label, coeff_alpha, mf), get_iao_aoms(partition_label, coeff_beta, mf)]
+                aom_alpha = get_iao_aoms(partition_label, ca[:, mask_a], mf)
+                aom_beta = get_iao_aoms(partition_label, cb[:, mask_b], mf)
+                aom = [aom_alpha, aom_beta]
         
         if save: save_file(aom, save)
         return aom
@@ -185,20 +219,35 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
     # 2. RESTRICTED
     else:
         mo_coeff = mf.mo_coeff
-        mo_occ = np.asarray(mf.mo_occ)
+        mo_occ = mf.mo_occ
+        if mo_occ is None and hasattr(mf, '_scf'):
+            mo_occ = mf._scf.mo_occ
+            
         if isinstance(mo_coeff, (list, tuple)) and len(mo_coeff) == 1:
             mo_coeff = mo_coeff[0]
             mo_occ = mo_occ[0]
             
-        occ = mo_occ
-        is_natorb = np.any((occ > 1e-6) & (np.abs(occ - 1.0) > 1e-6) & (np.abs(occ - 2.0) > 1e-6))
-        coeff_src = mo_coeff
-
-        if is_natorb:
-            mask = (occ > 1e-10)
+        is_natorb = False
+        if is_fchk:
+            d_lbl = getattr(mf, 'density_label', '')
+            if 'MP2' in d_lbl or 'CC' in d_lbl or 'CI' in d_lbl:
+                is_natorb = True
+            else:
+                if mo_occ is not None and np.asarray(mo_occ).dtype != object:
+                    occ_flat = np.asarray(mo_occ).flatten()
+                    is_natorb = np.any((occ_flat > 1e-6) & (np.abs(occ_flat - 1.0) > 1e-6) & (np.abs(occ_flat - 2.0) > 1e-6))
         else:
+            if is_natorb_wf(mf):
+                is_natorb = True
+                
+        if is_natorb:
+            occ, mo_coeff = get_natorbs(mf, S)
+            mask = np.ones(len(occ), dtype=bool) # DO NOT MASK NATURAL ORBITALS
+        else:
+            occ = np.asarray(mo_occ)
             mask = (occ > 0.5)
             
+        coeff_src = mo_coeff
         coeff = coeff_src[:, mask]
 
         if partition_label in ("lowdin", "meta-lowdin", "nao", "mulliken"):
@@ -206,8 +255,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             if partition_label == "lowdin": U_inv = lowdin(S)
             elif partition_label == "meta-lowdin":
                 from pyscf.lo import orth
-                U_inv = orth.orth_ao(mol, method="meta-lowdin")
-
+                U_inv = orth.orth_ao(myhf if myhf is not None else mf, method="meta-lowdin")
             elif partition_label == "nao": U_inv = nao.nao(mol, mf, S)
             
             if partition_label == "mulliken":
@@ -216,18 +264,19 @@ def make_aoms(mol, mf, partition, myhf=None, save=None):
             else:
                 U = np.linalg.inv(U_inv); eta = build_eta(mol)
                 for i in range(mol.natm): aom.append(coeff.T @ U.T @ eta[i] @ U @ coeff)
+            
+            if is_natorb:
+                aom = [aom, occ[mask]]
         else:
+            # IAO logic
             if is_natorb:
                 from esipy.iao import reference_mol
                 pmol = reference_mol(mol, source_basis="minao")
                 n_ref = pmol.nao
                 aom = get_iao_aoms(partition_label, coeff_src[:, :n_ref], mf, c_full=coeff)
+                aom = [aom, occ[mask]]
             else:
                 aom = get_iao_aoms(partition_label, coeff, mf)
                 
-        if is_natorb:
-            aom = [aom, np.diag(occ[mask])]
-            
         if save: save_file(aom, save)
         return aom
-

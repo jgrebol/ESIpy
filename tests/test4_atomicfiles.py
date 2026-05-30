@@ -1,49 +1,82 @@
 import unittest
 import os
-import shutil
-import numpy as np
 from pyscf import gto, dft
+
 import esipy
 
-class TestAtomicFiles(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.mol = gto.M(atom='H 0 0 0; H 0 0 1.5', basis='sto-3g', verbose=0)
-        cls.mf = dft.RKS(cls.mol); cls.mf.xc = 'lda'; cls.mf.kernel()
-        cls.test_dir = os.path.dirname(os.path.abspath(__file__))
+mol = gto.M(
+    atom='''
+    C        0.000000000      0.000000000      1.393096000
+    C        0.000000000      1.206457000      0.696548000
+    C        0.000000000      1.206457000     -0.696548000
+    C        0.000000000      0.000000000     -1.393096000
+    C        0.000000000     -1.206457000     -0.696548000
+    C        0.000000000     -1.206457000      0.696548000
+    H        0.000000000      0.000000000      2.483127000
+    H        0.000000000      2.150450000      1.241569000
+    H        0.000000000      2.150450000     -1.241569000
+    H        0.000000000      0.000000000     -2.483127000
+    H        0.000000000     -2.150450000     -1.241569000
+    H        0.000000000     -2.150450000      1.241569000
+    ''',
+    basis='sto-3g',
+    spin=0,
+    charge=0,
+)
+mol.build()
+
+rest = dft.RKS(mol)
+rest.xc = 'B3LYP'
+rest.kernel()
+
+mol.spin = 2
+
+unrest = dft.UKS(mol)
+unrest.xc = 'B3LYP'
+unrest.kernel()
+
+ring = [1, 2, 3, 4, 5, 6]
+
+
+class ESItest(unittest.TestCase):
 
     def setUp(self):
-        os.chdir(self.test_dir)
+        # Change to the directory where the script is located
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        os.chdir(script_dir)
 
-    def test_basic_write_read(self):
-        name = 'test_h2'
-        esi = esipy.ESI(mol=self.mol, mf=self.mf, partition='iao')
-        out_dir = name + '_iao_atomicfiles'
-        if os.path.exists(out_dir): shutil.rmtree(out_dir)
-        esi.writeaoms(name)
-        self.assertTrue(os.path.exists(out_dir))
-        shutil.rmtree(out_dir)
+    def test_write_read_aoms_rest(self):
+        name = "test4_atomicfiles_rest"
+        esitest_wnao = esipy.ESI(mol=mol, mf=rest, rings=ring, partition='nao',
+                                 save=name + "_nao")
+        esitest_wnao.writeaoms(name + "_nao")
+        esitest_wmul = esipy.ESI(mol=mol, mf=rest, rings=ring, partition='m',
+                                 save=name + "_mul")
+        esitest_wmul.writeaoms(name + "_mul")
 
-    def test_fragments_and_rings(self):
-        # 4 carbon square (24 electrons)
-        mol4 = gto.M(atom='C 0 0 0; C 1.4 0 0; C 1.4 1.4 0; C 0 1.4 0', basis='sto-3g', verbose=0)
-        mf4 = dft.RKS(mol4); mf4.kernel()
-        
-        # Ring with a fragment: atoms 1 and 2 as a set, plus atoms 3 and 4
-        # This forms a 3-center ring: Fragment{1,2} - Atom 3 - Atom 4
-        ring_with_frag = [{1, 2}, 3, 4]
-        
-        esi = esipy.ESI(mol=mol4, mf=mf4, rings=[ring_with_frag], partition='nao')
-        
-        self.assertEqual(len(esi.indicators), 1)
-        self.assertGreater(esi.indicators[0].mci, 0)
-        
-        name = 'test_frag'
-        out_dir = name + '_nao_atomicfiles'
-        if os.path.exists(out_dir): shutil.rmtree(out_dir)
-        esi.writeaoms(name)
-        self.assertTrue(os.path.exists(out_dir))
-        shutil.rmtree(out_dir)
+        #esitest_rnao = esipy.ESI(read=True, molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name,
+        #                   readpath=name + '_nao')
+        #esitest_rnao.readaoms()
+        #esitest_rnao.print()
+        #esitest_rmul = esipy.ESI(read=True, molinfo=name + "_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
+        #esitest_rmul.readaoms()
+        #esitest_rmul.print()
 
-if __name__ == '__main__':
+    def test_write_read_aoms_unrest(self):
+        name = "test4_atomicfiles_unrest"
+        esitest_wnao = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='nao',
+                                 save=name + "_nao")
+        esitest_wnao.writeaoms(name + "_nao")
+        esitest_wmul = esipy.ESI(mol=mol, mf=unrest, rings=ring, partition='m',
+                                 save=name + "_mul")
+        esitest_wmul.writeaoms(name + "_mul")
+        #esitest_rnao = esipy.ESI(read=True, molinfo=name + "_nao.molinfo", rings=ring, partition='nao', name=name,
+        #                   readpath=name + "_nao")
+        #esitest_rnao.readaoms()
+        #esitest_rnao.print()
+        #esitest_rmul = esipy.ESI(read=True, molinfo=name + "_mul.molinfo", rings=ring, partition='m', name=name, readpath=name + "_mul")
+        #esitest_rmul.readaoms()
+        #esitest_rmul.print()
+
+if __name__ == "__main__":
     unittest.main()

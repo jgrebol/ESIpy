@@ -75,10 +75,7 @@ def _prep_matrices(arr, aom):
     if isinstance(aom, (tuple, list)) and len(aom) == 2 and not isinstance(aom[0], np.ndarray):
         # For Natural Orbitals: Pre-multiply Occ @ AOM
         real_aoms, occ = aom
-        if occ.ndim == 1:
-            return [occ[:, None] * real_aoms[idx - 1] for idx in arr]
-        else:
-            return [np.dot(occ, real_aoms[idx - 1]) for idx in arr]
+        return [np.dot(occ, real_aoms[idx - 1]) for idx in arr]
     return [aom[idx - 1] for idx in arr]
 
 
@@ -102,9 +99,7 @@ def compute_mci(arr, aom, partition='mulliken', n_cores=None):
     if n < 3: return 0.0
 
     # Symmetric AOMs?
-    partition_label = str(partition).lower()
-    is_mulliken = (partition_label == 'mulliken' or partition_label == 'non-symmetric')
-    sym_prune = not is_mulliken
+    sym_prune = (partition == 'symmetric')
 
     # Tasks: Iterate over the second node in the path (0 -> j -> ...)
     tasks = [(mats, j, sym_prune) for j in range(1, n)]
@@ -122,13 +117,7 @@ def compute_mci(arr, aom, partition='mulliken', n_cores=None):
     # Normalization
     # SD-wf is 2**(n-1), but we double count perms in non-symmetric cases
     is_sd = wf_type(aom) in ["rest", "unrest"]
-    # Total result for benzene should be ~0.132. Factor 2**n total for Restricted.
-    # Since IndicatorsRest multiplies by 2, we use 2**(n-1).
-    prefactor = 2 ** (n - 1) if is_sd else 1.0
-
-    
-    if is_mulliken:
-        total_trace *= 0.5
+    prefactor = 2 ** (n - 2) if is_sd else 0.5
 
     return prefactor * total_trace
 

@@ -1,24 +1,40 @@
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
 
-examples/__pycache__/
-examples/*.pyc
-examples/*.pyo
-
-tests/__pycache__/
-tests/*.pyc
-tests/*.pyo
-
-build/
-dist/
-docs/build/
-docs/source/_templates/
-
-.idea/*
-*.egg-info/*
-*.egg
+# Test artifacts
+*.aoms
+*.molinfo
+*.int
 *.log
-*.swp
 
-```
+# Generated test directories
+*test4_*_esipy/
+*test4_*_atomicfiles/
+*example01_mulliken_esipy/
+bz_*_esipy/
+c4h4_*_esipy/
+formamide_*_esipy/
+
+# Untracked scripts and temp folders
+aggregate_results.py
+analyze_*.py
+check_*.py
+find_qchem_perm.py
+fix_all.py
+scratch_diagnosis.py
+tests/scratch_diagnosis.py
+print_vals.py
+test_fchk.py
+test_mp2_v2.py
+update_test9.py
+branch_verification/
+ESIpy_fresh/
+chk/
+joan/
+*.patch
+
+# FCHK folders (keep the one in tests/)
+FCHK/
+!tests/FCHK/

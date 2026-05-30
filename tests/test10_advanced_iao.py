@@ -11,15 +11,22 @@ class TestAdvancedIAO(unittest.TestCase):
         self.bz_fchk = os.path.join(self.fchk_dir, 'GAUSSIAN', 'bz.fchk')
         self.cas_fchk = os.path.join(self.fchk_dir, 'GAUSSIAN', 'lih_cas.fchk')
 
+    def _check_aoms(self, aoms, mol, expected_trace):
+        if isinstance(aoms, list) and len(aoms) == 2 and isinstance(aoms[0], list):
+            self.assertEqual(len(aoms[0]), mol.natm)
+            total_trace = sum(np.trace(aoms[0][i]) + np.trace(aoms[1][i]) for i in range(mol.natm))
+        else:
+            self.assertEqual(len(aoms), mol.natm)
+            total_trace = sum(np.trace(m) for m in aoms)
+        self.assertAlmostEqual(total_trace, expected_trace, delta=0.1)
+
     def test_effao_construction(self):
         if not os.path.exists(self.bz_fchk):
             self.skipTest('bz.fchk not found')
         
         mol, mf = readfchk(self.bz_fchk)
         aoms = make_aoms(mol, mf, 'iao-effao-nao')
-        self.assertEqual(len(aoms), mol.natm)
-        total_trace = sum(np.trace(m) for m in aoms)
-        self.assertAlmostEqual(total_trace, 21.0, delta=0.1)
+        self._check_aoms(aoms, mol, 42.0)
 
     def test_peiao_construction(self):
         if not os.path.exists(self.bz_fchk):
@@ -27,9 +34,7 @@ class TestAdvancedIAO(unittest.TestCase):
         
         mol, mf = readfchk(self.bz_fchk)
         aoms = make_aoms(mol, mf, 'peiao')
-        self.assertEqual(len(aoms), mol.natm)
-        total_trace = sum(np.trace(m) for m in aoms)
-        self.assertAlmostEqual(total_trace, 21.0, delta=0.1)
+        self._check_aoms(aoms, mol, 42.0)
 
     def test_dpeiao_blending(self):
         if not os.path.exists(self.bz_fchk):
@@ -37,9 +42,7 @@ class TestAdvancedIAO(unittest.TestCase):
         
         mol, mf = readfchk(self.bz_fchk)
         aoms = make_aoms(mol, mf, 'dpeiao(0.5)')
-        self.assertEqual(len(aoms), mol.natm)
-        total_trace = sum(np.trace(m) for m in aoms)
-        self.assertAlmostEqual(total_trace, 21.0, delta=0.1)
+        self._check_aoms(aoms, mol, 42.0)
 
     def test_natorb_fchk_format(self):
         if not os.path.exists(self.cas_fchk):

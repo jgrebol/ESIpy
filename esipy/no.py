@@ -14,7 +14,11 @@ def info_no(aom, molinfo, nfrags=0):
     """
 
     aom, occ = aom
-    partition = format_partition(molinfo["partition"])
+    if occ.ndim == 1: occ = np.diag(occ)
+    partition = format_partition(molinfo["partition"], 
+                                 iaoref=molinfo.get("iaoref"), 
+                                 iaopol=molinfo.get("iaopol"),
+                                 iaomix=molinfo.get("iaomix", 0.5))
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     print(" | Number of Atoms:          {}".format(len(aom)-nfrags))
     print(" | Occ. Mol. Orbitals:       {}".format(np.shape(aom[0])[0]))
@@ -52,8 +56,7 @@ def deloc_no(aom, molinfo, fragmap={}):
     """
 
     aom, occ = aom
-    if occ.ndim == 1:
-        occ = np.diag(occ)
+    if occ.ndim == 1: occ = np.diag(occ)
     presymbols = molinfo["symbols"]
     symbols = presymbols + ["FF"] * (len(aom)-len(presymbols))
     if len(aom)-len(presymbols) > 0:
@@ -71,8 +74,6 @@ def deloc_no(aom, molinfo, fragmap={}):
         # Trace(sqrt(occ) @ AOM_i @ sqrt(occ) @ AOM_i)
         # Using einsum for Trace(M1 @ M2 @ M3 @ M4)
         occ_half = np.diag(np.sqrt(np.diag(occ)))
-        if occ_half.ndim == 1:
-            occ_half = np.diag(occ_half)
         lif = np.einsum('ij,jk,kl,li->', occ_half, aom[i], occ_half, aom[i])
         lix = 0.5 * np.einsum('ij,jk,kl,li->', occ, aom[i], occ, aom[i])
         lifs.append(lif)
@@ -116,8 +117,6 @@ def deloc_no(aom, molinfo, fragmap={}):
                     symbols[i], i + 1, symbols[j], j + 1, lifs[i], lixs[i]))
             else:
                 occ_half = np.diag(np.sqrt(np.diag(occ)))
-                if occ_half.ndim == 1:
-                    occ_half = np.diag(occ_half)
                 dif = 2 * np.einsum('ij,jk,kl,li->', occ_half, aom[i], occ_half, aom[j])
                 dix = np.einsum('ij,jk,kl,li->', occ, aom[i], occ, aom[j])
                 if symbols[i] != "FF" and symbols[j] != "FF":  # Exclude FF atoms from contributing
@@ -213,17 +212,19 @@ def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None,
             print(" | EN           {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].en))
             print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].geo))
             print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, homa))
-            print(" ----------------------------------------------------------------------")
             if homerrefs:
                 print(" | ")
                 print(" | Found custom HOMER references 'alpha' and 'r_opt'. Computing")
                 print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homer))
-                print(" ----------------------------------------------------------------------")
 
             print(" ----------------------------------------------------------------------")
             if molinfo["geom"] is not None:
+                pass
+            else:
                 bla = indicators[ring_index].bla
-                if bla is not None:
+                if bla[0] is None:
+                    pass
+                else:
                     bla_c = indicators[ring_index].bla_c
                     print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, bla))
                     print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, bla_c))

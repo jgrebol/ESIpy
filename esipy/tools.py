@@ -2,25 +2,51 @@ import os
 from collections import deque, defaultdict
 import numpy as np
 
+def is_natorb_wf(mf):
+    """
+    Checks if the given mean-field or post-HF object contains natural orbitals.
+    For PySCF objects, it checks the class name. For FCHK objects, it checks
+    if it was already processed as a natural orbital object during reading.
+    """
+    from pyscf import mp, cc, ci, mcscf
+    
+    try:
+        if isinstance(mf, (mp.mp2.MP2, cc.ccsd.CCSD, ci.cisd.CISD)):
+            return True
+        if hasattr(mcscf, 'casci') and hasattr(mcscf.casci, 'CASCI'):
+            if isinstance(mf, mcscf.casci.CASCI):
+                return True
+        if hasattr(mcscf, 'mc1step') and hasattr(mcscf.mc1step, 'CASSCF'):
+            if isinstance(mf, mcscf.mc1step.CASSCF):
+                return True
+    except TypeError:
+        pass
+        
+    # 2. Check for ESIpy FCHK flags
+    if getattr(mf, 'is_fchk', False):
+        # In our readfchk, we already converted correlated densities to NOs
+        # and we set __name__ to UHF/RHF. We can check occupations.
+        occ = np.asarray(mf.mo_occ)
+        if occ.ndim == 2: # list-like or alpha/beta
+            return np.any((occ > 1e-6) & (np.abs(occ - 1.0) > 1e-6))
+        return np.any((occ > 1e-6) & (np.abs(occ - 1.0) > 1e-6) & (np.abs(occ - 2.0) > 1e-6))
+        
+    return False
+
+
 def wf_type(aom):
     """
     Checks the topology of the AOMs to obtain the type of wavefunction.
-
-    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-    :returns: A string with the type of wave function ('rest', 'unrest' or 'no').
     """
-    # Restricted: list of 2D matrices
-    if isinstance(aom[0], np.ndarray) and aom[0].ndim == 2:
+    # NOs return format [list, array]
+    if isinstance(aom, list) and len(aom) == 2 and isinstance(aom[1], np.ndarray) and aom[1].ndim == 1:
+        return "no"
+    # Restricted: list of matrices
+    if isinstance(aom, list) and isinstance(aom[0], np.ndarray) and aom[0].ndim == 2:
         return "rest"
-    
-    # Unrestricted or Natural Orbitals: [list, list/array]
-    if isinstance(aom, list) and len(aom) == 2:
-        # Natural Orbitals: [list of matrices, 1D/2D array of occupations]
-        if isinstance(aom[1], np.ndarray) and aom[1].ndim in [1, 2]:
-            return "no"
-        # Unrestricted: [list of alpha matrices, list of beta matrices]
-        if isinstance(aom[1], list) and isinstance(aom[1][0], np.ndarray) and aom[1][0].ndim == 2:
-            return "unrest"
+    # Unrestricted: [list, list]
+    if isinstance(aom, list) and len(aom) == 2 and isinstance(aom[0], list):
+        return "unrest"
             
     raise NameError("Could not find the type of wave function from the AOMs")
 
@@ -101,34 +127,21 @@ def find_distances(arr, geom):
 
 
 def find_dis(arr, aom):
-    """
-    Collects the DIs between the atoms in ring connectivity.
-
-    :param arr: Indices of the atoms in ring connectivity.
-    :type arr: list of int
-    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :returns: List containing the DIs of the members of the ring.
-    :rtype: list of float
-    """
-
-    return [4 * np.einsum('ij,ji->', aom[arr[i] - 1], aom[arr[(i + 1) % len(arr)] - 1]) for i in range(len(arr))]
+    wf = wf_type(aom)
+    if wf == "no":
+        return [2 * find_di(aom, arr[j], arr[(j + 1) % len(arr)]) for j in range(len(arr))]
+    return [4 * np.einsum('ij,ji->', aom[arr[j] - 1], aom[arr[(j + 1) % len(arr)] - 1]) for j in range(len(arr))]
 
 
 def find_di(aom, i, j):
-    """
-    Collects the DI between two atoms.
-
-    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :param i: Index of the first atom.
-    :type i: int
-    :param j: Index of the second atom.
-    :type j: int
-    :returns: DI between the atoms i and j.
-    :rtype: float
-    """
-
+    wf = wf_type(aom)
+    if wf == "no":
+        aom_list, occ = aom
+        if occ.ndim == 2: occ = np.diag(occ)
+        sq = np.sqrt(occ)
+        Da = sq[:, None] * aom_list[i-1] * sq[None, :]
+        Db = sq[:, None] * aom_list[j-1] * sq[None, :]
+        return 2 * np.einsum('ij,ji->', Da, Db)
     return 2 * np.einsum('ij,ji->', aom[i - 1], aom[j - 1])
 
 
@@ -145,40 +158,34 @@ def find_di_no(aom, i, j):
     :returns: DI between the atoms i and j.
     :rtype: float
     """
-
-    # Tr(Occ @ AOM_i @ Occ @ AOM_j)
-    occ = np.diag(aom[1])
-    return np.einsum('ij,jk,kl,li->', occ, aom[0][i - 1], occ, aom[0][j - 1])
+    occ = aom[1]
+    if occ.ndim == 2:
+        occ = np.diag(occ)
+    # Sum over k,j: occ_k * occ_j * (Pi)_kj * (Pj)_jk
+    return np.einsum('k,j,kj,jk->', occ, occ, aom[0][i - 1], aom[0][j - 1])
 
 
 def find_lis(arr, aom):
-    """
-    Collects the LIs between the atoms in ring connectivity.
-
-    :param arr: Indices of the atoms in ring connectivity.
-    :type arr: list of int
-    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :returns: List containing the DIs of the members of the ring.
-    :rtype: list of float
-    """
-
-    return [2 * np.einsum('ij,ji->', aom[arr[i] - 1], aom[arr[i] - 1]) for i in range(len(arr))]
+    wf = wf_type(aom)
+    if wf == "no":
+        aom_list, occ = aom
+        if occ.ndim == 2: occ = np.diag(occ)
+        sq = np.sqrt(occ)
+        res = []
+        for j in range(len(arr)):
+            D = sq[:, None] * aom_list[arr[j]-1] * sq[None, :]
+            res.append(np.einsum('ij,ji->', D, D))
+        return res
+    return [2 * np.einsum('ij,ji->', aom[arr[j] - 1], aom[arr[j] - 1]) for j in range(len(arr))]
 
 
 def find_ns(arr, aom):
-    """
-    Collects the atomic populations of all the atoms in the ring.
-
-    :param arr: Indices of the atoms in ring connectivity.
-    :type arr: list of int
-    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :returns: List containing the atomic populations of the members of the ring.
-    :rtype: list of float
-    """
-
-    return [2 * np.trace(aom[arr[i] - 1]) for i in range(len(arr))]
+    wf = wf_type(aom)
+    if wf == "no":
+        aom_list, occ = aom
+        if occ.ndim == 2: occ = np.diag(occ)
+        return [np.sum(occ * np.diag(aom_list[arr[j] - 1])) for j in range(len(arr))]
+    return [2 * np.trace(aom[arr[j] - 1]) for j in range(len(arr))]
 
 
 def av1245_pairs(arr):
@@ -369,6 +376,7 @@ def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_
     if is_iao and res_basis: label += f" {res_basis}"
 
     return label.lower()
+
 def format_short_partition(partition):
     p_method = partition.lower()
 
@@ -379,6 +387,7 @@ def format_short_partition(partition):
     elif p_method == "meta-lowdin":
         return "metalow"
     elif p_method in ("nao", "iao"):
+
         return p_method
     else:
         return p_method
@@ -416,12 +425,29 @@ def get_natorbs(mf, S):
     import numpy as np
     print(" | Obtaining Natural Orbitals from the 1-RDM...")
 
-    rdm1 = mf.make_rdm1(ao_repr=True)
+    try:
+        rdm1 = mf.make_rdm1(ao_repr=True)
+    except ValueError:
+        # Fallback for environments with broken PySCF einsum (e.g. Anaconda/PySCF 2.4.0)
+        # We manually transform the MO-basis RDM to AO-basis.
+        dm_mo = mf.make_rdm1(ao_repr=False)
+        mo_coeff = mf.mo_coeff
+        
+        if isinstance(dm_mo, (list, tuple)) or (isinstance(dm_mo, np.ndarray) and dm_mo.ndim == 3):
+            # Unrestricted or Spin-separated
+            rdm1 = []
+            for i in range(len(dm_mo)):
+                c = mo_coeff[i]
+                d = dm_mo[i]
+                rdm1.append(c @ d @ c.T.conj())
+        else:
+            # Restricted
+            rdm1 = mo_coeff @ dm_mo @ mo_coeff.T.conj()
+
     rdm1_arr = np.asarray(rdm1)
 
     if rdm1_arr.ndim == 3:
-        raise NotImplementedError(" | Natural Orbitals for unrestricted calculations are not implemented yet.")
-        #D = np.sum(rdm1_arr, axis=0)
+        D = np.sum(rdm1_arr, axis=0)
     elif rdm1_arr.ndim == 2:
         D = rdm1_arr
     else:
