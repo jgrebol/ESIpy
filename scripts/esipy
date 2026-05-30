@@ -56,7 +56,11 @@ def main():
 
     flurefs = None
     if inp.fluref:
-        flurefs = {f"REF{i+1}": v for i, v in enumerate(inp.fluref)}
+        default_keys = ["CC", "CN", "BN", "NN", "CS", "CO"]
+        flurefs = {}
+        for i, v in enumerate(inp.fluref):
+            if i < len(default_keys):
+                flurefs[default_keys[i]] = v
 
     partitions = inp.partition if inp.partition else ['meta-lowdin']
 

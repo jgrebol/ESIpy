@@ -62,7 +62,7 @@ def sequential_mci(arr, aom, partition):
 
 def sequential_mci_no(arr, aom, partition):
     aom_list, occ = aom
-    aom = (aom_list, occ)
+    aom = [aom_list, occ]
     """
     Computes the MCI for correlated wavefunctions sequentially by computing the Iring without storing the permutations.
     """

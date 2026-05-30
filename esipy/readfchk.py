@@ -84,7 +84,10 @@ class Mole2:
         kwargs.setdefault('verbose', 0)
         if self.ecp is None and self.nuclear_charges is not None:
              if not np.allclose(self.atomic_numbers, self.nuclear_charges): raise RuntimeError("Calculation requires ecp, but no ECP is defined")
-        self.pyscf_mol.ecp = self.ecp; self.pyscf_mol.build(*args, **kwargs)
+        self.pyscf_mol.ecp = self.ecp
+        if self.ecp:
+            print(f" | Applying ECP: {self.ecp}")
+        self.pyscf_mol.build(*args, **kwargs)
         self._bas, self._env, self._atm = self.pyscf_mol._bas, self.pyscf_mol._env, self.pyscf_mol._atm
         self.nao, self.nbas = int(self.pyscf_mol.nao_nr()), int(self.pyscf_mol.nbas)
         self.atom, self.nelec = self.pyscf_mol.atom, self.pyscf_mol.nelec

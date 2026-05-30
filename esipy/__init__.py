@@ -91,6 +91,34 @@ class IndicatorsRest:
                 self._done_mci = multiprocessing_mci(self._rings, self._aom, self._ncores, self._partition)
         return 2 * self._done_mci
 
+    @property
+    def iring_n(self):
+        """
+        Get the Iring**(1/n) value.
+
+        :returns: The Iring**(1/n) value.
+        :rtype: float
+        """
+        val = self.iring
+        if val < 0:
+            return -(np.abs(val) ** (1 / len(self._rings)))
+        else:
+            return val ** (1 / len(self._rings))
+
+    @property
+    def mci_n(self):
+        """
+        Get the MCI**(1/n) value.
+
+        :returns: The MCI**(1/n) value.
+        :rtype: float
+        """
+        val = self.mci
+        if val < 0:
+            return -(np.abs(val) ** (1 / len(self._rings)))
+        else:
+            return val ** (1 / len(self._rings))
+
     def _av(self):
         """
         Compute the AV1245, AVmin and the list of the 4c-MCIs.
@@ -418,6 +446,34 @@ class IndicatorsUnrest:
         :rtype: float
         """
         return self._mcis()[0] + self._mcis()[1]
+
+    @property
+    def iring_n(self):
+        """
+        Get the Iring**(1/n) value.
+
+        :returns: The Iring**(1/n) value.
+        :rtype: float
+        """
+        val = self.iring
+        if val < 0:
+            return -(np.abs(val) ** (1 / len(self._rings)))
+        else:
+            return val ** (1 / len(self._rings))
+
+    @property
+    def mci_n(self):
+        """
+        Get the MCI**(1/n) value.
+
+        :returns: The MCI**(1/n) value.
+        :rtype: float
+        """
+        val = self.mci
+        if val < 0:
+            return -(np.abs(val) ** (1 / len(self._rings)))
+        else:
+            return val ** (1 / len(self._rings))
 
     @property
     def mci_alpha(self):
@@ -902,6 +958,34 @@ class IndicatorsNatorb:
                 self._done_mci = multiprocessing_mci_no(self._rings, self._aom, self._ncores, self._partition)
         return self._done_mci
 
+    @property
+    def iring_n(self):
+        """
+        Get the Iring**(1/n) value.
+
+        :returns: The Iring**(1/n) value.
+        :rtype: float
+        """
+        val = self.iring
+        if val < 0:
+            return -(np.abs(val) ** (1 / len(self._rings)))
+        else:
+            return val ** (1 / len(self._rings))
+
+    @property
+    def mci_n(self):
+        """
+        Get the MCI**(1/n) value.
+
+        :returns: The MCI**(1/n) value.
+        :rtype: float
+        """
+        val = self.mci
+        if val < 0:
+            return -(np.abs(val) ** (1 / len(self._rings)))
+        else:
+            return val ** (1 / len(self._rings))
+
     def _av_no(self):
         """
         Compute the AV1245, AVmin and the list of the 4c-MCIs.
@@ -1173,7 +1257,7 @@ class ESI:
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
                  ncores=1, save=None, readpath='.', read=False,
-                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None, is_fchk=False, **kwargs):
+                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None, is_fchk=False, verbose=None, **kwargs):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
@@ -1229,7 +1313,15 @@ class ESI:
             print(" | WARNING: NAO and Natural Orbitals from unrestricted orbitals not implemented yet")
 
 
+        if verbose is None:
+            env_verbose = os.environ.get('VERBOSE', 'False').lower()
+            self._verbose = env_verbose in ('true', '1', 't', 'yes', 'y')
+        else:
+            self._verbose = bool(verbose)
+
         wf = wf_type(self.aom)
+        self._do_warnings(wf)
+
         if wf == "rest":
             if not self.rings:
                 return
@@ -1425,6 +1517,42 @@ class ESI:
                 molinfo_path = self.savemolinfo
             self._molinfo = mol_info(self.mol, self.mf, molinfo_path, self._partition, graph)
         return self._molinfo
+
+    def _do_warnings(self, wf):
+        """
+        Validate inputs, sizes, and file existences, printing warnings and verbosity if requested.
+        """
+        natm = len(self.molinfo.get('symbols', [])) if self.molinfo else 0
+        
+        if self._verbose:
+            print(" | [VERBOSE] Validating ESI input parameters and sizes.")
+            print(" | [VERBOSE] Number of atoms in molecule: {}".format(natm if natm else 'Unknown'))
+            if self.mf is not None:
+                # Basic representation of basis functions if not natively tracked in molinfo
+                nmo = getattr(self.mf, 'mo_coeff', [[0]])[0]
+                print(" | [VERBOSE] Basis functions: {}".format(len(nmo) if len(nmo) > 1 else 'Unknown'))
+            if self.is_fchk:
+                print(" | [VERBOSE] Calculation is built from FCHK.")
+            else:
+                print(" | [VERBOSE] Calculation is built from PySCF.")
+            print(" | [VERBOSE] Wavefunction type detected: {}".format(wf.upper()))
+            if wf == 'no':
+                occ = self.aom[1]
+                print(" | [VERBOSE] Correlated calculation. NO occupations range from {:.4f} to {:.4f}".format(np.min(occ), np.max(occ)))
+
+        if self.rings and natm:
+            for i, ring in enumerate(self.rings):
+                n_atoms_ring = len([x for x in ring if isinstance(x, int)])
+                if n_atoms_ring > natm:
+                    print(" | WARNING: Ring {} specifies {} atoms, but molecule only has {} atoms.".format(i+1, n_atoms_ring, natm))
+                max_idx = max([x for x in ring if isinstance(x, int)] + [0])
+                if max_idx > natm:
+                    raise ValueError(" | ERROR: Ring {} references atom index {}, which exceeds molecule size ({}).".format(i+1, max_idx, natm))
+
+        if self.read:
+            path = os.path.join(self.readpath, "{}_{}.aoms".format(self.molinfo.get('molname', 'mol'), self.partition))
+            if not os.path.exists(path):
+                print(" | WARNING: Expected AOM file {} was not found.".format(path))
 
     @property
     def aom(self):

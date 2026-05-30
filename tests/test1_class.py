@@ -80,10 +80,9 @@ class ESItest(unittest.TestCase):
         self.assertTrue(esitest.mci)
         self.assertTrue(esitest.av1245)
 
-        # For a 12MR: mci=False, av1245=True
-        esitest = esipy.ESI(mol=mol, mf=mf, rings=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], partition='mulliken')
-        self.assertFalse(esitest.mci)
-        self.assertTrue(esitest.av1245)
+        # For a ring larger than the molecule: _do_warnings now raises ValueError
+        with self.assertRaises(ValueError):
+            esipy.ESI(mol=mol, mf=mf, rings=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], partition='mulliken')
 
         # If user specifies, it should be the option. We try the oppposite of what it would automatically be
         esitest = esipy.ESI(mci=False, av1245=True, mol=mol, mf=mf, rings=[1, 2, 3, 4, 5, 6], partition='mulliken')
