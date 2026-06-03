@@ -1,0 +1,612 @@
+class ESI:
+    """
+    Main class for the ESIpy code.
+
+    Attributes:
+    aom (concatenated list): Atomic Overlap Matrices (AOMs) in the MO basis.
+    rings (list): List of indices of the atoms in the ring connectivity. Can be a list of lists.
+    mol (optional, obj): Molecule object "mol" from PySCF.
+    mf (optional, obj): Calculation object "mf" from PySCF.
+    myhf (optional, obj): Reference RHF object for IAO-Natural Orbitals calculation.
+    partition (optional, str): Type of Hilbert-space partition scheme.
+        Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
+    mci (optional, boolean): Whether to compute the MCI.
+    av1245 (optional, boolean): Whether to compute the AV1245.
+    flurefs (optional, dict): Custom FLU references.
+    homarefs (optional, dict): Custom HOMA references: "n_opt", "c", "r1".
+    homerrefs (optional, dict): Custom HOMER references: "alpha" and "r_opt" .
+    connectivity (optional, list): Symbols of the ring connectivity as in "rings".
+    geom (optional, list of lists): Geometry of the molecule as in mol.atom_coords().
+    molinfo (optional, dict): Information about the molecule and calculation.
+    ncores (optional, int): Number of cores to use for the MCI calculation. Default is 1.
+    saveaoms (optional): Name where to save the AOMs in binary.
+    savemolinfo (optional): Name where to save the molecular information dictionary in binary.
+    readpath (optional, str): Path to read the AOMs. Default is '.'.
+    indicators (obj): Object containing the indicators of the calculation. Generated in the initialization.
+
+    Methods:
+    readaoms(): Reads the AOMs from a directory in AIMAll and ESIpy format.
+    writeaoms(): Writes ESIpy's AOMs in AIMAll format.
+    print(): Prints the output for the main ESIpy functions.
+    """
+
+    def __init__(self, aom=None, rings=None, mol=None, mf=None, myhf=None, partition=None,
+                 mci=None, av1245=None, flurefs=None, homarefs=None,
+                 homerrefs=None, connectivity=None, geom=None, molinfo=None,
+                 ncores=1, save=None, readpath='.', read=False,
+                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None, is_fchk=False, verbose=None, **kwargs):
+        # For usual ESIpy calculations
+        self._aom = aom
+        self._aom_loaded = False
+        self._rings = rings
+        self.mol = mol
+        self.is_fchk = is_fchk or getattr(mf, 'is_fchk', False)
+        
+        # Automatic post-HF wrapping
+        if mf is not None and hasattr(mf, 'make_rdm1') and not hasattr(mf, 'get_veff') and not self.is_fchk:
+            print(" | Post-HF PySCF object detected. Automatically generating Natural Orbitals...")
+            class MockMF:
+                pass
+            mock = MockMF()
+            mock.mol = mol if mol else getattr(mf, 'mol', getattr(getattr(mf, '_scf', None), 'mol', None))
+            mock.is_fchk = False
+            
+            try:
+                from esipy.tools import get_natorbs
+                S = mock.mol.intor_symmetric('int1e_ovlp')
+                occ, coeff = get_natorbs(mf, S)
+                
+                idx = np.argsort(occ)[::-1]
+                mock.mo_occ = occ[idx]
+                mock.mo_coeff = coeff[:, idx]
+                mock.mo_occ[mock.mo_occ < 1e-12] = 0.0
+                mock.is_natorb = True
+                
+                # Make the mock act like an SCF object for compatibility
+                mock.get_ovlp = lambda *args, **kwargs: S
+                # Mock RDM1 using the NOs (in AO basis)
+                mock.make_rdm1 = lambda *args, **kwargs: np.dot(mock.mo_coeff * mock.mo_occ, mock.mo_coeff.T)
+                mock.e_tot = getattr(mf, 'e_tot', getattr(mf, 'e_corr', 0.0))
+                
+                self.mf = mock
+            except Exception as e:
+                raise RuntimeError(f"Could not automatically generate 1-RDM from post-HF object. Error: {e}")
+        else:
+            self.mf = mf
+            
+        self.myhf = myhf
+        self._molinfo = molinfo
+        self._partition = format_partition(partition) if partition else None
+        self._mci = mci
+        self._av1245 = av1245
+        # For custom references
+        self.flurefs = flurefs
+        self.homarefs = homarefs
+        self.homerrefs = homerrefs
+        self.connectivity = connectivity
+        self.geom = geom
+        self.frag = False
+        # For other tools
+        self.ncores = ncores
+        self.save = save
+        # Directory where files will be written. Use <save>_esipy to avoid cluttering working dir
+        self.save_dir = save + '_esipy' if save else None
+        self.saveaoms = save + '_' + self.partition + ".aoms" if save and self.partition else None
+        self.savemolinfo = save + '_' + self.partition + ".molinfo" if save and self.partition else None
+        self.readpath = readpath
+        self.read = read
+        # For finding rings
+        self.fragmap = {}
+        self.maxlen = maxlen
+        self.minlen = minlen
+        self.rings_thres = rings_thres
+        self._exclude = exclude
+        #self._printedrings = False
+        self._connec = None
+        self.done_connec = False
+        self.filtrings = []
+
+        print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
+        print(" ** Localization & Delocalization Indices **  ")
+        print(" ** For Hilbert-Space Atomic Partitioning **  ")
+        print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
+        print("   Application to Aromaticity Calculations    ")
+        print("  Joan Grebol, Eduard Matito, Pedro Salvador  ")
+        print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
+
+        # Can not work on IAO and Natural Orbitals yet
+        sd = ["RHF", "SymAdaptedRHF", "UHF", "SymAdaptedUHF", "RKS", "SymAdaptedRKS", "UKS", "SymAdaptedUKS", "MeanField"]
+        if self.partition == "iao" and self.molinfo["calctype"] not in sd:
+            print(" | WARNING: IAO and Natural Orbitals from unrestricted orbitals not implemented yet")
+        elif self.partition == "nao" and self.molinfo["calctype"] not in sd:
+            print(" | WARNING: NAO and Natural Orbitals from unrestricted orbitals not implemented yet")
+
+
+        if verbose is None:
+            env_verbose = os.environ.get('VERBOSE', 'False').lower()
+            self._verbose = env_verbose in ('true', '1', 't', 'yes', 'y')
+        else:
+            self._verbose = bool(verbose)
+
+        wf = wf_type(self.aom)
+        self._do_warnings(wf)
+
+        if wf == "rest":
+            if not self.rings:
+                return
+            self.fragaom, self.fragmap = list(process_fragments(self.aom, self.rings, False))
+            if self.fragaom:
+                self.totalaom = deepcopy(self.aom)
+                for f in self.fragaom:
+                    self.totalaom.append(f)
+                self.nfrags = len(self.fragaom)
+            else:
+                self.totalaom = self.aom
+                self.nfrags = 0
+
+            self.indicators = []
+            for i in deepcopy(self.rings):
+                ring = []
+                for j in range(len(i)):
+                    item = i[j % len(i)]
+                    if isinstance(item, set):
+                        ring.append(self.fragmap[tuple(sorted(list(item)))])
+                    else:
+                        ring.append(item)
+                self.indicators.append(IndicatorsRest(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
+                                                      partition=self.partition, mci=self.mci,
+                                                      av1245=self.av1245, flurefs=self.flurefs, homarefs=self.homarefs,
+                                                      homerrefs=self.homerrefs, connectivity=self.connectivity,
+                                                      geom=self.geom,
+                                                      molinfo=self.molinfo, ncores=self.ncores))
+        elif wf == "unrest":
+            if not self.rings:
+                return
+
+            self.fragaom_a, self.fragmap = list(process_fragments(self.aom[0], self.rings, False))
+            self.fragaom_b, self.fragmap = list(process_fragments(self.aom[1], self.rings, True))
+            if self.fragaom_a:
+                self.totalaom_a = self.aom[0] + self.fragaom_a
+                self.totalaom_b = self.aom[1] + self.fragaom_b
+                self.fragaom = [self.fragaom_a, self.fragaom_b]
+                self.totalaom = [self.totalaom_a, self.totalaom_b]
+                self.nfrags = len(self.fragaom_a)
+
+            else:
+                self.totalaom = self.aom
+                self.nfrags = 0
+
+            self.indicators = []
+            for i in deepcopy(self.rings):
+                ring = []
+                for j in range(len(i)):
+                    item = i[j % len(i)]
+                    if isinstance(item, set):
+                        ring.append(self.fragmap[tuple(sorted(list(item)))])
+                    else:
+                        ring.append(item)
+                self.indicators.append(IndicatorsUnrest(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
+                                                        partition=self.partition, mci=self.mci,
+                                                        av1245=self.av1245, flurefs=self.flurefs,
+                                                        homarefs=self.homarefs, homerrefs=self.homerrefs,
+                                                        connectivity=self.connectivity, geom=self.geom,
+                                                        molinfo=self.molinfo, ncores=self.ncores))
+        elif wf == "no":
+            if not self.rings:
+                return
+            if self.read is not True and type(self._aom) != str:
+                if self.mf is None:
+                    raise ValueError(" | Missing variable 'mf'.")
+            aom, occ = self.aom
+            self.fragaom, self.fragmap = list(process_fragments(aom, self.rings, False))
+            if self.fragaom:
+                self.totalaom = aom + self.fragaom
+                self.nfrags = len(self.fragaom)
+            else:
+                self.totalaom = aom
+                self.nfrags = 0
+            self.totalaom = [self.totalaom, occ]
+
+            self.indicators = []
+            for i in deepcopy(self.rings):
+                ring = []
+                for j in range(len(i)):
+                    item = i[j % len(i)]
+                    if isinstance(item, set):
+                        ring.append(self.fragmap[tuple(sorted(list(item)))])
+                    else:
+                        ring.append(item)
+                self.indicators.append(IndicatorsNatorb(aom=self.totalaom, rings=ring, mol=self.mol, mf=self.mf, myhf=self.myhf,
+                                                        partition=self.partition, mci=self.mci,
+                                                        av1245=self.av1245, flurefs=self.flurefs,
+                                                        homarefs=self.homarefs, homerrefs=self.homerrefs,
+                                                        connectivity=self.connectivity, geom=self.geom,
+                                                        molinfo=self.molinfo, ncores=self.ncores))
+        else:
+            raise ValueError(" | Could not determine the wavefunction type")
+
+    @property
+    def rings(self):
+        if hasattr(self, "mol") and self.mol:
+            natms = self.mol.natm
+        else:
+            natms = len(self.molinfo.get("symbols"))
+        if natms <= 1:
+            self._rings = None
+        if not self._rings:
+            self.totalaom = self.aom
+            self.nfrags = 0
+            self.fragmap = {}
+            return None
+        if self._rings == "find" or self._rings == "f":
+            #if not self._printedrings:
+            #    print(" | Finding rings...")
+            startrings = time()
+            if (self.partition == "mulliken" or self.partition == "lowdin") and self.read:
+                print(f" | WARNING: Could not find rings for {self.partition} partition. Mulliken and Lowdin bond orders cannot be used to build the connectivity matrix.")
+                print(f" | Skipping ring analysis for {self.partition} partition.")
+                self._rings = None
+            if self.connec:
+                graph = self.connec
+            else:
+                graph = self.molinfo.get("connec")
+            if not graph:
+                print(f" | WARNING: Could not find the connectivity matrix for {self.partition} partition.")
+                print(f" | Skipping ring analysis for {self.partition} partition.")
+                self._rings = None
+
+            self._rings = find_rings(graph, self.minlen, self.maxlen, exclude=self.exclude)
+            endrings = time()
+
+            if not self._rings:
+                print(" | WARNING: Could not find any ring. Please check the minimum and maximum ring lengths.")
+                self.totalaom = self.aom
+                self.nfrags = 0
+                self.fragmap = {}
+                return None
+                #raise ValueError(" | Could not find any ring. Please check the minimum and maximum ring lengths.")
+            #elif not self._printedrings:
+            #    print(f" | Found {len(self._rings)} rings in {endrings-startrings:.4f} seconds:")
+            #    print(" | -------------------------------")
+            #    print(" | rings = [")
+            #    for i in self._rings:
+            #        print(" | ", i, ",")
+            #    print(" | ]")
+            #    print(" | -------------------------------")
+            #    self._printedrings = True
+        if isinstance(self._rings[0], (int, set)):
+            self._rings = [self._rings]
+
+        if self.fragmap:
+            self.filtrings = []
+            for i in range(len(self._rings)):
+                ring = []
+                for j in range(len(self._rings[i])):
+                    item = self._rings[i][j % len(self._rings[i])]
+                    if isinstance(item, set):
+                        ring.append(self.fragmap[tuple(sorted(list(item)))])
+                    else:
+                        ring.append(item)
+                self.filtrings.append(ring)
+        if not self.filtrings:
+            self.filtrings = self._rings
+        return self._rings
+
+    @rings.setter
+    def rings(self, value):
+        self._rings = value
+
+    @property
+    def molinfo(self):
+        """
+        Get the information about the molecule and calculation. If not provided, it will compute it. If set as a string,
+        it will read the information from the directory. Can be saved in a file with the `savemolinfo` attribute.
+
+        :returns: Information about the molecule and calculation.
+        :rtype: dict
+        """
+
+        if self.read is True:
+            self._molinfo = read_molinfo(self.readpath)
+            return self._molinfo
+        if isinstance(self._molinfo, str):
+            self._molinfo = load_file(self._molinfo)
+            return self._molinfo
+        if not self._molinfo:
+            print(" | Building NAO AOMs to compute connectivity.")
+            if self.mol is None or self.mf is None:
+                raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs.")
+            mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf, is_fchk=self.is_fchk)
+            graph = build_connectivity(mat=mat, threshold=self.rings_thres)
+            
+            if self.save:
+                os.makedirs(self.save_dir, exist_ok=True)
+                molinfo_path = os.path.join(self.save_dir, os.path.basename(self.savemolinfo))
+            else:
+                molinfo_path = self.savemolinfo
+            self._molinfo = mol_info(self.mol, self.mf, molinfo_path, self._partition, graph)
+        return self._molinfo
+
+    def _do_warnings(self, wf):
+        """
+        Validate inputs, sizes, and file existences, printing warnings and verbosity if requested.
+        """
+        natm = len(self.molinfo.get('symbols', [])) if self.molinfo else 0
+        
+        if self._verbose:
+            print(" | [VERBOSE] Validating ESI input parameters and sizes.")
+            print(" | [VERBOSE] Number of atoms in molecule: {}".format(natm if natm else 'Unknown'))
+            if self.mf is not None:
+                # Basic representation of basis functions if not natively tracked in molinfo
+                nmo = getattr(self.mf, 'mo_coeff', [[0]])[0]
+                print(" | [VERBOSE] Basis functions: {}".format(len(nmo) if len(nmo) > 1 else 'Unknown'))
+            if self.is_fchk:
+                print(" | [VERBOSE] Calculation is built from FCHK.")
+            else:
+                print(" | [VERBOSE] Calculation is built from PySCF.")
+            print(" | [VERBOSE] Wavefunction type detected: {}".format(wf.upper()))
+            if wf == 'no':
+                occ = self.aom[1]
+                print(" | [VERBOSE] Correlated calculation. NO occupations range from {:.4f} to {:.4f}".format(np.min(occ), np.max(occ)))
+
+        if self.rings and natm:
+            for i, ring in enumerate(self.rings):
+                n_atoms_ring = len([x for x in ring if isinstance(x, int)])
+                if n_atoms_ring > natm:
+                    print(" | WARNING: Ring {} specifies {} atoms, but molecule only has {} atoms.".format(i+1, n_atoms_ring, natm))
+                max_idx = max([x for x in ring if isinstance(x, int)] + [0])
+                if max_idx > natm:
+                    raise ValueError(" | ERROR: Ring {} references atom index {}, which exceeds molecule size ({}).".format(i+1, max_idx, natm))
+
+        if self.read:
+            path = os.path.join(self.readpath, "{}_{}.aoms".format(self.molinfo.get('molname', 'mol'), self.partition))
+            if not os.path.exists(path):
+                print(" | WARNING: Expected AOM file {} was not found.".format(path))
+
+    @property
+    def aom(self):
+        """
+        Get the Atomic Overlap Matrices (AOMs) in the MO basis. If not provided, it will compute them. If set as
+        a string, it will read the AOMs from the directory. Can be saved in a file with the `saveaoms` attribute.
+
+        :returns: The AOMs in the MO basis.
+        :rtype: list
+        """
+
+        if self._aom_loaded:
+            return self._aom
+        if isinstance(self._aom, str):
+            return load_file(self._aom)
+        if self.read == True:
+            self._aom_loaded = True
+            aom = self.readaoms()
+            if self.save:
+                # save_file will create subdirectory based on molecule name (from self.save)
+                # Files will be saved as: moleculename_esipy/moleculename_partition.aoms
+                os.makedirs(self.save_dir, exist_ok=True)
+                save_file(aom, os.path.join(self.save_dir, os.path.basename(self.saveaoms)))
+                save_file(self.molinfo, os.path.join(self.save_dir, os.path.basename(self.savemolinfo)))
+                print(f" | Saved the AOMs in {self.save_dir}/{os.path.basename(self.saveaoms)}")
+                print(f" | Saved the molinfo in {self.save_dir}/{os.path.basename(self.savemolinfo)}")
+        if self._aom is None:
+            if isinstance(self.partition, list):
+                raise ValueError(
+                    " | Only one partition at a time. Partition should be a string, not a list.\n | Please consider looping through the partitions before calling the function")
+            if self.mol and self.mf and self.partition:
+                self._aom_loaded = True
+                # Don't save in make_aoms, we'll save it ourselves in the subdirectory
+                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf, is_fchk=self.is_fchk)
+
+                if self.saveaoms:
+                    os.makedirs(self.save_dir, exist_ok=True)
+                    save_file(self._aom, os.path.join(self.save_dir, os.path.basename(self.saveaoms)))
+                    print(f" | Saved the AOMs in {self.save_dir}/{os.path.basename(self.saveaoms)}")
+            else:
+                raise ValueError(" | Missing variables 'mol', 'mf', or 'partition'")
+        return self._aom
+
+    @property
+    def partition(self):
+        """
+        Get the partition scheme for the Hilbert-space. Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
+        Some variations of these names are also available. Only one partition at a time.
+
+        :returns: The partition scheme for the Hilbert-space calculation.
+        :rtype: str
+        """
+
+        if isinstance(self._partition, str):
+            return self._partition
+        raise ValueError(" | Partition could not be processed. Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'")
+
+    @property
+    def connec(self):
+        """
+        Get the connectivity matrix. If the partition is 'mulliken' or 'lowdin',
+        build the NAO AOMs and compute the connectivity matrix from there.
+        The computation is controlled by the 'done_connec' flag. Based on the DIs.
+
+        :returns: The connectivity matrix.
+        :rtype: dict
+        """
+        if self._connec is not None:
+            return self._connec
+        if hasattr(self, "molinfo") and self.molinfo.get("connec") is not None:
+            return self.molinfo.get("connec")
+        if not hasattr(self, 'done_connec') or not self.done_connec:
+            if self.molinfo.get("connec") is not None:
+                self._connec = self.molinfo.get("connec")
+                self.done_connec = True
+                return self._connec
+
+            if self.partition in ['mulliken', 'lowdin']:
+                print(" | Building NAO AOMs to compute connectivity.")
+                if self.mol is None or self.mf is None:
+                    raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs to get connectivity matrix.")
+                mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf, is_fchk=self.is_fchk)
+            else:
+                mat = self.aom
+            self._connec = build_connectivity(mat=mat, threshold=self.rings_thres)
+            self.done_connec = True
+            return self._connec
+
+    @property
+    def mci(self):
+        """
+        Whether to compute the MCI. If not provided, it will compute it if the number of rings is less than 12.
+
+        :returns: Whether to compute the MCI.
+        :rtype: boolean
+        """
+        if self._mci is not None:
+            return self._mci
+        if isinstance(self.rings[0], list):  # Check if there are more than one rings
+            maxring = max(len(ring) for ring in self.rings)
+        else:
+            maxring = len(self.rings)
+        return maxring <= 12 # Will compute MCI if ring size <= 12
+
+    @mci.setter
+    def mci(self, value):
+        self._mci = value
+
+    @property
+    def exclude(self):
+        """
+        Processes the exclude list. If an element symbol (str) is found,
+        it finds all indices for that element. If an int is found, it keeps it.
+        """
+        if not self._exclude:
+            return []
+
+        raw_exclude = self._exclude if isinstance(self._exclude, list) else [self._exclude]
+        processed = []
+
+        symbols = self.molinfo.get("symbols", [])
+
+        for item in raw_exclude:
+            if isinstance(item, int):
+                processed.append(item)
+            elif isinstance(item, str):
+                indices = [i + 1 for i, sym in enumerate(symbols) if sym.upper() == item.upper()]
+                processed.extend(indices)
+
+        return list(set(processed))  # Return unique indices
+
+    @exclude.setter
+    def exclude(self, value):
+        self._exclude = value
+
+    @property
+    def av1245(self):
+        """
+        Whether to compute the AV1245. If not provided, it will compute it if the number of rings is greater than 9.
+
+        :returns: Whether to compute the AV1245.
+        :rtype: boolean
+        """
+        if self._av1245 is not None:
+            return self._av1245
+        if isinstance(self.rings[0], list):  # Check if there are more than one rings
+            maxring = max(len(ring) for ring in self.rings)
+        else:
+            maxring = len(self.rings)
+        return maxring > 9 # Will compute AV1245 if ring size is 10 or more
+
+    @av1245.setter
+    def av1245(self, value):
+        self._av1245 = value
+
+    def readaoms(self):
+        """
+        Reads the AOMs from a directory in AIMAll and ESIpy format. Overwrites 'ESI.aom' variable. By default, it will
+        read the AOMs from the working directory. If the 'readpath' attribute is set, it will read from that directory.
+
+        :returns: The AOMs in the MO basis, overwriting the aom variable.
+        :rtype: list
+        """
+
+        if self.readpath is None:
+            print(" | No path specified in 'ESI.readpath'. Will assume working directory")
+
+        self._aom = read_aoms(path=self.readpath)
+        self._molinfo = read_molinfo(path=self.readpath)
+        print(f" | Read the AOMs from {self.readpath}/")
+        return self._aom
+
+    def writeaoms(self, file):
+        """
+        Writes ESIpy's AOMs in AIMAll format in the working directory.
+
+        Generates:
+            - A '_atomicfiles/' directory with all the files created.
+            - A '.int' file for each atom with its corresponding AOM.
+            - A 'name.files' with a list of the names of the '.int' files.
+            - A 'name.bad' with a standard input for the ESI-3D code.
+            - A 'name.wfx' with the occupancies for the ESI-3D code.
+        """
+
+        for attr in ['mol', 'mf', 'aom', 'partition']:
+            if getattr(self, attr, None) is None:
+                raise AttributeError(
+                    f" | Missing required attribute '{attr}'. Please define it before calling ESI.writeaoms")
+
+        write_aoms(self.mol, self.mf, file, self.aom, self.rings, self.partition)
+        # file may already include subdirectory prefix
+        print(f" | Written the AOMs in {file}_{self.partition}_atomicfiles/")
+
+    def print(self):
+        """
+        Main output for ESIpy. Population analysis, localization and delocalization indices and
+        electronic (and geometric) aromaticity indicators.
+        """
+
+        if self.molinfo is None or len(self.molinfo) == 1:
+            if self.mol is None:
+                raise ValueError(" | Missing 'mol' and/or 'molinfo'. Can not compute")
+        if "calctype" not in self.molinfo:
+            self.molinfo.update({"calctype": "Not specified"})
+        if "xc" not in self.molinfo:
+            self.molinfo.update({"xc": "Not specified"})
+        if "energy" not in self.molinfo:
+            self.molinfo.update({"energy": "Not specified"})
+        if "method" not in self.molinfo:
+            self.molinfo.update({"method": "Not specified"})
+
+        if isinstance(self.partition, list):
+            raise ValueError(
+                " | Only one partition at a time. Partition should be a string, not a list\n | Please consider looping through the partitions before calling the function")
+
+        if isinstance(self._aom, str):
+            print(f" | Loading the AOMs from file {self._aom}")
+            self._aom = self.aom
+            if self.aom is None:
+                raise NameError(" | Please provide a valid name to read the AOMs")
+
+        if wf_type(self.aom) == "rest":
+            from esipy.rest import info_rest, deloc_rest, arom_rest
+            info_rest(self.totalaom, self.molinfo, self.nfrags)
+            deloc_rest(self.totalaom, self.molinfo, self.fragmap)
+            if self.rings:
+                arom_rest(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
+                      av1245=self.av1245,
+                      flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap)
+
+        elif wf_type(self.aom) == "unrest":
+            from esipy.unrest import info_unrest, deloc_unrest, arom_unrest
+            info_unrest(self.totalaom, self.molinfo, self.nfrags)
+            deloc_unrest(self.totalaom, self.molinfo, self.fragmap)
+            if self.rings:
+                arom_unrest(aom=self.aom, rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
+                        av1245=self.av1245, partition=self.partition,
+                        flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap,)
+
+        elif wf_type(self.aom) == "no":
+            from esipy.no import info_no, deloc_no, arom_no
+            info_no(self.totalaom, self.molinfo, self.nfrags)
+            deloc_no(self.totalaom, self.molinfo, self.fragmap)
+            if self.rings:
+                arom_no(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
+                    av1245=self.av1245,
+                    flurefs=self.flurefs, homarefs=self.homarefs, homerrefs=self.homerrefs, ncores=self.ncores, fragmap=self.fragmap,)
+

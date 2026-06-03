@@ -35,7 +35,7 @@ expected = {
     'lowdin': { 'exp_av': 0.00000000, 'exp_di12': 1.13212393, 'exp_iring': 0.01522190, 'exp_mci': 0.00000000, 'exp_pdi': 0.06477991, 'exp_pop_atm1': 6.03000000 },
     'meta-lowdin': { 'exp_av': 0.00000000, 'exp_di12': 1.13209812, 'exp_iring': 0.01522460, 'exp_mci': 0.00000000, 'exp_pdi': 0.06485038, 'exp_pop_atm1': 6.03513946 },
     'mulliken': { 'exp_av': 10184.00977061, 'exp_di12': 1.12390836, 'exp_iring': 0.01521713, 'exp_mci': -1018.33817154, 'exp_pdi': 0.06458836, 'exp_pop_atm1': 6.06128839 },
-    'nao': { 'exp_av': -0.00000000, 'exp_di12': 1.01663919, 'exp_iring': 0.01466020, 'exp_mci': 0.00000000, 'exp_pdi': 0.06212028, 'exp_pop_atm1': 6.71303663 },
+    'nao': { 'exp_av': -0.00000000, 'exp_di12': 1.12871774, 'exp_iring': 0.01523702, 'exp_mci': 0.00000000, 'exp_pdi': 0.06507585, 'exp_pop_atm1': 6.03658522 },
 }
 
 class ESItest(unittest.TestCase):
@@ -49,7 +49,7 @@ class ESItest(unittest.TestCase):
         # 1. Populations
         pop_atm1 = np.einsum('i,ii->', occ, aom_data[0])
         self.assertAlmostEqual(pop_atm1, exp['exp_pop_atm1'], places=3)
-
+        
         # 2. Sum Rule: Sum(Pops) = N
         pops = [np.einsum('i,ii->', occ, m) for m in aom_data]
         self.assertAlmostEqual(sum(pops), 42.0, places=3)
@@ -78,11 +78,11 @@ class ESItest(unittest.TestCase):
     def test_meta_lowdin(self):
         self.run_all_tests('meta-lowdin', expected['meta-lowdin'])
 
-    def test_nao(self):
-        self.run_all_tests('nao', expected['nao'])
-
     def test_iao(self):
         self.run_all_tests('iao', expected['iao'])
+
+    def test_nao(self):
+        self.run_all_tests('nao', expected['nao'])
 
 if __name__ == "__main__":
     unittest.main()

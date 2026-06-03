@@ -22,7 +22,8 @@ class TestFchkValidation(unittest.TestCase):
             self.skipTest(f"File {path} not found")
 
         print(f"\n [VALIDATE] {prog} / {filename}")
-        mol_f, mf_f = readfchk(path)
+        ecp_val = "lanl2dz" if "6_ecp" in filename else None
+        mol_f, mf_f = readfchk(path, ecp=ecp_val)
         if ref_key not in self.refs:
             self.skipTest(f"Reference for {ref_key} missing in pkl")
         ref = self.refs[ref_key]
@@ -83,6 +84,7 @@ class TestFchkValidation(unittest.TestCase):
     def test_g_3_o2(self): self.run_validation('GAUSSIAN', '3_o2_triplet.fchk', '3_o2_triplet')
     def test_g_4_h2(self): self.run_validation('GAUSSIAN', '4_h2_oss.fchk', '4_h2_oss')
     def test_g_5_h2o(self): self.run_validation('GAUSSIAN', '5_high_l.fchk', '5_high_l')
+    def test_g_6_ecp(self): self.run_validation('GAUSSIAN', '6_ecp.fchk', '6_ecp')
     def test_g_7_rmp2(self): self.run_validation('GAUSSIAN', '7_rmp2.fchk', '7_rmp2')
     def test_g_9_ccsd(self): self.run_validation('GAUSSIAN', '9_ccsd.fchk', '9_ccsd')
     def test_g_13_anthracene(self): self.run_validation('GAUSSIAN', '13_anthracene.fchk', '13_anthracene')

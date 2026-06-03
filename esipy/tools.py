@@ -22,6 +22,9 @@ def is_natorb_wf(mf):
     except TypeError:
         pass
         
+    if getattr(mf, 'is_natorb', False):
+        return True
+        
     # 2. Check for ESIpy FCHK flags
     if getattr(mf, 'is_fchk', False):
         # In our readfchk, we already converted correlated densities to NOs
@@ -33,6 +36,26 @@ def is_natorb_wf(mf):
         
     return False
 
+from pyscf.scf import hf
+from pyscf.scf import uhf
+
+class RefRHF(hf.RHF):
+    def __init__(self, mol, mo_coeff, mo_occ):
+        super().__init__(mol)
+        self.mo_coeff = mo_coeff
+        self.mo_occ = mo_occ
+    def make_rdm1(self, *args, **kwargs):
+        return self.mo_coeff @ np.diag(self.mo_occ) @ self.mo_coeff.T
+
+class RefUHF(uhf.UHF):
+    def __init__(self, mol, mo_coeff, mo_occ):
+        super().__init__(mol)
+        self.mo_coeff = mo_coeff
+        self.mo_occ = mo_occ
+    def make_rdm1(self, *args, **kwargs):
+        dm_a = self.mo_coeff[0] @ np.diag(self.mo_occ[0]) @ self.mo_coeff[0].T
+        dm_b = self.mo_coeff[1] @ np.diag(self.mo_occ[1]) @ self.mo_coeff[1].T
+        return np.array([dm_a, dm_b])
 
 def wf_type(aom):
     """
