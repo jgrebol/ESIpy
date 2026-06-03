@@ -183,7 +183,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
             if partition_label == "lowdin": U_inv = lowdin(S)
             elif partition_label == "meta-lowdin":
                 from pyscf.lo import orth
-                U_inv = orth.orth_ao(myhf if myhf is not None else mf, method="meta-lowdin")
+                _mf = myhf if myhf is not None else (mf._scf if hasattr(mf, "_scf") else mf)
+                U_inv = orth.orth_ao(_mf, method="meta-lowdin")
             elif partition_label == "nao": U_inv = nao.nao(mol, mf, S)
             
             if partition_label == "mulliken":
