@@ -68,9 +68,13 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
             else:
                 oa, ob = np.asarray(occ), np.asarray(occ)
                 ca, cb = coeff, coeff
-            # DO NOT MASK NATURAL ORBITALS (keep all of them)
-            mask_a = np.ones(len(oa), dtype=bool)
-            mask_b = np.ones(len(ob), dtype=bool)
+            if hasattr(mf, 'ncas') and getattr(mf, 'ncas') is not None:
+                n_occ_act = getattr(mf, 'ncore', 0) + getattr(mf, 'ncas', 0)
+                mask_a = np.zeros(len(oa), dtype=bool); mask_a[:n_occ_act] = True
+                mask_b = np.zeros(len(ob), dtype=bool); mask_b[:n_occ_act] = True
+            else:
+                mask_a = np.ones(len(oa), dtype=bool)
+                mask_b = np.ones(len(ob), dtype=bool)
         else:
             ca, cb = mo_coeff[0], mo_coeff[1]
             oa, ob = np.asarray(mo_occ[0]), np.asarray(mo_occ[1])
@@ -109,17 +113,26 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
             
             # Truncate natural orbitals to minimal basis size if is_natorb
             if is_natorb:
-                coeffs_a = ca[:, :n_ref]
-                coeffs_b = cb[:, :n_ref]
+                if hasattr(mf, 'ncas') and getattr(mf, 'ncas') is not None:
+                    n_occ_act = getattr(mf, 'ncore', 0) + getattr(mf, 'ncas', 0)
+                    coeffs_a = ca[:, :n_occ_act]
+                    coeffs_b = cb[:, :n_occ_act]
+                    occ_a_act = oa[:n_occ_act]
+                    occ_b_act = ob[:n_occ_act]
+                else:
+                    coeffs_a = ca[:, :n_ref]
+                    coeffs_b = cb[:, :n_ref]
+                    occ_a_act = oa[:n_ref]
+                    occ_b_act = ob[:n_ref]
             else:
                 coeffs_a = ca[:, mask_a]
                 coeffs_b = cb[:, mask_b]
 
-            aom_alpha = get_iao_aoms(partition_label, coeffs_a, mf, iaoref=iaoref)
-            aom_beta = get_iao_aoms(partition_label, coeffs_b, mf, iaoref=iaoref)
+            aom_alpha = get_iao_aoms(partition_label, coeffs_a, mf, iaoref=iaoref, c_full=ca[:, mask_a])
+            aom_beta = get_iao_aoms(partition_label, coeffs_b, mf, iaoref=iaoref, c_full=cb[:, mask_b])
             
             if is_natorb:
-                aom = [[aom_alpha, aom_beta], [oa[:n_ref], ob[:n_ref]]]
+                aom = [[aom_alpha, aom_beta], [occ_a_act, occ_b_act]]
             else:
                 aom = [aom_alpha, aom_beta]
         
@@ -152,7 +165,12 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
                 
         if is_natorb:
             occ, mo_coeff = get_natorbs(mf, S)
-            mask = np.ones(len(occ), dtype=bool) # DO NOT MASK NATURAL ORBITALS
+            if hasattr(mf, 'ncas') and getattr(mf, 'ncas') is not None:
+                n_occ_act = getattr(mf, 'ncore', 0) + getattr(mf, 'ncas', 0)
+                mask = np.zeros(len(occ), dtype=bool)
+                mask[:n_occ_act] = True
+            else:
+                mask = np.ones(len(occ), dtype=bool) # DO NOT MASK NATURAL ORBITALS
         else:
             occ = np.asarray(mo_occ)
             mask = (occ > 0.5)
@@ -184,13 +202,19 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
             n_ref = pmol.nao
             
             if is_natorb:
-                coeffs_input = coeff_src[:, :n_ref]
+                if hasattr(mf, 'ncas') and getattr(mf, 'ncas') is not None:
+                    n_occ_act = getattr(mf, 'ncore', 0) + getattr(mf, 'ncas', 0)
+                    coeffs_input = coeff_src[:, :n_occ_act]
+                    occ_act = occ[:n_occ_act]
+                else:
+                    coeffs_input = coeff_src[:, :n_ref]
+                    occ_act = occ[:n_ref]
             else:
                 coeffs_input = coeff
 
-            aom_list = get_iao_aoms(partition_label, coeffs_input, mf, iaoref=iaoref)
+            aom_list = get_iao_aoms(partition_label, coeffs_input, mf, iaoref=iaoref, c_full=coeff)
             if is_natorb:
-                aom = [aom_list, occ[:n_ref]]
+                aom = [aom_list, occ_act]
             else:
                 aom = aom_list
                 
