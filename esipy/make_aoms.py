@@ -81,16 +81,16 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
         if p_base == "dfpiao":
             aom_iao = get_iao_aoms(f"iao {ref_bas}", c, current_mf, current_myhf=current_myhf, c_full=c_full)
             aom_fpiao = get_iao_aoms(f"fpiao {ref_bas}", c, current_mf, w_override=1.0, current_myhf=current_myhf, c_full=c_full)
-            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(mol.natm)]
+            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(len(eta))]
         elif p_base == "dfpiao2":
             aom_iao = get_iao_aoms(f"iao2 {ref_bas}", c, current_mf, current_myhf=current_myhf, c_full=c_full)
             aom_fpiao = get_iao_aoms(f"fpiao2 {ref_bas}", c, current_mf, w_override=1.0, current_myhf=current_myhf, c_full=c_full)
-            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(mol.natm)]
+            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(len(eta))]
         elif p_base == "dpeiao":
             actual_mode = 'nao' if ref_bas in ['minao', 'valence'] else ref_bas
             aom_iao = get_iao_aoms(f"iao-effao-{actual_mode}", c, current_mf, current_myhf=current_myhf, c_full=c_full)
             aom_peiao = get_iao_aoms(f"peiao {ref_bas}", c, current_mf, current_myhf=current_myhf, c_full=c_full)
-            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_peiao[i] for i in range(mol.natm)]
+            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_peiao[i] for i in range(len(eta))]
 
         elif p_base in ["fpiao", "fpiao2"]:
             fpiao_effao = getattr(iao_mod, 'fpiao_effao', None)
@@ -135,7 +135,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
         from esipy.tools import build_eta
         eta = build_eta(pmol)
         proj_c = c_full if c_full is not None else c
-        return [np.linalg.multi_dot((proj_c.T, U, eta[i], U.T, proj_c)) for i in range(mol.natm)]
+        return [np.linalg.multi_dot((proj_c.T, U, eta[i], U.T, proj_c)) for i in range(len(eta))]
 
     mo_coeff = mf.mo_coeff
     mo_occ = mf.mo_occ
@@ -194,12 +194,12 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
             
             if partition_label == "mulliken":
                 eta = build_eta(mol)
-                for i in range(mol.natm):
+                for i in range(len(eta)):
                     aom_alpha.append(np.linalg.multi_dot((ca[:, mask_a].T, S, eta[i], ca[:, mask_a])))
                     aom_beta.append(np.linalg.multi_dot((cb[:, mask_b].T, S, eta[i], cb[:, mask_b])))
             else:
                 U = np.linalg.inv(U_inv); eta = build_eta(mol)
-                for i in range(mol.natm):
+                for i in range(len(eta)):
                     aom_alpha.append(ca[:, mask_a].T @ U.T @ eta[i] @ U @ ca[:, mask_a])
                     aom_beta.append(cb[:, mask_b].T @ U.T @ eta[i] @ U @ cb[:, mask_b])
             
@@ -289,10 +289,10 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
             
             if partition_label == "mulliken":
                 eta = build_eta(mol)
-                for i in range(mol.natm): aom.append(np.linalg.multi_dot((coeff.T, S, eta[i], coeff)))
+                for i in range(len(eta)): aom.append(np.linalg.multi_dot((coeff.T, S, eta[i], coeff)))
             else:
                 U = np.linalg.inv(U_inv); eta = build_eta(mol)
-                for i in range(mol.natm): aom.append(coeff.T @ U.T @ eta[i] @ U @ coeff)
+                for i in range(len(eta)): aom.append(coeff.T @ U.T @ eta[i] @ U @ coeff)
             
             if is_natorb:
                 aom = [aom, occ[mask]]

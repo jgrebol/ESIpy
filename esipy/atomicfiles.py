@@ -158,7 +158,7 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
         nalpha = nbeta = [np.trace(aom) for aom in aom]
 
     elif wf == "no":
-        nalpha = nbeta = [float(np.trace(np.dot(occ, aom))) for aom in aom]
+        nalpha = nbeta = [float(np.trace(np.dot(np.diag(occ), aom))) for aom in aom]
 
     # Creating a new directory for the calculation
 
@@ -212,7 +212,7 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
             elif wf == "rest":
                 f.write("          N   {:.10E}    NET CHARGE 0.0000000000E+00\n".format(2 * np.trace(aom[i])))
             else:
-                f.write("          N   {:.10E}    NET CHARGE 0.0000000000E+00\n".format(np.trace(np.dot(occ, aom[i]))))
+                f.write("          N   {:.10E}    NET CHARGE 0.0000000000E+00\n".format(np.trace(np.dot(np.diag(occ), aom[i]))))
             f.write("              G\n")
             f.write("              K   1.00000000000000E+01        E(ATOM)  1.00000000000000E+00\n")
             f.write("              L   0.00000000000000E+01\n\n")
@@ -282,16 +282,19 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
                 "---------------------------------------------------------------------------------------------------\n")
 
             if wf == "unrest":
-                for j, occup in enumerate(np.diag(occ[beta_size:])):
+                alpha_size = len(aom[0][i])
+                beta_size = len(aom[1][i])
+                for j in range(alpha_size):
                     f.write(
-                        f"       {j + 1:<8}{j + 1:<12}{float(1.):<15.10f}{'Alpha':<15}{0.0:<15.10f}{0.0:<15.10f}{0.0:<15.10f}\n"
+                        f"       {j + 1:<8}{j + 1:<12}{float(1.0):<15.10f}{'Alpha':<15}{0.0:<15.10f}{0.0:<15.10f}{0.0:<15.10f}\n"
                     )
-                for j, occup in enumerate(np.diag(occ[:beta_size])):
+                for j in range(beta_size):
                     f.write(
-                        f"       {j + 1 + alpha_size:<8}{j + 1 + alpha_size:<12}{float(occup):<15.10f}{'Beta':<15}{0.0:<15.10f}{0.0:<15.10f}{0.0:<15.10f}\n"
+                        f"       {j + 1 + alpha_size:<8}{j + 1 + alpha_size:<12}{float(1.0):<15.10f}{'Beta':<15}{0.0:<15.10f}{0.0:<15.10f}{0.0:<15.10f}\n"
                     )
             else:
-                for j, occup in enumerate(np.diag(occ)):
+                occ_diag = np.diag(occ) if occ.ndim == 2 else occ
+                for j, occup in enumerate(occ_diag):
                     f.write(
                         f"       {j + 1:<8}{j + 1:<12}{float(occup):<15.10f}{'Alpha,Beta':<15}{0.0:<15.10f}{0.0:<15.10f}{0.0:<15.10f}\n"
                     )
