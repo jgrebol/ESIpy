@@ -195,7 +195,7 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
     if not free_atom:
         if mode in ["lowdin", "meta-lowdin", "ml", "mlowdin", "meta_lowdin", "metalowdin", "nao"]:
             from pyscf import lo
-            method = "nao" if mode == "nao" else ("lowdin" if mode in ["lowdin", "ml", "mlowdin"] else "meta-lowdin")
+            method = "nao" if mode == "nao" else ("lowdin" if mode == "lowdin" else "meta-lowdin")
             T_orth = lo.orth_ao(mf if mode == "nao" else mol, method=method, s=S_mol)
             T_inv = np.linalg.inv(T_orth); P_mol = T_inv @ P_mol @ T_inv.T; S_mol = np.eye(mol.nao)
         elif mode == "gross":

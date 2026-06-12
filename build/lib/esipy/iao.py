@@ -7,6 +7,15 @@ from pyscf import gto, scf
 from pyscf.data import elements
 from pyscf.lo import orth
 
+def _resolve_mol(mol):
+    if isinstance(mol, gto.Mole):
+        return mol
+    if hasattr(mol, 'pyscf_mol'):
+        return mol.pyscf_mol
+    if hasattr(mol, 'mol'):
+        return mol.mol
+    return mol
+
 def load_iao_dat_basis(file_path, symbol):
     with open(file_path, 'r') as f:
         lines = f.readlines()
@@ -36,7 +45,26 @@ def load_iao_dat_basis(file_path, symbol):
     return basis
 
 def _load_basis_wrapper(name, sym):
-    if name == 'valence': name = 'sto-3g'
+    if name == 'valence':
+        minao = gto.basis.load('minao', sym)
+        l_present = [sh[0] for sh in minao]
+        from pyscf.data import elements
+        Z = elements.charge(sym)
+        target_max_l = 0
+        if Z > 2: target_max_l = 1
+        if Z > 10: target_max_l = 1
+        if Z > 18: target_max_l = 2
+        val_basis = list(minao)
+        if max(l_present) < target_max_l:
+            try:
+                ccpvtz = gto.basis.load('ccpvtz', sym)
+                for l_miss in range(max(l_present)+1, target_max_l+1):
+                    for sh in ccpvtz:
+                        if sh[0] == l_miss:
+                            val_basis.append(sh)
+                            break
+            except: pass
+        return val_basis
     if os.path.exists(name): return load_iao_dat_basis(name, sym)
     try:
         return gto.basis.load(name, sym)
@@ -162,7 +190,7 @@ def get_reference_basis_dict(mol, source_basis='minao', pol_basis=None, x=1.0, h
     return ref_basis
 
 def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=1.0, heavy_only=True, full_basis=False):
-    if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
+    mol = _resolve_mol(mol)
     if polarized and pol_basis is None: pol_basis = 'ano'
     elif not polarized: pol_basis = None
     ref_basis = get_reference_basis_dict(mol, source_basis=source_basis, pol_basis=pol_basis, x=x, heavy_only=heavy_only, full_basis=full_basis)
@@ -175,7 +203,7 @@ def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=
     return pmol
 
 def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_only=True, full_basis=False, x=1.0, mf=None, source_basis='valence'):
-    if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
+    mol = _resolve_mol(mol)
     pmol = reference_mol(mol, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis, x=x, source_basis=source_basis)
     minbas_total = pmol.nao; pmol_aoslices = pmol.aoslice_by_atom()
     veps_block = np.zeros((mol.nao, minbas_total)); vaps_diag = []
@@ -237,7 +265,7 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
     return np.array(vaps_diag), veps_block, pmol
 
 def _do_iao(mol, coeffs, pmol=None, A_basis=None, heavy_only=True):
-    if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
+    mol = _resolve_mol(mol)
     S1 = mol.intor('int1e_ovlp')
     if A_basis is not None:
         A_tilde = A_basis; S12 = S1 @ A_tilde; S2 = A_tilde.T @ S12
@@ -290,7 +318,7 @@ def peiao(mol, coeffs, mode='nao', heavy_only=True, full_basis=False, mf=None, x
     return _do_iao(mol, coeffs, A_basis=A_both, heavy_only=heavy_only), pmol
 
 def wiao(mol, coeffs, heavy_only=False, full_basis=False, source_basis='valence'):
-    if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
+    mol = _resolve_mol(mol)
     S1 = mol.intor('int1e_ovlp'); P_AO = coeffs @ coeffs.T; T = orth.lowdin(S1); T_inv = T.T @ S1
     P_ML = T_inv @ P_AO @ T_inv.T; B_whole = P_ML @ P_ML; natm = mol.natm; B_atom = np.zeros((natm, natm)); ao_loc = mol.ao_loc_nr()
     for i in range(natm):
