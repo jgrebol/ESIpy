@@ -74,3 +74,23 @@ favicons = [
 autodoc_typehints = "description"
 autodoc_class_signature = "separated"
 autoapi_dirs = ["../../esipy"]
+autoapi_ignore = [
+    "*readfchk_9f83aee*",
+    "*readfchk_old*",
+    "*readfchk_old_full*",
+    "*readfchk_origin*",
+    "*test_fci*",
+    "*test_li_iao*",
+    "*check_fail*",
+    "*check_keys*",
+    "*check_nao*",
+    "*check_pkl*",
+    "*compare_profiles*",
+    "*iao_basis_inspector*",
+    "*profile_read*",
+    "*plots_test_01*",
+    "*example01_mulliken_esipy*",
+    "*LEGACY*",
+    "*__pycache__*"
+]
+
