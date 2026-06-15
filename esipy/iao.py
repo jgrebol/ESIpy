@@ -196,8 +196,12 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
         if mode in ["lowdin", "meta-lowdin", "ml", "mlowdin", "meta_lowdin", "metalowdin", "nao"]:
             from pyscf import lo
             method = "nao" if mode == "nao" else ("lowdin" if mode == "lowdin" else "meta-lowdin")
-            T_orth = lo.orth_ao(mf if mode == "nao" else mol, method=method, s=S_mol)
+            mf_scf = mf
+            if mf is not None and not isinstance(mf, scf.hf.SCF) and hasattr(mf, '_scf') and isinstance(mf._scf, scf.hf.SCF):
+                mf_scf = mf._scf
+            T_orth = lo.orth_ao(mf_scf if mode == "nao" else mol, method=method, s=S_mol)
             T_inv = np.linalg.inv(T_orth); P_mol = T_inv @ P_mol @ T_inv.T; S_mol = np.eye(mol.nao)
+
         elif mode == "gross":
             PS = P_mol @ S_mol; P_mol = (PS + PS.T) * 0.5; S_mol = np.eye(mol.nao)
     aoslices = mol.aoslice_by_atom(); col_idx = 0

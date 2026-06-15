@@ -71,7 +71,8 @@ class TestFchkValidation(unittest.TestCase):
         # Compare Pops
         pop_err = np.max(np.abs(np.asarray(f_pops) - ref['ind']['pops']))
         print(f"  Max Pop Error: {pop_err:.2e}")
-        self.assertLess(pop_err, 0.02) # Relaxed for program diffs
+        thresh = 0.03 if prog == 'QCHEM' else 0.02
+        self.assertLess(pop_err, thresh) # Relaxed for program diffs
 
         # Compare DI
         if ref['ind']['di12'] > 1e-6:

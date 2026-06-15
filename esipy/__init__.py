@@ -1268,10 +1268,11 @@ class ESI:
         # Automatic post-HF wrapping
         if mf is not None and hasattr(mf, 'make_rdm1') and not hasattr(mf, 'get_veff') and not self.is_fchk:
             print(" | Post-HF PySCF object detected. Automatically generating Natural Orbitals...")
-            class MockMF:
+            from pyscf import scf
+            mock_mol = mol if mol else getattr(mf, 'mol', getattr(getattr(mf, '_scf', None), 'mol', None))
+            class MockMF(scf.hf.RHF):
                 pass
-            mock = MockMF()
-            mock.mol = mol if mol else getattr(mf, 'mol', getattr(getattr(mf, '_scf', None), 'mol', None))
+            mock = MockMF(mock_mol)
             mock.is_fchk = False
             
             try:
