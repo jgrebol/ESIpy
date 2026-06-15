@@ -138,7 +138,9 @@ class MeanField2:
                     idx = np.argsort(occ)[::-1]
                     self.mo_occ, self.mo_coeff = occ[idx], coeff[:, idx]
                     self.mo_occ[self.mo_occ < 1e-12] = 0.0
-                    self._scf, self.__name__ = scf.RHF(self.mol), "RHF"; self._scf.make_rdm1 = lambda *args, **kwargs: dt; break
+                    self._scf, self.__name__ = scf.RHF(self.mol), "RHF"; self._scf.make_rdm1 = lambda *args, **kwargs: dt
+                    self._scf.density_label = t_lbl
+                    break
             if not found_density:
                 if len(mo_a_flat) > 0:
                     print(" | Using Fallback RHF/ROHF MO coefficients")
@@ -148,6 +150,7 @@ class MeanField2:
                     self._scf, self.__name__ = scf.RHF(self.mol), "RHF"
                 else: raise RuntimeError('No MO coefficients or Density found in FCHK')
         self._scf.mo_coeff, self._scf.mo_occ, self._scf.e_tot = self.mo_coeff, self.mo_occ, self.e_tot
+        self._scf.is_fchk = True
 
     def make_rdm1(self, ao_repr=True):
         if self.mo_coeff is None: return None
