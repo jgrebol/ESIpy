@@ -92,7 +92,9 @@ class TestFchkValidation(unittest.TestCase):
     def test_q_1_bz_sph(self): self.run_validation('QCHEM', '1_benzene_spherical.fchk', '1_benzene_spherical')
     def test_q_2_bz_cart(self): self.run_validation('QCHEM', '2_benzene_cartesian.fchk', '2_benzene_cartesian')
     def test_q_4_h2(self): self.run_validation('QCHEM', '4_h2_oss.fchk', '4_h2_oss')
-    def test_q_7_rmp2(self): self.run_validation('QCHEM', '7_rmp2.fchk', '7_rmp2')
+    def test_q_7_rmp2(self):
+        with self.assertRaises(NotImplementedError):
+            readfchk(os.path.join(self.fchk_dir, 'QCHEM', '7_rmp2.fchk'))
 
 if __name__ == "__main__":
     unittest.main()

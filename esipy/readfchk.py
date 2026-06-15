@@ -102,6 +102,8 @@ class MeanField2:
         self.nalpha, self.nbeta = self.mole2.nalpha, self.mole2.nbeta
         self.e_tot, self.charge = float(getattr(self.mole2.fchk, 'e_tot', 0.0)), self.mole2.charge
         self.is_qchem = getattr(self.mole2.fchk, 'is_qchem', False)
+        if self.is_qchem and any(term in os.path.basename(path).lower() for term in ['mp2', 'ccsd', 'cc', 'ci']):
+            raise NotImplementedError("Correlated wavefunctions from Q-Chem FCHK files are not supported because Q-Chem does not write the correlated density to the FCHK file.")
         S_raw = self.mol.intor_symmetric('int1e_ovlp')
         v_align = 1.0 / np.sqrt(np.abs(np.diag(S_raw)))
 

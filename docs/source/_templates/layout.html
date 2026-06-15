@@ -1,0 +1,7 @@
+{% extends "!layout.html" %}
+
+{% block scripts %}
+  {%- for script in script_files %}
+    {{ script }}
+  {%- endfor %}
+{% endblock %}
