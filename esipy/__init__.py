@@ -37,8 +37,7 @@ class IndicatorsRest:
             rings (list): List of indices of the atoms in the ring connectivity. Can be a list of lists.
             mol (optional, obj): Molecule object "mol" from PySCF.
             mf (optional, obj): Calculation object "mf" from PySCF.
-            partition (optional, str): Type of Hilbert-space partition scheme.
-                Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
+            partition (optional, str): Type of Hilbert-space partition scheme. Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
             mci (optional, boolean): Whether to compute the MCI.
             av1245 (optional, boolean): Whether to compute the AV1245.
             flurefs (optional, dict): Custom FLU references.
@@ -314,8 +313,7 @@ class IndicatorsUnrest:
         rings (list): List of indices of the atoms in the ring connectivity. Can be a list of lists.
         mol (optional, obj): Molecule object "mol" from PySCF.
         mf (optional, obj): Calculation object "mf" from PySCF.
-        partition (optional, str): Type of Hilbert-space partition scheme.
-            Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
+        partition (optional, str): Type of Hilbert-space partition scheme. Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
         mci (optional, boolean): Whether to compute the MCI.
         av1245 (optional, boolean): Whether to compute the AV1245.
         flurefs (optional, dict): Custom FLU references.
@@ -846,8 +844,7 @@ class IndicatorsNatorb:
         mol (optional, obj): Molecule object "mol" from PySCF.
         mf (optional, obj): Calculation object "mf" from PySCF.
         myhf (optional, obj): Reference RHF object for IAO-Natural Orbitals calculation.
-        partition (optional, str): Type of Hilbert-space partition scheme.
-            Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
+        partition (optional, str): Type of Hilbert-space partition scheme. Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
         mci (optional, boolean): Whether to compute the MCI.
         av1245 (optional, boolean): Whether to compute the AV1245.
         flurefs (optional, dict): Custom FLU references.
@@ -1147,8 +1144,7 @@ class ESI:
     mol (optional, obj): Molecule object "mol" from PySCF.
     mf (optional, obj): Calculation object "mf" from PySCF.
     myhf (optional, obj): Reference RHF object for IAO-Natural Orbitals calculation.
-    partition (optional, str): Type of Hilbert-space partition scheme.
-        Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
+    partition (optional, str): Type of Hilbert-space partition scheme. Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
     mci (optional, boolean): Whether to compute the MCI.
     av1245 (optional, boolean): Whether to compute the AV1245.
     flurefs (optional, dict): Custom FLU references.
