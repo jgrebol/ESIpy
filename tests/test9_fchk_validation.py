@@ -13,8 +13,18 @@ class TestFchkValidation(unittest.TestCase):
         pkl_path = os.path.join(self.base_dir, "pyscf_refs.pkl")
         if not os.path.exists(pkl_path):
             self.skipTest(f"Missing {pkl_path}")
+        import sys
+        if hasattr(np, '_core'):
+            sys.modules['numpy._core'] = np._core
+        else:
+            try:
+                import numpy.core as np_core
+                sys.modules['numpy._core'] = np_core
+            except ImportError:
+                pass
         with open(pkl_path, "rb") as f:
             self.refs = pickle.load(f)
+
 
     def run_validation(self, prog, filename, ref_key):
         path = os.path.join(self.fchk_dir, prog, filename)
