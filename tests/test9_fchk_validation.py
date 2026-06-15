@@ -32,7 +32,12 @@ class TestFchkValidation(unittest.TestCase):
             self.skipTest(f"File {path} not found")
 
         print(f"\n [VALIDATE] {prog} / {filename}")
-        mol_f, mf_f = readfchk(path)
+        try:
+            mol_f, mf_f = readfchk(path)
+        except NotImplementedError as e:
+            if prog == "QCHEM":
+                self.skipTest(str(e))
+            raise e
         if ref_key not in self.refs:
             self.skipTest(f"Reference for {ref_key} missing in pkl")
         ref = self.refs[ref_key]
