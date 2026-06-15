@@ -32,11 +32,7 @@ class ESIInput:
         self.ncores = None
         self.mciaprox = []
         self.exclude = []
-        self.iaomix = None
-        self.iaoref = 'minao'
-        self.iaopol = 'ano'
-        self.heavy_only = True
-        self.full_basis = False
+
 
     @staticmethod
     def from_string(input_str):
@@ -68,26 +64,7 @@ class ESIInput:
                 i += 1
                 if i < len(lines):
                     obj.aomname = lines[i]
-            elif line.startswith('$IAOREF'):
-                i += 1
-                if i < len(lines) and not lines[i].startswith('$'):
-                    obj.iaoref = lines[i]
-                else:
-                    obj.iaoref = 'minao'
-                    i -= 1
-            elif line.startswith('$IAOPOL'):
-                i += 1
-                if i < len(lines) and not lines[i].startswith('$'):
-                    obj.iaopol = lines[i]
-                else:
-                    obj.iaopol = 'ano'
-                    i -= 1
-            elif line.startswith('$HNOPOL'):
-                obj.heavy_only = True
-            elif line.startswith('$HPOL'):
-                obj.heavy_only = False
-            elif line.startswith('$FULLBASIS'):
-                obj.full_basis = True
+
             elif line.startswith('$RING') or line.startswith('$RINGS'):
                 obj.rings = []
                 i += 1

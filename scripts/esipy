@@ -73,19 +73,7 @@ def main():
     else:
         mci_kwargs = {}
 
-    extra_kwargs = {}
-    if inp.iaomix is not None:
-        extra_kwargs['iaomix'] = inp.iaomix[0] if isinstance(inp.iaomix, list) and len(inp.iaomix) > 0 else inp.iaomix
-    if inp.iaoref is not None:
-        extra_kwargs['iaoref'] = inp.iaoref
-    if inp.iaopol is not None:
-        extra_kwargs['iaopol'] = inp.iaopol
-    if inp.heavy_only:
-        extra_kwargs['heavy_only'] = True
-    if inp.full_basis:
-        extra_kwargs['full_basis'] = True
-    if inp.ncores is not None:
-        extra_kwargs['ncores'] = inp.ncores
+    ncores = inp.ncores if inp.ncores is not None else 1
 
     av1245 = True if inp.av1245 else None
 
@@ -134,11 +122,11 @@ def main():
 
     for partition in partitions:
         if inp.mode == 'readaoms':
-            f_partition = format_partition(partition, **extra_kwargs)
+            f_partition = format_partition(partition)
             aom = inp.aomname + '_' + f_partition + '.aoms'
             molinfo = inp.aomname + '_' + f_partition + '.molinfo'
             esi = ESI(aom=aom, rings=rings, partition=partition, molinfo=molinfo,
-                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, **extra_kwargs)
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, ncores=ncores)
         elif inp.mode == 'readint':
             from esipy.tools import format_short_partition
             shortpart = format_short_partition(partition)
@@ -147,11 +135,11 @@ def main():
             else:
                 partition_dir = inp.readpath + '_' + shortpart + '_atomicfiles'
             esi = ESI(read=True, readpath=partition_dir, rings=rings, partition=partition,
-                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, **extra_kwargs)
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, ncores=ncores)
             esi.readaoms()
         else:
             esi = ESI(mol=mol, mf=mf, rings=rings, partition=partition, flurefs=flurefs,
-                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, **extra_kwargs)
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, ncores=ncores)
         esi.print()
 
         if inp.mciaprox:
