@@ -72,10 +72,17 @@ def generate_references():
                 f_pops = np.array(find_ns(atoms, aoms))
                 f_di12 = find_di(aoms, 1, 2) if mol_f.natm >= 2 else 0.0
 
+            # Convert numpy arrays/scalars to native Python lists/floats
+            # to avoid pickling NumPy objects that cause cross-version
+            # compatibility errors/segfaults.
             refs[key] = {
-                'e': getattr(mf, 'e_tot', 0.0),
-                'ind': {'pops': f_pops, 'di12': f_di12}
+                'e': float(getattr(mf, 'e_tot', 0.0)) if getattr(mf, 'e_tot', None) is not None else 0.0,
+                'ind': {
+                    'pops': f_pops.tolist() if isinstance(f_pops, np.ndarray) else list(f_pops),
+                    'di12': float(f_di12)
+                }
             }
+
             
         except Exception as e:
             print(f"Failed to generate reference for {key}: {e}")

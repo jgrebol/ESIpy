@@ -108,8 +108,13 @@ class ESItest(unittest.TestCase):
     def test_aimall_read(self):
         # Read user-provided AIMALL tests
         aimall_subdirs = [d for d in os.listdir(self.aimall_dir) if os.path.isdir(os.path.join(self.aimall_dir, d))]
+        run_count = 0
         for d in aimall_subdirs:
             adir = os.path.join(self.aimall_dir, d)
+            int_files = [f for f in os.listdir(adir) if f.endswith('.int')]
+            if not int_files:
+                continue
+            run_count += 1
             prefix = d.replace("_atomicfiles", "")
             fchk_path = os.path.join(self.aimall_dir, prefix + ".fchk")
             
@@ -123,6 +128,9 @@ class ESItest(unittest.TestCase):
                 self.assertTrue(len(esi_read.aom) > 0)
             except Exception as e:
                 self.fail(f"Failed reading AIMALL directory {adir} (FCHK: {os.path.exists(fchk_path)}): {e}")
+        if run_count == 0:
+            self.skipTest("No AIMAll .int files found in the test directory.")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -28,15 +28,16 @@ jobs:
           python -m ensurepip --upgrade
           python -m pip install --upgrade --no-cache-dir pip setuptools wheel pip-tools
 
-      - name: Install your package for testing
-        run: |
-          python -m pip install --no-cache-dir .
-
       - name: Install dependencies
         run: |
           python -m pip install --no-cache-dir -r requirements.txt
 
+      - name: Install your package for testing
+        run: |
+          python -m pip install --no-cache-dir .
+
       - name: Install Sphinx and doc dependencies
+
         run: |
           python -m pip install --no-cache-dir -r docs/source/requirements.txt
 

@@ -81,16 +81,16 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
         if p_base == "dfpiao":
             aom_iao = get_iao_aoms(f"iao {ref_bas}", c, current_mf, current_myhf=current_myhf, c_full=c_full)
             aom_fpiao = get_iao_aoms(f"fpiao {ref_bas}", c, current_mf, w_override=1.0, current_myhf=current_myhf, c_full=c_full)
-            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(len(eta))]
+            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(len(aom_iao))]
         elif p_base == "dfpiao2":
             aom_iao = get_iao_aoms(f"iao2 {ref_bas}", c, current_mf, current_myhf=current_myhf, c_full=c_full)
             aom_fpiao = get_iao_aoms(f"fpiao2 {ref_bas}", c, current_mf, w_override=1.0, current_myhf=current_myhf, c_full=c_full)
-            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(len(eta))]
+            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(len(aom_iao))]
         elif p_base == "dpeiao":
             actual_mode = 'nao' if ref_bas in ['minao', 'valence'] else ref_bas
             aom_iao = get_iao_aoms(f"iao-effao-{actual_mode}", c, current_mf, current_myhf=current_myhf, c_full=c_full)
             aom_peiao = get_iao_aoms(f"peiao {ref_bas}", c, current_mf, current_myhf=current_myhf, c_full=c_full)
-            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_peiao[i] for i in range(len(eta))]
+            return [local_w * aom_iao[i] + (1.0 - local_w) * aom_peiao[i] for i in range(len(aom_iao))]
 
         elif p_base in ["fpiao", "fpiao2"]:
             fpiao_effao = getattr(iao_mod, 'fpiao_effao', None)
@@ -211,21 +211,10 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
             # IAO logic
             if is_natorb:
                 from esipy.iao import reference_mol
-                from esipy.tools import RefUHF, RefRHF
                 pmol = reference_mol(mol, source_basis="minao")
-                
-                if hasattr(mf, 'ncas') and getattr(mf, 'ncas') is not None:
-                    n_occ_act = getattr(mf, 'ncore', 0) + getattr(mf, 'ncas', 0)
-                    ca_trunc = ca[:, :n_occ_act]
-                    cb_trunc = cb[:, :n_occ_act]
-                else:
-                    ca_trunc = ca[:, :pmol.nao]
-                    cb_trunc = cb[:, :pmol.nao]
-                
-                ref_mfa = RefRHF(mol, ca, oa)
-                ref_mfb = RefRHF(mol, cb, ob)
-                aom_alpha = get_iao_aoms(partition_label, ca_trunc, ref_mfa, c_full=ca[:, mask_a])
-                aom_beta = get_iao_aoms(partition_label, cb_trunc, ref_mfb, c_full=cb[:, mask_b])
+                n_ref = pmol.nao
+                aom_alpha = get_iao_aoms(partition_label, ca[:, :n_ref], mf, c_full=ca[:, mask_a])
+                aom_beta = get_iao_aoms(partition_label, cb[:, :n_ref], mf, c_full=cb[:, mask_b])
                 aom = [[aom_alpha, aom_beta], [oa[mask_a], ob[mask_b]]]
             else:
                 aom_alpha = get_iao_aoms(partition_label, ca[:, mask_a], mf)
@@ -261,12 +250,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
                 
         if is_natorb:
             occ, mo_coeff = get_natorbs(mf, S)
-            if hasattr(mf, 'ncas') and getattr(mf, 'ncas') is not None:
-                n_occ_act = getattr(mf, 'ncore', 0) + getattr(mf, 'ncas', 0)
-                mask = np.zeros(len(occ), dtype=bool)
-                mask[:n_occ_act] = True
-            else:
-                mask = np.ones(len(occ), dtype=bool) # DO NOT MASK NATURAL ORBITALS
+            mask = np.ones(len(occ), dtype=bool) # DO NOT MASK NATURAL ORBITALS
         else:
             occ = np.asarray(mo_occ)
             mask = (occ > 0.5)
@@ -300,17 +284,9 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
             # IAO logic
             if is_natorb:
                 from esipy.iao import reference_mol
-                from esipy.tools import RefRHF
                 pmol = reference_mol(mol, source_basis="minao")
-                
-                if hasattr(mf, 'ncas') and getattr(mf, 'ncas') is not None:
-                    n_occ_act = getattr(mf, 'ncore', 0) + getattr(mf, 'ncas', 0)
-                    c_trunc = coeff_src[:, :n_occ_act]
-                else:
-                    c_trunc = coeff_src[:, :pmol.nao]
-                
-                ref_mf = RefRHF(mol, coeff_src, occ)
-                aom = get_iao_aoms(partition_label, c_trunc, ref_mf, c_full=coeff)
+                n_ref = pmol.nao
+                aom = get_iao_aoms(partition_label, coeff_src[:, :n_ref], mf, c_full=coeff)
                 aom = [aom, occ[mask]]
             else:
                 aom = get_iao_aoms(partition_label, coeff, mf)
