@@ -69,22 +69,20 @@ def deloc_no(aom, molinfo, fragmap={}):
 
     for i in range(len(aom)):
         # Trace(sqrt(occ) @ AOM_i @ sqrt(occ) @ AOM_i)
-        o = np.diag(occ)
-        sq_o = np.sqrt(o)
-        Da_f = sq_o[:, None] * aom[i] * sq_o[None, :]
-        Da_x = o[:, None] * aom[i] * o[None, :]
-        lif = np.sum(Da_f * aom[i].T)
-        lix = 0.5 * np.sum(Da_x * aom[i].T)
+        # Using einsum for Trace(M1 @ M2 @ M3 @ M4)
+        occ_half = np.diag(np.sqrt(np.diag(occ)))
+        lif = np.einsum('ij,jk,kl,li->', occ_half, aom[i], occ_half, aom[i])
+        lix = 0.5 * np.einsum('ij,jk,kl,li->', occ, aom[i], occ, aom[i])
         lifs.append(lif)
         lixs.append(lix)
-        N.append(np.sum(o * np.diag(aom[i])))
+        N.append(np.einsum('ij,ji->', occ, aom[i]))
 
         dlocF = 0
         dlocX = 0
         for j in range(len(aom)):
             if i != j:
-                dif = np.sum(Da_f * aom[j].T)
-                dix = 0.5 * np.sum(Da_x * aom[j].T)
+                dif = np.einsum('ij,jk,kl,li->', occ_half, aom[i], occ_half, aom[j])
+                dix = 0.5 * np.einsum('ij,jk,kl,li->', occ, aom[i], occ, aom[j])
                 if symbols[j] != "FF":
                     dlocF += dif
                     dlocX += dix
@@ -115,10 +113,9 @@ def deloc_no(aom, molinfo, fragmap={}):
                 print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
                     symbols[i], i + 1, symbols[j], j + 1, lifs[i], lixs[i]))
             else:
-                Da_f = sq_o[:, None] * aom[i] * sq_o[None, :]
-                Da_x = o[:, None] * aom[i] * o[None, :]
-                dif = 2 * np.sum(Da_f * aom[j].T)
-                dix = np.sum(Da_x * aom[j].T)
+                occ_half = np.diag(np.sqrt(np.diag(occ)))
+                dif = 2 * np.einsum('ij,jk,kl,li->', occ_half, aom[i], occ_half, aom[j])
+                dix = np.einsum('ij,jk,kl,li->', occ, aom[i], occ, aom[j])
                 if symbols[i] != "FF" and symbols[j] != "FF":  # Exclude FF atoms from contributing
                     print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
                         symbols[i], i + 1, symbols[j], j + 1, dif, dix))
