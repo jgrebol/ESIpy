@@ -1,0 +1,325 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper, left=2.5cm, right=5.5cm, top=2.5cm, bottom=2.5cm, marginparwidth=4.5cm, marginparsep=0.5cm]{geometry}
+\usepackage{amsmath, amssymb, amsfonts, physics}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{xcolor}
+
+% Set formatting for generous spacing
+\onehalfspacing
+\setlength{\parskip}{1em}
+
+% Custom command for margin notes to make them stand out
+\newcommand{\mnote}[1]{\marginpar{\linespread{1.1}\footnotesize\textsf{\textcolor{blue}{\textbf{Margin Note:} #1}}}}
+
+\title{\LARGE \textbf{Extensive Mathematical Summary of Intrinsic Atomic Orbitals (IAO)} \\ \vspace{0.5em} \large \textit{From the SI, Handwritten Notes, and Historical Revisions to Multi-Reference Generalizations}}
+\author{Based on the 2013 Formalism, Revised Algorithms, and Extensions}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\vspace{1cm}
+\hrule
+\vspace{1cm}
+
+\section{Introduction and the Geometry of Least-Squares Projection}
+
+The foundation of projecting molecular orbitals (MOs) from an accurate computational basis into an approximate reference minimal basis relies on a least-squares minimization, as outlined in the handwritten notes. This logic prefaces the formal Intrinsic Atomic Orbital (IAO) construction.
+
+Let $\mathcal{H}_1 = \text{span}(\mathcal{B}_1)$ be the full computational one-particle Hilbert space (basis 1, the AOs), and $\mathcal{H}_2 = \text{span}(\mathcal{B}_2)$ be the minimal reference space (basis 2, the reference AOs). Let the molecular orbital in the original computational basis be given by:
+\begin{equation}
+    |\Psi\rangle = \sum_{\mu} c_{\mu} |\chi_{\mu}\rangle
+\end{equation}
+where $c_{\mu}$ are the exact MO coefficients. We seek to approximate this exact state in the new, approximate minimal reference basis:
+\begin{equation}
+    |\Psi^{\text{ref}}\rangle = \sum_{p} a_{p} |\tilde{\chi}_{p}\rangle
+\end{equation}
+
+The overlap matrices defining the metric of these spaces are defined as:
+\begin{align}
+    \langle \chi_{\mu} | \chi_{\nu} \rangle &= (S_1)_{\mu\nu} \\
+    \langle \tilde{\chi}_{p} | \tilde{\chi}_{q} \rangle &= (S_2)_{pq} \\
+    \langle \chi_{\mu} | \tilde{\chi}_{p} \rangle &= (S_{12})_{\mu p} \quad \text{and} \quad \langle \tilde{\chi}_{p} | \chi_{\mu} \rangle = (S_{21})_{p \mu}
+\end{align}
+
+\subsection{Error Minimization}
+
+To find the optimal coefficients $a_p$, we define an error vector $|err\rangle = |\Psi^{\text{ref}}\rangle - |\Psi\rangle$ and strictly minimize its square norm:
+\begin{equation}
+    ||err||^2 = \langle err | err \rangle = \left( \langle \Psi^{\text{ref}} | - \langle \Psi | \right) \left( |\Psi^{\text{ref}}\rangle - |\Psi\rangle \right)
+\end{equation}
+
+\mnote{Assuming the original wavefunction $|\Psi\rangle$ is normalized implies $\langle\Psi|\Psi\rangle = 1$. The cross terms are evaluated by inserting the basis expansions.}
+
+Expanding the inner products explicitly yields:
+\begin{equation}
+    ||err||^2 = \langle\Psi|\Psi\rangle + \langle\Psi^{\text{ref}}|\Psi^{\text{ref}}\rangle - \langle\Psi^{\text{ref}}|\Psi\rangle - \langle\Psi|\Psi^{\text{ref}}\rangle
+\end{equation}
+Substituting the vector representations $c$ and $a$:
+\begin{equation}
+    ||err||^2 = 1 + a^\dagger S_2 a - a^\dagger S_{21} c - c^\dagger S_{12} a
+\end{equation}
+
+Minimizing this quadratic error surface with respect to the reference coefficients $a$ implies setting the first derivative to zero:
+\begin{equation}
+    \frac{\partial ||err||^2}{\partial a} = 2 S_2 a - 2 S_{21} c = 0
+\end{equation}
+Solving for $a$, we find the least-squares optimal coefficients in basis 2 that reproduce the state in basis 1:
+\begin{equation}
+    S_2 a = S_{21} c \implies a = S_2^{-1} S_{21} c
+\end{equation}
+This operation inherently acts as a projector onto basis 2, which we will define as $\hat{P}_{12}$ or simply $\hat{P}_2$ when acting on states.
+
+\vspace{0.5cm}
+
+\section{Formal Single-Reference IAO Construction (S1.1 - S1.3)}
+
+The IAO method rectifies the inability of a minimal free-atom basis to quantitatively represent molecular wave functions (due to its lack of polarization and diffuse functions) by modifying those free-atom AOs into molecule-intrinsic AOs utilizing the exact molecular wave function.
+
+\subsection{Subspace Projectors and the RI Approximation}
+
+Suppose an accurate SCF wave function is computed in $\mathcal{B}_1$. We obtain exact projectors onto the occupied and virtual spaces:
+\begin{align}
+    \hat{O} &:= \sum_{i=1}^{N_{\text{occ}}} |\phi_i\rangle\langle\phi_i| \label{eq:O_exact} \\
+    \hat{V} &:= \sum_{a=1}^{N_{\text{vir}}} |\phi_a\rangle\langle\phi_a|
+\end{align}
+
+If we hypothetically computed the same state using only the minimal basis $\mathcal{B}_2$, we would get minimal-basis approximate projectors $\hat{O}^{\text{min}}$ and $\hat{V}^{\text{min}}$. Because these two spaces make up the entirety of the minimal basis, we can use them to write a Resolution of the Identity (RI) to perfectly split any minimal-basis function $|\tilde{\chi}_\mu\rangle \in \mathcal{B}_2$ into two conceptual pieces:
+\begin{equation}
+    |\tilde{\chi}_\mu\rangle = (\hat{O}^{\text{min}} + \hat{V}^{\text{min}})|\tilde{\chi}_\mu\rangle = \underbrace{\hat{O}^{\text{min}}|\tilde{\chi}_\mu\rangle}_{\text{Approximate Occupied Part}} + \underbrace{\hat{V}^{\text{min}}|\tilde{\chi}_\mu\rangle}_{\text{Approximate Virtual Part}}
+\end{equation}
+
+%\mnote{We map the minimal-basis pieces onto the exact spaces. We take what the minimal basis *thinks* is occupied, and force it into what is *actually* occupied.}
+
+To ensure the minimal basis exactly spans the accurate occupied space, we must correct these approximate pieces. We project the approximate minimal-basis occupied part into the \textit{exact} occupied space ($\hat{O}$), and the approximate virtual part into the \textit{exact} virtual space ($\hat{V}$). Reassembling these corrected pieces forms the \textit{proto-IAOs}:
+\begin{equation}
+    |\phi_\mu^{\text{IAO}}\rangle = (\hat{O}\hat{O}^{\text{min}} + \hat{V}\hat{V}^{\text{min}}) |\tilde{\chi}_\mu\rangle
+\end{equation}
+
+Introducing projectors onto the full linear spans of $\mathcal{B}_1$ ($\hat{P}_1$) and $\mathcal{B}_2$ ($\hat{P}_2$):
+\begin{equation}
+    \hat{P}_1 = \sum_{\mu,\nu} |\chi_\mu\rangle [S_{11}^{-1}]^{\mu\nu} \langle\chi_\nu|, \quad \hat{P}_2 = \sum_{\mu,\nu} |\tilde{\chi}_\mu\rangle [S_{22}^{-1}]^{\mu\nu} \langle\tilde{\chi}_\nu|
+\end{equation}
+
+Because $\hat{P}_1\hat{O} = \hat{O}$ and $\hat{P}_1\hat{V} = \hat{V}$, we can factor out the full space projection and rearrange the proto-IAO definition into the core structural formula:
+\begin{equation}
+    |\phi_\mu^{\text{IAO}}\rangle = \hat{P}_1 (\hat{O}\hat{O}^{\text{min}} + (1 - \hat{O})(1 - \hat{O}^{\text{min}})) |\tilde{\chi}_\mu\rangle \label{eq:core_iao}
+\end{equation}
+
+\vspace{0.5cm}
+
+\section{The Exact Subspace Identity and Simplification (S1.4)}
+
+We do not actually perform an independent minimal-basis SCF. Instead, we obtain the minimal-basis occupied projector $\hat{O}^{\text{min}}$ by projecting the accurate large-basis orbitals onto $\mathcal{B}_2$. For the revised construction, we define the \textit{proto-depolarized occupied} (depol) orbitals as:
+\begin{equation}
+    |\phi_i^{\text{depol}}\rangle := \hat{P}_2 |\phi_i\rangle
+\end{equation}
+
+%\mnote{The decision to use strictly $\hat{P}_2$ here allows $\hat{O}^{\text{min}}$ to form an exact subspace relationship, enabling the massive mathematical simplification shown below.}
+
+Because the depolarization strips away polarization contributions, these orbitals are not mathematically orthogonal. We compute their overlap matrix:
+\begin{equation}
+    [S^{\text{depol}}]_{ij} = \langle\phi_i^{\text{depol}} | \phi_j^{\text{depol}}\rangle = \langle\phi_i | \hat{P}_2 | \phi_j\rangle = [C^\dagger S_{12} S_{22}^{-1} S_{21} C]_{ij} \label{eq:Sdepol}
+\end{equation}
+
+The minimal-basis occupied projector $\hat{O}^{\text{min}}$ is constructed directly using the inverse overlap to correct for the non-orthogonality:
+\begin{equation}
+    \hat{O}^{\text{min}} = \sum_{j,k=1}^{N_{\text{occ}}} \hat{P}_2 |\phi_j\rangle [S^{\text{depol}}_{-1}]^{jk} \langle\phi_k| \hat{P}_2
+\end{equation}
+
+\subsection{The Magic Cancellation}
+
+The most beautiful mathematical trick in the revised IAO construction is proving that:
+\begin{equation}
+    \hat{O}(1 - \hat{O}^{\text{min}}) |\tilde{\chi}_\rho\rangle = 0
+\end{equation}
+Let us expand the product explicitly to see why this vanishes. By applying $\hat{O}$ to the projector complement:
+\begin{equation}
+    \hat{O}(1 - \hat{O}^{\text{min}}) |\tilde{\chi}_\rho\rangle = \sum_{i=1}^{N_{\text{occ}}} |\phi_i\rangle \left( \langle\phi_i| - \sum_{j,k=1}^{N_{\text{occ}}} \langle\phi_i| \hat{P}_2 |\phi_j\rangle [S^{\text{depol}}_{-1}]^{jk} \langle\phi_k| \hat{P}_2 \right) |\tilde{\chi}_\rho\rangle
+\end{equation}
+
+Notice that the term $\langle\phi_i| \hat{P}_2 |\phi_j\rangle$ is exactly the definition of the overlap matrix $[S^{\text{depol}}]_{ij}$ from Eq. \ref{eq:Sdepol}. Therefore, the inner sum becomes a perfect matrix contraction:
+\begin{equation}
+    \sum_{j=1}^{N_{\text{occ}}} [S^{\text{depol}}]_{ij} [S^{\text{depol}}_{-1}]^{jk} = \delta_i^k
+\end{equation}
+
+Substituting the Kronecker delta back into our expansion collapses the $k$ summation:
+\begin{equation}
+    = \sum_{i=1}^{N_{\text{occ}}} |\phi_i\rangle \left( \langle\phi_i| - \sum_{k=1}^{N_{\text{occ}}} \delta_i^k \langle\phi_k| \hat{P}_2 \right) |\tilde{\chi}_\rho\rangle = \sum_{i=1}^{N_{\text{occ}}} |\phi_i\rangle \left( \langle\phi_i| - \langle\phi_i| \hat{P}_2 \right) |\tilde{\chi}_\rho\rangle
+\end{equation}
+
+Because $|\tilde{\chi}_\rho\rangle$ is a basis function strictly inside $\mathcal{B}_2$, the projection $\hat{P}_2$ leaves it completely unchanged ($\hat{P}_2|\tilde{\chi}_\rho\rangle = |\tilde{\chi}_\rho\rangle$). Hence:
+\begin{equation}
+    = \sum_{i=1}^{N_{\text{occ}}} |\phi_i\rangle \big( \langle\phi_i|\tilde{\chi}_\rho\rangle - \langle\phi_i|\tilde{\chi}_\rho\rangle \big) = 0
+\end{equation}
+
+Because this cross-term vanishes exactly, Equation \ref{eq:core_iao} simplifies to a highly efficient and rigorous form:
+\begin{equation}
+    |\phi_\rho^{\text{IAO}}\rangle = \hat{P}_1 (1 + \hat{O} - \hat{O}^{\text{min}}) |\tilde{\chi}_\rho\rangle \label{eq:simplified_iao}
+\end{equation}
+
+\vspace{0.5cm}
+
+\section{Matrix Formulation of the IAO Construction (S1.5)}
+
+To implement the algorithm numerically, we define matrices $S_{11}$, $S_{12}$, $S_{21}$, and $S_{22}$ representing the overlaps between bases $\mathcal{B}_1$ and $\mathcal{B}_2$, alongside $C$ (the $N_{\text{occ}}$ orbital coefficients). Let $c^{\text{IAO}}$ be the resulting expansion matrix for the proto-IAOs.
+
+\subsection{The Revised Construction}
+Evaluating Equation \ref{eq:simplified_iao} term-by-term generates the expansion:
+\begin{equation}
+    c^{\text{IAO}} = S_{11}^{-1}S_{12} + C C^\dagger S_{12} - S_{11}^{-1}S_{12}S_{22}^{-1}S_{21}C [S^{\text{depol}}]^{-1} C^\dagger S_{12} \label{eq:S40}
+\end{equation}
+where $S^{\text{depol}} = C^\dagger S_{12} S_{22}^{-1} S_{21} C$. This formulation can be factored for massive efficiency using intermediates:
+\begin{align}
+    P_{12} &:= S_{11}^{-1} S_{12} \\
+    t_1 &:= S_{21} C \\
+    t_2 &:= S_{22}^{-1} t_1 \\
+    S^{\text{depol}} &:= t_1^\dagger t_2 \\
+    t_3 &:= t_2 [S^{\text{depol}}]^{-1}
+\end{align}
+The final proto-IAO coefficient matrix is evaluated using efficient BLAS/LAPACK calls, scaling trivially compared to the SCF process:
+\begin{equation}
+    c^{\text{IAO}} = P_{12} + (C - P_{12}t_3)t_1^\dagger \label{eq:S44}
+\end{equation}
+
+\subsection{The Original 2013 Construction}
+Translating the unsimplified Equation \ref{eq:core_iao} yields:
+\begin{align}
+    P_{12} &= S_{11}^{-1}S_{12} \\
+    \tilde{C} &= \text{orth}(S_{11}^{-1}S_{12}S_{22}^{-1}S_{21}C, S_{11}) \\
+    c^{\text{IAO}} &= C C^T S_{11} \tilde{C} \tilde{C}^T S_{11} P_{12} + (1 - C C^T S_{11})(1 - \tilde{C} \tilde{C}^T S_{11}) P_{12}
+\end{align}
+where $\text{orth}(C, S) := C[C^T S C]^{-1/2}$.
+
+\vspace{0.5cm}
+
+\section{Evolution of the IAO Method: 2013 vs. Revised Formulation (S1.6)}
+
+The subtle differences surrounding the IAO formalism stem predominantly from the choice between two competing depolarized orbital equations:
+\begin{align}
+    |\phi_i^{\text{depol}}\rangle &:= \hat{P}_1\hat{P}_2|\phi_i\rangle \quad \textbf{(Original 2013 Method)} \label{eq:2013_depol} \\
+    |\phi_i^{\text{depol}}\rangle &:= \hat{P}_2|\phi_i\rangle \quad \textbf{(Revised Method)} \label{eq:revised_depol}
+\end{align}
+
+\subsection{The 2013 Approach: Software Comfort over Formal Exactness}
+In the original 2013 publication, the depolarization was defined with the extra $\hat{P}_1$ projection (Eq. \ref{eq:2013_depol}). 
+
+%\mnote{Why use the original at all? It was an early implementation artifact. It coerced the orbital matrix into a format naturally compatible with existing Fortran arrays.}
+
+\textbf{Why it was used:} It was chosen primarily for software engineering convenience. Applying $\hat{P}_1$ ensured all intermediate quantities were strictly expressed within the exact span of the full computational basis $\mathcal{B}_1$. 
+
+\textbf{The Mathematical Consequence:} Because the minimal basis $\mathcal{B}_2$ is almost never a perfect mathematical subspace of $\mathcal{B}_1$, forcing it into $\mathcal{B}_1$ via $\hat{P}_1$ creates a small numerical friction. Consequently, the "Magic Cancellation" ($\hat{O}(1-\hat{O}^{\text{min}}) |\tilde{\chi}_\rho\rangle = 0$) derived in Section 3 is \textbf{not exact} under the 2013 definition. Because of this, the 2013 method requires the much more complex matrix evaluation rather than the highly efficient Eq. \ref{eq:simplified_iao}.
+
+\subsection{The Revised Approach: Mathematical Elegance}
+By dropping the final $\hat{P}_1$ projection (Eq. \ref{eq:revised_depol}), we treat the minimal basis strictly on its own terms. 
+
+\textbf{The Mathematical Consequence:} This subtle change breaks the false commutation between $\hat{P}_1$ and the depolarized projector $\hat{O}^{\text{min}}$, which is physically correct. Because we no longer force $\mathcal{B}_2$ into $\mathcal{B}_1$ prematurely, the subspace relationship holds perfectly, the "Magic Cancellation" becomes mathematically exact, and the matrix formulation simplifies drastically to a few triangular matrix solves via Cholesky decomposition.
+
+\textbf{Practical Impact:} In terms of the final chemical insights (charges, bond orders, etc.), both methods produce numerically near-indistinguishable results. However, the revised method is formally exact, philosophically cleaner, and computationally cheaper—making it vastly superior for complex derivative tasks like analytical gradients.
+
+\vspace{0.5cm}
+
+\section{Generalization to Multi-Reference Wavefunctions}
+
+The formalisms established in Sections 2 through 6 work elegantly for Hartree-Fock or Kohn-Sham DFT because electrons are permanently assigned to orbitals (occupations are strictly 1 or 0). In a highly correlated Multi-Reference (MR) wavefunction (such as CASSCF, DMRG, or MRCI), electrons exist in a quantum superposition of configurations. We can no longer talk about permanently "occupied orbitals," but rather \textbf{Natural Orbitals (NOs)} with fractional occupation numbers.
+
+\subsection{Spectral Decomposition of the 1-RDM}
+
+We begin by diagonalizing the exact MR 1-particle reduced density matrix (1-RDM) $\boldsymbol{\gamma}$ to find the NOs $|\phi_i\rangle$ and their fractional occupations $n_i$:
+\begin{equation}
+    \boldsymbol{\gamma} = \sum_{i=1}^{\text{dim}(\mathcal{B}_1)} n_i |\phi_i\rangle \langle \phi_i| \quad \text{where} \quad 0 \leq n_i \leq 1
+\end{equation}
+
+%\mnote{If we blindly plug $\boldsymbol{\gamma}$ into the IAO equations instead of $\hat{O}$, the exact subspace cancellation trick from Section 3 will fail because the 1-RDM is not idempotent ($\boldsymbol{\gamma}^2 \neq \boldsymbol{\gamma}$). We must build a hard projector out of soft occupations.}
+
+We conceptually partition these NOs into three spaces based on their occupations:
+\begin{enumerate}
+    \item \textbf{Core Space ($\mathcal{C}$):} $n_i \approx 1$ (Doubly occupied in almost all configurations).
+    \item \textbf{Active Space ($\mathcal{A}$):} $0 < n_i < 1$ (The strongly correlated electrons).
+    \item \textbf{Virtual Space ($\mathcal{V}$):} $n_i \approx 0$ (Essentially empty).
+\end{enumerate}
+
+\subsection{The Generalized Subspace Projectors}
+
+To recover the mathematical exactness of the IAO spanning property, we define a \textbf{Generalized Occupied Space} that encompasses \textit{both} the core and active spaces. Let $N_{\text{NO}} = N_{\text{core}} + N_{\text{active}}$ be the total number of NOs with non-negligible occupancy.
+
+We define the Multi-Reference Occupied Projector by explicitly stripping the occupation numbers from the summation:
+\begin{equation}
+    \hat{O}_{MR} = \sum_{i \in \mathcal{C} \cup \mathcal{A}} |\phi_i\rangle \langle \phi_i|
+\end{equation}
+We are projecting onto the \textit{vector space} spanned by the relevant NOs, regardless of how fractionally filled they are. Because these NOs are strictly orthogonal by definition of the spectral decomposition, $\hat{O}_{MR}$ is strictly idempotent ($\hat{O}_{MR}^2 = \hat{O}_{MR}$).
+
+The complementary Multi-Reference Virtual Projector is simply:
+\begin{equation}
+    \hat{V}_{MR} = \hat{P}_1 - \hat{O}_{MR} = \sum_{a \in \mathcal{V}} |\phi_a\rangle \langle \phi_a|
+\end{equation}
+
+\subsection{The MR-IAO Construction}
+
+We now apply the exact same depolarization machinery from Section 3, but applied strictly to the generalized active+core space. We project the generalized space into the minimal basis:
+\begin{equation}
+    |\phi_i^{\text{depol}}\rangle_{MR} = \hat{P}_2 |\phi_i\rangle \quad \forall i \in \mathcal{C} \cup \mathcal{A}
+\end{equation}
+
+We compute the overlap of these depolarized NOs:
+\begin{equation}
+    [S_{MR}^{\text{depol}}]_{ij} = \langle\phi_i | \hat{P}_2 | \phi_j\rangle \quad (i,j \in \mathcal{C} \cup \mathcal{A})
+\end{equation}
+
+%\mnote{Because we projected the spatial parts of the orbitals rather than scaling them by the density, these MR-IAOs act as a perfectly localized atomic frame that exactly spans all correlated space.}
+
+This allows us to construct the generalized approximate minimal-basis projector, correcting for non-orthogonality:
+\begin{equation}
+    \hat{O}_{MR}^{\text{min}} = \sum_{j,k \in \mathcal{C} \cup \mathcal{A}} \hat{P}_2 |\phi_j\rangle [S_{MR}^{\text{depol}}]^{-1}_{jk} \langle\phi_k| \hat{P}_2
+\end{equation}
+
+Finally, because our new generalized projectors are idempotent, the "Magic Cancellation" holds true. The exact MR-IAOs are formed by projecting through our generalized representation, which safely reduces to the computationally optimal form:
+\begin{equation}
+    |\phi_\rho^{\text{IAO}}\rangle_{MR} = \hat{P}_1 (1 + \hat{O}_{MR} - \hat{O}_{MR}^{\text{min}}) |\tilde{\chi}_\rho\rangle
+\end{equation}
+
+Once this localized minimal atomic basis is established, you can project your highly correlated MR 1-RDM directly onto the IAOs:
+\begin{equation}
+    \gamma_{\mu\nu}^{\text{IAO}} = \langle \phi_\mu^{\text{IAO}} | \boldsymbol{\gamma} | \phi_\nu^{\text{IAO}} \rangle
+\end{equation}
+This beautifully allows one to extract local oxidation states, atomic charges, and bond orders directly from a CASSCF or DMRG wavefunction, preserving the exact fractional correlation behavior while firmly anchoring it to recognizable chemical concepts.
+
+\vspace{0.5cm}
+
+\section{Summary of Key Formulas and Formalisms}
+
+\subsection{Final Formula Comparison: 2013 vs. Revised}
+
+The mathematical differences outlined in Section 6 culminate in the final algebraic expressions used to compute the IAO coefficient matrix, $c^{\text{IAO}}$. 
+
+\textbf{The Original 2013 Final Formula:} \\
+Because the $\hat{P}_1$ projection disrupted the exact subspace relationship, the cross-terms did not elegantly cancel. This necessitated an explicit symmetric orthogonalization step, resulting in a much more computationally dense evaluation:
+\begin{align}
+    \tilde{C} &= C [C^T S_{12} S_{22}^{-1} S_{21} C]^{-1/2} \\
+    c^{\text{IAO}} &= C C^T S_{11} \tilde{C} \tilde{C}^T S_{11} P_{12} + (1 - C C^T S_{11})(1 - \tilde{C} \tilde{C}^T S_{11}) P_{12}
+\end{align}
+
+\textbf{The Revised Final Formula:} \\
+By dropping the superfluous projection, the algebraic "Magic Cancellation" holds perfectly. This simplifies the construction to a highly optimized algorithm relying only on intermediate overlaps and efficient Cholesky decomposition triangular solves:
+\begin{align}
+    P_{12} &= S_{11}^{-1}S_{12}, \quad t_1 = S_{21} C, \quad t_2 = S_{22}^{-1} t_1, \quad t_3 = t_2 (t_1^\dagger t_2)^{-1} \\
+    c^{\text{IAO}} &= P_{12} + (C - P_{12}t_3)t_1^\dagger
+\end{align}
+
+\subsection{Major Differences: Single- vs. Multi-Reference Wavefunctions}
+
+The transition from a standard Single-Reference (SR) framework to a Multi-Reference (MR) framework fundamentally changes how we represent the occupied chemical space. 
+
+\begin{itemize}
+    \item \textbf{Electron States and Occupations:} SR methods (HF/DFT) rely on Molecular Orbitals (MOs) with strict integer occupations ($n_i \in \{0, 1\}$). MR methods (CASSCF/DMRG) describe states via Natural Orbitals (NOs) possessing fractional occupations ($0 \leq n_i \leq 1$).
+    \item \textbf{Density Matrix Idempotency:} The single-determinant 1-RDM is strictly idempotent ($\boldsymbol{\gamma}^2 = \boldsymbol{\gamma}$), meaning it acts inherently as a mathematical projector. The multi-reference 1-RDM is not idempotent ($\boldsymbol{\gamma}^2 \neq \boldsymbol{\gamma}$) because fractional occupations square to smaller numbers.
+    \item \textbf{Occupied Projector Definition ($\hat{O}$):} In SR theory, $\hat{O}$ is mathematically identical to the 1-RDM. In MR theory, using the 1-RDM breaks the IAO derivation. We must construct an artificial, "flattened" spatial projector ($\hat{O}_{MR}$) that treats all Core and Active NOs equally. By stripping away their fractional weights, we recover the idempotency ($\hat{O}_{MR}^2 = \hat{O}_{MR}$) necessary to perfectly partition the space.
+    \item \textbf{Chemical Interpretation Mapping:} Once the rigid IAO atomic frame is constructed using the flattened spatial projectors, the exact fractional density $\boldsymbol{\gamma}$ is mapped back into it. While the SR mapping yields integer lone pairs and straightforward single/double bonds, mapping the MR density natively captures highly correlated phenomena, including resonance structures, continuous partial bond orders, and unquenched spin densities.
+\end{itemize}
+
+\end{document}
+

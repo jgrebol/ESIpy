@@ -1,0 +1,5 @@
+$READFCHK
+3_o2_triplet.fchk
+$FINDRING
+$PARTITION
+ALL

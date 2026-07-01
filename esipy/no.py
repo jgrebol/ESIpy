@@ -14,6 +14,7 @@ def info_no(aom, molinfo, nfrags=0):
     """
 
     aom, occ = aom
+    if occ.ndim == 1: occ = np.diag(occ)
     partition = format_partition(molinfo["partition"])
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     print(" | Number of Atoms:          {}".format(len(aom)-nfrags))
@@ -52,6 +53,7 @@ def deloc_no(aom, molinfo, fragmap={}):
     """
 
     aom, occ = aom
+    if occ.ndim == 1: occ = np.diag(occ)
     presymbols = molinfo["symbols"]
     symbols = presymbols + ["FF"] * (len(aom)-len(presymbols))
     if len(aom)-len(presymbols) > 0:

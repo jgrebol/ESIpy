@@ -90,6 +90,34 @@ class IndicatorsRest:
                 self._done_mci = multiprocessing_mci(self._rings, self._aom, self._ncores, self._partition)
         return 2 * self._done_mci
 
+    @property
+    def iring_n(self):
+        """
+        Get the Iring**(1/n) value.
+
+        :returns: The Iring**(1/n) value.
+        :rtype: float
+        """
+        val = self.iring
+        if val < 0:
+            return -(np.abs(val) ** (1 / len(self._rings)))
+        else:
+            return val ** (1 / len(self._rings))
+
+    @property
+    def mci_n(self):
+        """
+        Get the MCI**(1/n) value.
+
+        :returns: The MCI**(1/n) value.
+        :rtype: float
+        """
+        val = self.mci
+        if val < 0:
+            return -(np.abs(val) ** (1 / len(self._rings)))
+        else:
+            return val ** (1 / len(self._rings))
+
     def _av(self):
         """
         Compute the AV1245, AVmin and the list of the 4c-MCIs.
@@ -418,6 +446,34 @@ class IndicatorsUnrest:
         return self._mcis()[0] + self._mcis()[1]
 
     @property
+    def iring_n(self):
+        """
+        Get the Iring**(1/n) value.
+
+        :returns: The Iring**(1/n) value.
+        :rtype: float
+        """
+        val = self.iring
+        if val < 0:
+            return -(np.abs(val) ** (1 / len(self._rings)))
+        else:
+            return val ** (1 / len(self._rings))
+
+    @property
+    def mci_n(self):
+        """
+        Get the MCI**(1/n) value.
+
+        :returns: The MCI**(1/n) value.
+        :rtype: float
+        """
+        val = self.mci
+        if val < 0:
+            return -(np.abs(val) ** (1 / len(self._rings)))
+        else:
+            return val ** (1 / len(self._rings))
+
+    @property
     def mci_alpha(self):
         """
         Get the MCI_alpha value.
@@ -459,7 +515,7 @@ class IndicatorsUnrest:
         :returns: The AV1245 value.
         :rtype: float
         """
-        return 2 * (self._avs()[0][0] + self._avs()[1][0])
+        return self._avs()[0][0] + self._avs()[1][0]
 
     @property
     def av1245_alpha(self):
@@ -469,7 +525,7 @@ class IndicatorsUnrest:
         :returns: The AV1245_alpha value.
         :rtype: float
         """
-        return 2 * self._avs()[0][0]
+        return self._avs()[0][0]
 
     @property
     def av1245_beta(self):
@@ -479,7 +535,7 @@ class IndicatorsUnrest:
         :returns: The AV1245_beta value.
         :rtype: float
         """
-        return 2 * self._avs()[1][0]
+        return self._avs()[1][0]
 
     @property
     def avmin(self):
@@ -529,7 +585,7 @@ class IndicatorsUnrest:
         :returns: The list of 4c-MCIs that form the AV1245_alpha.
         :rtype: numpy.ndarray
         """
-        return 2 * np.array(self._avs()[0][2])
+        return np.array(self._avs()[0][2])
 
     @property
     def av1245_list_beta(self):
@@ -539,7 +595,7 @@ class IndicatorsUnrest:
         :returns: The list of 4c-MCIs that form the AV1245_beta.
         :rtype: numpy.ndarray
         """
-        return 2 * np.array(self._avs()[1][2])
+        return np.array(self._avs()[1][2])
 
     def _pdis(self):
         """
@@ -563,7 +619,7 @@ class IndicatorsUnrest:
         :returns: The PDI value.
         :rtype: float
         """
-        return 2 * (self._pdis()[0][0] + self._pdis()[1][0])
+        return self._pdis()[0][0] + self._pdis()[1][0]
 
     @property
     def pdi_alpha(self):
@@ -573,7 +629,7 @@ class IndicatorsUnrest:
         :returns: The PDI_alpha value.
         :rtype: float
         """
-        return 2 * self._pdis()[0][0]
+        return self._pdis()[0][0]
 
     @property
     def pdi_beta(self):
@@ -583,7 +639,7 @@ class IndicatorsUnrest:
         :returns: The PDI_beta value.
         :rtype: float
         """
-        return 2 * self._pdis()[1][0]
+        return self._pdis()[1][0]
 
     @property
     def pdi_list(self):
@@ -593,7 +649,7 @@ class IndicatorsUnrest:
         :returns: The list of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return 2 * (self._pdis()[0][1] + self._pdis()[1][1])
+        return self._pdis()[0][1] + self._pdis()[1][1]
 
     @property
     def pdi_list_alpha(self):
@@ -603,7 +659,7 @@ class IndicatorsUnrest:
         :returns: The list of the alpha component of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return 2 * self._pdis()[0][1]
+        return self._pdis()[0][1]
 
     @property
     def pdi_list_beta(self):
@@ -613,7 +669,7 @@ class IndicatorsUnrest:
         :returns: The list of the beta component of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return 2 * self._pdis()[1][1]
+        return self._pdis()[1][1]
 
     def _flus(self):
         """
@@ -882,7 +938,7 @@ class IndicatorsNatorb:
         :returns: The Iring value.
         :rtype: float
         """
-        return 4 * compute_iring_no(self._rings, self._aom)
+        return compute_iring_no(self._rings, self._aom)
 
     @property
     def mci(self):
@@ -897,7 +953,35 @@ class IndicatorsNatorb:
                 self._done_mci = sequential_mci_no(self._rings, self._aom, self._partition)
             else:
                 self._done_mci = multiprocessing_mci_no(self._rings, self._aom, self._ncores, self._partition)
-        return 4 * self._done_mci
+        return self._done_mci
+
+    @property
+    def iring_n(self):
+        """
+        Get the Iring**(1/n) value.
+
+        :returns: The Iring**(1/n) value.
+        :rtype: float
+        """
+        val = self.iring
+        if val < 0:
+            return -(np.abs(val) ** (1 / len(self._rings)))
+        else:
+            return val ** (1 / len(self._rings))
+
+    @property
+    def mci_n(self):
+        """
+        Get the MCI**(1/n) value.
+
+        :returns: The MCI**(1/n) value.
+        :rtype: float
+        """
+        val = self.mci
+        if val < 0:
+            return -(np.abs(val) ** (1 / len(self._rings)))
+        else:
+            return val ** (1 / len(self._rings))
 
     def _av_no(self):
         """
@@ -915,10 +999,10 @@ class IndicatorsNatorb:
         """
         Get the AV1245 value.
 
-        :returns: The AV1245 value
+        :returns: The AV1245 value.
         :rtype: float
         """
-        return 4 * self._av_no()[0]
+        return self._av_no()[0]
 
     @property
     def avmin(self):
@@ -928,7 +1012,7 @@ class IndicatorsNatorb:
         :returns: The AVmin value.
         :rtype: float
         """
-        return 4 * self._av_no()[1]
+        return self._av_no()[1]
 
     @property
     def av1245_list(self):
@@ -959,7 +1043,7 @@ class IndicatorsNatorb:
         :returns: The PDI value.
         :rtype: float
         """
-        return 4 * self._pdi_no()[0]
+        return self._pdi_no()[0]
 
     @property
     def pdi_list(self):
@@ -969,7 +1053,7 @@ class IndicatorsNatorb:
         :returns: The list of the DI values that form PDI.
         :rtype: numpy.ndarray
         """
-        return 4 * self._pdi_no()[1]
+        return self._pdi_no()[1]
 
     @property
     def flu(self):
@@ -1169,16 +1253,17 @@ class ESI:
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
                  ncores=1, save=None, readpath='.', read=False,
-                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None):
+                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None, is_fchk=False, verbose=None, **kwargs):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
         self._rings = rings
         self.mol = mol
         self.mf = mf
+        self.is_fchk = is_fchk or getattr(mf, 'is_fchk', False)
         self.myhf = myhf
         self._molinfo = molinfo
-        self._partition = partition
+        self._partition = format_partition(partition) if partition else None
         self._mci = mci
         self._av1245 = av1245
         # For custom references
@@ -1193,9 +1278,8 @@ class ESI:
         self.save = save
         # Directory where files will be written. Use <save>_esipy to avoid cluttering working dir
         self.save_dir = save + '_esipy' if save else None
-        formatted_part = format_partition(self.partition)
-        self.saveaoms = save + '_' + formatted_part + ".aoms" if save else None
-        self.savemolinfo = save + '_' + formatted_part + ".molinfo" if save else None
+        self.saveaoms = save + '_' + self.partition + ".aoms" if save and self.partition else None
+        self.savemolinfo = save + '_' + self.partition + ".molinfo" if save and self.partition else None
         self.readpath = readpath
         self.read = read
         # For finding rings
@@ -1225,7 +1309,15 @@ class ESI:
             print(" | WARNING: NAO and Natural Orbitals from unrestricted orbitals not implemented yet")
 
 
+        if verbose is None:
+            env_verbose = os.environ.get('VERBOSE', 'False').lower()
+            self._verbose = env_verbose in ('true', '1', 't', 'yes', 'y')
+        else:
+            self._verbose = bool(verbose)
+
         wf = wf_type(self.aom)
+        self._do_warnings(wf)
+
         if wf == "rest":
             if not self.rings:
                 return
@@ -1411,7 +1503,7 @@ class ESI:
             print(" | Building NAO AOMs to compute connectivity.")
             if self.mol is None or self.mf is None:
                 raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs.")
-            mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf)
+            mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf, is_fchk=self.is_fchk)
             graph = build_connectivity(mat=mat, threshold=self.rings_thres)
             
             if self.save:
@@ -1421,6 +1513,42 @@ class ESI:
                 molinfo_path = self.savemolinfo
             self._molinfo = mol_info(self.mol, self.mf, molinfo_path, self._partition, graph)
         return self._molinfo
+
+    def _do_warnings(self, wf):
+        """
+        Validate inputs, sizes, and file existences, printing warnings and verbosity if requested.
+        """
+        natm = len(self.molinfo.get('symbols', [])) if self.molinfo else 0
+        
+        if self._verbose:
+            print(" | [VERBOSE] Validating ESI input parameters and sizes.")
+            print(" | [VERBOSE] Number of atoms in molecule: {}".format(natm if natm else 'Unknown'))
+            if self.mf is not None:
+                # Basic representation of basis functions if not natively tracked in molinfo
+                nmo = getattr(self.mf, 'mo_coeff', [[0]])[0]
+                print(" | [VERBOSE] Basis functions: {}".format(len(nmo) if len(nmo) > 1 else 'Unknown'))
+            if self.is_fchk:
+                print(" | [VERBOSE] Calculation is built from FCHK.")
+            else:
+                print(" | [VERBOSE] Calculation is built from PySCF.")
+            print(" | [VERBOSE] Wavefunction type detected: {}".format(wf.upper()))
+            if wf == 'no':
+                occ = self.aom[1]
+                print(" | [VERBOSE] Correlated calculation. NO occupations range from {:.4f} to {:.4f}".format(np.min(occ), np.max(occ)))
+
+        if self.rings and natm:
+            for i, ring in enumerate(self.rings):
+                n_atoms_ring = len([x for x in ring if isinstance(x, int)])
+                if n_atoms_ring > natm:
+                    print(" | WARNING: Ring {} specifies {} atoms, but molecule only has {} atoms.".format(i+1, n_atoms_ring, natm))
+                max_idx = max([x for x in ring if isinstance(x, int)] + [0])
+                if max_idx > natm:
+                    raise ValueError(" | ERROR: Ring {} references atom index {}, which exceeds molecule size ({}).".format(i+1, max_idx, natm))
+
+        if self.read:
+            path = os.path.join(self.readpath, "{}_{}.aoms".format(self.molinfo.get('molname', 'mol'), self.partition))
+            if not os.path.exists(path):
+                print(" | WARNING: Expected AOM file {} was not found.".format(path))
 
     @property
     def aom(self):
@@ -1454,7 +1582,7 @@ class ESI:
             if self.mol and self.mf and self.partition:
                 self._aom_loaded = True
                 # Don't save in make_aoms, we'll save it ourselves in the subdirectory
-                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf)
+                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf, is_fchk=self.is_fchk)
 
                 if self.saveaoms:
                     os.makedirs(self.save_dir, exist_ok=True)
@@ -1502,7 +1630,7 @@ class ESI:
                 print(" | Building NAO AOMs to compute connectivity.")
                 if self.mol is None or self.mf is None:
                     raise ValueError(" | Missing variables 'mol' and 'mf'. Could not build NAO AOMs to get connectivity matrix.")
-                mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf)
+                mat = make_aoms(self.mol, self.mf, partition="nao", save=None, myhf=self.myhf, is_fchk=self.is_fchk)
             else:
                 mat = self.aom
             self._connec = build_connectivity(mat=mat, threshold=self.rings_thres)

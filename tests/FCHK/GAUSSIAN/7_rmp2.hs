@@ -1,0 +1,5 @@
+$READFCHK
+7_rmp2.fchk
+$FINDRING
+$PARTITION
+ALL

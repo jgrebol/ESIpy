@@ -41,11 +41,12 @@ def compute_iring_no(arr, aom):
     :rtype: float
     """
 
-    aom, occ = aom
-    product = np.identity(aom[0].shape[0])
+    aom_list, occ = aom
+    product = np.identity(np.asarray(aom_list[0]).shape[0])
     for i in arr:
-        product = np.dot(product, np.dot(occ, aom[i - 1]))
-    return np.trace(product)
+        # Fulton approach: diag(occ) @ AOM[i-1]
+        product = np.dot(product, np.sqrt(occ)[:, None] * aom_list[i - 1])
+    return (2**(len(arr)/2 - 1)) * np.trace(product)
 
 
 ########### MCI ###########
@@ -60,6 +61,8 @@ def sequential_mci(arr, aom, partition):
     return _mci.compute_mci(arr, aom, partition=partition, n_cores=1)
 
 def sequential_mci_no(arr, aom, partition):
+    aom_list, occ = aom
+    aom = [aom_list, occ]
     """
     Computes the MCI for correlated wavefunctions sequentially by computing the Iring without storing the permutations.
     """
@@ -116,6 +119,8 @@ def compute_av1245(arr, aom, partition):
 
 
 def compute_av1245_no(arr, aom, partition):
+    aom_list, occ = aom
+    aom = (aom_list, occ)
     """
      Computes the AV1245 and AVmin indices for correlated wavefunctions. Not available for rings smaller than 6 members.
 
@@ -171,6 +176,8 @@ def compute_pdi(arr, aom):
 
 
 def compute_pdi_no(arr, aom):
+    aom_list, occ = aom
+    aom = (aom_list, occ)
     """
     Computes the PDI for the given 6-membered ring connectivity. Only computed for rings n=6.
 
@@ -187,9 +194,9 @@ def compute_pdi_no(arr, aom):
     if len(arr) == 6:
 
         i1, i2, i3, i4, i5, i6 = arr[0] - 1, arr[1] - 1, arr[2] - 1, arr[3] - 1, arr[4] - 1, arr[5] - 1
-        pdi_a = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i1], occ ** (1 / 2), aom[i4])))
-        pdi_b = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i2], occ ** (1 / 2), aom[i5])))
-        pdi_c = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i3], occ ** (1 / 2), aom[i6])))
+        pdi_a = 2 * np.einsum('i,ij,j,ji->', np.sqrt(occ), aom[i1], np.sqrt(occ), aom[i4])
+        pdi_b = 2 * np.einsum('i,ij,j,ji->', np.sqrt(occ), aom[i2], np.sqrt(occ), aom[i5])
+        pdi_c = 2 * np.einsum('i,ij,j,ji->', np.sqrt(occ), aom[i3], np.sqrt(occ), aom[i6])
         pdi_value = (pdi_a + pdi_b + pdi_c) / 3
 
         return pdi_value, [pdi_a, pdi_b, pdi_c]

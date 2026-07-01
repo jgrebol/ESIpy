@@ -1,0 +1,5 @@
+$READFCHK
+12_casscf_unrest.fchk
+$FINDRING
+$PARTITION
+ALL

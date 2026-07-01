@@ -1,13 +1,14 @@
 import os
 """
 Input parser for ESIpy custom input blocks.
-Supports keywords: $READFCHK, $RING, $PARTITION, $FLUREF, $FINDRINGS, $MINLEN, $MAXLEN
+Supports keywords: $READFCHK, $RING, $PARTITION, $FLUREF, $FINDRINGS, $AV1245, $MINLEN, $MAXLEN
 """
 
 
 class ESIInput:
     def __init__(self):
         self.fchk_file = None
+        self.ecp = None
         self.rings = None
         self.noring = False
         self.partition = None
@@ -32,6 +33,7 @@ class ESIInput:
         self.mciaprox = []
         self.exclude = []
 
+
     @staticmethod
     def from_string(input_str):
         obj = ESIInput()
@@ -50,11 +52,19 @@ class ESIInput:
                 i += 1
                 if i < len(lines):
                     obj.readpath = lines[i]
+            elif line.startswith('$ECP'):
+                parts = line.split()
+                if len(parts) > 1:
+                    obj.ecp = parts[1].strip()
+                else:
+                    i += 1
+                    if i < len(lines): obj.ecp = lines[i].strip()
             elif line.startswith('$READAOM'):
                 obj.mode = 'readaoms'
                 i += 1
                 if i < len(lines):
                     obj.aomname = lines[i]
+
             elif line.startswith('$RING') or line.startswith('$RINGS'):
                 obj.rings = []
                 i += 1
@@ -105,20 +115,29 @@ class ESIInput:
                             pass
                     i += 1
                 i -= 1
-            elif line.startswith('$FINDRINGS'):
+            elif line.startswith('$FINDRING'):
                 obj.findrings = True
+            elif line.startswith('$AV1245'):
+                obj.av1245 = True
             elif line.startswith('$NORING'):
                 obj.noring = True
                 obj.findrings = False
                 obj.rings = None
             elif line.strip().startswith('$NOMCI'):
                 obj.domci = False
+                obj.mci = False
+            elif line.strip().startswith('$MCI') or line.strip().startswith('$DOMCI'):
+                obj.domci = True
+                obj.mci = True
             elif line.startswith('$MINLEN'):
                 i += 1
                 obj.minlen = int(lines[i])
             elif line.startswith('$MAXLEN'):
                 i += 1
                 obj.maxlen = int(lines[i])
+            elif line.startswith('$NCORES') or line.startswith('$NCORE'):
+                i += 1
+                obj.ncores = int(lines[i])
             elif line.startswith('$EXCLUDE'):
                 obj.exclude = []
                 i += 1
