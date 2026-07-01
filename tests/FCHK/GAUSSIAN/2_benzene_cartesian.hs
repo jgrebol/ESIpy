@@ -1,5 +1,5 @@
 $READFCHK
-7_rmp2.fchk
+2_benzene_cartesian.fchk
 $FINDRING
 $PARTITION
 ALL

@@ -1,5 +1,5 @@
 $READFCHK
-7_rmp2.fchk
+4_h2_oss.fchk
 $FINDRING
 $PARTITION
 ALL

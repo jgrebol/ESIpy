@@ -1,5 +1,5 @@
 $READFCHK
-7_rmp2.fchk
+1_benzene_spherical.fchk
 $FINDRING
 $PARTITION
 ALL

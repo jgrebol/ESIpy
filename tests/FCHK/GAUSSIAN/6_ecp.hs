@@ -1,5 +1,7 @@
 $READFCHK
-7_rmp2.fchk
+6_ecp.fchk
 $FINDRING
 $PARTITION
 ALL
+$ECP
+LANL2DZ

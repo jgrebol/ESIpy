@@ -1,5 +1,5 @@
 $READFCHK
-7_rmp2.fchk
+8_cisd.fchk
 $FINDRING
 $PARTITION
 ALL

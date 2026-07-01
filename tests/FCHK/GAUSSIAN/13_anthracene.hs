@@ -1,5 +1,5 @@
 $READFCHK
-7_rmp2.fchk
+13_anthracene.fchk
 $FINDRING
 $PARTITION
 ALL

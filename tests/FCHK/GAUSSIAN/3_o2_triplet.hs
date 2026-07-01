@@ -1,5 +1,5 @@
 $READFCHK
-7_rmp2.fchk
+3_o2_triplet.fchk
 $FINDRING
 $PARTITION
 ALL
