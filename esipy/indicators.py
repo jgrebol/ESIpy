@@ -313,8 +313,8 @@ def compute_boa(arr, aom):
     :rtype: tuple
     """
 
-    n1 = len([i for i in arr if i % 2 != 0])
-    n2 = len([i for i in arr if i % 2 == 1])
+    n1 = len(arr) // 2
+    n2 = len(arr) - len(arr) // 2
 
     sum_odd = sum(find_di(aom, arr[i - 1], arr[i]) for i in range(0, len(arr), 2))
     sum_even = sum(find_di(aom, arr[i + 1], arr[i]) for i in range(0, len(arr) - 1, 2))
@@ -341,8 +341,8 @@ def compute_boa_no(arr, aom):
     :rtype: tuple
     """
 
-    n1 = len([i for i in arr if i % 2 != 0])
-    n2 = len([i for i in arr if i % 2 == 1])
+    n1 = len(arr) // 2
+    n2 = len(arr) - len(arr) // 2
 
     sum_odd = sum(find_di_no(aom, arr[i - 1], arr[i]) for i in range(0, len(arr), 2))
     sum_even = sum(find_di_no(aom, arr[i + 1], arr[i]) for i in range(0, len(arr) - 1, 2))

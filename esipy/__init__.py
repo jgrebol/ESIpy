@@ -219,7 +219,7 @@ class IndicatorsRest:
         :returns: The BOA value.
         :rtype: float
         """
-        return self._boa()[0]
+        return 2 * self._boa()[0]
 
     @property
     def boa_c(self):
@@ -229,7 +229,7 @@ class IndicatorsRest:
         :returns: The BOA_c value.
         :rtype: float
         """
-        return self._boa()[1]
+        return 2 * self._boa()[1]
 
     @property
     def homer(self):

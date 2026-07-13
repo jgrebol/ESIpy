@@ -208,6 +208,8 @@ def find_ns(arr, aom):
         aom_list, occ = aom
         if occ.ndim == 2: occ = np.diag(occ)
         return [np.sum(occ * np.diag(aom_list[arr[j] - 1])) for j in range(len(arr))]
+    if wf == "unrest":
+        return [np.trace(aom[0][arr[j] - 1]) + np.trace(aom[1][arr[j] - 1]) for j in range(len(arr))]
     return [2 * np.trace(aom[arr[j] - 1]) for j in range(len(arr))]
 
 
