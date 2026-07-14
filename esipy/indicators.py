@@ -41,11 +41,12 @@ def compute_iring_no(arr, aom):
     :rtype: float
     """
 
-    aom, occ = aom
-    product = np.identity(aom[0].shape[0])
+    aom_list, occ = aom
+    product = np.identity(np.asarray(aom_list[0]).shape[0])
     for i in arr:
-        product = np.dot(product, np.dot(occ, aom[i - 1]))
-    return np.trace(product)
+        # Fulton approach: diag(occ) @ AOM[i-1]
+        product = np.dot(product, np.sqrt(occ)[:, None] * aom_list[i - 1])
+    return (2**(len(arr)/2 - 1)) * np.trace(product)
 
 
 ########### MCI ###########
@@ -60,6 +61,8 @@ def sequential_mci(arr, aom, partition):
     return _mci.compute_mci(arr, aom, partition=partition, n_cores=1)
 
 def sequential_mci_no(arr, aom, partition):
+    aom_list, occ = aom
+    aom = [aom_list, occ]
     """
     Computes the MCI for correlated wavefunctions sequentially by computing the Iring without storing the permutations.
     """
@@ -97,7 +100,7 @@ def compute_av1245(arr, aom, partition):
      :type arr: list of int
      :param aom: Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
      :type aom: list of matrices
-     :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
+     :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta-lowdin', 'nao', and 'iao'.
      :type partition: str
 
      :returns: The AV1245 index, the AVmin index, and each of the AV1245 in a list for the output, respectively.
@@ -116,6 +119,8 @@ def compute_av1245(arr, aom, partition):
 
 
 def compute_av1245_no(arr, aom, partition):
+    aom_list, occ = aom
+    aom = (aom_list, occ)
     """
      Computes the AV1245 and AVmin indices for correlated wavefunctions. Not available for rings smaller than 6 members.
 
@@ -123,7 +128,7 @@ def compute_av1245_no(arr, aom, partition):
      :type arr: list of int
      :param aom: Specifies the Atomic Overlap Matrices (AOMs) in the MO basis.
      :type aom: list of matrices
-     :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
+     :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta-lowdin', 'nao', and 'iao'.
      :type partition: str
 
      :returns: The AV1245 index, the AVmin index, and each of the AV1245 in a list for the output, respectively.
@@ -171,6 +176,8 @@ def compute_pdi(arr, aom):
 
 
 def compute_pdi_no(arr, aom):
+    aom_list, occ = aom
+    aom = (aom_list, occ)
     """
     Computes the PDI for the given 6-membered ring connectivity. Only computed for rings n=6.
 
@@ -187,9 +194,9 @@ def compute_pdi_no(arr, aom):
     if len(arr) == 6:
 
         i1, i2, i3, i4, i5, i6 = arr[0] - 1, arr[1] - 1, arr[2] - 1, arr[3] - 1, arr[4] - 1, arr[5] - 1
-        pdi_a = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i1], occ ** (1 / 2), aom[i4])))
-        pdi_b = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i2], occ ** (1 / 2), aom[i5])))
-        pdi_c = 2 * np.trace(np.linalg.multi_dot((occ ** (1 / 2), aom[i3], occ ** (1 / 2), aom[i6])))
+        pdi_a = 2 * np.einsum('i,ij,j,ji->', np.sqrt(occ), aom[i1], np.sqrt(occ), aom[i4])
+        pdi_b = 2 * np.einsum('i,ij,j,ji->', np.sqrt(occ), aom[i2], np.sqrt(occ), aom[i5])
+        pdi_c = 2 * np.einsum('i,ij,j,ji->', np.sqrt(occ), aom[i3], np.sqrt(occ), aom[i6])
         pdi_value = (pdi_a + pdi_b + pdi_c) / 3
 
         return pdi_value, [pdi_a, pdi_b, pdi_c]
@@ -210,7 +217,7 @@ def find_flurefs(partition=None):
     level of theory.
 
     :param partition: Specifies the atom-in-molecule partition scheme.
-                      Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
+                      Options include 'mulliken', 'lowdin', 'meta-lowdin', 'nao', and 'iao'.
     :type partition: str
 
     :returns: Contains the reference DI for each bond.
@@ -225,7 +232,7 @@ def find_flurefs(partition=None):
     elif partition == "lowdin":
         return {"CC": 1.4910, "CN": 1.5864, "BN": 1.3165, "NN": 1.5277, "CS": 1.2213, "CO": 1.2368}
 
-    elif partition == "meta_lowdin":
+    elif partition == "meta-lowdin":
         return {"CC": 1.4392, "CN": 1.4521, "BN": 1.2048, "NN": 1.3700, "CS": 1.1455, "CO": 1.0802}
 
     elif partition == "nao":
@@ -235,7 +242,7 @@ def find_flurefs(partition=None):
         return {"CC": 1.4378, "CN": 1.4386, "BN": 1.1631, "NN": 1.3606, "CS": 1.1433, "CO": 1.0708}
 
     else:
-        return {"CC": 1.4173, "CN": 1.4027, "BN": 1.0374, "NN": 1.3575, "CS": 1.1538, "CO": 1.0133}
+        return {"CC": 1.4378, "CN": 1.4386, "BN": 1.1631, "NN": 1.3606, "CS": 1.1433, "CO": 1.0708}
 
 
 
@@ -251,7 +258,7 @@ def compute_flu(arr, molinfo, aom, flurefs=None, partition=None):
     :type aom: list of matrices
     :param flurefs: User-provided references for the FLU index.
     :type flurefs: dict, optional
-    :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta_lowdin', 'nao', and 'iao'.
+    :param partition: Specifies the atom-in-molecule partition scheme. Options include 'mulliken', 'lowdin', 'meta-lowdin', 'nao', and 'iao'.
     :type partition: str, optional
 
     :returns: The FLU value for the given ring connectivity.
@@ -306,8 +313,8 @@ def compute_boa(arr, aom):
     :rtype: tuple
     """
 
-    n1 = len([i for i in arr if i % 2 != 0])
-    n2 = len([i for i in arr if i % 2 == 1])
+    n1 = len(arr) // 2
+    n2 = len(arr) - len(arr) // 2
 
     sum_odd = sum(find_di(aom, arr[i - 1], arr[i]) for i in range(0, len(arr), 2))
     sum_even = sum(find_di(aom, arr[i + 1], arr[i]) for i in range(0, len(arr) - 1, 2))
@@ -334,8 +341,8 @@ def compute_boa_no(arr, aom):
     :rtype: tuple
     """
 
-    n1 = len([i for i in arr if i % 2 != 0])
-    n2 = len([i for i in arr if i % 2 == 1])
+    n1 = len(arr) // 2
+    n2 = len(arr) - len(arr) // 2
 
     sum_odd = sum(find_di_no(aom, arr[i - 1], arr[i]) for i in range(0, len(arr), 2))
     sum_even = sum(find_di_no(aom, arr[i + 1], arr[i]) for i in range(0, len(arr) - 1, 2))

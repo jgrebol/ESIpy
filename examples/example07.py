@@ -38,7 +38,7 @@ mf.xc = 'B3LYP'
 mf.kernel()
 
 ring = [[1, 2, 3, 4, 10, 9], [5, 6, 7, 8, 9, 10], [1, 2, 3, 4, 10, 5, 6, 7, 8, 9]]
-partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
+partition = ['mulliken', 'lowdin', 'meta-lowdin', 'nao', 'iao']
 
 for part in partition:
     for cores in [1, 2, 4, 8]:

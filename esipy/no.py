@@ -14,6 +14,7 @@ def info_no(aom, molinfo, nfrags=0):
     """
 
     aom, occ = aom
+    if occ.ndim == 1: occ = np.diag(occ)
     partition = format_partition(molinfo["partition"])
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     print(" | Number of Atoms:          {}".format(len(aom)-nfrags))
@@ -52,6 +53,7 @@ def deloc_no(aom, molinfo, fragmap={}):
     """
 
     aom, occ = aom
+    if occ.ndim == 1: occ = np.diag(occ)
     presymbols = molinfo["symbols"]
     symbols = presymbols + ["FF"] * (len(aom)-len(presymbols))
     if len(aom)-len(presymbols) > 0:
@@ -207,19 +209,17 @@ def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None,
             print(" | EN           {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].en))
             print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].geo))
             print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, homa))
+            print(" ----------------------------------------------------------------------")
             if homerrefs:
                 print(" | ")
                 print(" | Found custom HOMER references 'alpha' and 'r_opt'. Computing")
                 print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homer))
+                print(" ----------------------------------------------------------------------")
 
             print(" ----------------------------------------------------------------------")
             if molinfo["geom"] is not None:
-                pass
-            else:
                 bla = indicators[ring_index].bla
-                if bla[0] is None:
-                    pass
-                else:
+                if bla is not None:
                     bla_c = indicators[ring_index].bla_c
                     print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, bla))
                     print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, bla_c))

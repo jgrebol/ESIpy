@@ -1,0 +1,127 @@
+<Number of Nuclei>
+ 12
+</Number of Nuclei>
+<Number of Occupied Molecular Orbitals>
+ 36
+</Number of Occupied Molecular Orbitals>
+<Number of Electrons>
+ 42
+</Number of Electrons>
+<Number of Core Electrons>
+ 0
+</Number of Core Electrons>
+<Number of Alpha Electrons>
+ 22
+</Number of Alpha Electrons>
+<Number of Beta Electrons>
+ 20
+</Number of Beta Electrons>
+<Electronic Spin Multiplicity>
+ 5
+</Electronic Spin Multiplicity>
+<Nuclear Names>
+ C1
+ C2
+ C3
+ C4
+ C5
+ C6
+ H7
+ H8
+ H9
+ H10
+ H11
+ H12
+</Nuclear Names>
+<Nuclear Cartesian Coordinates>
+  0.000000000000e+00  0.000000000000e+00  2.632569905227e+00
+  0.000000000000e+00  2.279873311064e+00  1.316284952614e+00
+  0.000000000000e+00  2.279873311064e+00 -1.316284952614e+00
+  0.000000000000e+00  0.000000000000e+00 -2.632569905227e+00
+  0.000000000000e+00 -2.279873311064e+00 -1.316284952614e+00
+  0.000000000000e+00 -2.279873311064e+00  1.316284952614e+00
+  0.000000000000e+00  0.000000000000e+00  4.692429962513e+00
+  0.000000000000e+00  4.063761544571e+00  2.346225374750e+00
+  0.000000000000e+00  4.063761544571e+00 -2.346225374750e+00
+  0.000000000000e+00  0.000000000000e+00 -4.692429962513e+00
+  0.000000000000e+00 -4.063761544571e+00 -2.346225374750e+00
+  0.000000000000e+00 -4.063761544571e+00  2.346225374750e+00
+</Nuclear Cartesian Coordinates>
+<Molecular Orbital Occupation Numbers>
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+  1.000000000000e+00
+</Molecular Orbital Occupation Numbers>
+<Molecular Orbital Spin Types>
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+ Alpha and Beta
+</Molecular Orbital Spin Types>
+<Molecular Orbital Energies>
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+  0.000000000000e+00
+</Molecular Orbital Energies>

@@ -59,3 +59,10 @@ an Intel(R) Xeon(R) W-2123 CPU @ 3.60Hz) machine.
 .. list-table:: Time (in seconds) for the MCI calculation of different n-membered rings and different number of cores, computed as an average of three timings.
    :widths: 10 20 20
    :header-rows: 1
+
+   * - n
+     - TIME AT 2 CORES (s)
+     - TIME AT 4 CORES (s)
+   * - --
+     - Pending
+     - Pending

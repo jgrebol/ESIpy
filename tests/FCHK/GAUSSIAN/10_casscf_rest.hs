@@ -1,0 +1,5 @@
+$READFCHK
+10_casscf_rest.fchk
+$FINDRING
+$PARTITION
+ALL

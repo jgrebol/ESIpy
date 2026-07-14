@@ -60,7 +60,7 @@ The partition string can be input in different names, as ESIpy will recognize th
 - **Intrinsic Atomic Orbitals:** "iao", "i" and "intrinsic".
 - **Lowdin:** "lowdin", "l" and "low".
 - **Mulliken:** "mulliken", "m" and "mul".
-- **meta-Lowdin:** "meta_lowdin", "ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta-lowdin".
+- **meta-Lowdin:** "meta-lowdin", "ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta-lowdin".
 
 AV1245 and MCI calculation
 --------------------------
@@ -101,6 +101,7 @@ This algorithm can be used by setting `rings="find"` or `rings="f"`. One can als
 of the rings through the `maxlen` and `minlen` attributes, respectively.
 
 .. code-block:: python
+
     ring = "find"
     arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition="nao", maxlen=10, minlen=6)
     arom.print()
@@ -116,6 +117,7 @@ when using different rings in the same molecule. The ring finding algorithm will
 be printed with the `writeaoms()` method.
 
 .. code-block:: python
+
     ring = [{1,7}, {2,8}, {3,9}, {4,10}, {5,11}, {6,12}]
     arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition="nao")
     arom.print()
@@ -133,4 +135,3 @@ need to be accessible through the `ESI.indicators[0]` attribute. In more than on
     arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition="nao")
     arom.print()
     print(arom.indicators[0].av1245)
-

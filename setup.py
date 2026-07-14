@@ -1,6 +1,5 @@
 from setuptools import setup
 
-# Read the long description from README.md
 with open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
@@ -17,11 +16,10 @@ setup(
         "scripts/esipy",
     ],
     install_requires=[
-        "pyscf<=2.4",
+        "numpy",
+        "pyscf<=2.8.0",
         "sphinx",
-        "urllib3>=2.6.3",
-        "h5py",
     ],
-    requires_python=">=3.7, <3.12",
+    python_requires=">=3.7",
 )
 

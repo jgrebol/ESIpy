@@ -52,7 +52,7 @@ def deloc_rest(aom, molinfo, fragmap={}):
 
     # Checking where to read the atomic symbols from
     presymbols = molinfo["symbols"]
-    symbols = presymbols + ["FF"] * (len(fragmap))
+    symbols = presymbols + ["FF"] * (len(aom) - len(presymbols))
 
     print(" ------------------------------------- ")
     print(" | Atom    N(Sij)     loc.      dloc. ")
@@ -182,20 +182,17 @@ def arom_rest(rings, molinfo, indicators, mci=False, av1245=False, flurefs=None,
             print(" | EN           {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].en))
             print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].geo))
             print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homa))
+            print(" ----------------------------------------------------------------------")
 
         if homerrefs:
             print(" | ")
             print(" | Found custom HOMER references 'alpha' and 'r_opt'. Computing")
             print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homer))
-        print(" ----------------------------------------------------------------------")
+            print(" ----------------------------------------------------------------------")
 
         if molinfo["geom"] is not None:
-            pass
-        else:
             bla = indicators[ring_index].bla
-            if bla[0] is None:
-                pass
-            else:
+            if bla is not None:
                 bla_c = indicators[ring_index].bla_c
                 print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, bla))
                 print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, bla_c))

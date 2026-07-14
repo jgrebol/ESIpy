@@ -93,7 +93,7 @@ the matrices is minimal and independent of the chosen scheme.
 ```python
     ring = [1, 2, 3, 4, 5, 6]
     name = "benzene"
-    for part in ["mulliken", "lowdin", "meta_lowdin", "nao", "iao"]:
+    for part in ["mulliken", "lowdin", "meta-lowdin", "nao", "iao"]:
         arom = esipy.ESI(mol=mol, mf=mf, rings=ring, partition=part, save=name)
         arom.print()
 ```

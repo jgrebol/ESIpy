@@ -77,8 +77,6 @@ def find_node_distances_onlyodd(connec):
         distances[start][start] = 0  # Starting node is always 0
 
     return distances
-
-
 def _kernel_exact(args):
     """DFS worker for exact MCI."""
     mats, j, sym_prune = args
@@ -118,80 +116,12 @@ def _kernel_exact(args):
     return tr_sum
 
 
-def _kernel_approx(args):
-    """
-    DFS worker with distance/parity filtering.
-    args: (mats, dists, start_idx, alg_type, d_cut, sym_prune)
-    """
-    mats, dists, j, alg, d_cut, sym_prune = args
-    n = len(mats)
-
-    # 1. Filter Initial Step (0 -> j)
-    d0 = dists[0, j]
-    if d0 > d_cut: return 0.0, 0
-
-    # Parity checks: Alg 3 and 5 (Odd only)
-    if (alg == 3 or alg == 5) and (d0 % 2 == 0): return 0.0, 0
-
-    cur_max = d0
-    P = np.dot(mats[0], mats[j])
-    mask = (1 << 0) | (1 << j)
-
-    # Stack: (depth, mask, product, prev_node, current_max_dist)
-    stack = [(2, mask, P, j, cur_max)]
-
-    tr_sum = 0.0
-    n_perms = 0
-
-    while stack:
-        depth, mask, P, prev, cur_max = stack.pop()
-
-        # Leaf node
-        if depth == n - 1:
-            rem = 0
-            while (mask >> rem) & 1:
-                rem += 1
-
-            if sym_prune and (j > rem): continue
-
-            # Validate closing edges (prev->rem, rem->0)
-            d_last = dists[prev, rem]
-            d_close = dists[rem, 0]
-
-            if d_last > d_cut or d_close > d_cut: continue
-
-            if (alg == 3 or alg == 5) and ((d_last % 2 == 0) or (d_close % 2 == 0)): continue
-
-            # Alg 2 & 4: Cycle max distance must equal cutoff d
-            if alg == 2 or alg == 4:
-                if max(cur_max, d_last, d_close) != d_cut: continue
-
-            tr_sum += np.sum(P * mats[rem].T)
-            n_perms += 1
-            continue
-
-        # Recurse
-        for i in range(1, n):
-            if not ((mask >> i) & 1):
-                d_step = dists[prev, i]
-
-                if d_step > d_cut: continue
-                if (alg == 3 or alg == 5) and (d_step % 2 == 0): continue
-
-                # For Alg 2 & 4, propagate max dist
-                new_max = max(cur_max, d_step) if (alg == 2 or alg == 4) else 0
-
-                stack.append((depth + 1, mask | (1 << i), np.dot(P, mats[i]), i, new_max))
-
-    return tr_sum, n_perms
-
-
 def _prep_matrices(arr, aom):
     """Normalize input into list of matrices, handling NO tuples."""
     if isinstance(aom, (tuple, list)) and len(aom) == 2 and not isinstance(aom[0], np.ndarray):
         # For Natural Orbitals: Pre-multiply Occ @ AOM
         real_aoms, occ = aom
-        return [np.dot(occ, real_aoms[idx - 1]) for idx in arr]
+        return [occ[:, None] * real_aoms[idx - 1] for idx in arr]
     return [aom[idx - 1] for idx in arr]
 
 
@@ -323,4 +253,3 @@ def multiprocessing_mci(arr, aom, ncores, partition='mulliken'):
 # Aliases for Natural Orbitals
 sequential_mci_no = sequential_mci
 multiprocessing_mci_no = multiprocessing_mci
-aproxmci = mci_approx

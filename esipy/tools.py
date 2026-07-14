@@ -1,23 +1,77 @@
+import os
 from collections import deque, defaultdict
 import numpy as np
+
+def is_natorb_wf(mf):
+    """
+    Checks if the given mean-field or post-HF object contains natural orbitals.
+    For PySCF objects, it checks the class name. For FCHK objects, it checks
+    if it was already processed as a natural orbital object during reading.
+    """
+    from pyscf import mp, cc, ci, mcscf
+    
+    try:
+        if isinstance(mf, (mp.mp2.MP2, cc.ccsd.CCSD, ci.cisd.CISD)):
+            return True
+        if hasattr(mcscf, 'casci') and hasattr(mcscf.casci, 'CASCI'):
+            if isinstance(mf, mcscf.casci.CASCI):
+                return True
+        if hasattr(mcscf, 'mc1step') and hasattr(mcscf.mc1step, 'CASSCF'):
+            if isinstance(mf, mcscf.mc1step.CASSCF):
+                return True
+    except TypeError:
+        pass
+        
+    if getattr(mf, 'is_natorb', False):
+        return True
+        
+    # 2. Check for ESIpy FCHK flags
+    if getattr(mf, 'is_fchk', False):
+        # In our readfchk, we already converted correlated densities to NOs
+        # and we set __name__ to UHF/RHF. We can check occupations.
+        occ = np.asarray(mf.mo_occ)
+        if occ.ndim == 2: # list-like or alpha/beta
+            return np.any((occ > 1e-6) & (np.abs(occ - 1.0) > 1e-6))
+        return np.any((occ > 1e-6) & (np.abs(occ - 1.0) > 1e-6) & (np.abs(occ - 2.0) > 1e-6))
+        
+    return False
+
+from pyscf.scf import hf
+from pyscf.scf import uhf
+
+class RefRHF(hf.RHF):
+    def __init__(self, mol, mo_coeff, mo_occ):
+        super().__init__(mol)
+        self.mo_coeff = mo_coeff
+        self.mo_occ = mo_occ
+    def make_rdm1(self, *args, **kwargs):
+        return self.mo_coeff @ np.diag(self.mo_occ) @ self.mo_coeff.T
+
+class RefUHF(uhf.UHF):
+    def __init__(self, mol, mo_coeff, mo_occ):
+        super().__init__(mol)
+        self.mo_coeff = mo_coeff
+        self.mo_occ = mo_occ
+    def make_rdm1(self, *args, **kwargs):
+        dm_a = self.mo_coeff[0] @ np.diag(self.mo_occ[0]) @ self.mo_coeff[0].T
+        dm_b = self.mo_coeff[1] @ np.diag(self.mo_occ[1]) @ self.mo_coeff[1].T
+        return np.array([dm_a, dm_b])
 
 def wf_type(aom):
     """
     Checks the topology of the AOMs to obtain the type of wavefunction.
-
-    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :returns: A string with the type of wave function ('rest', 'unrest' or 'no').
-    :rtype: str
     """
-    if isinstance(aom[0][0][0], float):
-        return "rest"
-    elif isinstance(aom[1][0][0], float):
+    # NOs return format [list, array]
+    if isinstance(aom, list) and len(aom) == 2 and isinstance(aom[1], np.ndarray) and aom[1].ndim == 1:
         return "no"
-    elif isinstance(aom[1][0][0][0], float):
+    # Restricted: list of matrices
+    if isinstance(aom, list) and isinstance(aom[0], np.ndarray) and aom[0].ndim == 2:
+        return "rest"
+    # Unrestricted: [list, list]
+    if isinstance(aom, list) and len(aom) == 2 and isinstance(aom[0], list):
         return "unrest"
-    else:
-        raise NameError("Could not find the type of wave function from the AOMs")
+            
+    raise NameError("Could not find the type of wave function from the AOMs")
 
 
 def find_multiplicity(aom):
@@ -96,34 +150,21 @@ def find_distances(arr, geom):
 
 
 def find_dis(arr, aom):
-    """
-    Collects the DIs between the atoms in ring connectivity.
-
-    :param arr: Indices of the atoms in ring connectivity.
-    :type arr: list of int
-    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :returns: List containing the DIs of the members of the ring.
-    :rtype: list of float
-    """
-
-    return [4 * np.einsum('ij,ji->', aom[arr[i] - 1], aom[arr[(i + 1) % len(arr)] - 1]) for i in range(len(arr))]
+    wf = wf_type(aom)
+    if wf == "no":
+        return [2 * find_di(aom, arr[j], arr[(j + 1) % len(arr)]) for j in range(len(arr))]
+    return [4 * np.einsum('ij,ji->', aom[arr[j] - 1], aom[arr[(j + 1) % len(arr)] - 1]) for j in range(len(arr))]
 
 
 def find_di(aom, i, j):
-    """
-    Collects the DI between two atoms.
-
-    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :param i: Index of the first atom.
-    :type i: int
-    :param j: Index of the second atom.
-    :type j: int
-    :returns: DI between the atoms i and j.
-    :rtype: float
-    """
-
+    wf = wf_type(aom)
+    if wf == "no":
+        aom_list, occ = aom
+        if occ.ndim == 2: occ = np.diag(occ)
+        sq = np.sqrt(occ)
+        Da = sq[:, None] * aom_list[i-1] * sq[None, :]
+        Db = sq[:, None] * aom_list[j-1] * sq[None, :]
+        return 2 * np.einsum('ij,ji->', Da, Db)
     return 2 * np.einsum('ij,ji->', aom[i - 1], aom[j - 1])
 
 
@@ -140,39 +181,36 @@ def find_di_no(aom, i, j):
     :returns: DI between the atoms i and j.
     :rtype: float
     """
-
-    # Tr(Occ @ AOM_i @ Occ @ AOM_j)
-    return np.einsum('ij,jk,kl,li->', aom[1], aom[0][i - 1], aom[1], aom[0][j - 1])
+    occ = aom[1]
+    if occ.ndim == 2:
+        occ = np.diag(occ)
+    # Sum over k,j: occ_k * occ_j * (Pi)_kj * (Pj)_jk
+    return np.einsum('k,j,kj,jk->', occ, occ, aom[0][i - 1], aom[0][j - 1])
 
 
 def find_lis(arr, aom):
-    """
-    Collects the LIs between the atoms in ring connectivity.
-
-    :param arr: Indices of the atoms in ring connectivity.
-    :type arr: list of int
-    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :returns: List containing the DIs of the members of the ring.
-    :rtype: list of float
-    """
-
-    return [2 * np.einsum('ij,ji->', aom[arr[i] - 1], aom[arr[i] - 1]) for i in range(len(arr))]
+    wf = wf_type(aom)
+    if wf == "no":
+        aom_list, occ = aom
+        if occ.ndim == 2: occ = np.diag(occ)
+        sq = np.sqrt(occ)
+        res = []
+        for j in range(len(arr)):
+            D = sq[:, None] * aom_list[arr[j]-1] * sq[None, :]
+            res.append(np.einsum('ij,ji->', D, D))
+        return res
+    return [2 * np.einsum('ij,ji->', aom[arr[j] - 1], aom[arr[j] - 1]) for j in range(len(arr))]
 
 
 def find_ns(arr, aom):
-    """
-    Collects the atomic populations of all the atoms in the ring.
-
-    :param arr: Indices of the atoms in ring connectivity.
-    :type arr: list of int
-    :param aom: The Atomic Overlap Matrices (AOMs) in the MO basis.
-    :type aom: list of matrices
-    :returns: List containing the atomic populations of the members of the ring.
-    :rtype: list of float
-    """
-
-    return [2 * np.trace(aom[arr[i] - 1]) for i in range(len(arr))]
+    wf = wf_type(aom)
+    if wf == "no":
+        aom_list, occ = aom
+        if occ.ndim == 2: occ = np.diag(occ)
+        return [np.sum(occ * np.diag(aom_list[arr[j] - 1])) for j in range(len(arr))]
+    if wf == "unrest":
+        return [np.trace(aom[0][arr[j] - 1]) + np.trace(aom[1][arr[j] - 1]) for j in range(len(arr))]
+    return [2 * np.trace(aom[arr[j] - 1]) for j in range(len(arr))]
 
 
 def av1245_pairs(arr):
@@ -237,17 +275,18 @@ def mol_info(mol=None, mf=None, save=None, partition=None, connec=None):
     return info
 
 
-def build_connectivity(mat=None, threshold=None):
+def build_connectivity(mat=None, threshold=0.25):
     """
     Build the connectivity dictionary based on the given atomic overlap matrices.
 
     Parameters:
-        mat: Atomic overlap matrices. If None, uses self.aom or builds meta_lowdin AOMs
-        threshold: Threshold for connectivity determination. If None, uses self.rings_thres
+        mat: Atomic overlap matrices. If None, uses self.aom or builds meta-lowdin AOMs
+        threshold: Threshold for connectivity determination. Default is 0.25.
 
     Returns:
         Dictionary representing atomic connectivity
     """
+    if threshold is None: threshold = 0.25
     wf = wf_type(mat)
 
     if wf == "rest":
@@ -278,68 +317,47 @@ def process_fragments(aom, rings, done=False):
     for ring in rings:
         for r in ring:
             if isinstance(r, set):
-                if tuple(r) not in fragmap:
-                    fragmap[tuple(r)] = nfrags + len(aom) + 1
-                nfrags += 1
-                if not done:
-                    print(f" | Fragment FF{len(aom) + nfrags}: {r}")
-                combined_aom = np.zeros_like(aom[0])
-                for atm in r:
-                    combined_aom += aom[atm - 1]
-                fragaom.append(combined_aom)
+                t_r = tuple(sorted(list(r)))
+                if t_r not in fragmap:
+                    nfrags += 1
+                    fragmap[t_r] = nfrags + len(aom)
+                    if not done:
+                        print(f" | Fragment FF{len(aom) + nfrags}: {r}")
+                    combined_aom = np.zeros_like(aom[0])
+                    for atm in r:
+                        combined_aom += aom[atm - 1]
+                    fragaom.append(combined_aom)
             else:
                 continue
     return fragaom, fragmap
 
-def format_partition(partition):
-    """
-    Filters the 'partition' attribute for flexibility.
 
-    :param partition: String with the name of the partition.
-    :type partition: str
-    :returns: String with the standard partition name for ESIpy.
-    :rtype: str
-    """
 
-    partition = partition.lower()
-    if partition in ["m", "mul", "mull", "mulliken"]:
-        return "mulliken"
-    elif partition in ["l", "low", "lowdin"]:
-        return "lowdin"
-    elif partition in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta-lowdin",
-                       "meta_lowdin"]:
-        return "meta_lowdin"
-    elif partition in ["n", "nao", "natural", "nat"]:
-        return "nao"
-    elif partition in ["i", "iao", "intrinsic", "intr"]:
-        return "iao"
-    elif partition in ["q", "qt", "qtaim", "quant", "quantum"]:
-        return "qtaim"
-    else:
-        raise NameError(" | Invalid partition scheme")
-
+def format_partition(partition, *args, **kwargs):
+    p_method = partition.lower()
+    
+    # Standardize method name
+    if p_method in ["m", "mul", "mull", "mulliken"]: return "mulliken"
+    elif p_method in ["l", "low", "lowdin"]: return "lowdin"
+    elif p_method in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta_lowdin", "meta-lowdin"]: return "meta-lowdin"
+    elif p_method in ["n", "nao", "natural", "nat"]: return "nao"
+    elif p_method in ["i", "iao", "intrinsic", "intr"]: return "iao"
+    else: return p_method
 
 def format_short_partition(partition):
-    """
-    Filters the short version of the 'partition' attribute.
+    p_method = partition.lower()
 
-    :param partition: String with the name of the partition.
-    :type partition: str
-    :returns: String with the short version of the partition scheme.
-    :rtype: str
-    """
-
-    partition = partition.lower()
-    if partition == "mulliken":
+    if p_method == "mulliken":
         return "mul"
-    elif partition == "lowdin":
+    elif p_method == "lowdin":
         return "low"
-    elif partition == "meta_lowdin":
+    elif p_method == "meta-lowdin":
         return "metalow"
-    elif partition in ("nao", "iao", "qtaim"):
-        return partition
+    elif p_method in ("nao", "iao"):
+        return p_method
     else:
-        raise NameError(" | Invalid partition scheme")
+        return p_method
+
 
 
 def mapping(arr, perm):
@@ -373,12 +391,29 @@ def get_natorbs(mf, S):
     import numpy as np
     print(" | Obtaining Natural Orbitals from the 1-RDM...")
 
-    rdm1 = mf.make_rdm1(ao_repr=True)
+    try:
+        rdm1 = mf.make_rdm1(ao_repr=True)
+    except ValueError:
+        # Fallback for environments with broken PySCF einsum (e.g. Anaconda/PySCF 2.4.0)
+        # We manually transform the MO-basis RDM to AO-basis.
+        dm_mo = mf.make_rdm1(ao_repr=False)
+        mo_coeff = mf.mo_coeff
+        
+        if isinstance(dm_mo, (list, tuple)) or (isinstance(dm_mo, np.ndarray) and dm_mo.ndim == 3):
+            # Unrestricted or Spin-separated
+            rdm1 = []
+            for i in range(len(dm_mo)):
+                c = mo_coeff[i]
+                d = dm_mo[i]
+                rdm1.append(c @ d @ c.T.conj())
+        else:
+            # Restricted
+            rdm1 = mo_coeff @ dm_mo @ mo_coeff.T.conj()
+
     rdm1_arr = np.asarray(rdm1)
 
     if rdm1_arr.ndim == 3:
-        raise NotImplementedError(" | Natural Orbitals for unrestricted calculations are not implemented yet.")
-        #D = np.sum(rdm1_arr, axis=0)
+        D = np.sum(rdm1_arr, axis=0)
     elif rdm1_arr.ndim == 2:
         D = rdm1_arr
     else:
@@ -395,8 +430,7 @@ def get_natorbs(mf, S):
     coeff = coeff[:, ::-1]
     occ = occ[::-1]
     occ[occ < 1e-12] = 0.0 # Small values set to zero
-    occ_diag = np.diag(occ)
-    return occ_diag, coeff
+    return occ, coeff
 
 
 def build_eta(mol):
@@ -506,6 +540,8 @@ def is_fused(arr, connec):
 
 def find_middle_nodes(connec2):
     return [key for key, vals in connec2.items() if len(vals) > 2]
+
+
 
 def permute_aos_rows(mat, mole2):
     """
