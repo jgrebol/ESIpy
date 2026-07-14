@@ -19,8 +19,6 @@ setup(
         "numpy",
         "pyscf<=2.8.0",
         "sphinx",
-        "urllib3>=2.0.0",
-        "h5py",
     ],
     python_requires=">=3.7",
 )
