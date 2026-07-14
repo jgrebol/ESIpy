@@ -1,4 +1,6 @@
 import os
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="pyscf.dft.libxc")
 _env = os.environ
 # Only set defaults if the user/program hasn't already set them (don't overwrite explicit choices)
 _env.setdefault("NUMEXPR_NUM_THREADS", "1")
