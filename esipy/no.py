@@ -37,7 +37,7 @@ def info_no(aom, molinfo, nfrags=0):
     else:
         print(" | Total energy:             {:<13f}".format(molinfo["energy"]))
     print(" ------------------------------------------- ")
-    trace = np.sum([np.trace(matrix) for matrix in aom][:len(aom)-nfrags])
+    trace = np.sum([np.einsum('ii,ii->', occ, matrix) for matrix in aom][:len(aom)-nfrags])
     print(" | Tr(Enter):    {:.13f}".format(trace))
     print(" ------------------------------------------- ")
 
@@ -278,7 +278,7 @@ def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None,
                         str(av1245_indices[-1][1]).rjust(2), symbs[1].ljust(2),
                         str(av1245_indices[-1][2]).rjust(2), symbs[2].ljust(2),
                         str(av1245_indices[-1][3]).rjust(2), symbs[3].ljust(2),
-                        av1245_list[(av1245_indices[-1][0] - 1) % len(ring)]))
+                        av1245_list[i]))
 
                 print(" | AV1245 {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].av1245))
                 print(" |  AVmin {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].avmin))

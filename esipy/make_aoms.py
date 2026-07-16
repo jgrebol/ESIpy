@@ -212,7 +212,10 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
             else:
                 coeffs_input = coeff
 
-            aom_list = get_iao_aoms(partition_label, coeffs_input, mf, iaoref=iaoref, c_full=coeff)
+            # For nat orbs, c_full must match coeffs_input so AOM dimensions match occ_act.
+            # Passing the full coeff (all masked orbs) would create a shape mismatch with occ_act.
+            aom_list = get_iao_aoms(partition_label, coeffs_input, mf, iaoref=iaoref,
+                                    c_full=coeffs_input if is_natorb else coeff)
             if is_natorb:
                 aom = [aom_list, occ_act]
             else:

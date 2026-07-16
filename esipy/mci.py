@@ -75,7 +75,9 @@ def _prep_matrices(arr, aom):
     if isinstance(aom, (tuple, list)) and len(aom) == 2 and not isinstance(aom[0], np.ndarray):
         # For Natural Orbitals: Pre-multiply Occ @ AOM
         real_aoms, occ = aom
-        return [occ[:, None] * real_aoms[idx - 1] for idx in arr]
+        if occ.ndim == 1:
+            return [occ[:, None] * real_aoms[idx - 1] for idx in arr]
+        return [np.dot(occ, real_aoms[idx - 1]) for idx in arr]
     return [aom[idx - 1] for idx in arr]
 
 

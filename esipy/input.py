@@ -96,8 +96,10 @@ class ESIInput:
                     p = lines[i].strip()
                     pup = p.upper()
                     
-                    if pup in ('ALL', 'ROBUST', 'ALLWIP', 'WIPALL', 'ALLEDU', 'ALLEFFAO', 'ALLEFAO', 'ALLIAO'):
+                    if pup in ('ALL', "A"):
                         obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
+                    elif pup in ("ROBUST", "R"):
+                        obj.partition.extend(['meta_lowdin', 'nao', 'iao'])
                     else:
                         obj.partition.append(p)
                     i += 1

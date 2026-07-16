@@ -51,6 +51,7 @@ def read_aoms(path='.'):
         else:
             raise ValueError("Wavefunction type could not be determined.")
 
+
     if wf == "no":
         occs = read_occs(first_file)
 
@@ -521,8 +522,7 @@ def read_occs(file_path):
                 columns = line.split()
                 if len(columns) >= 3:
                     occ_mo_values.append(float(columns[2]))
-
-    return np.diag(occ_mo_values)
+    return np.array(occ_mo_values)
 
 def read_orbs(file_path):
     """
