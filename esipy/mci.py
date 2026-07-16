@@ -5,7 +5,7 @@ from time import time
 from collections import defaultdict, deque
 
 from esipy.tools import (
-    wf_type, mapping, filter_connec, build_connectivity
+    wf_type, mapping, filter_connec, build_connectivity, find_di, find_di_no
 )
 
 
@@ -116,6 +116,126 @@ def _kernel_exact(args):
     return tr_sum
 
 
+def _kernel_approx(args):
+    """
+    DFS worker with distance/parity filtering.
+    args: (mats, dists, start_idx, alg_type, d_cut, sym_prune)
+    """
+    mats, dists, j, alg, d_cut, sym_prune = args
+    n = len(mats)
+
+    # 1. Filter Initial Step (0 -> j)
+    d0 = dists[0, j]
+    if d0 > d_cut: return 0.0, 0
+
+    # Parity checks: Alg 3 and 5 (Odd only)
+    if (alg == 3 or alg == 5) and (d0 % 2 == 0): return 0.0, 0
+
+    cur_max = d0
+    P = np.dot(mats[0], mats[j])
+    mask = (1 << 0) | (1 << j)
+
+    # Stack: (depth, mask, product, prev_node, current_max_dist)
+    stack = [(2, mask, P, j, cur_max)]
+
+    tr_sum = 0.0
+    n_perms = 0
+
+    while stack:
+        depth, mask, P, prev, cur_max = stack.pop()
+
+        # Leaf node
+        if depth == n - 1:
+            rem = 0
+            while (mask >> rem) & 1:
+                rem += 1
+
+            if sym_prune and (j > rem): continue
+
+            # Validate closing edges (prev->rem, rem->0)
+            d_last = dists[prev, rem]
+            d_close = dists[rem, 0]
+
+            if d_last > d_cut or d_close > d_cut: continue
+
+            if (alg == 3 or alg == 5) and ((d_last % 2 == 0) or (d_close % 2 == 0)): continue
+
+            # Alg 2 & 4: Cycle max distance must equal cutoff d
+            if alg == 2 or alg == 4:
+                if max(cur_max, d_last, d_close) != d_cut: continue
+
+            tr_sum += np.sum(P * mats[rem].T)
+            n_perms += 1
+            continue
+
+        # Recurse
+        for i in range(1, n):
+            if not ((mask >> i) & 1):
+                d_step = dists[prev, i]
+
+                if d_step > d_cut: continue
+                if (alg == 3 or alg == 5) and (d_step % 2 == 0): continue
+
+                # For Alg 2 & 4, propagate max dist
+                new_max = max(cur_max, d_step) if (alg == 2 or alg == 4) else 0
+
+                stack.append((depth + 1, mask | (1 << i), np.dot(P, mats[i]), i, new_max))
+
+    return tr_sum, n_perms
+
+
+def _kernel_active(args):
+    """
+    DFS worker with active graph filtering.
+    args: (mats, active_adj, j, sym_prune)
+    """
+    mats, active_adj, j, sym_prune = args
+    n = len(mats)
+
+    # If first step 0 -> j is not active, return 0
+    if j not in active_adj[0]:
+        return 0.0, 0
+
+    P = np.dot(mats[0], mats[j])
+    mask = (1 << 0) | (1 << j)
+
+    # Stack: (depth, mask, product, prev_node)
+    stack = [(2, mask, P, j)]
+
+    tr_sum = 0.0
+    n_perms = 0
+
+    while stack:
+        depth, mask, P, prev = stack.pop()
+
+        # Leaf node
+        if depth == n - 1:
+            rem = 0
+            while (mask >> rem) & 1:
+                rem += 1
+
+            if sym_prune and (j > rem):
+                continue
+
+            # Check if last steps are in the active graph
+            if rem not in active_adj[prev] or 0 not in active_adj[rem]:
+                continue
+
+            # Tr(A @ B) = sum(A * B.T)
+            tr_sum += np.sum(P * mats[rem].T)
+            n_perms += 1
+            continue
+
+        # Recurse: only visit active neighbors of prev
+        for neighbor in active_adj[prev]:
+            if neighbor == 0:
+                continue
+            if not ((mask >> neighbor) & 1):
+                stack.append((depth + 1, mask | (1 << neighbor), np.dot(P, mats[neighbor]), neighbor))
+
+    return tr_sum, n_perms
+
+
 def _prep_matrices(arr, aom):
     """Normalize input into list of matrices, handling NO tuples."""
     if isinstance(aom, (tuple, list)) and len(aom) == 2 and not isinstance(aom[0], np.ndarray):
@@ -186,6 +306,54 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
             nperms *= 0.5
         return val, nperms, time() - t0
 
+    if alg == 6:
+        delta = kwargs.get('delta', 1e-4)
+        wf = wf_type(aom)
+        n = len(arr)
+        
+        # Build active connectivity graph
+        active_adj = {i: [] for i in range(n)}
+        for i in range(n):
+            for j in range(n):
+                if i == j: continue
+                if wf == "no":
+                    di_val = find_di_no(aom, arr[i], arr[j])
+                else:
+                    di_val = find_di(aom, arr[i], arr[j])
+                if abs(di_val) > delta:
+                    active_adj[i].append(j)
+                    
+        mats = _prep_matrices(arr, aom)
+        if n < 3: return 0.0, 0, time() - t0
+        
+        is_mulliken = (partition in ["mulliken", "non-symmetric"])
+        sym_prune = not is_mulliken
+        
+        tasks = [(mats, active_adj, j, sym_prune) for j in range(1, n)]
+        
+        total_trace = 0.0
+        total_perms = 0
+        
+        if n_cores > 1 and len(tasks) > 1:
+            with mp.Pool(n_cores) as pool:
+                results = pool.map(_kernel_active, tasks, chunksize=1)
+            for t, p in results:
+                total_trace += t
+                total_perms += p
+        else:
+            for t in tasks:
+                t_val, p_count = _kernel_active(t)
+                total_trace += t_val
+                total_perms += p_count
+                
+        is_sd = wf_type(aom) in ["rest", "unrest"]
+        prefactor = 2 ** (n - 1) if is_sd else 0.5
+        
+        if is_mulliken:
+            total_trace *= 0.5
+            
+        return prefactor * total_trace, total_perms, time() - t0
+
     if connec is None:
         connec = build_connectivity(aom, rings_thres)
 
@@ -253,3 +421,4 @@ def multiprocessing_mci(arr, aom, ncores, partition='mulliken'):
 # Aliases for Natural Orbitals
 sequential_mci_no = sequential_mci
 multiprocessing_mci_no = multiprocessing_mci
+aproxmci = mci_approx
