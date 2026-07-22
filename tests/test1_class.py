@@ -122,5 +122,11 @@ class ESItest(unittest.TestCase):
         # self.assertTrue(isinstance(esitest.molinfo, dict))
 
 
+    def test_qtaim_blocked_from_fchk(self):
+        # Specifying partition='qtaim' with is_fchk=True should raise ValueError
+        with self.assertRaises(ValueError):
+            esipy.ESI(mol=mol, mf=mf, rings=[1, 2, 3, 4, 5, 6], partition='qtaim', is_fchk=True)
+
+
 if __name__ == "__main__":
     unittest.main()
