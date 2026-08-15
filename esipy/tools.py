@@ -61,8 +61,8 @@ def wf_type(aom):
     """
     Checks the topology of the AOMs to obtain the type of wavefunction.
     """
-    # NOs return format [list, array]
-    if isinstance(aom, list) and len(aom) == 2 and isinstance(aom[1], np.ndarray) and aom[1].ndim == 1:
+    # NOs return format [list, array] or (list, array)
+    if isinstance(aom, (list, tuple)) and len(aom) == 2 and isinstance(aom[1], np.ndarray) and aom[1].ndim == 1:
         return "no"
     # Restricted: list of matrices
     if isinstance(aom, list) and isinstance(aom[0], np.ndarray) and aom[0].ndim == 2:

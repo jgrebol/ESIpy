@@ -125,7 +125,7 @@ class MeanField2:
             mo_read_success, self._scf, self.__name__ = True, scf.UHF(self.mol), "UHF"
         
         if not mo_read_success:
-            d_labels = [('Total CI Rho(1) Density', 'Spin CI Rho(1) Density'), ('Total CI Density', 'Spin CI Density'), ('Total CC Density', 'Spin CC Density'), ('Total MP2 Density', 'Spin MP2 Density'), ('Total SCF Density', 'Spin SCF Density')]
+            d_labels = [('Total CI Density', 'Spin CI Density'), ('Total CI Rho(1) Density', 'Spin CI Rho(1) Density'), ('Total CC Density', 'Spin CC Density'), ('Total MP2 Density', 'Spin MP2 Density'), ('Total SCF Density', 'Spin SCF Density')]
             found_density = False
             for t_lbl, s_lbl in d_labels:
                 dt_flat = read_list_from_fchk(t_lbl, path)
