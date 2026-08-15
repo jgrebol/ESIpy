@@ -15,7 +15,10 @@ def info_no(aom, molinfo, nfrags=0):
 
     aom, occ = aom
     if occ.ndim == 1: occ = np.diag(occ)
-    partition = format_partition(molinfo["partition"])
+    partition = format_partition(molinfo["partition"], 
+                                 iaoref=molinfo.get("iaoref"), 
+                                 iaopol=molinfo.get("iaopol"),
+                                 iaomix=molinfo.get("iaomix", 0.5))
     print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
     print(" | Number of Atoms:          {}".format(len(aom)-nfrags))
     print(" | Occ. Mol. Orbitals:       {}".format(np.shape(aom[0])[0]))
@@ -37,7 +40,7 @@ def info_no(aom, molinfo, nfrags=0):
     else:
         print(" | Total energy:             {:<13f}".format(molinfo["energy"]))
     print(" ------------------------------------------- ")
-    trace = np.sum([np.einsum('ii,ii->', occ, matrix) for matrix in aom][:len(aom)-nfrags])
+    trace = np.sum([np.trace(matrix) for matrix in aom][:len(aom)-nfrags])
     print(" | Tr(Enter):    {:.13f}".format(trace))
     print(" ------------------------------------------- ")
 
@@ -67,22 +70,26 @@ def deloc_no(aom, molinfo, fragmap={}):
     print(" | Atom     N(Sij)    dlocF     dlocX      locF      locX ")
     print(" ---------------------------------------------------------- ")
 
+    # Precompute the projected AOMs to avoid O(N^4) dense einsum traces
+    occ_1d = np.diag(occ) if occ.ndim == 2 else occ
+    occ_half_1d = np.sqrt(occ_1d)
+    
+    D = [occ_half_1d[:, None] * aom[i] * occ_half_1d[None, :] for i in range(len(aom))]
+    X = [occ_1d[:, None] * aom[i] * occ_1d[None, :] for i in range(len(aom))]
+
     for i in range(len(aom)):
-        # Trace(sqrt(occ) @ AOM_i @ sqrt(occ) @ AOM_i)
-        # Using einsum for Trace(M1 @ M2 @ M3 @ M4)
-        occ_half = np.diag(np.sqrt(np.diag(occ)))
-        lif = np.einsum('ij,jk,kl,li->', occ_half, aom[i], occ_half, aom[i])
-        lix = 0.5 * np.einsum('ij,jk,kl,li->', occ, aom[i], occ, aom[i])
+        lif = np.einsum('ij,ji->', D[i], D[i])
+        lix = 0.5 * np.einsum('ij,ji->', X[i], X[i])
         lifs.append(lif)
         lixs.append(lix)
-        N.append(np.einsum('ij,ji->', occ, aom[i]))
+        N.append(np.sum(occ_1d * np.diag(aom[i])))
 
         dlocF = 0
         dlocX = 0
         for j in range(len(aom)):
             if i != j:
-                dif = np.einsum('ij,jk,kl,li->', occ_half, aom[i], occ_half, aom[j])
-                dix = 0.5 * np.einsum('ij,jk,kl,li->', occ, aom[i], occ, aom[j])
+                dif = np.einsum('ij,ji->', D[i], D[j])
+                dix = 0.5 * np.einsum('ij,ji->', X[i], X[j])
                 if symbols[j] != "FF":
                     dlocF += dif
                     dlocX += dix
@@ -113,9 +120,8 @@ def deloc_no(aom, molinfo, fragmap={}):
                 print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
                     symbols[i], i + 1, symbols[j], j + 1, lifs[i], lixs[i]))
             else:
-                occ_half = np.diag(np.sqrt(np.diag(occ)))
-                dif = 2 * np.einsum('ij,jk,kl,li->', occ_half, aom[i], occ_half, aom[j])
-                dix = np.einsum('ij,jk,kl,li->', occ, aom[i], occ, aom[j])
+                dif = 2 * np.einsum('ij,ji->', D[i], D[j])
+                dix = np.einsum('ij,ji->', X[i], X[j])
                 if symbols[i] != "FF" and symbols[j] != "FF":  # Exclude FF atoms from contributing
                     print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
                         symbols[i], i + 1, symbols[j], j + 1, dif, dix))
@@ -209,17 +215,19 @@ def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None,
             print(" | EN           {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].en))
             print(" | GEO          {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].geo))
             print(" | HOMA         {} =  {:>.6f}".format(ring_index + 1, homa))
-            print(" ----------------------------------------------------------------------")
             if homerrefs:
                 print(" | ")
                 print(" | Found custom HOMER references 'alpha' and 'r_opt'. Computing")
                 print(" | HOMER        {} =  {:>.6f}".format(ring_index + 1, indicators[ring_index].homer))
-                print(" ----------------------------------------------------------------------")
 
             print(" ----------------------------------------------------------------------")
             if molinfo["geom"] is not None:
+                pass
+            else:
                 bla = indicators[ring_index].bla
-                if bla is not None:
+                if bla[0] is None:
+                    pass
+                else:
                     bla_c = indicators[ring_index].bla_c
                     print(" | BLA          {} =  {:>.6f}".format(ring_index + 1, bla))
                     print(" | BLAc         {} =  {:>.6f}".format(ring_index + 1, bla_c))
@@ -278,7 +286,7 @@ def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None,
                         str(av1245_indices[-1][1]).rjust(2), symbs[1].ljust(2),
                         str(av1245_indices[-1][2]).rjust(2), symbs[2].ljust(2),
                         str(av1245_indices[-1][3]).rjust(2), symbs[3].ljust(2),
-                        av1245_list[i]))
+                        av1245_list[(av1245_indices[-1][0] - 1) % len(ring)]))
 
                 print(" | AV1245 {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].av1245))
                 print(" |  AVmin {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].avmin))

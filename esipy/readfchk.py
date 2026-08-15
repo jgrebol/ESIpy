@@ -125,7 +125,7 @@ class MeanField2:
             mo_read_success, self._scf, self.__name__ = True, scf.UHF(self.mol), "UHF"
         
         if not mo_read_success:
-            d_labels = [('Total CI Rho(1) Density', 'Spin CI Rho(1) Density'), ('Total CI Density', 'Spin CI Density'), ('Total CC Density', 'Spin CC Density'), ('Total MP2 Density', 'Spin MP2 Density'), ('Total SCF Density', 'Spin SCF Density')]
+            d_labels = [('Total CI Density', 'Spin CI Density'), ('Total CI Rho(1) Density', 'Spin CI Rho(1) Density'), ('Total CC Density', 'Spin CC Density'), ('Total MP2 Density', 'Spin MP2 Density'), ('Total SCF Density', 'Spin SCF Density')]
             found_density = False
             for t_lbl, s_lbl in d_labels:
                 dt_flat = read_list_from_fchk(t_lbl, path)
@@ -141,9 +141,7 @@ class MeanField2:
                     idx = np.argsort(occ)[::-1]
                     self.mo_occ, self.mo_coeff = occ[idx], coeff[:, idx]
                     self.mo_occ[self.mo_occ < 1e-12] = 0.0
-                    self._scf, self.__name__ = scf.RHF(self.mol), "RHF"; self._scf.make_rdm1 = lambda *args, **kwargs: dt
-                    self._scf.density_label = t_lbl
-                    break
+                    self._scf, self.__name__ = scf.RHF(self.mol), "RHF"; self._scf.make_rdm1 = lambda *args, **kwargs: dt; break
             if not found_density:
                 if len(mo_a_flat) > 0:
                     print(" | Using Fallback RHF/ROHF MO coefficients")
@@ -168,7 +166,8 @@ class FchkMolecule:
     def __init__(self, path):
         self.path = path
         with open(path, "r") as f: line1 = f.readline(); self.is_qchem = any(x in line1 for x in ["Q-Chem", "Q-CHEM", "Jobname.Temp"])
-        if self.is_qchem: print(" | FCHK from Q-Chem")
+        if self.is_qchem:
+            print(" | FCHK from Q-Chem")
         self.nalpha = int(read_from_fchk('Number of alpha electrons', path)[-1])
         self.mult = int(read_from_fchk('Multiplicity', path)[-1])
         beta_mo = read_from_fchk('Beta MO coefficients', path); self.unrestricted = (len(beta_mo) > 0)
