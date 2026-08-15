@@ -23,6 +23,7 @@ def generate_references():
         '11_ump2': '11_ump2.fchk',
         '12_casscf_unrest': '12_casscf_unrest.fchk',
         '13_anthracene': '13_anthracene.fchk',
+        '13_tddft_benzene': '13_tddft_benzene.fchk',
     }
     
     refs = {}
