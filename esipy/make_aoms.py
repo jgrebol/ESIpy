@@ -164,7 +164,12 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
                 
         if is_natorb:
             occ, mo_coeff = get_natorbs(mf, S)
-            mask = occ > 1e-6
+            if hasattr(mf, 'ncas') and getattr(mf, 'ncas') is not None:
+                n_occ_act = getattr(mf, 'ncore', 0) + getattr(mf, 'ncas', 0)
+                mask = np.zeros(len(occ), dtype=bool)
+                mask[:n_occ_act] = True
+            else:
+                mask = np.ones(len(occ), dtype=bool) # DO NOT MASK NATURAL ORBITALS
         else:
             occ = np.asarray(mo_occ)
             mask = (occ > 0.5)

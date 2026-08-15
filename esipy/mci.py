@@ -77,7 +77,6 @@ def _prep_matrices(arr, aom):
         real_aoms, occ = aom
         if occ.ndim == 1:
             return [occ[:, None] * real_aoms[idx - 1] for idx in arr]
-        # For 2D Occ (from older formatting)
         return [np.dot(occ, real_aoms[idx - 1]) for idx in arr]
     return [aom[idx - 1] for idx in arr]
 
@@ -117,12 +116,10 @@ def compute_mci(arr, aom, partition='mulliken', n_cores=None):
     else:
         total_trace = sum(_kernel_exact(t) for t in tasks)
 
-    # Normalization of SD-wf is 2**(n-1) but from permutations we double count (so 2**(n-2))
-    if wf_type(aom) in ["rest", "unrest"]:
-        prefactor = 2 ** (n - 2)
-    else:
-        # NO trace evaluates to 2^n for a closed-shell reference. To match 2**(n-2), we need 0.25.
-        prefactor = 0.25
+    # Normalization
+    # SD-wf is 2**(n-1), but we double count perms in non-symmetric cases
+    is_sd = wf_type(aom) in ["rest", "unrest"]
+    prefactor = 2 ** (n - 2) if is_sd else 0.5
 
     return prefactor * total_trace
 
