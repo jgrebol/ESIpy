@@ -74,12 +74,12 @@ def deloc_no(aom, molinfo, fragmap={}):
     occ_1d = np.diag(occ) if occ.ndim == 2 else occ
     occ_half_1d = np.sqrt(occ_1d)
     
-    D = [occ_half_1d[:, None] * aom[i] * occ_half_1d[None, :] for i in range(len(aom))]
-    X = [occ_1d[:, None] * aom[i] * occ_1d[None, :] for i in range(len(aom))]
+    W_F = occ_half_1d[:, None] * occ_half_1d[None, :]
+    W_X = occ_1d[:, None] * occ_1d[None, :]
 
     for i in range(len(aom)):
-        lif = np.einsum('ij,ji->', D[i], D[i])
-        lix = 0.5 * np.einsum('ij,ji->', X[i], X[i])
+        lif = np.sum(W_F * aom[i] * aom[i].T)
+        lix = 0.5 * np.sum(W_X * aom[i] * aom[i].T)
         lifs.append(lif)
         lixs.append(lix)
         N.append(np.sum(occ_1d * np.diag(aom[i])))
@@ -88,8 +88,8 @@ def deloc_no(aom, molinfo, fragmap={}):
         dlocX = 0
         for j in range(len(aom)):
             if i != j:
-                dif = np.einsum('ij,ji->', D[i], D[j])
-                dix = 0.5 * np.einsum('ij,ji->', X[i], X[j])
+                dif = np.sum(W_F * aom[i] * aom[j].T)
+                dix = 0.5 * np.sum(W_X * aom[i] * aom[j].T)
                 if symbols[j] != "FF":
                     dlocF += dif
                     dlocX += dix
@@ -120,8 +120,8 @@ def deloc_no(aom, molinfo, fragmap={}):
                 print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
                     symbols[i], i + 1, symbols[j], j + 1, lifs[i], lixs[i]))
             else:
-                dif = 2 * np.einsum('ij,ji->', D[i], D[j])
-                dix = np.einsum('ij,ji->', X[i], X[j])
+                dif = 2 * np.sum(W_F * aom[i] * aom[j].T)
+                dix = np.sum(W_X * aom[i] * aom[j].T)
                 if symbols[i] != "FF" and symbols[j] != "FF":  # Exclude FF atoms from contributing
                     print(" | {:>2}{:>2}-{:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
                         symbols[i], i + 1, symbols[j], j + 1, dif, dix))
