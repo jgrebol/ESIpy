@@ -137,6 +137,16 @@ class ESIInput:
             elif line.startswith('$MAXLEN'):
                 i += 1
                 obj.maxlen = int(lines[i])
+            elif line.startswith('$SAVE'):
+                obj.save = True
+                if obj.mode == 'fchk' and obj.fchk_file:
+                    obj.save = os.path.splitext(os.path.basename(obj.fchk_file))[0]
+                elif obj.mode == 'readint' and obj.readpath:
+                    obj.save = os.path.basename(os.path.normpath(obj.readpath))
+                elif obj.mode == 'readaoms' and obj.aomname:
+                    obj.save = obj.aomname
+            elif line.startswith('$WRITEAOMS'):
+                obj.writeaoms = True
             elif line.startswith('$NCORES') or line.startswith('$NCORE'):
                 i += 1
                 obj.ncores = int(lines[i])
@@ -153,7 +163,19 @@ class ESIInput:
                     i += 1
                 i -= 1
             i += 1
+        
+        obj._finalize_save_name()
         return obj
+
+    def _finalize_save_name(self):
+        """Finalize save name based on input mode if it's still just True."""
+        if self.save is True:
+            if self.mode == 'fchk' and self.fchk_file:
+                self.save = os.path.splitext(os.path.basename(self.fchk_file))[0]
+            elif self.mode == 'readint' and self.readpath:
+                self.save = os.path.basename(os.path.normpath(self.readpath))
+            elif self.mode == 'readaoms' and self.aomname:
+                self.save = self.aomname
 
     @staticmethod
     def from_file(filepath):
