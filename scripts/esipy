@@ -142,10 +142,6 @@ def main():
                       av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, ncores=ncores)
         esi.print()
 
-        if inp.mciaprox:
-            for alg, d in inp.mciaprox:
-                esi.mciaprox(mcialg=alg, d=d)
-
         if inp.writeaoms:
             write_name = save_name if save_name else molname
             if write_name:

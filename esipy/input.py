@@ -30,7 +30,6 @@ class ESIInput:
         # for readaoms: base name (without extension) to construct aoms/molinfo per partition
         self.aomname = None
         self.ncores = None
-        self.mciaprox = []
         self.exclude = []
 
 

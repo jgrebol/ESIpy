@@ -12,22 +12,21 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
     """
 
     partition_label = format_partition(partition)
-    iaoref = 'sto-3g' if partition_label == 'iao2' else 'minao'
     
     try:
         S = mf.get_ovlp()
     except:
         S = mol.intor('int1e_ovlp')
     
-    def get_iao_aoms(p_type, coeffs, current_mf, iaoref='minao', c_full=None):
+    def get_iao_aoms(p_type, coeffs, current_mf, c_full=None):
         from pyscf.lo import iao as pyscf_iao
         from pyscf.lo import orth
         from pyscf import gto
         
-        pmol = gto.M(atom=mol.atom, basis=iaoref, cart=mol.cart)
+        pmol = gto.M(atom=mol.atom, basis='minao', cart=mol.cart)
         
         # Build IAO from coeffs (which might be truncated to n_ref for natural orbitals)
-        C_iao = pyscf_iao.iao(mol, coeffs, minao=iaoref)
+        C_iao = pyscf_iao.iao(mol, coeffs, minao='minao')
         U = orth.vec_lowdin(C_iao, S)
         U_ao = S @ U
         proj_c = c_full if c_full is not None else coeffs
@@ -113,7 +112,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
         else:
             # IAO logic
             from pyscf import gto
-            pmol = gto.M(atom=mol.atom, basis=iaoref, cart=mol.cart)
+            pmol = gto.M(atom=mol.atom, basis='minao', cart=mol.cart)
             n_ref = pmol.nao
             
             # Truncate natural orbitals to minimal basis size if is_natorb
@@ -134,8 +133,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
                 coeffs_a = ca[:, mask_a]
                 coeffs_b = cb[:, mask_b]
 
-            aom_alpha = get_iao_aoms(partition_label, coeffs_a, mf, iaoref=iaoref, c_full=ca[:, mask_a])
-            aom_beta = get_iao_aoms(partition_label, coeffs_b, mf, iaoref=iaoref, c_full=cb[:, mask_b])
+            aom_alpha = get_iao_aoms(partition_label, coeffs_a, mf, c_full=ca[:, mask_a])
+            aom_beta = get_iao_aoms(partition_label, coeffs_b, mf, c_full=cb[:, mask_b])
             
             if is_natorb:
                 aom = [[aom_alpha, aom_beta], [occ_a_act, occ_b_act]]
@@ -209,7 +208,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
         else:
             # IAO logic
             from pyscf import gto
-            pmol = gto.M(atom=mol.atom, basis=iaoref, cart=mol.cart)
+            pmol = gto.M(atom=mol.atom, basis='minao', cart=mol.cart)
             n_ref = pmol.nao
             
             if is_natorb:
@@ -226,7 +225,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
 
             # For nat orbs, c_full must match coeffs_input so AOM dimensions match occ_act.
             # Passing the full coeff (all masked orbs) would create a shape mismatch with occ_act.
-            aom_list = get_iao_aoms(partition_label, coeffs_input, mf, iaoref=iaoref,
+            aom_list = get_iao_aoms(partition_label, coeffs_input, mf,
                                     c_full=coeffs_input if is_natorb else coeff)
             if is_natorb:
                 aom = [aom_list, occ_act]
