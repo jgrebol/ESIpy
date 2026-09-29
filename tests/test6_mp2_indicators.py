@@ -31,7 +31,7 @@ mf.kernel()
 ring = [1, 2, 3, 4, 5, 6]
 
 expected = {
-    'iao': { 'exp_av': 0.00000000, 'exp_di12': 1.12222917, 'exp_iring': 0.01520263, 'exp_mci': -0.00000000, 'exp_pdi': 0.06282346, 'exp_pop_atm1': 6.09797374 },
+    'iao': { 'exp_av': 0.00000000, 'exp_di12': 1.1256635, 'exp_iring': 0.0151808, 'exp_mci': -0.00000000, 'exp_pdi': 0.0625374, 'exp_pop_atm1': 6.120933 },
     'lowdin': { 'exp_av': 0.00000000, 'exp_di12': 1.13212393, 'exp_iring': 0.01522190, 'exp_mci': 0.00000000, 'exp_pdi': 0.06477991, 'exp_pop_atm1': 6.03000000 },
     'meta-lowdin': { 'exp_av': 0.00000000, 'exp_di12': 1.13209812, 'exp_iring': 0.01522460, 'exp_mci': 0.00000000, 'exp_pdi': 0.06485038, 'exp_pop_atm1': 6.03513946 },
     'mulliken': { 'exp_av': 10184.00977061, 'exp_di12': 1.12390836, 'exp_iring': 0.01521713, 'exp_mci': -1018.33817154, 'exp_pdi': 0.06458836, 'exp_pop_atm1': 6.06128839 },

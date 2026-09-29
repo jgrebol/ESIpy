@@ -1257,12 +1257,15 @@ class ESI:
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
                  ncores=1, save=None, readpath='.', read=False,
-                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None, is_fchk=False, verbose=None, **kwargs):
+                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None, is_fchk=False, verbose=None, nocc=None, **kwargs):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
         self._rings = rings
         self.mol = mol
+        self.nocc = nocc
+        self._effao_occ = None
+        self._no_coeff = None
         self.is_fchk = is_fchk or getattr(mf, 'is_fchk', False)
         
         # Automatic post-HF wrapping
@@ -1449,6 +1452,20 @@ class ESI:
         else:
             raise ValueError(" | Could not determine the wavefunction type")
 
+        if hasattr(self.mol, 'effao_occ'):
+            self._effao_occ = self.mol.effao_occ
+            try:
+                del self.mol.effao_occ
+            except Exception:
+                pass
+
+        if hasattr(self.mol, 'no_coeff'):
+            self._no_coeff = self.mol.no_coeff
+            try:
+                del self.mol.no_coeff
+            except Exception:
+                pass
+
     @property
     def rings(self):
         if hasattr(self, "mol") and self.mol:
@@ -1619,7 +1636,20 @@ class ESI:
             if self.mol and self.mf and self.partition:
                 self._aom_loaded = True
                 # Don't save in make_aoms, we'll save it ourselves in the subdirectory
-                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf, is_fchk=self.is_fchk)
+                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf, is_fchk=self.is_fchk, nocc=self.nocc)
+                if hasattr(self.mol, 'effao_occ'):
+                    self._effao_occ = self.mol.effao_occ
+                    try:
+                        del self.mol.effao_occ
+                    except Exception:
+                        pass
+
+                if hasattr(self.mol, 'no_coeff'):
+                    self._no_coeff = self.mol.no_coeff
+                    try:
+                        del self.mol.no_coeff
+                    except Exception:
+                        pass
 
                 if self.saveaoms:
                     os.makedirs(self.save_dir, exist_ok=True)
@@ -1628,6 +1658,67 @@ class ESI:
             else:
                 raise ValueError(" | Missing variables 'mol', 'mf', or 'partition'")
         return self._aom
+
+    @property
+    def no_occ(self):
+        """
+        Get the Natural Orbital (NO) occupations.
+
+        :returns: Array of occupations or None.
+        :rtype: np.ndarray or None
+        """
+        if isinstance(self._aom, list) and len(self._aom) == 2 and isinstance(self._aom[1], np.ndarray):
+            return self._aom[1]
+        if hasattr(self, 'mf') and hasattr(self.mf, 'mo_occ') and self.mf.mo_occ is not None:
+            return self.mf.mo_occ
+        return None
+
+    @property
+    def effao_occ(self):
+        """
+        Get the EFFAO occupations dictionary per atom (1-indexed, e.g. {'Li1': [...], 'H2': [...]}).
+
+        :returns: Dictionary of EFFAO occupations or None.
+        :rtype: dict or None
+        """
+        if hasattr(self, '_effao_occ') and self._effao_occ is not None:
+            return self._effao_occ
+        if hasattr(self, 'mol') and hasattr(self.mol, 'effao_occ'):
+            self._effao_occ = self.mol.effao_occ
+            try:
+                del self.mol.effao_occ
+            except Exception:
+                pass
+            return self._effao_occ
+        return None
+
+    @property
+    def no_coeff(self):
+        """
+        Get the Natural Orbital (NO) coefficients / eigenvectors.
+
+        :returns: Array of NO coefficients or None.
+        :rtype: np.ndarray or None
+        """
+        if hasattr(self, '_no_coeff') and self._no_coeff is not None:
+            return self._no_coeff
+        if hasattr(self, 'mol') and hasattr(self.mol, 'no_coeff'):
+            self._no_coeff = self.mol.no_coeff
+            try:
+                del self.mol.no_coeff
+            except Exception:
+                pass
+            return self._no_coeff
+        if hasattr(self, 'mf') and hasattr(self.mf, 'mo_coeff') and self.mf.mo_coeff is not None:
+            return self.mf.mo_coeff
+        return None
+
+    @property
+    def natorb(self):
+        """
+        Alias for no_coeff for backwards compatibility.
+        """
+        return self.no_coeff
 
     @property
     def partition(self):

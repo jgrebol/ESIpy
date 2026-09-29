@@ -508,6 +508,94 @@ def build_eta(mol):
         eta[i][start:end, start:end] = np.eye(end - start)
     return eta
 
+def build_iao_aoms(mol, coeffs, partition, mf=None, S=None, w_override=None, c_full=None):
+    import re
+    from esipy.iao import reference_mol, _do_iao
+    import esipy.iao as iao_mod
+    if S is None:
+        S = mol.intor_symmetric('int1e_ovlp')
+
+    p_type = partition.lower()
+    if p_type.startswith("iao_"):
+        p_type = "iao " + p_type[4:]
+
+    m_w = re.search(r"\(+([\d\.]+)\)+", p_type)
+    if m_w:
+        string_w = float(m_w.group(1))
+        p_type_clean = re.sub(r"\(+[\d\.]+\)+", "", p_type).replace("  ", " ").strip()
+    else:
+        string_w = None
+        p_type_clean = p_type.strip()
+
+    local_heavy_only = True
+    if "$hpol" in p_type_clean:
+        local_heavy_only = False
+        p_type_clean = p_type_clean.replace("$hpol", "").strip()
+
+    p_parts = p_type_clean.split()
+    p_base = p_parts[0]
+    if p_base == "iao-basis":
+        p_base = "iao"
+
+    if p_base in ["iao", "iao-autosad", "fpiao", "dfpiao", "wiao"]:
+        iaoref = 'minao'
+    elif p_base in ["iao2", "iao-effao", "iao-autosad2", "peiao", "dpeiao", "fpiao2", "dfpiao2"] or p_base.startswith("iao-effao"):
+        iaoref = 'valence'
+    else:
+        iaoref = 'minao'
+
+    ref_bas = p_parts[1] if len(p_parts) > 1 else iaoref
+    local_w = w_override if w_override is not None else (string_w if string_w is not None else 0.5)
+
+    if p_base == "dfpiao":
+        aom_iao = build_iao_aoms(mol, coeffs, f"iao {ref_bas}", mf=mf, S=S, c_full=c_full)
+        aom_fpiao = build_iao_aoms(mol, coeffs, f"fpiao {ref_bas}", mf=mf, S=S, w_override=1.0, c_full=c_full)
+        return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(len(aom_iao))]
+    elif p_base == "dfpiao2":
+        aom_iao = build_iao_aoms(mol, coeffs, f"iao2 {ref_bas}", mf=mf, S=S, c_full=c_full)
+        aom_fpiao = build_iao_aoms(mol, coeffs, f"fpiao2 {ref_bas}", mf=mf, S=S, w_override=1.0, c_full=c_full)
+        return [local_w * aom_iao[i] + (1.0 - local_w) * aom_fpiao[i] for i in range(len(aom_iao))]
+    elif p_base == "dpeiao":
+        actual_mode = 'nao' if ref_bas in ['minao', 'valence'] else ref_bas
+        aom_iao = build_iao_aoms(mol, coeffs, f"iao-effao-{actual_mode}", mf=mf, S=S, c_full=c_full)
+        aom_peiao = build_iao_aoms(mol, coeffs, f"peiao {ref_bas}", mf=mf, S=S, c_full=c_full)
+        return [local_w * aom_iao[i] + (1.0 - local_w) * aom_peiao[i] for i in range(len(aom_iao))]
+
+    if p_base in ["fpiao", "fpiao2"]:
+        if ref_bas == "nao" and hasattr(iao_mod, 'fpiao_effao'):
+            C_iao, pmol = iao_mod.fpiao_effao(mol, coeffs, x=local_w, mode='nao', pol_basis='ano', heavy_only=local_heavy_only, mf=mf)
+        else:
+            C_iao, pmol = iao_mod.fpiao(mol, coeffs, x=local_w, source_basis=ref_bas, pol_basis='ano', heavy_only=local_heavy_only)
+    elif p_base == "peiao":
+        actual_mode = 'nao' if ref_bas in ['minao', 'valence'] else ref_bas
+        C_iao, pmol = iao_mod.peiao(mol, coeffs, mode=actual_mode, heavy_only=local_heavy_only, mf=mf, x=local_w)
+    elif p_base in ["iao", "iao2"]:
+        if ref_bas == "nao":
+            C_iao, pmol = iao_mod.effao(mol, coeffs, mode='nao', polarized=False, heavy_only=local_heavy_only, mf=mf)
+        else:
+            C_iao, pmol = iao_mod.iao(mol, coeffs, source_basis=ref_bas, heavy_only=local_heavy_only)
+    elif p_base in ["iao-autosad", "iao-autosad2"]:
+        C_iao, pmol = iao_mod.autosad(mol, coeffs, polarized=False, heavy_only=local_heavy_only, mf=mf, source_basis=ref_bas)
+    elif p_base.startswith("iao-effao"):
+        mode = p_base.replace("iao-effao-", "").replace("iao-effao", "net")
+        if mode == "symmetric": mode = "sym"
+        C_iao, pmol = iao_mod.effao(mol, coeffs, mode=mode, polarized=False, heavy_only=local_heavy_only, mf=mf)
+    elif p_base == "wiao":
+        C_iao, pmol = iao_mod.wiao(mol, coeffs, heavy_only=local_heavy_only)
+    elif p_base == "iao-pyscf":
+        from pyscf.lo import iao as pyscf_iao
+        from pyscf.lo import orth
+        pmol = reference_mol(mol)
+        C_iao_nonorth = pyscf_iao.iao(mol, coeffs)
+        C_iao = orth.vec_lowdin(C_iao_nonorth, S)
+    else:
+        raise NameError(f"Unknown IAO type: {p_base}")
+
+    U = np.dot(S, C_iao)
+    eta = build_eta(pmol)
+    proj_c = c_full if c_full is not None else coeffs
+    return [proj_c.T @ U @ eta[i] @ U.T @ proj_c for i in range(len(eta))]
+
 def build_connec_rest(Smo, thres=0.25):
     natoms = len(Smo)
     connec_dict = {i: [] for i in range(1, natoms + 1)}

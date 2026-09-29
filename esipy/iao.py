@@ -234,27 +234,62 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
             target_n_shells = target_l_counts[l]
             idx_keep = np.where((l_map == l) & (shell_map < target_n_shells))[0]
             final_idx.extend(idx_keep)
-        final_idx = np.sort(final_idx); w_keep = w[final_idx]; c_keep = c[:, final_idx]
+        final_idx = np.sort(final_idx)
+        w_keep = w[final_idx]
+        c_keep = c[:, final_idx]
         veps_block[p0:p1, col_idx: col_idx + n_target] = c_keep
-        vaps_diag.extend(w_keep); col_idx += n_target
-    if T_orth is not None: veps_block = T_orth @ veps_block
+        vaps_diag.extend(w_keep)
+        col_idx += n_target
+        atom_label = f"{sym}{ia + 1}"
+        if not hasattr(mol, '_effao_dict_tmp'):
+            mol._effao_dict_tmp = {}
+        mol._effao_dict_tmp[atom_label] = np.sort(w_keep)[::-1]
+    if T_orth is not None:
+        veps_block = T_orth @ veps_block
+    if hasattr(mol, '_effao_dict_tmp'):
+        mol.effao_occ = mol._effao_dict_tmp
+        delattr(mol, '_effao_dict_tmp')
     return np.array(vaps_diag), veps_block, pmol
 
-def _do_iao(mol, coeffs, pmol=None, A_basis=None, heavy_only=True):
+def vec_lowdin_safe(c, s=1, thresh=1e-14):
+    metric = c.conj().T @ s @ c if isinstance(s, np.ndarray) else c.conj().T @ c
+    e, v = scipy.linalg.eigh(metric)
+    idx = e > thresh
+    if not np.all(idx):
+        import warnings
+        warnings.warn("Linear dependency detected in IAO Löwdin orthogonalization.")
+    return np.dot(c, np.dot(v[:, idx] / np.sqrt(e[idx]), v[:, idx].conj().T))
+
+def iao_original_2013(s11, s22, s12, C):
+    s21 = s12.T
+    P12 = scipy.linalg.solve(s11, s12, assume_a='pos')
+    C_min = scipy.linalg.solve(s22, s21 @ C, assume_a='pos')
+    C_tilde_unorth = P12 @ C_min
+    C_tilde = vec_lowdin_safe(C_tilde_unorth, s11)
+
+    dim_ao = s11.shape[0]
+    eye_ao = np.eye(dim_ao)
+
+    O_occ = C @ (C.T @ s11)
+    O_tilde = C_tilde @ (C_tilde.T @ s11)
+
+    c_iao_occ = O_occ @ (O_tilde @ P12)
+    c_iao_vir = (eye_ao - O_occ) @ ((eye_ao - O_tilde) @ P12)
+    c_iao = c_iao_occ + c_iao_vir
+
+    return vec_lowdin_safe(c_iao, s11)
+
+def _do_iao(mol, coeffs, A_basis=None, pmol=None, heavy_only=False):
     if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
-    S1 = mol.intor('int1e_ovlp')
-    if A_basis is not None:
-        A_tilde = A_basis; S12 = S1 @ A_tilde; S2 = A_tilde.T @ S12
-    else:
+    s11 = mol.intor('int1e_ovlp')
+    if A_basis is None:
         from pyscf.gto.mole import intor_cross
-        S12 = intor_cross('int1e_ovlp', mol, pmol); A_tilde = scipy.linalg.solve(S1, S12, assume_a='pos'); S2 = pmol.intor_symmetric('int1e_ovlp')
-    C_min = scipy.linalg.solve(S2, S12.T @ coeffs, assume_a='pos')
-    C_proj = orth.vec_lowdin(A_tilde @ C_min, S1)
-    P_occ_A = coeffs @ (coeffs.T @ S12)
-    P_proj_A = C_proj @ (C_proj.T @ S12)
-    P_occ_P_proj_A = coeffs @ (coeffs.T @ (S1 @ P_proj_A))
-    IAO_nonorth = A_tilde + 2 * P_occ_P_proj_A - P_occ_A - P_proj_A
-    return orth.vec_lowdin(IAO_nonorth, S1)
+        s12 = intor_cross('int1e_ovlp', mol, pmol)
+        s22 = pmol.intor_symmetric('int1e_ovlp')
+    else:
+        s12 = s11 @ A_basis
+        s22 = A_basis.T @ s12
+    return iao_original_2013(s11, s22, s12, coeffs)
 
 def iao(mol, coeffs, source_basis='minao', heavy_only=False, full_basis=False):
     pmol = reference_mol(mol, polarized=False, source_basis=source_basis, heavy_only=heavy_only, full_basis=full_basis)

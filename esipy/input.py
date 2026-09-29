@@ -37,6 +37,7 @@ class ESIInput:
         self.iaopol = 'ano'
         self.heavy_only = True
         self.full_basis = False
+        self.nocc = None
 
     @staticmethod
     def from_string(input_str):
@@ -208,6 +209,10 @@ class ESIInput:
             elif line.startswith('$NCORES') or line.startswith('$NCORE'):
                 i += 1
                 obj.ncores = int(lines[i])
+            elif line.startswith('$NOCC'):
+                i += 1
+                if i < len(lines):
+                    obj.nocc = int(lines[i].strip())
             elif line.startswith('$EXCLUDE'):
                 obj.exclude = []
                 i += 1

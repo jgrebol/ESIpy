@@ -100,6 +100,7 @@ def main():
     exclude = inp.exclude if inp.exclude else None
     minlen = inp.minlen if inp.minlen else 6
     maxlen = inp.maxlen if inp.maxlen else 12
+    nocc = inp.nocc
 
     if findrings:
         rings = "find"
@@ -138,7 +139,7 @@ def main():
             aom = inp.aomname + '_' + f_partition + '.aoms'
             molinfo = inp.aomname + '_' + f_partition + '.molinfo'
             esi = ESI(aom=aom, rings=rings, partition=partition, molinfo=molinfo,
-                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, **extra_kwargs)
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, nocc=nocc, **mci_kwargs, **extra_kwargs)
         elif inp.mode == 'readint':
             from esipy.tools import format_short_partition
             shortpart = format_short_partition(partition)
@@ -147,11 +148,11 @@ def main():
             else:
                 partition_dir = inp.readpath + '_' + shortpart + '_atomicfiles'
             esi = ESI(read=True, readpath=partition_dir, rings=rings, partition=partition,
-                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, **extra_kwargs)
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, nocc=nocc, **mci_kwargs, **extra_kwargs)
             esi.readaoms()
         else:
             esi = ESI(mol=mol, mf=mf, rings=rings, partition=partition, flurefs=flurefs,
-                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, **extra_kwargs)
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, nocc=nocc, **mci_kwargs, **extra_kwargs)
         esi.print()
 
         if inp.mciaprox:
