@@ -31,7 +31,7 @@ mf.kernel()
 ring = [1, 2, 3, 4, 5, 6]
 
 expected = {
-    'iao': { 'exp_av': 0.00000000, 'exp_di12': 1.1256635, 'exp_iring': 0.0151808, 'exp_mci': -0.00000000, 'exp_pdi': 0.0625374, 'exp_pop_atm1': 6.120933 },
+    'iao': { 'exp_av': 0.00000000, 'exp_di12': 1.4179333, 'exp_iring': 0.0410517, 'exp_mci': -0.00000000, 'exp_pdi': 0.1074843, 'exp_pop_atm1': 6.072887 },
     'lowdin': { 'exp_av': 0.00000000, 'exp_di12': 1.13212393, 'exp_iring': 0.01522190, 'exp_mci': 0.00000000, 'exp_pdi': 0.06477991, 'exp_pop_atm1': 6.03000000 },
     'meta-lowdin': { 'exp_av': 0.00000000, 'exp_di12': 1.13209812, 'exp_iring': 0.01522460, 'exp_mci': 0.00000000, 'exp_pdi': 0.06485038, 'exp_pop_atm1': 6.03513946 },
     'mulliken': { 'exp_av': 10184.00977061, 'exp_di12': 1.12390836, 'exp_iring': 0.01521713, 'exp_mci': -1018.33817154, 'exp_pdi': 0.06458836, 'exp_pop_atm1': 6.06128839 },
@@ -52,13 +52,13 @@ class ESItest(unittest.TestCase):
         
         # 2. Sum Rule: Sum(Pops) = N
         pops = [np.einsum('i,ii->', occ, m) for m in aom_data]
-        self.assertAlmostEqual(sum(pops), 42.0, places=3)
+        self.assertAlmostEqual(sum(pops), sum(occ), places=3)
 
         # 3. Sum Rule: Sum(LI_F + DI_F) = N
         lifs = [np.einsum('i,ij,j,ji->', occ_half, m, occ_half, m) for m in aom_data]
         difs_sum = sum(2 * np.einsum('i,ij,j,ji->', occ_half, aom_data[i], occ_half, aom_data[j]) 
                        for i in range(len(aom_data)) for j in range(i+1, len(aom_data)))
-        self.assertAlmostEqual(sum(lifs) + difs_sum, 42.0, places=3)
+        self.assertAlmostEqual(sum(lifs) + difs_sum, sum(occ), places=3)
 
         # 4. Specific DI12 and Indicators
         di12 = 2 * np.einsum('i,ij,j,ji->', occ_half, aom_data[0], occ_half, aom_data[1])

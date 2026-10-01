@@ -65,7 +65,9 @@ def make_aoms(mol, mf, partition, save=None, nocc=None, myhf=None, is_fchk=False
                 Smo.append(np.dot(SCR, SCR.T))
 
         elif "iao" in partition or "piao" in partition:
-            Smo = build_iao_aoms(mol, coeff_iao, partition, mf=mf, S=S, c_full=c_proj)
+            mol.no_coeff = coeff_iao
+            Smo = build_iao_aoms(mol, coeff_iao, partition, mf=mf, S=S, c_full=coeff_iao)
+            occ_proj = occ[:n_act]
 
         elif partition == "mulliken":
             eta = [np.zeros((mol.nao, mol.nao)) for i in range(mol.natm)]
