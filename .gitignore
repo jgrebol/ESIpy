@@ -38,3 +38,12 @@ joan/
 # FCHK folders (keep the one in tests/)
 FCHK/
 !tests/FCHK/
+
+# Environments, build and IDE
+build/
+*.egg-info/
+versions/
+scratch/
+.idea/
+*.npy
+iao2.tex
