@@ -48,13 +48,15 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
     if is_unrest:
         is_natorb = False
         if is_fchk:
-            d_lbl = getattr(mf, 'density_label', '')
+            d_lbl = getattr(mf, 'density_label', '') or (getattr(mf._scf, 'density_label', '') if hasattr(mf, '_scf') else '')
             if 'MP2' in d_lbl or 'CC' in d_lbl or 'CI' in d_lbl:
                 is_natorb = True
+            elif 'SCF' in d_lbl:
+                is_natorb = False
             else:
                 if mo_occ is not None and np.asarray(mo_occ).dtype != object:
                     occ_flat = np.asarray(mo_occ).flatten()
-                    is_natorb = np.any((occ_flat > 1e-6) & (np.abs(occ_flat - 1.0) > 1e-6) & (np.abs(occ_flat - 2.0) > 1e-6))
+                    is_natorb = np.any((occ_flat > 1e-4) & (np.abs(occ_flat - 1.0) > 1e-4) & (np.abs(occ_flat - 2.0) > 1e-4))
         else:
             if is_natorb_wf(mf):
                 is_natorb = True
@@ -151,13 +153,15 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
             
         is_natorb = False
         if is_fchk:
-            d_lbl = getattr(mf, 'density_label', '')
+            d_lbl = getattr(mf, 'density_label', '') or (getattr(mf._scf, 'density_label', '') if hasattr(mf, '_scf') else '')
             if 'MP2' in d_lbl or 'CC' in d_lbl or 'CI' in d_lbl:
                 is_natorb = True
+            elif 'SCF' in d_lbl:
+                is_natorb = False
             else:
                 if mo_occ is not None and np.asarray(mo_occ).dtype != object:
                     occ_flat = np.asarray(mo_occ).flatten()
-                    is_natorb = np.any((occ_flat > 1e-6) & (np.abs(occ_flat - 1.0) > 1e-6) & (np.abs(occ_flat - 2.0) > 1e-6))
+                    is_natorb = np.any((occ_flat > 1e-4) & (np.abs(occ_flat - 1.0) > 1e-4) & (np.abs(occ_flat - 2.0) > 1e-4))
         else:
             if is_natorb_wf(mf):
                 is_natorb = True

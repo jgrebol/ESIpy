@@ -127,6 +127,25 @@ class ESIInput:
                 obj.noring = True
                 obj.findrings = False
                 obj.rings = None
+            elif line.startswith('$MCIALG') or line.startswith('$MCIAPROX'):
+                i += 1
+                while i < len(lines) and not lines[i].startswith('$'):
+                    parts = lines[i].split()
+                    if len(parts) >= 2:
+                        try:
+                            alg = int(parts[0])
+                            dist = int(parts[1])
+                            obj.mciaprox.append((alg, dist))
+                        except ValueError:
+                            pass
+                    elif len(parts) == 1:
+                        try:
+                            alg = int(parts[0])
+                            obj.mciaprox.append((alg, 1))
+                        except ValueError:
+                            pass
+                    i += 1
+                i -= 1
             elif line.strip().startswith('$NOMCI'):
                 obj.domci = False
                 obj.mci = False

@@ -118,70 +118,82 @@ def _kernel_exact(args):
 
 def _kernel_approx(args):
     """
-    DFS worker with distance/parity filtering.
-    args: (mats, dists, start_idx, alg_type, d_cut, sym_prune)
+    DFS worker with distance/parity filtering and lazy prefix matrix multiplication.
+    args: (mats, dists, prefix, cur_max, alg_type, d_cut, sym_prune)
+      or: (mats, dists, j, alg_type, d_cut, sym_prune)
     """
-    mats, dists, j, alg, d_cut, sym_prune = args
+    mats, dists = args[0], args[1]
     n = len(mats)
 
-    # 1. Filter Initial Step (0 -> j)
-    d0 = dists[0, j]
-    if d0 > d_cut: return 0.0, 0
+    if len(args) == 7:
+        prefix, cur_max, alg, d_cut, sym_prune = args[2], args[3], args[4], args[5], args[6]
+    else:
+        j, alg, d_cut, sym_prune = args[2], args[3], args[4], args[5]
+        d0 = dists[0, j]
+        if d0 > d_cut: return 0.0, 0
+        if (alg == 3 or alg == 5) and (d0 % 2 == 0): return 0.0, 0
+        prefix = (0, j)
+        cur_max = d0
 
-    # Parity checks: Alg 3 and 5 (Odd only)
-    if (alg == 3 or alg == 5) and (d0 % 2 == 0): return 0.0, 0
+    # Precompute valid neighbors according to algorithm distance and parity constraints
+    valid_neighbors = [
+        [v for v in range(n) if v != u and dists[u, v] <= d_cut and ((alg not in (3, 5)) or (dists[u, v] % 2 != 0))]
+        for u in range(n)
+    ]
 
-    cur_max = d0
-    P = np.dot(mats[0], mats[j])
-    mask = (1 << 0) | (1 << j)
+    visited = [False] * n
+    path = [0] * n
+    for idx, node in enumerate(prefix):
+        visited[node] = True
+        path[idx] = node
 
-    # Stack: (depth, mask, product, prev_node, current_max_dist)
-    stack = [(2, mask, P, j, cur_max)]
+    j = prefix[1]
+    depth_start = len(prefix)
 
-    tr_sum = 0.0
-    n_perms = 0
+    # Lazy prefix matrix product cache: P_cache[k] = mats[0] @ mats[path[1]] @ ... @ mats[path[k]]
+    P_cache = [None] * n
+    P_cache[0] = mats[0]
+    valid_depth = [1]
 
-    while stack:
-        depth, mask, P, prev, cur_max = stack.pop()
+    tr_sum = [0.0]
+    n_perms = [0]
 
-        # Leaf node
+    def dfs(prev, depth, cur_max):
         if depth == n - 1:
-            rem = 0
-            while (mask >> rem) & 1:
-                rem += 1
-
-            if sym_prune and (j > rem): continue
+            rem = visited.index(False)
+            if sym_prune and (j > rem): return
 
             # Validate closing edges (prev->rem, rem->0)
             d_last = dists[prev, rem]
             d_close = dists[rem, 0]
-
-            if d_last > d_cut or d_close > d_cut: continue
-
-            if (alg == 3 or alg == 5) and ((d_last % 2 == 0) or (d_close % 2 == 0)): continue
-
-            # Alg 2 & 4: Cycle max distance must equal cutoff d
+            if d_last > d_cut or d_close > d_cut: return
+            if (alg == 3 or alg == 5) and ((d_last % 2 == 0) or (d_close % 2 == 0)): return
             if alg == 2 or alg == 4:
-                if max(cur_max, d_last, d_close) != d_cut: continue
+                if max(cur_max, d_last, d_close) != d_cut: return
 
-            tr_sum += np.sum(P * mats[rem].T)
-            n_perms += 1
-            continue
+            # Lazy update of prefix product cache up to depth - 1
+            vd = valid_depth[0]
+            for k in range(vd, n - 1):
+                P_cache[k] = np.dot(P_cache[k - 1], mats[path[k]])
+            valid_depth[0] = n - 1
 
-        # Recurse
-        for i in range(1, n):
-            if not ((mask >> i) & 1):
-                d_step = dists[prev, i]
+            # Tr(A @ B) = sum(A * B.T) in O(K^2)
+            tr_sum[0] += np.sum(P_cache[n - 2] * mats[rem].T)
+            n_perms[0] += 1
+            return
 
-                if d_step > d_cut: continue
-                if (alg == 3 or alg == 5) and (d_step % 2 == 0): continue
+        for v in valid_neighbors[prev]:
+            if not visited[v]:
+                visited[v] = True
+                path[depth] = v
+                if valid_depth[0] > depth:
+                    valid_depth[0] = depth
+                new_max = max(cur_max, dists[prev, v]) if (alg == 2 or alg == 4) else 0
+                dfs(v, depth + 1, new_max)
+                visited[v] = False
 
-                # For Alg 2 & 4, propagate max dist
-                new_max = max(cur_max, d_step) if (alg == 2 or alg == 4) else 0
-
-                stack.append((depth + 1, mask | (1 << i), np.dot(P, mats[i]), i, new_max))
-
-    return tr_sum, n_perms
+    dfs(prefix[-1], depth_start, cur_max)
+    return tr_sum[0], n_perms[0]
 
 
 def _kernel_active(args):
@@ -357,12 +369,9 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
     if connec is None:
         connec = build_connectivity(aom, rings_thres)
 
-    # Generate distance matrix for the relevant subgraph
-    connec = filter_connec(connec)
-
-    # Subgraph for the ring atoms only
+    # Subgraph for the ring atoms only (preserving all atoms in arr)
     ring_connec = {
-        atom: [neighbor for neighbor in connec[atom] if neighbor in arr]
+        atom: [neighbor for neighbor in connec.get(atom, []) if neighbor in arr]
         for atom in arr
     }
     # ==========================================================
@@ -374,7 +383,7 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
         full_dists = find_node_distances(ring_connec)
 
     n = len(arr)
-    sub_dists = np.array([[full_dists[arr[i]][arr[j]] for j in range(n)] for i in range(n)])
+    sub_dists = np.array([[full_dists[arr[i]].get(arr[j], 999999) for j in range(n)] for i in range(n)])
 
     mats = _prep_matrices(arr, aom)
     if n < 3: return 0.0, 0, time() - t0
@@ -383,7 +392,33 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
     is_mulliken = (partition in ["mulliken", "non-symmetric"])
     sym_prune = not is_mulliken
 
-    tasks = [(mats, sub_dists, j, alg, d, sym_prune) for j in range(1, n)]
+    # Filter initial valid starts (0 -> v)
+    valid_starts = []
+    for v in range(1, n):
+        d0 = sub_dists[0, v]
+        if d0 <= d and ((alg not in (3, 5)) or (d0 % 2 != 0)):
+            valid_starts.append(((0, v), d0))
+
+    # If multiprocessing and more cores than valid starts, expand prefixes to saturate all cores
+    queue = deque(valid_starts)
+    target_tasks = max(len(queue), n_cores * 2) if n_cores > 1 else len(queue)
+    while queue and len(queue) < target_tasks:
+        if len(queue[0][0]) >= n - 1:
+            break
+        level_size = len(queue)
+        for _ in range(level_size):
+            path, cur_max = queue.popleft()
+            u = path[-1]
+            for v in range(n):
+                if v not in path and sub_dists[u, v] <= d:
+                    if (alg == 3 or alg == 5) and (sub_dists[u, v] % 2 == 0):
+                        continue
+                    new_max = max(cur_max, sub_dists[u, v]) if (alg in (2, 4)) else 0
+                    queue.append((path + (v,), new_max))
+            if len(queue) >= target_tasks:
+                break
+
+    tasks = [(mats, sub_dists, path, cur_max, alg, d, sym_prune) for path, cur_max in queue]
 
     total_trace = 0.0
     total_perms = 0

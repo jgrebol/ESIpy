@@ -27,12 +27,17 @@ def is_natorb_wf(mf):
         
     # 2. Check for ESIpy FCHK flags
     if getattr(mf, 'is_fchk', False):
+        d_lbl = getattr(mf, 'density_label', '') or (getattr(mf._scf, 'density_label', '') if hasattr(mf, '_scf') else '')
+        if 'MP2' in d_lbl or 'CC' in d_lbl or 'CI' in d_lbl:
+            return True
+        if 'SCF' in d_lbl:
+            return False
         # In our readfchk, we already converted correlated densities to NOs
         # and we set __name__ to UHF/RHF. We can check occupations.
         occ = np.asarray(mf.mo_occ)
         if occ.ndim == 2: # list-like or alpha/beta
-            return np.any((occ > 1e-6) & (np.abs(occ - 1.0) > 1e-6))
-        return np.any((occ > 1e-6) & (np.abs(occ - 1.0) > 1e-6) & (np.abs(occ - 2.0) > 1e-6))
+            return np.any((occ > 1e-4) & (np.abs(occ - 1.0) > 1e-4))
+        return np.any((occ > 1e-4) & (np.abs(occ - 1.0) > 1e-4) & (np.abs(occ - 2.0) > 1e-4))
         
     return False
 
@@ -460,7 +465,7 @@ def build_connec_rest(Smo, thres=0.25):
             if 2 * find_di(Smo, i, j) >= thres:
                 connec_dict[i].append(j)
                 connec_dict[j].append(i)
-    return filter_connec({k: v for k, v in connec_dict.items() if v})
+    return {k: v for k, v in connec_dict.items() if v}
 
 def build_connec_unrest(Smo, thres=0.25):
     natoms = len(Smo[0])
@@ -474,7 +479,7 @@ def build_connec_unrest(Smo, thres=0.25):
             if di >= thres:
                 connec_dict[i].append(j)
                 connec_dict[j].append(i)
-    return filter_connec({k: v for k, v in connec_dict.items() if v})
+    return {k: v for k, v in connec_dict.items() if v}
 
 def build_connec_no(Smo, thres=0.25):
     natoms = len(Smo[0])
@@ -485,9 +490,10 @@ def build_connec_no(Smo, thres=0.25):
             if find_di_no(Smo, i, j) >= thres:
                 connec_dict[i].append(j)
                 connec_dict[j].append(i)
-    return filter_connec({k: v for k, v in connec_dict.items() if v})
+    return {k: v for k, v in connec_dict.items() if v}
 
 def find_rings(connec, minlen=6, maxlen=6, exclude=None):
+    connec = filter_connec(connec)
     exclude = set(exclude) if exclude else set()
     def dfs(connec, minlen, maxlen, start):
         if start in exclude:
