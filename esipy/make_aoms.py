@@ -12,22 +12,22 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
     """
 
     partition_label = format_partition(partition)
-    iaoref = 'sto-3g' if partition_label == 'iao2' else 'minao'
     
     try:
         S = mf.get_ovlp()
     except:
         S = mol.intor('int1e_ovlp')
     
-    def get_iao_aoms(p_type, coeffs, current_mf, iaoref='minao', c_full=None):
+    def get_iao_aoms(p_type, coeffs, current_mf, c_full=None):
         from pyscf.lo import iao as pyscf_iao
         from pyscf.lo import orth
         from pyscf import gto
         
-        pmol = gto.M(atom=mol.atom, basis=iaoref, cart=mol.cart)
+        pmol = gto.M(atom=mol.atom, basis='minao', cart=mol.cart,
+                     charge=getattr(mol, 'charge', 0), spin=getattr(mol, 'spin', 0))
         
         # Build IAO from coeffs (which might be truncated to n_ref for natural orbitals)
-        C_iao = pyscf_iao.iao(mol, coeffs, minao=iaoref)
+        C_iao = pyscf_iao.iao(mol, coeffs, minao='minao')
         U = orth.vec_lowdin(C_iao, S)
         U_ao = S @ U
         proj_c = c_full if c_full is not None else coeffs
@@ -88,7 +88,13 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
             if partition_label == "lowdin": U_inv = lowdin(S)
             elif partition_label == "meta-lowdin":
                 from pyscf.lo import orth
-                U_inv = orth.orth_ao(myhf if myhf is not None else mf, method="meta-lowdin")
+                from esipy.tools import RefRHF
+                ref_mfa = RefRHF(mol, ca, oa) if is_natorb else (myhf if myhf is not None else mf)
+                ref_mfb = RefRHF(mol, cb, ob) if is_natorb else (myhf if myhf is not None else mf)
+                # Wait, orth_ao doesn't support separate alpha/beta mf. For unrestricted, orth.orth_ao might need a UHF object.
+                # Actually, in unrest, usually U_inv is built for alpha and beta separately? No, orth_ao takes mf.
+                _mf = myhf if myhf is not None else (mf._scf if hasattr(mf, "_scf") else mf)
+                U_inv = orth.orth_ao(_mf, method="meta-lowdin")
             elif partition_label == "nao": U_inv = nao.nao(mol, mf, S)
             
             if partition_label == "mulliken":
@@ -109,11 +115,13 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
         else:
             # IAO logic
             from pyscf import gto
-            pmol = gto.M(atom=mol.atom, basis=iaoref, cart=mol.cart)
+            pmol = gto.M(atom=mol.atom, basis='minao', cart=mol.cart,
+                         charge=getattr(mol, 'charge', 0), spin=getattr(mol, 'spin', 0))
             n_ref = pmol.nao
             
             # Truncate natural orbitals to minimal basis size if is_natorb
             if is_natorb:
+                print(f" | IAO for correlated wavefunctions does not recover full density. Representing the top {n_ref} NOs as IAOs.")
                 if hasattr(mf, 'ncas') and getattr(mf, 'ncas') is not None:
                     n_occ_act = getattr(mf, 'ncore', 0) + getattr(mf, 'ncas', 0)
                     coeffs_a = ca[:, :n_occ_act]
@@ -129,8 +137,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
                 coeffs_a = ca[:, mask_a]
                 coeffs_b = cb[:, mask_b]
 
-            aom_alpha = get_iao_aoms(partition_label, coeffs_a, mf, iaoref=iaoref, c_full=ca[:, mask_a])
-            aom_beta = get_iao_aoms(partition_label, coeffs_b, mf, iaoref=iaoref, c_full=cb[:, mask_b])
+            aom_alpha = get_iao_aoms(partition_label, coeffs_a, mf, c_full=ca[:, mask_a])
+            aom_beta = get_iao_aoms(partition_label, coeffs_b, mf, c_full=cb[:, mask_b])
             
             if is_natorb:
                 aom = [[aom_alpha, aom_beta], [occ_a_act, occ_b_act]]
@@ -186,9 +194,13 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
             if partition_label == "lowdin": U_inv = lowdin(S)
             elif partition_label == "meta-lowdin":
                 from pyscf.lo import orth
-                _mf = myhf if myhf is not None else (mf._scf if hasattr(mf, "_scf") else mf)
-                U_inv = orth.orth_ao(_mf, method="meta-lowdin")
-            elif partition_label == "nao": U_inv = nao.nao(mol, mf, S)
+                from esipy.tools import RefRHF
+                ref_mf = RefRHF(mol, coeff_src, occ) if is_natorb else (myhf if myhf is not None else mf)
+                U_inv = orth.orth_ao(ref_mf, method="meta-lowdin")
+            elif partition_label == "nao":
+                from esipy.tools import RefRHF
+                ref_mf = RefRHF(mol, coeff_src, occ) if is_natorb else mf
+                U_inv = nao.nao(mol, ref_mf, S)
             
             if partition_label == "mulliken":
                 eta = build_eta(mol)
@@ -202,10 +214,12 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
         else:
             # IAO logic
             from pyscf import gto
-            pmol = gto.M(atom=mol.atom, basis=iaoref, cart=mol.cart)
+            pmol = gto.M(atom=mol.atom, basis='minao', cart=mol.cart,
+                         charge=getattr(mol, 'charge', 0), spin=getattr(mol, 'spin', 0))
             n_ref = pmol.nao
             
             if is_natorb:
+                print(f" | IAO for correlated wavefunctions does not recover full density. Representing the top {n_ref} NOs as IAOs.")
                 if hasattr(mf, 'ncas') and getattr(mf, 'ncas') is not None:
                     n_occ_act = getattr(mf, 'ncore', 0) + getattr(mf, 'ncas', 0)
                     coeffs_input = coeff_src[:, :n_occ_act]
@@ -216,7 +230,10 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
             else:
                 coeffs_input = coeff
 
-            aom_list = get_iao_aoms(partition_label, coeffs_input, mf, iaoref=iaoref, c_full=coeff)
+            # For nat orbs, c_full must match coeffs_input so AOM dimensions match occ_act.
+            # Passing the full coeff (all masked orbs) would create a shape mismatch with occ_act.
+            aom_list = get_iao_aoms(partition_label, coeffs_input, mf,
+                                    c_full=coeffs_input if is_natorb else coeff)
             if is_natorb:
                 aom = [aom_list, occ_act]
             else:

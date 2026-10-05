@@ -101,6 +101,7 @@ class TestFchkValidation(unittest.TestCase):
     def test_g_7_rmp2(self): self.run_validation('GAUSSIAN', '7_rmp2.fchk', '7_rmp2')
     def test_g_9_ccsd(self): self.run_validation('GAUSSIAN', '9_ccsd.fchk', '9_ccsd')
     def test_g_13_anthracene(self): self.run_validation('GAUSSIAN', '13_anthracene.fchk', '13_anthracene')
+    def test_g_13_tddft_benzene(self): self.run_validation('GAUSSIAN', '13_tddft_benzene.fchk', '13_tddft_benzene')
     def test_q_1_bz_sph(self): self.run_validation('QCHEM', '1_benzene_spherical.fchk', '1_benzene_spherical')
     def test_q_2_bz_cart(self): self.run_validation('QCHEM', '2_benzene_cartesian.fchk', '2_benzene_cartesian')
     def test_q_4_h2(self): self.run_validation('QCHEM', '4_h2_oss.fchk', '4_h2_oss')

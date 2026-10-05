@@ -1266,6 +1266,8 @@ class ESI:
         self.myhf = myhf
         self._molinfo = molinfo
         self._partition = format_partition(partition) if partition else None
+        if self._partition == "qtaim" and self.is_fchk:
+            raise ValueError("QTAIM partitioning is not integrated in ESIpy and cannot be computed from an FCHK file. It is only available via reading precalculated AOM files (READINT).")
         self._mci = mci
         self._av1245 = av1245
         # For custom references

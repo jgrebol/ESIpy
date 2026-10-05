@@ -66,8 +66,8 @@ def wf_type(aom):
     """
     Checks the topology of the AOMs to obtain the type of wavefunction.
     """
-    # NOs return format [list, array]
-    if isinstance(aom, list) and len(aom) == 2 and isinstance(aom[1], np.ndarray) and aom[1].ndim == 1:
+    # NOs return format [list, array] or (list, array)
+    if isinstance(aom, (list, tuple)) and len(aom) == 2 and isinstance(aom[1], np.ndarray) and aom[1].ndim == 1:
         return "no"
     # Restricted: list of matrices
     if isinstance(aom, list) and isinstance(aom[0], np.ndarray) and aom[0].ndim == 2:
@@ -213,8 +213,6 @@ def find_ns(arr, aom):
         aom_list, occ = aom
         if occ.ndim == 2: occ = np.diag(occ)
         return [np.sum(occ * np.diag(aom_list[arr[j] - 1])) for j in range(len(arr))]
-    if wf == "unrest":
-        return [np.trace(aom[0][arr[j] - 1]) + np.trace(aom[1][arr[j] - 1]) for j in range(len(arr))]
     return [2 * np.trace(aom[arr[j] - 1]) for j in range(len(arr))]
 
 
@@ -339,15 +337,24 @@ def process_fragments(aom, rings, done=False):
 
 
 def format_partition(partition, *args, **kwargs):
-    p_method = partition.lower()
-    
-    # Standardize method name
-    if p_method in ["m", "mul", "mull", "mulliken"]: return "mulliken"
-    elif p_method in ["l", "low", "lowdin"]: return "lowdin"
-    elif p_method in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta_lowdin", "meta-lowdin"]: return "meta-lowdin"
-    elif p_method in ["n", "nao", "natural", "nat"]: return "nao"
-    elif p_method in ["i", "iao", "intrinsic", "intr"]: return "iao"
-    else: return p_method
+    if not partition:
+        return ""
+    p_method = partition.split()[0].lower()
+
+    if p_method in ["m", "mul", "mull", "mulliken"]:
+        return "mulliken"
+    elif p_method in ["l", "low", "lowdin"]:
+        return "lowdin"
+    elif p_method in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta_lowdin", "meta-lowdin"]:
+        return "meta-lowdin"
+    elif p_method in ["n", "nao", "natural", "nat"]:
+        return "nao"
+    elif p_method in ["i", "iao", "intrinsic", "intr"]:
+        return "iao"
+    elif p_method in ["q", "qt", "qtaim", "quant", "quantum"]:
+        return "qtaim"
+    else:
+        return p_method
 
 def format_short_partition(partition):
     p_method = partition.lower()
@@ -359,6 +366,7 @@ def format_short_partition(partition):
     elif p_method == "meta-lowdin":
         return "metalow"
     elif p_method in ("nao", "iao"):
+
         return p_method
     else:
         return p_method

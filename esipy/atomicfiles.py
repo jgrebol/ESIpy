@@ -51,6 +51,7 @@ def read_aoms(path='.'):
         else:
             raise ValueError("Wavefunction type could not be determined.")
 
+
     if wf == "no":
         occs = read_occs(first_file)
 
@@ -428,21 +429,7 @@ def read_wfx_info(path, wfx_filename=None):
                         wfx_file = candidate
                         break
 
-    # Fallback to searching for any .wfx file if not found yet
-    if not wfx_file:
-        for loc in unique_locations:
-            if loc and os.path.isdir(loc):
-                files = [f for f in os.listdir(loc) if f.lower().endswith(".wfx")]
-                if len(files) == 1:
-                    wfx_file = os.path.join(loc, files[0])
-                    break
-                elif len(files) > 1:
-                    # If multiple, maybe one matches the "path" name?
-                    basename = os.path.basename(path).replace("_atomicfiles", "")
-                    matches = [f for f in files if basename in f]
-                    if len(matches) == 1:
-                        wfx_file = os.path.join(loc, matches[0])
-                        break
+
     
     if not wfx_file:
         if not wfxnotfound:
@@ -521,8 +508,7 @@ def read_occs(file_path):
                 columns = line.split()
                 if len(columns) >= 3:
                     occ_mo_values.append(float(columns[2]))
-
-    return np.diag(occ_mo_values)
+    return np.array(occ_mo_values)
 
 def read_orbs(file_path):
     """
