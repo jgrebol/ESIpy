@@ -259,7 +259,7 @@ def _prep_matrices(arr, aom):
 
 def compute_mci(arr, aom, partition='mulliken', n_cores=None):
     """
-    Computes Exact MCI using DFS.
+    Computes Exact MCI using DFS with lazy product cache and multi-core dispatch.
 
     Parameters
     ----------
@@ -276,26 +276,42 @@ def compute_mci(arr, aom, partition='mulliken', n_cores=None):
     n = len(arr)
     if n < 3: return 0.0
 
-    # Symmetric AOMs?
-    sym_prune = (partition == 'symmetric')
-
-    # Tasks: Iterate over the second node in the path (0 -> j -> ...)
-    tasks = [(mats, j, sym_prune) for j in range(1, n)]
+    is_mulliken = (partition in ["mulliken", "non-symmetric"])
+    sym_prune = not is_mulliken
 
     if n_cores is None:
         n_cores = mp.cpu_count()
 
+    sub_dists = np.ones((n, n), dtype=int) - np.eye(n, dtype=int)
+    valid_starts = [((0, v), 0) for v in range(1, n)]
+
+    queue = deque(valid_starts)
+    target_tasks = max(len(queue), n_cores * 2) if n_cores > 1 else len(queue)
+    while queue and len(queue) < target_tasks:
+        if len(queue[0][0]) >= n - 1:
+            break
+        level_size = len(queue)
+        for _ in range(level_size):
+            path, _ = queue.popleft()
+            for v in range(n):
+                if v not in path:
+                    queue.append((path + (v,), 0))
+            if len(queue) >= target_tasks:
+                break
+
+    tasks = [(mats, sub_dists, path, 0, 1, 999999, sym_prune) for path, _ in queue]
+
     if n_cores > 1 and len(tasks) > 1:
         with mp.Pool(n_cores) as pool:
-            results = pool.map(_kernel_exact, tasks, chunksize=1)
-        total_trace = sum(results)
+            results = pool.map(_kernel_approx, tasks, chunksize=1)
+        total_trace = sum(t for t, _ in results)
     else:
-        total_trace = sum(_kernel_exact(t) for t in tasks)
+        total_trace = sum(_kernel_approx(t)[0] for t in tasks)
 
-    # Normalization
-    # SD-wf is 2**(n-1), but we double count perms in non-symmetric cases
     is_sd = wf_type(aom) in ["rest", "unrest"]
-    prefactor = 2 ** (n - 2) if is_sd else 0.5
+    prefactor = 2 ** (n - 1) if is_sd else 0.5
+    if is_mulliken:
+        total_trace *= 0.5
 
     return prefactor * total_trace
 
