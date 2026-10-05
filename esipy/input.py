@@ -31,6 +31,7 @@ class ESIInput:
         self.aomname = None
         self.ncores = None
         self.exclude = []
+        self.mciaprox = []
 
 
     @staticmethod
@@ -91,6 +92,7 @@ class ESIInput:
             elif line.startswith('$PARTITION'):
                 obj.partition = []
                 i += 1
+                while i < len(lines) and not lines[i].startswith('$'):
                     partitions = lines[i].split()
                     for p in partitions:
                         pup = p.upper()
