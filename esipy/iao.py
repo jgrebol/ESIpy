@@ -162,7 +162,8 @@ def get_reference_basis_dict(mol, source_basis='minao', pol_basis=None, x=1.0, h
     return ref_basis
 
 def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=1.0, heavy_only=True, full_basis=False):
-    if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
+    if not isinstance(mol, gto.Mole):
+        mol = getattr(mol, 'pyscf_mol', mol)
     if polarized and pol_basis is None: pol_basis = 'ano'
     elif not polarized: pol_basis = None
     ref_basis = get_reference_basis_dict(mol, source_basis=source_basis, pol_basis=pol_basis, x=x, heavy_only=heavy_only, full_basis=full_basis)
@@ -175,7 +176,8 @@ def reference_mol(mol, polarized=False, pol_basis=None, source_basis='minao', x=
     return pmol
 
 def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_only=True, full_basis=False, x=1.0, mf=None, source_basis='valence'):
-    if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
+    if not isinstance(mol, gto.Mole):
+        mol = getattr(mol, 'pyscf_mol', mol)
     pmol = reference_mol(mol, polarized=polarized, heavy_only=heavy_only, full_basis=full_basis, x=x, source_basis=source_basis)
     minbas_total = pmol.nao; pmol_aoslices = pmol.aoslice_by_atom()
     veps_block = np.zeros((mol.nao, minbas_total)); vaps_diag = []
@@ -280,7 +282,8 @@ def iao_original_2013(s11, s22, s12, C):
     return vec_lowdin_safe(c_iao, s11)
 
 def _do_iao(mol, coeffs, A_basis=None, pmol=None, heavy_only=False):
-    if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
+    if not isinstance(mol, gto.Mole):
+        mol = getattr(mol, 'pyscf_mol', mol)
     s11 = mol.intor('int1e_ovlp')
     if A_basis is None:
         from pyscf.gto.mole import intor_cross
@@ -329,7 +332,8 @@ def peiao(mol, coeffs, mode='nao', heavy_only=True, full_basis=False, mf=None, x
     return _do_iao(mol, coeffs, A_basis=A_both, heavy_only=heavy_only), pmol
 
 def wiao(mol, coeffs, heavy_only=False, full_basis=False, source_basis='valence'):
-    if not isinstance(mol, gto.Mole): mol = getattr(mol, 'pyscf_mol', getattr(mol, 'mol', mol))
+    if not isinstance(mol, gto.Mole):
+        mol = getattr(mol, 'pyscf_mol', mol)
     S1 = mol.intor('int1e_ovlp'); P_AO = coeffs @ coeffs.T; T = orth.lowdin(S1); T_inv = T.T @ S1
     P_ML = T_inv @ P_AO @ T_inv.T; B_whole = P_ML @ P_ML; natm = mol.natm; B_atom = np.zeros((natm, natm)); ao_loc = mol.ao_loc_nr()
     for i in range(natm):

@@ -79,6 +79,7 @@ class Mole2:
         self.pyscf_mol.basis = self._basis; self.pyscf_mol.charge = int(self.charge); self.pyscf_mol.spin = int(self.spin)
         self.pyscf_mol.cart = self.cart; self.pyscf_mol.unit = 'Bohr'; self.pyscf_mol.verbose = 0
         self.ecp = None; self.nuclear_charges = self.fchk.nuclear_charges
+        self.mol = self.pyscf_mol
 
     def build(self, *args, **kwargs):
         kwargs.setdefault('verbose', 0)
@@ -91,6 +92,7 @@ class Mole2:
         self._bas, self._env, self._atm = self.pyscf_mol._bas, self.pyscf_mol._env, self.pyscf_mol._atm
         self.nao, self.nbas = int(self.pyscf_mol.nao_nr()), int(self.pyscf_mol.nbas)
         self.atom, self.nelec = self.pyscf_mol.atom, self.pyscf_mol.nelec
+        self.mol = self.pyscf_mol
         return self
 
     def __getattr__(self, name): return getattr(self.pyscf_mol, name)
