@@ -41,11 +41,24 @@ class ESIInput:
         i = 0
         while i < len(lines):
             line = lines[i]
-            if line.startswith('$READFCHK'):
+            if line.startswith('$READFILE'):
+                obj.mode = 'readfile'
+                parts = line.split()
+                if len(parts) > 1:
+                    obj.fchk_file = parts[1].strip()
+                else:
+                    i += 1
+                    if i < len(lines):
+                        obj.fchk_file = lines[i].strip()
+            elif line.startswith('$READFCHK') or line.startswith('$READMOLDEN') or line.startswith('$READORCA'):
                 obj.mode = 'fchk'
-                i += 1
-                if i < len(lines):
-                    obj.fchk_file = lines[i]
+                parts = line.split()
+                if len(parts) > 1:
+                    obj.fchk_file = parts[1].strip()
+                else:
+                    i += 1
+                    if i < len(lines):
+                        obj.fchk_file = lines[i].strip()
             elif line.startswith('$READINT'):
                 obj.mode = 'readint'
                 i += 1
@@ -138,7 +151,7 @@ class ESIInput:
                 obj.maxlen = int(lines[i])
             elif line.startswith('$SAVE'):
                 obj.save = True
-                if obj.mode == 'fchk' and obj.fchk_file:
+                if obj.mode in ('fchk', 'readfile') and obj.fchk_file:
                     obj.save = os.path.splitext(os.path.basename(obj.fchk_file))[0]
                 elif obj.mode == 'readint' and obj.readpath:
                     obj.save = os.path.basename(os.path.normpath(obj.readpath))
@@ -169,7 +182,7 @@ class ESIInput:
     def _finalize_save_name(self):
         """Finalize save name based on input mode if it's still just True."""
         if self.save is True:
-            if self.mode == 'fchk' and self.fchk_file:
+            if self.mode in ('fchk', 'readfile') and self.fchk_file:
                 self.save = os.path.splitext(os.path.basename(self.fchk_file))[0]
             elif self.mode == 'readint' and self.readpath:
                 self.save = os.path.basename(os.path.normpath(self.readpath))

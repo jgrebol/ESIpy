@@ -18,6 +18,8 @@ import numpy as np
 from time import time
 
 from esipy.atomicfiles import write_aoms, read_aoms, read_molinfo
+from esipy.readfchk import readfchk
+from esipy.parser import convert_to_fchk, parse, parse_and_read
 from esipy.indicators import (
     compute_iring, sequential_mci, multiprocessing_mci,
     compute_av1245, compute_pdi, compute_flu, compute_boa, compute_homer, compute_homa, compute_bla,

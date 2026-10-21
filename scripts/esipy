@@ -26,9 +26,9 @@ def main():
     mf = None
     molname = None  # molecule/calculation name for subdirectory
 
-    if inp.mode == 'fchk':
+    if inp.mode in ('fchk', 'readfile'):
         if not inp.fchk_file:
-            print("No fchk file specified in input.")
+            print("No file specified in input.")
             sys.exit(1)
         if not os.path.isfile(inp.fchk_file):
             print(f"Error: The file '{inp.fchk_file}' does not exist.")

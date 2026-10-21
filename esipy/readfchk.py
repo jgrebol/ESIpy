@@ -79,6 +79,7 @@ class Mole2:
         self.pyscf_mol.basis = self._basis; self.pyscf_mol.charge = int(self.charge); self.pyscf_mol.spin = int(self.spin)
         self.pyscf_mol.cart = self.cart; self.pyscf_mol.unit = 'Bohr'; self.pyscf_mol.verbose = 0
         self.ecp = None; self.nuclear_charges = self.fchk.nuclear_charges
+        self.mol = self.pyscf_mol
 
     def build(self, *args, **kwargs):
         kwargs.setdefault('verbose', 0)
@@ -91,6 +92,7 @@ class Mole2:
         self._bas, self._env, self._atm = self.pyscf_mol._bas, self.pyscf_mol._env, self.pyscf_mol._atm
         self.nao, self.nbas = int(self.pyscf_mol.nao_nr()), int(self.pyscf_mol.nbas)
         self.atom, self.nelec = self.pyscf_mol.atom, self.pyscf_mol.nelec
+        self.mol = self.pyscf_mol
         return self
 
     def __getattr__(self, name): return getattr(self.pyscf_mol, name)
@@ -117,11 +119,19 @@ class MeanField2:
         mo_read_success = False
         if is_uhf and len(mo_a_flat) > 0 and len(mo_b_flat) > 0:
             print(" | Using Canonical UHF MO coefficients")
-            ma = np.array(mo_a_flat, dtype=float).reshape(self.nummo, self.nao).T
-            mb = np.array(mo_b_flat, dtype=float).reshape(self.nummo, self.nao).T
+            nmo_a = len(mo_a_flat) // self.nao if len(mo_a_flat) % self.nao == 0 else self.nummo
+            nmo_b = len(mo_b_flat) // self.nao if len(mo_b_flat) % self.nao == 0 else self.nummo
+            nmo = max(nmo_a, nmo_b)
+            ma = np.array(mo_a_flat, dtype=float).reshape(nmo_a, self.nao).T
+            mb = np.array(mo_b_flat, dtype=float).reshape(nmo_b, self.nao).T
+            if nmo_a < nmo:
+                ma = np.pad(ma, ((0, 0), (0, nmo - nmo_a)))
+            if nmo_b < nmo:
+                mb = np.pad(mb, ((0, 0), (0, nmo - nmo_b)))
             self.mo_coeff = [standardize_mo(ma), standardize_mo(mb)]
-            self.mo_occ = [np.zeros(self.nummo), np.zeros(self.nummo)]
+            self.mo_occ = np.zeros((2, nmo))
             self.mo_occ[0][:self.nalpha], self.mo_occ[1][:self.nbeta] = 1.0, 1.0
+            self.nummo = nmo
             mo_read_success, self._scf, self.__name__ = True, scf.UHF(self.mol), "UHF"
         
         if not mo_read_success:
@@ -145,6 +155,8 @@ class MeanField2:
             if not found_density:
                 if len(mo_a_flat) > 0:
                     print(" | Using Fallback RHF/ROHF MO coefficients")
+                    if len(mo_a_flat) > 0 and len(mo_a_flat) % self.nao == 0:
+                        self.nummo = len(mo_a_flat) // self.nao
                     mo_arr_a = np.array(mo_a_flat, dtype=float).reshape(self.nummo, self.nao).T
                     self.mo_coeff = standardize_mo(mo_arr_a)
                     self.mo_occ = np.zeros(self.nummo); self.mo_occ[:(self.nalpha+self.nbeta)//2] = 2.0
@@ -173,10 +185,13 @@ class FchkMolecule:
         beta_mo = read_from_fchk('Beta MO coefficients', path); self.unrestricted = (len(beta_mo) > 0)
         res_beta = read_from_fchk('Number of beta electrons', path); self.nbeta = int(res_beta[-1]) if res_beta else self.nalpha
         if self.mult != 1: self.unrestricted = True
-        self.natoms = int(read_from_fchk('Number of atoms', path)[-1])
-        self.ncshell = int(read_from_fchk('Number of contracted shells', path)[-1])
-        self.charge = int(read_from_fchk('Charge', path)[-1])
         self.atomic_numbers = [int(i) for i in read_list_from_fchk('Atomic numbers', path)]
+        res_natoms = read_from_fchk('Number of atoms', path)
+        self.natoms = int(res_natoms[-1]) if res_natoms else len(self.atomic_numbers)
+        self.mssh = [int(i) for i in read_list_from_fchk('Shell types', path)]
+        res_ncshell = read_from_fchk('Number of contracted shells', path)
+        self.ncshell = int(res_ncshell[-1]) if res_ncshell else len(self.mssh)
+        self.charge = int(read_from_fchk('Charge', path)[-1])
         res_nuc = read_list_from_fchk("Nuclear charges", path); self.nuclear_charges = [float(i) for i in res_nuc] if res_nuc else None
         self.atomic_symbols = read_atomic_symbols(self.atomic_numbers)
         self.coord = np.array(read_list_from_fchk('Current cartesian coordinates', path)).reshape(self.natoms, 3)
@@ -235,7 +250,13 @@ def make_basis(mf):
         return res
     return {sym: order_shells(sh) for sym, sh in done_shells.items()}
 
+from esipy.parser import convert_to_fchk
+
 def readfchk(path, ecp=None):
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"File '{path}' does not exist.")
+    if not path.lower().endswith(('.fchk', '.fch')):
+        path = convert_to_fchk(path)
     print(" | Reading FCHK file:", path)
     m = Mole2(path)
     m.ecp = ecp

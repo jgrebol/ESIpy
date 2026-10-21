@@ -8,6 +8,7 @@ __pycache__/
 *.molinfo
 *.int
 *.log
+!tests/IODATA/*.log
 
 # Generated test directories
 *test4_*_esipy/
@@ -38,3 +39,8 @@ joan/
 # FCHK folders (keep the one in tests/)
 FCHK/
 !tests/FCHK/
+
+# Internal experimental test suites
+tests/IODATA/JOANTESTS/
+*.esipy.fchk
+*.egg-info/
