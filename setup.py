@@ -19,7 +19,8 @@ setup(
         "numpy",
         "pyscf<=2.8.0",
         "sphinx",
+        "qc-iodata>=1.0.1",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.8",
 )
 
