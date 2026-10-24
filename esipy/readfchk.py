@@ -154,17 +154,49 @@ class MeanField2:
                     self._scf, self.__name__ = scf.RHF(self.mol), "RHF"; self._scf.make_rdm1 = lambda *args, **kwargs: dt; break
             if not found_density:
                 if len(mo_a_flat) > 0:
-                    print(" | Using Fallback RHF/ROHF MO coefficients")
                     if len(mo_a_flat) > 0 and len(mo_a_flat) % self.nao == 0:
                         self.nummo = len(mo_a_flat) // self.nao
                     mo_arr_a = np.array(mo_a_flat, dtype=float).reshape(self.nummo, self.nao).T
                     self.mo_coeff = standardize_mo(mo_arr_a)
-                    self.mo_occ = np.zeros(self.nummo); self.mo_occ[:(self.nalpha+self.nbeta)//2] = 2.0
-                    self._scf, self.__name__ = scf.RHF(self.mol), "RHF"
-                else: raise RuntimeError('No MO coefficients or Density found in FCHK')
+                    self.mo_occ = np.zeros(self.nummo)
+                    self.mo_occ[:(self.nalpha+self.nbeta)//2] = 2.0
+                    self._scf = scf.RHF(self.mol)
+                    self.__name__ = "RHF"
+                else:
+                    raise RuntimeError('No MO coefficients or Density found in FCHK')
         self._scf.mo_coeff, self._scf.mo_occ, self._scf.e_tot = self.mo_coeff, self.mo_occ, self.e_tot
         self._scf.is_fchk = True
         self._scf.path = path
+        self._scf.unrestricted = is_uhf
+
+        # Read MO energies if available
+        mo_ea = read_list_from_fchk('Alpha Orbital Energies', path)
+        if is_uhf:
+            mo_eb = read_list_from_fchk('Beta Orbital Energies', path)
+            if mo_ea and mo_eb:
+                if len(mo_ea) == len(mo_eb):
+                    self._scf.mo_energy = np.array([mo_ea, mo_eb], dtype=float)
+                else:
+                    self._scf.mo_energy = [np.array(mo_ea, dtype=float), np.array(mo_eb, dtype=float)]
+            elif mo_ea:
+                self._scf.mo_energy = np.array(mo_ea, dtype=float)
+        elif mo_ea:
+            self._scf.mo_energy = np.array(mo_ea, dtype=float)
+
+        # Detect XC functional from level of theory line
+        bt = read_level_theory(path)
+        if len(bt) >= 2:
+            m = bt[1].upper()
+            for pfx in ('RB', 'UB', 'ROB'):
+                if m.startswith(pfx):
+                    m = 'B' + m[len(pfx):]
+                    break
+            for pfx in ('R', 'U', 'RO'):
+                if m.startswith(pfx) and len(m) > len(pfx) and m[len(pfx):] not in ('HF',):
+                    m = m[len(pfx):]
+                    break
+            if m not in ('HF', 'RHF', 'UHF', 'ROHF', 'NA', 'NONE', 'UNKNOWN'):
+                self._scf.xc = m.lower()
 
     def make_rdm1(self, ao_repr=True):
         if self.mo_coeff is None: return None

@@ -130,10 +130,8 @@ def main():
         elif inp.mode == 'readint':
             from esipy.tools import format_short_partition
             shortpart = format_short_partition(partition)
-            if shortpart == "qtaim":
-                partition_dir = inp.readpath + '_atomicfiles'
-            else:
-                partition_dir = inp.readpath + '_' + shortpart + '_atomicfiles'
+            cand_dir = inp.readpath + '_atomicfiles' if shortpart == "qtaim" else inp.readpath + '_' + shortpart + '_atomicfiles'
+            partition_dir = cand_dir if os.path.exists(cand_dir) else (inp.readpath if os.path.exists(inp.readpath) else os.getcwd())
             esi = ESI(read=True, readpath=partition_dir, rings=rings, partition=partition,
                       av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, **mci_kwargs, ncores=ncores)
             esi.readaoms()
