@@ -114,7 +114,9 @@ class MeanField2:
 
         mo_a_flat = read_list_from_fchk('Alpha MO coefficients', path)
         mo_b_flat = read_list_from_fchk('Beta MO coefficients', path)
-        is_uhf = (len(mo_b_flat) > 0) or self.mole2.unrestricted
+        corr_labels = ('Total CI Density', 'Total CI Rho(1) Density', 'Total CC Density', 'Total MP2 Density')
+        has_corr = any(len(read_list_from_fchk(lbl, path)) > 0 for lbl in corr_labels)
+        is_uhf = ((len(mo_b_flat) > 0) or self.mole2.unrestricted) and not has_corr
         
         mo_read_success = False
         if is_uhf and len(mo_a_flat) > 0 and len(mo_b_flat) > 0:

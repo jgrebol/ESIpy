@@ -23,7 +23,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
         from pyscf.lo import orth
         from pyscf import gto
         
-        pmol = gto.M(atom=mol.atom, basis='minao', cart=mol.cart)
+        pmol = mol.copy(); pmol.build(False, False, basis='minao')
         
         # Build IAO from coeffs (which might be truncated to n_ref for natural orbitals)
         C_iao = pyscf_iao.iao(mol, coeffs, minao='minao')
@@ -43,6 +43,10 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
                 (isinstance(mo_coeff, np.ndarray) and mo_coeff.ndim == 3 and mo_coeff.shape[0] == 2)
     
     from esipy.tools import is_natorb_wf
+    # Natural orbitals come from the spin-summed density
+    if is_unrest and not is_fchk and is_natorb_wf(mf):
+        is_unrest = False
+
     # 1. UNRESTRICTED
     if is_unrest:
         is_natorb = False
@@ -112,7 +116,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
         else:
             # IAO logic
             from pyscf import gto
-            pmol = gto.M(atom=mol.atom, basis='minao', cart=mol.cart)
+            pmol = mol.copy(); pmol.build(False, False, basis='minao')
             n_ref = pmol.nao
             
             # Truncate natural orbitals to minimal basis size if is_natorb
@@ -178,6 +182,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
                 mask = np.ones(len(occ), dtype=bool) # DO NOT MASK NATURAL ORBITALS
         else:
             occ = np.asarray(mo_occ)
+            if np.any(np.isclose(occ, 1.0)):
+                raise NotImplementedError(" | ROHF wavefunctions are not supported. Use UHF instead")
             mask = (occ > 0.5)
             
         coeff_src = mo_coeff
@@ -208,7 +214,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
         else:
             # IAO logic
             from pyscf import gto
-            pmol = gto.M(atom=mol.atom, basis='minao', cart=mol.cart)
+            pmol = mol.copy(); pmol.build(False, False, basis='minao')
             n_ref = pmol.nao
             
             if is_natorb:

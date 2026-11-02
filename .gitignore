@@ -44,3 +44,12 @@ FCHK/
 tests/IODATA/JOANTESTS/
 *.esipy.fchk
 *.egg-info/
+versions/
+*.swp
+iao2.tex
+MCI_TIMINGS.md
+.python-version
+esipy/LEGACY/
+esipy/PARTITION_ANALYSIS.md
+build/
+dist/
