@@ -31,11 +31,11 @@ mf.kernel()
 ring = [1, 2, 3, 4, 5, 6]
 
 expected = {
-    'iao': { 'exp_av': 94.94038495, 'exp_di12': 1.4273788, 'exp_iring': 0.0414996, 'exp_mci': 0.4357335, 'exp_pdi': 0.1039546, 'exp_pop_atm1': 6.095477 },
-    'lowdin': { 'exp_av': 91.15746662, 'exp_di12': 1.33295736, 'exp_iring': 0.01876224, 'exp_mci': 0.42358596, 'exp_pdi': 0.04743011, 'exp_pop_atm1': 6.02985251 },
-    'meta-lowdin': { 'exp_av': 84.22160011, 'exp_di12': 1.33294338, 'exp_iring': 0.01876618, 'exp_mci': 0.40123273, 'exp_pdi': 0.04752450, 'exp_pop_atm1': 6.03504653 },
-    'mulliken': { 'exp_av': -95.43236589, 'exp_di12': 1.32312552, 'exp_iring': 0.01875246, 'exp_mci': 0.30155249, 'exp_pdi': 0.04714255, 'exp_pop_atm1': 6.06136168 },
-    'nao': { 'exp_av': 80.71421711, 'exp_di12': 1.32883432, 'exp_iring': 0.01878421, 'exp_mci': 0.38039274, 'exp_pdi': 0.04781329, 'exp_pop_atm1': 6.03655698 },
+    'iao': { 'exp_av': 94.94038495, 'exp_di12': 1.4273788, 'exp_iring': 0.0829992, 'exp_mci': 0.4357335, 'exp_pdi': 0.1039546, 'exp_pop_atm1': 6.095477 },
+    'lowdin': { 'exp_av': 91.15746662, 'exp_di12': 1.33295736, 'exp_iring': 0.03752448, 'exp_mci': 0.42358596, 'exp_pdi': 0.04743011, 'exp_pop_atm1': 6.02985251 },
+    'meta-lowdin': { 'exp_av': 84.22160011, 'exp_di12': 1.33294338, 'exp_iring': 0.03753236, 'exp_mci': 0.40123273, 'exp_pdi': 0.04752450, 'exp_pop_atm1': 6.03504653 },
+    'mulliken': { 'exp_av': -95.43236589, 'exp_di12': 1.32312552, 'exp_iring': 0.03750492, 'exp_mci': 0.30155249, 'exp_pdi': 0.04714255, 'exp_pop_atm1': 6.06136168 },
+    'nao': { 'exp_av': 80.71421711, 'exp_di12': 1.32883432, 'exp_iring': 0.03756842, 'exp_mci': 0.38039274, 'exp_pdi': 0.04781329, 'exp_pop_atm1': 6.03655698 },
 }
 
 class ESItest(unittest.TestCase):

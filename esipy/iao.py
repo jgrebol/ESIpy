@@ -186,7 +186,10 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
     P_mol = None
     if not free_atom and mf is not None:
         try:
-            P_mol = mf.make_rdm1()
+            try:
+                P_mol = mf.make_rdm1(ao_repr=True)
+            except TypeError:
+                P_mol = mf.make_rdm1()
             if isinstance(P_mol, (list, np.ndarray)) and (isinstance(P_mol, list) or P_mol.ndim == 3):
                 P_mol = P_mol[0] + P_mol[1]
         except: pass

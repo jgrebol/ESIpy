@@ -46,7 +46,7 @@ def compute_iring_no(arr, aom):
     for i in arr:
         # Fulton approach: diag(occ) @ AOM[i-1]
         product = np.dot(product, np.sqrt(occ)[:, None] * aom_list[i - 1])
-    return (2**(len(arr)/2 - 1)) * np.trace(product)
+    return (2**(len(arr)/2)) * np.trace(product)
 
 
 ########### MCI ###########
@@ -285,9 +285,13 @@ def compute_flu(arr, molinfo, aom, flurefs=None, partition=None):
     if flurefs is not None:
         flu_refs.update(flurefs)
 
-    dis = find_dis(arr, aom)
-    lis = find_lis(arr, aom)
-    ns = find_ns(arr, aom)
+    if wf_type(aom) == "unrest":
+        # Spin contributions are averaged, the closed-shell formulas already count both spins
+        dis, lis, ns = [[(a + b) / 2 for a, b in zip(f(arr, aom[0]), f(arr, aom[1]))] for f in (find_dis, find_lis, find_ns)]
+    else:
+        dis = find_dis(arr, aom)
+        lis = find_lis(arr, aom)
+        ns = find_ns(arr, aom)
     for i in range(len(arr)):
         if bond_types[i] not in flu_refs:
             print(f" | No parameters found for bond type {bond_types[i]}")
@@ -396,7 +400,7 @@ def compute_homer(arr, molinfo, homerrefs=None):
 
     symbols = molinfo["symbols"]
     atom_symbols = [str(symbols[int(i) - 1]).strip().capitalize() for i in arr]
-    bond_types = ["".join(sorted([atom_symbols[arr[i] - 1], atom_symbols[arr[(i + 1) % len(arr)] - 1]]))
+    bond_types = ["".join(sorted([atom_symbols[i], atom_symbols[(i + 1) % len(arr)]]))
                   for i in range(len(arr))]
 
     for i in range(len(arr)):
@@ -404,12 +408,8 @@ def compute_homer(arr, molinfo, homerrefs=None):
             print(f"No parameters found for bond type {bond_types[i]}")
             return None
 
-    alpha = refs[bond_types[i]]["alpha"]
-    r_opt = refs[bond_types[i]]["r_opt"]
-
     distances = find_distances(arr, geom)
-    diff = np.mean([r_opt - distances[i] for i in range(len(arr))])
-    homer_value = 1 - alpha * diff ** 2
+    homer_value = 1 - np.mean([refs[b]["alpha"] * (refs[b]["r_opt"] - d) ** 2 for b, d in zip(bond_types, distances)])
 
     return homer_value
 
@@ -447,7 +447,7 @@ def compute_homa(arr, molinfo, homarefs=None):
         refs.update(homarefs)
 
     geom = molinfo["geom"]
-    if geom is None:
+    if geom is None or max(arr) > len(geom):
         return None
     symbols = molinfo["symbols"]
     atom_symbols = [str(symbols[int(i) - 1]).strip().capitalize() for i in arr]
@@ -503,7 +503,7 @@ def compute_bla(arr, molinfo):
     :rtype: tuple
     """
 
-    if molinfo["geom"] is None:
+    if molinfo["geom"] is None or max(arr) > len(molinfo["geom"]):
         return None
 
     distances = find_distances(arr, molinfo["geom"])

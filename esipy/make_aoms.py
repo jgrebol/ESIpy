@@ -148,6 +148,8 @@ def make_aoms(mol, mf, partition, save=None, nocc=None, myhf=None, is_fchk=False
     # RESTRICTED
     elif (
             mf.__class__.__name__ == "RHF" or mf.__class__.__name__ == "RKS" or mf.__class__.__name__ == "SymAdaptedRHF" or mf.__class__.__name__ == "SymAdaptedRKS" or hasattr(mf, 'mo_coeff')):
+        if np.any(np.isclose(np.asarray(mf.mo_occ), 1.0)):
+            raise NotImplementedError(" | ROHF wavefunctions are not supported. Use UHF instead")
         occ_coeff = mf.mo_coeff[:, np.asarray(mf.mo_occ) > 0.5]
 
         Smo = []

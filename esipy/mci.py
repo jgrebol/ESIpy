@@ -75,7 +75,7 @@ def _prep_matrices(arr, aom):
     if isinstance(aom, (tuple, list)) and len(aom) == 2 and not isinstance(aom[0], np.ndarray):
         # For Natural Orbitals: Pre-multiply Occ @ AOM
         real_aoms, occ = aom
-        return [occ[:, None] * real_aoms[idx - 1] for idx in arr]
+        return [np.sqrt(occ)[:, None] * real_aoms[idx - 1] for idx in arr]
     return [aom[idx - 1] for idx in arr]
 
 
@@ -117,7 +117,7 @@ def compute_mci(arr, aom, partition='mulliken', n_cores=None):
     # Normalization
     # SD-wf is 2**(n-1), but we double count perms in non-symmetric cases
     is_sd = wf_type(aom) in ["rest", "unrest"]
-    prefactor = 2 ** (n - 2) if is_sd else 0.5
+    prefactor = 2 ** (n - 2) if is_sd else 2 ** (n / 2 - 1)
 
     return prefactor * total_trace
 

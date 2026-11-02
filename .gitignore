@@ -47,3 +47,9 @@ scratch/
 .idea/
 *.npy
 iao2.tex
+*.swp
+MCI_TIMINGS.md
+.python-version
+esipy/LEGACY/
+esipy/PARTITION_ANALYSIS.md
+dist/

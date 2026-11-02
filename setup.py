@@ -16,12 +16,12 @@ setup(
         "scripts/esipy",
     ],
     install_requires=[
-        "numpy",
-        "pyscf<=2.8.0",
+        "numpy>=1.23.3",
+        "pyscf>=2.6,<=2.8.0",
         "sphinx",
         "urllib3>=2.0.0",
         "h5py",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.8",
 )
 
