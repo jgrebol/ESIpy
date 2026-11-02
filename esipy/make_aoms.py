@@ -23,8 +23,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
         from pyscf.lo import orth
         from pyscf import gto
         
-        pmol = gto.M(atom=mol.atom, basis='minao', cart=mol.cart,
-                     charge=getattr(mol, 'charge', 0), spin=getattr(mol, 'spin', 0))
+        pmol = mol.copy(); pmol.build(False, False, basis='minao')
         
         # Build IAO from coeffs (which might be truncated to n_ref for natural orbitals)
         C_iao = pyscf_iao.iao(mol, coeffs, minao='minao')
@@ -52,15 +51,13 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
     if is_unrest:
         is_natorb = False
         if is_fchk:
-            d_lbl = getattr(mf, 'density_label', '') or (getattr(mf._scf, 'density_label', '') if hasattr(mf, '_scf') else '')
+            d_lbl = getattr(mf, 'density_label', '')
             if 'MP2' in d_lbl or 'CC' in d_lbl or 'CI' in d_lbl:
                 is_natorb = True
-            elif 'SCF' in d_lbl:
-                is_natorb = False
             else:
                 if mo_occ is not None and np.asarray(mo_occ).dtype != object:
                     occ_flat = np.asarray(mo_occ).flatten()
-                    is_natorb = np.any((occ_flat > 1e-4) & (np.abs(occ_flat - 1.0) > 1e-4) & (np.abs(occ_flat - 2.0) > 1e-4))
+                    is_natorb = np.any((occ_flat > 1e-6) & (np.abs(occ_flat - 1.0) > 1e-6) & (np.abs(occ_flat - 2.0) > 1e-6))
         else:
             if is_natorb_wf(mf):
                 is_natorb = True
@@ -119,8 +116,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
         else:
             # IAO logic
             from pyscf import gto
-            pmol = gto.M(atom=mol.atom, basis='minao', cart=mol.cart,
-                         charge=getattr(mol, 'charge', 0), spin=getattr(mol, 'spin', 0))
+            pmol = mol.copy(); pmol.build(False, False, basis='minao')
             n_ref = pmol.nao
             
             # Truncate natural orbitals to minimal basis size if is_natorb
@@ -165,15 +161,13 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
             
         is_natorb = False
         if is_fchk:
-            d_lbl = getattr(mf, 'density_label', '') or (getattr(mf._scf, 'density_label', '') if hasattr(mf, '_scf') else '')
+            d_lbl = getattr(mf, 'density_label', '')
             if 'MP2' in d_lbl or 'CC' in d_lbl or 'CI' in d_lbl:
                 is_natorb = True
-            elif 'SCF' in d_lbl:
-                is_natorb = False
             else:
                 if mo_occ is not None and np.asarray(mo_occ).dtype != object:
                     occ_flat = np.asarray(mo_occ).flatten()
-                    is_natorb = np.any((occ_flat > 1e-4) & (np.abs(occ_flat - 1.0) > 1e-4) & (np.abs(occ_flat - 2.0) > 1e-4))
+                    is_natorb = np.any((occ_flat > 1e-6) & (np.abs(occ_flat - 1.0) > 1e-6) & (np.abs(occ_flat - 2.0) > 1e-6))
         else:
             if is_natorb_wf(mf):
                 is_natorb = True
@@ -220,8 +214,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
         else:
             # IAO logic
             from pyscf import gto
-            pmol = gto.M(atom=mol.atom, basis='minao', cart=mol.cart,
-                         charge=getattr(mol, 'charge', 0), spin=getattr(mol, 'spin', 0))
+            pmol = mol.copy(); pmol.build(False, False, basis='minao')
             n_ref = pmol.nao
             
             if is_natorb:

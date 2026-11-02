@@ -152,14 +152,8 @@ class MeanField2:
                     occ, coeff = eigh(S_raw @ dt @ S_raw, b=S_raw)
                     idx = np.argsort(occ)[::-1]
                     self.mo_occ, self.mo_coeff = occ[idx], coeff[:, idx]
-                    if 'SCF' in t_lbl:
-                        self.mo_occ[self.mo_occ < 1e-4] = 0.0
-                        self.mo_occ[np.abs(self.mo_occ - 2.0) < 1e-4] = 2.0
-                    else:
-                        self.mo_occ[self.mo_occ < 1e-12] = 0.0
-                    self._scf, self.__name__ = scf.RHF(self.mol), "RHF"; self._scf.make_rdm1 = lambda *args, **kwargs: dt
-                    self._scf.density_label = t_lbl
-                    break
+                    self.mo_occ[self.mo_occ < 1e-12] = 0.0
+                    self._scf, self.__name__ = scf.RHF(self.mol), "RHF"; self._scf.make_rdm1 = lambda *args, **kwargs: dt; break
             if not found_density:
                 if len(mo_a_flat) > 0:
                     if len(mo_a_flat) > 0 and len(mo_a_flat) % self.nao == 0:

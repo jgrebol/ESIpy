@@ -27,17 +27,12 @@ def is_natorb_wf(mf):
         
     # 2. Check for ESIpy FCHK flags
     if getattr(mf, 'is_fchk', False):
-        d_lbl = getattr(mf, 'density_label', '') or (getattr(mf._scf, 'density_label', '') if hasattr(mf, '_scf') else '')
-        if 'MP2' in d_lbl or 'CC' in d_lbl or 'CI' in d_lbl:
-            return True
-        if 'SCF' in d_lbl:
-            return False
         # In our readfchk, we already converted correlated densities to NOs
         # and we set __name__ to UHF/RHF. We can check occupations.
         occ = np.asarray(mf.mo_occ)
         if occ.ndim == 2: # list-like or alpha/beta
-            return np.any((occ > 1e-4) & (np.abs(occ - 1.0) > 1e-4))
-        return np.any((occ > 1e-4) & (np.abs(occ - 1.0) > 1e-4) & (np.abs(occ - 2.0) > 1e-4))
+            return np.any((occ > 1e-6) & (np.abs(occ - 1.0) > 1e-6))
+        return np.any((occ > 1e-6) & (np.abs(occ - 1.0) > 1e-6) & (np.abs(occ - 2.0) > 1e-6))
         
     return False
 

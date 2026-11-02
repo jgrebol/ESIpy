@@ -106,24 +106,19 @@ class ESIInput:
                 obj.partition = []
                 i += 1
                 while i < len(lines) and not lines[i].startswith('$'):
-                    partitions = lines[i].split()
-                    for p in partitions:
-                        pup = p.upper()
-                        if pup in ('ALL', 'A', 'ROBUST', 'R', 'ALLWIP', 'WIPALL', 'ALLEDU', 'ALLEFFAO', 'ALLEFAO', 'ALLIAO'):
-                            if pup in ('ROBUST', 'R'):
-                                obj.partition.extend(['meta_lowdin', 'nao', 'iao'])
-                            else:
-                                obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
-                        else:
-                            obj.partition.append(p.strip().lower())
+                    p = lines[i].strip()
+                    pup = p.upper()
+                    
+                    if pup in ('ALL', "A"):
+                        obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
+                    elif pup in ("ROBUST", "R"):
+                        obj.partition.extend(['meta_lowdin', 'nao', 'iao'])
+                    else:
+                        obj.partition.append(p)
                     i += 1
                 i -= 1
-            elif line.upper().startswith('$ALLPARTS') or line.upper().startswith('$ALLPARTITIONS'):
+            elif line.upper().startswith('$ALLPARTS'):
                 obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
-            elif line.upper().startswith('$AUTO') or line.upper().startswith('$DEFAULT'):
-                seen_ring_cmds.append('$AUTO')
-                obj.partition = ['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao']
-                obj.findrings = True
             elif line.startswith('$FLUREF'):
                 i += 1
                 obj.fluref = []
