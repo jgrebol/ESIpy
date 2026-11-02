@@ -45,7 +45,7 @@ def read_aoms(path='.'):
             elif "Unrestricted" in line:
                 wf = "unrest"
                 break
-            elif "Restricted, natural" in line:
+            elif "Restricted, natural" in line or "Correlated" in line:
                 wf = "no"
                 break
         else:
@@ -73,7 +73,18 @@ def read_aoms(path='.'):
 
                     # We first get the number of shape of the alpha-alpha matrix
                     na, nb = read_orbs(intfile_path)
-                    if wf == 'unrest':
+                    if na == 0 and nb == 0:
+                        if mul:
+                            nt = int(round(len(mat_lines) ** 0.5))
+                        else:
+                            nt = int(round((-1 + np.sqrt(1 + 8 * len(mat_lines))) / 2))
+                        if wf == 'unrest':
+                            na = nt // 2
+                            nb = nt - na
+                        else:
+                            na = nt
+                            nb = 0
+                    elif wf == 'unrest':
                         nt = na + nb
                     else:
                         nt = na
@@ -352,14 +363,16 @@ def read_molinfo(path):
 
         for line in lines:
             if "Integration is" in line or "INTEGRATION IS" in line:
-                parts = re.findall(r"[A-Za-z]+|\d+", line.split()[-1].strip())
-                symbs.append(parts[-2])
-                atm_nums.append(parts[-1])
-            if "Restricted, closed-shell" in line or "Restricted Closed-Shell":
+                tokens = line.split()
+                parts = re.findall(r"[A-Za-z]+|\d+", " ".join(tokens[3:]))
+                if len(parts) >= 2:
+                    symbs.append(parts[-2])
+                    atm_nums.append(parts[-1])
+            if "Restricted, closed-shell" in line or "Restricted Closed-Shell" in line:
                 molinfo["calctype"] = "RHF"
-            if "Unrestricted" in line:
+            elif "Unrestricted" in line:
                 molinfo["calctype"] = "UHF"
-            elif "Restricted, natural" in line:
+            elif "Restricted, natural" in line or "Correlated" in line:
                 molinfo["calctype"] = "NO"
 
             if "The molecular energy from the wf" in line or "ENERGY" in line and not found_energy:
@@ -472,7 +485,7 @@ def get_partition(path, int_file):
     """
     with open(os.path.join(path, int_file), "r") as file:
         lines = file.readlines()
-    if "AIMInt" in lines[0]:
+    if "AIMInt" in lines[0] or "APOST3D" in lines[0]:
         return "qtaim"
     elif "ESIpy" in lines[0]:
         return lines[1].split()[1].strip()
