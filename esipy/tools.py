@@ -167,9 +167,7 @@ def find_di(aom, i, j):
         aom_list, occ = aom
         if occ.ndim == 2: occ = np.diag(occ)
         sq = np.sqrt(occ)
-        Da = sq[:, None] * aom_list[i-1] * sq[None, :]
-        Db = sq[:, None] * aom_list[j-1] * sq[None, :]
-        return 2 * np.einsum('ij,ji->', Da, Db)
+        return np.einsum('i,ij,j,ji->', sq, aom_list[i-1], sq, aom_list[j-1])
     return 2 * np.einsum('ij,ji->', aom[i - 1], aom[j - 1])
 
 
@@ -189,8 +187,8 @@ def find_di_no(aom, i, j):
     occ = aom[1]
     if occ.ndim == 2:
         occ = np.diag(occ)
-    # Sum over k,j: occ_k * occ_j * (Pi)_kj * (Pj)_jk
-    return np.einsum('k,j,kj,jk->', occ, occ, aom[0][i - 1], aom[0][j - 1])
+    sq = np.sqrt(occ)
+    return 2 * np.einsum('k,j,kj,jk->', sq, sq, aom[0][i - 1], aom[0][j - 1])
 
 
 def find_lis(arr, aom):
@@ -201,8 +199,7 @@ def find_lis(arr, aom):
         sq = np.sqrt(occ)
         res = []
         for j in range(len(arr)):
-            D = sq[:, None] * aom_list[arr[j]-1] * sq[None, :]
-            res.append(np.einsum('ij,ji->', D, D))
+            res.append(np.einsum('i,ij,j,ji->', sq, aom_list[arr[j]-1], sq, aom_list[arr[j]-1]))
         return res
     return [2 * np.einsum('ij,ji->', aom[arr[j] - 1], aom[arr[j] - 1]) for j in range(len(arr))]
 

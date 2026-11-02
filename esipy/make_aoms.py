@@ -44,6 +44,10 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
                 (isinstance(mo_coeff, np.ndarray) and mo_coeff.ndim == 3 and mo_coeff.shape[0] == 2)
     
     from esipy.tools import is_natorb_wf
+    # Natural orbitals come from the spin-summed density
+    if is_unrest and not is_fchk and is_natorb_wf(mf):
+        is_unrest = False
+
     # 1. UNRESTRICTED
     if is_unrest:
         is_natorb = False
@@ -184,6 +188,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
                 mask = np.ones(len(occ), dtype=bool) # DO NOT MASK NATURAL ORBITALS
         else:
             occ = np.asarray(mo_occ)
+            if np.any(np.isclose(occ, 1.0)):
+                raise NotImplementedError(" | ROHF wavefunctions are not supported. Use UHF instead")
             mask = (occ > 0.5)
             
         coeff_src = mo_coeff

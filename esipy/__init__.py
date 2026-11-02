@@ -695,9 +695,7 @@ class IndicatorsUnrest:
         :returns: The FLU value.
         :rtype: float
         """
-        if self._flus()[0] is None:
-            return None
-        return self._flus()[0] + self._flus()[1]
+        return compute_flu(self._rings, self._molinfo, self._aom, self._flurefs, self._partition)
 
     @property
     def flu_alpha(self):
@@ -1024,7 +1022,7 @@ class IndicatorsNatorb:
         :returns: The list of 4c-MCIs that form the AV1245.
         :rtype: numpy.ndarray
         """
-        return 4 * np.array(self._av_no()[2])
+        return np.array(self._av_no()[2])
 
     def _pdi_no(self):
         """
@@ -1065,7 +1063,7 @@ class IndicatorsNatorb:
         :returns: The FLU value.
         :rtype: float
         """
-        return compute_flu(self._rings, self._mol, self._aom, self._flurefs, self._connectivity, self._partition)
+        return compute_flu(self._rings, self._molinfo, self._aom, self._flurefs, self._partition)
 
     def _boa_no(self):
         """
@@ -1305,13 +1303,6 @@ class ESI:
         print("  Joan Grebol, Eduard Matito, Pedro Salvador  ")
         print(" -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ")
 
-        # Can not work on IAO and Natural Orbitals yet
-        sd = ["RHF", "SymAdaptedRHF", "UHF", "SymAdaptedUHF", "RKS", "SymAdaptedRKS", "UKS", "SymAdaptedUKS", "MeanField"]
-        if self.partition == "iao" and self.molinfo["calctype"] not in sd:
-            print(" | WARNING: IAO and Natural Orbitals from unrestricted orbitals not implemented yet")
-        elif self.partition == "nao" and self.molinfo["calctype"] not in sd:
-            print(" | WARNING: NAO and Natural Orbitals from unrestricted orbitals not implemented yet")
-
 
         if verbose is None:
             env_verbose = os.environ.get('VERBOSE', 'False').lower()
@@ -1502,6 +1493,8 @@ class ESI:
             return self._molinfo
         if isinstance(self._molinfo, str):
             self._molinfo = load_file(self._molinfo)
+            if self._partition:
+                self._molinfo["partition"] = self._partition
             return self._molinfo
         if not self._molinfo:
             print(" | Building NAO AOMs to compute connectivity.")

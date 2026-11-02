@@ -350,9 +350,9 @@ def arom_unrest(aom, rings, molinfo, indicators, mci=False, av1245=False, partit
                         str(av1245_idx[3]).rjust(2), symbs[3].ljust(2),
                         av1245_list_alpha[(av1245_idx[0] - 1) % len(ring)]
                         +av1245_list_beta[(av1245_idx[0] - 1) % len(ring)]))
-            print(" |")
-            print(" | AV1245 {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].av1245))
-            print(" |  AVmin {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].avmin))
+                print(" |")
+                print(" | AV1245 {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].av1245))
+                print(" |  AVmin {} =             {:.4f}".format(ring_index + 1, indicators[ring_index].avmin))
             print(" ---------------------------------------------------------------------- ")
 
 

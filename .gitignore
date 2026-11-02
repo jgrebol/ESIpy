@@ -38,3 +38,13 @@ joan/
 # FCHK folders (keep the one in tests/)
 FCHK/
 !tests/FCHK/
+versions/
+*.swp
+iao2.tex
+MCI_TIMINGS.md
+.python-version
+esipy/LEGACY/
+esipy/PARTITION_ANALYSIS.md
+build/
+dist/
+*.egg-info/

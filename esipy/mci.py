@@ -1,6 +1,7 @@
 import numpy as np
 import multiprocessing as mp
-from math import factorial
+from math import factorial, comb
+from itertools import combinations
 from time import time
 from collections import defaultdict, deque
 
@@ -248,16 +249,82 @@ def _kernel_active(args):
     return tr_sum, n_perms
 
 
+_MATS, _LAYER = None, None
+
+
+def _init_worker(mats, layer):
+    global _MATS, _LAYER
+    _MATS, _LAYER = mats, layer
+
+
+def _max_layer(nrest, m, max_mem):
+    """Largest subset size whose two consecutive layers fit in max_mem (MB)."""
+    k = 0
+    for j in range(1, nrest + 1):
+        if (comb(nrest, j) + comb(nrest, j - 1)) * m * m * 8 / 1e6 > max_mem:
+            break
+        k = j
+    return k
+
+
+def _build_layer(mats, k):
+    """M_R = sum over orderings of R of the product of its matrices, for every subset R of size k."""
+    rest = range(1, len(mats))
+    layer = {0: np.identity(mats[0].shape[0])}
+    for j in range(1, k + 1):
+        layer = {sum(1 << r for r in R): sum(np.dot(mats[r], layer[sum(1 << x for x in R if x != r)]) for r in R)
+                 for R in combinations(rest, j)}
+    return layer
+
+
+def _kernel_layer(args):
+    """DFS over the prefixes 0 -> j -> ... that close with a stored subset sum."""
+    j, k = args
+    mats, layer = _MATS, _LAYER
+    n = len(mats)
+    full = (1 << n) - 2
+    stack = [(1 << j, np.dot(mats[0], mats[j]))]
+    tr_sum = 0.0
+    while stack:
+        mask, P = stack.pop()
+        if bin(mask).count("1") == n - 1 - k:
+            tr_sum += np.sum(P * layer[full ^ mask].T)
+            continue
+        for i in range(1, n):
+            if not (mask >> i) & 1:
+                stack.append((mask | (1 << i), np.dot(P, mats[i])))
+    return tr_sum
+
+
 def _prep_matrices(arr, aom):
     """Normalize input into list of matrices, handling NO tuples."""
     if isinstance(aom, (tuple, list)) and len(aom) == 2 and not isinstance(aom[0], np.ndarray):
         # For Natural Orbitals: Pre-multiply Occ @ AOM
         real_aoms, occ = aom
-        return [occ[:, None] * real_aoms[idx - 1] for idx in arr]
+        return [np.sqrt(occ)[:, None] * real_aoms[idx - 1] for idx in arr]
     return [aom[idx - 1] for idx in arr]
 
 
-def compute_mci(arr, aom, partition='mulliken', n_cores=None):
+def _mci_subsets(mats, n_cores, max_mem):
+    """Sum of Tr over all orderings with atom 0 fixed, using subset sums of the last atoms."""
+    n = len(mats)
+
+    # Sums over all orderings of the last k atoms are built once and reused
+    k = min(_max_layer(n - 1, mats[0].shape[0], max_mem), n - 2)
+    layer = _build_layer(mats, k)
+    tasks = [(j, k) for j in range(1, n)]
+
+    if k < n - 2 and n_cores > 1:
+        with mp.Pool(n_cores, initializer=_init_worker, initargs=(mats, layer)) as pool:
+            total_trace = sum(pool.map(_kernel_layer, tasks, chunksize=1))
+    else:
+        _init_worker(mats, layer)
+        total_trace = sum(_kernel_layer(t) for t in tasks)
+
+    return total_trace
+
+
+def compute_mci(arr, aom, partition='mulliken', n_cores=None, max_mem=None):
     """
     Computes Exact MCI using DFS with lazy product cache and multi-core dispatch.
 
@@ -271,10 +338,16 @@ def compute_mci(arr, aom, partition='mulliken', n_cores=None):
         'mulliken', 'symmetric', etc. Controls path pruning.
     n_cores : int, optional
         Number of processes. Defaults to cpu_count.
+    max_mem : float, optional
+        If given (MB), use subset sums instead of the DFS. Much faster, memory grows as 2^n.
     """
     mats = _prep_matrices(arr, aom)
     n = len(arr)
     if n < 3: return 0.0
+
+    if max_mem is not None:
+        is_sd = wf_type(aom) in ["rest", "unrest"]
+        return (2 ** (n - 2) if is_sd else 2 ** (n / 2 - 1)) * _mci_subsets(mats, n_cores or mp.cpu_count(), max_mem)
 
     is_mulliken = (partition in ["mulliken", "non-symmetric"])
     sym_prune = not is_mulliken
@@ -309,7 +382,7 @@ def compute_mci(arr, aom, partition='mulliken', n_cores=None):
         total_trace = sum(_kernel_approx(t)[0] for t in tasks)
 
     is_sd = wf_type(aom) in ["rest", "unrest"]
-    prefactor = 2 ** (n - 1) if is_sd else 0.5
+    prefactor = 2 ** (n - 1) if is_sd else 2 ** (n / 2)
     if is_mulliken:
         total_trace *= 0.5
 
@@ -327,7 +400,7 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
 
     # Exact if alg=0
     if alg == 0:
-        val = compute_mci(arr, aom, partition, n_cores)
+        val = compute_mci(arr, aom, partition, n_cores, max_mem=kwargs.get('max_mem'))
         # Factorial scaling for display purposes
         nperms = factorial(len(arr) - 1)
         if partition != "mulliken" and partition != "non-symmetric":
@@ -375,7 +448,7 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
                 total_perms += p_count
                 
         is_sd = wf_type(aom) in ["rest", "unrest"]
-        prefactor = 2 ** (n - 1) if is_sd else 0.5
+        prefactor = 2 ** (n - 1) if is_sd else 2 ** (n / 2)
         
         if is_mulliken:
             total_trace *= 0.5
@@ -453,7 +526,7 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
 
     # 3. Normalization
     is_sd = wf_type(aom) in ["rest", "unrest"]
-    prefactor = 2 ** (n - 1) if is_sd else 0.5
+    prefactor = 2 ** (n - 1) if is_sd else 2 ** (n / 2)
 
     if is_mulliken:
         total_trace *= 0.5
