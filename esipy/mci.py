@@ -1,6 +1,6 @@
 import numpy as np
 import multiprocessing as mp
-from math import factorial, comb
+from math import factorial, comb, fsum
 from itertools import combinations
 from time import time
 from collections import defaultdict, deque
@@ -299,9 +299,10 @@ def _kernel_layer(args):
 def _prep_matrices(arr, aom):
     """Normalize input into list of matrices, handling NO tuples."""
     if isinstance(aom, (tuple, list)) and len(aom) == 2 and not isinstance(aom[0], np.ndarray):
-        # For Natural Orbitals: Pre-multiply Occ @ AOM
+        # For Natural Orbitals: occ^(1/4) AOM occ^(1/4), same traces as occ^(1/2) AOM and symmetric
         real_aoms, occ = aom
-        return [np.sqrt(occ)[:, None] * real_aoms[idx - 1] for idx in arr]
+        o = np.sqrt(np.sqrt(np.clip(occ, 0, None)))  # tiny negative occupations are zero
+        return [o[:, None] * real_aoms[idx - 1] * o[None, :] for idx in arr]
     return [aom[idx - 1] for idx in arr]
 
 
@@ -324,9 +325,9 @@ def _mci_subsets(mats, n_cores, max_mem):
     return total_trace
 
 
-def compute_mci(arr, aom, partition='mulliken', n_cores=None, max_mem=None):
+def compute_mci_dfs(arr, aom, partition='mulliken', n_cores=None, max_mem=None):
     """
-    Computes Exact MCI using DFS with lazy product cache and multi-core dispatch.
+    Legacy: computes Exact MCI using DFS with lazy product cache and multi-core dispatch.
 
     Parameters
     ----------
@@ -389,10 +390,10 @@ def compute_mci(arr, aom, partition='mulliken', n_cores=None, max_mem=None):
     return prefactor * total_trace
 
 
-def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
-               rings_thres=0.3, connec=None, **kwargs):
+def mci_approx_dfs(arr, aom, partition=None, alg=0, d=1, n_cores=1,
+                   rings_thres=0.3, connec=None, **kwargs):
     """
-    Computes Approximate MCI with topological filtering.
+    Legacy: computes Approximate MCI with topological filtering.
 
     alg (int): 0=Exact, 1=Dist, 2=MaxDist, 3=Odd, 4=MaxDistOdd, 5=Odd(Alternate)
     """
@@ -400,7 +401,7 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
 
     # Exact if alg=0
     if alg == 0:
-        val = compute_mci(arr, aom, partition, n_cores, max_mem=kwargs.get('max_mem'))
+        val = compute_mci_dfs(arr, aom, partition, n_cores, max_mem=kwargs.get('max_mem'))
         # Factorial scaling for display purposes
         nperms = factorial(len(arr) - 1)
         if partition != "mulliken" and partition != "non-symmetric":
@@ -532,6 +533,374 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
         total_trace *= 0.5
 
     return prefactor * total_trace, total_perms, time() - t0
+
+
+# ---------------------------------------------------------------------------
+# MCI with Glynn's identity. With S_0 fixed in front and X = sum_i delta_i S_i (delta_i = +-1, delta_1 = +1):
+#   sum over the orderings of S_1..S_m of Tr(S_0 S_s1 ... S_sm) = 2^-(m-1) sum_delta prod(delta) Tr(S_0 X^m)
+# X^m expands into every word of length m and the signs cancel the words that repeat an atom, so only the
+# permutations remain. The approximations restrict each step u -> v to an adjacency matrix A (the same BFS
+# distances as the DFS); the same signs over the closed walks 0 -> v_1 -> ... -> v_m -> 0 allowed by A keep only
+# the allowed permutations. 2^(n-2) independent terms: constant memory, split over processes.
+# ---------------------------------------------------------------------------
+
+_PRIMES = (2147483647, 2147483629, 2147483587, 2147483579)
+
+
+def _glynn_deltas(s0, s1, m):
+    """Signs delta (delta_1 = +1, the others from the bits of s) for the terms s0 <= s < s1, and prod(delta)."""
+    bits = (np.arange(s0, s1)[:, None] >> np.arange(m - 1)) & 1
+    delta = np.ones((s1 - s0, m))
+    delta[:, 1:] -= 2 * bits
+    return delta, delta.prod(axis=1)
+
+
+def _factors(mats, sym):
+    """
+    S = U diag(w) V^T for each matrix with its numerical rank (~ basis functions of the atom); eigenvectors if
+    symmetric (V = U). The matrices after the first are zero-padded to a common rank.
+    """
+    fs = []
+    for M in mats:
+        if sym:
+            w, U = np.linalg.eigh(M)
+            V = U
+        else:
+            U, w, Vt = np.linalg.svd(M)
+            V = Vt.T
+        keep = np.abs(w) > np.abs(w).max() * len(w) * np.finfo(float).eps
+        keep[np.argmax(np.abs(w))] = True
+        fs.append((U[:, keep], w[keep], V[:, keep]))
+    r = max(len(w) for _, w, _ in fs[1:])
+    U, V, W = (np.zeros((len(mats) - 1, len(mats[0]), r)), np.zeros((len(mats) - 1, len(mats[0]), r)),
+               np.zeros((len(mats) - 1, r)))
+    for i, (u, w, v) in enumerate(fs[1:]):
+        U[i, :, :len(w)], V[i, :, :len(w)], W[i, :len(w)] = u, v, w
+    return fs[0], U, W, V
+
+
+def _count_primes(m):
+    """Primes whose product exceeds m!, to count the permutations exactly with modular arithmetic."""
+    primes, prod = [], 1
+    for p in _PRIMES:
+        primes.append(p)
+        prod *= p
+        if prod > factorial(m):
+            break
+    return primes
+
+
+def _glynn_counts(delta, sign, adj, counts):
+    """Adds the number of permutations of the batch (the walk recursion with all S = 1) modulo each prime."""
+    m = delta.shape[1]
+    step, first, last = adj[1:, 1:].astype(np.int64), adj[0, 1:].astype(np.int64), adj[1:, 0].astype(np.int64)
+    di, si = delta.astype(np.int64), sign.astype(np.int64)
+    for i, p in enumerate(_count_primes(m)):
+        w = di * first
+        for _ in range(m - 1):
+            w = (np.dot(w, step) * di) % p
+        counts[i] = (counts[i] + int(np.dot(si, np.dot(w, last) % p))) % p
+    return counts
+
+
+def _kernel_glynn_exact(args):
+    """
+    Terms s0 <= s < s1 of the exact MCI. With S_0 = U diag(w) V^T, Tr(S_0 X^m) = sum_a w_a v_a^T X^m u_a needs
+    products of X with a thin block: m/2 of them for symmetric AOMs, u^T X^m u = (X^h u).(X^(m-h) u), else m/2 with X^2.
+    """
+    mats, _, s0, s1, batch, sym = args
+    rest = np.array(mats[1:])
+    m, k = rest.shape[0], rest.shape[1]
+    (U0, w0, V0), _, _, _ = _factors(mats[:2], sym)
+    parts = []
+    for a in range(s0, s1, batch):
+        delta, sign = _glynn_deltas(a, min(a + batch, s1), m)
+        X = np.dot(delta, rest.reshape(m, -1)).reshape(-1, k, k)
+        P = X if sym else np.matmul(X, X)
+        Y = np.matmul(P, U0)
+        for _ in range(m // 2 - 1):
+            Y = np.matmul(P, Y)
+        Z = np.matmul(X, Y) if m % 2 else Y
+        tr = np.einsum('bka,bka,a->b', Y, Z, w0) if sym else np.einsum('ka,bka,a->b', V0, Z, w0)
+        parts.append(fsum(sign * tr))
+    return fsum(parts), None
+
+
+def _kernel_glynn_walks(args):
+    """
+    Terms s0 <= s < s1 over the closed walks allowed by adj, and their number. The walks 0 -> ... -> v are kept as
+    r0 x r blocks (S_0 ... S_v = U_0 B_v V_v^T) and one step multiplies by G_uv = adj[u, v] V_u^T U_v. Only the atoms
+    that can still close a cycle are kept at each step; for symmetric AOMs two half walks are joined (half the steps).
+    """
+    mats, adj, s0, s1, batch, sym = args
+    m = len(mats) - 1
+    (U0, w0, V0), U, W, V = _factors(mats, sym)
+    r0, r = len(w0), W.shape[1]
+    G = (adj[1:, 1:, None, None] * np.einsum('uka,vkb->uvab', V, U)).transpose(0, 2, 1, 3).reshape(m * r, m * r)
+    B1 = (adj[0, 1:, None, None] * np.matmul(V0.T, U)).transpose(1, 0, 2).reshape(r0, m * r)
+    end = (adj[1:, 0, None, None] * np.matmul(V.transpose(0, 2, 1), U0)).transpose(2, 0, 1).reshape(r0, m * r)
+
+    # Atoms that can be the t-th of a closed walk of m atoms through 0, as columns of the blocks
+    step = adj[1:, 1:].astype(float)
+    fwd, back = [adj[0, 1:] > 0], [adj[1:, 0] > 0]
+    for _ in range(m - 1):
+        fwd.append(fwd[-1] @ step > 0)
+        back.append(step @ back[-1] > 0)
+    cols = [np.flatnonzero(np.repeat(fwd[t] & back[m - 1 - t], r)) for t in range(m)]
+    if any(len(c) == 0 for c in cols):
+        return 0.0, [0] * len(_count_primes(m))
+    a = (m + 2) // 2 if sym else m
+    b = m + 1 - a
+    Gs = [G[np.ix_(cols[t], cols[t + 1])] for t in range(a - 1)]
+
+    parts, counts = [], [0] * len(_count_primes(m))
+    for i in range(s0, s1, batch):
+        delta, sign = _glynn_deltas(i, min(i + batch, s1), m)
+        D = np.repeat(delta, r, axis=1) * W.ravel()
+        Y = half = np.broadcast_to(B1[:, cols[0]], (len(sign), r0, len(cols[0])))
+        for t in range(a - 1):
+            Y = ((Y * D[:, None, cols[t]]).reshape(-1, len(cols[t])) @ Gs[t]).reshape(len(sign), r0, -1)
+            if t + 2 == b:
+                half = Y
+        if sym:
+            tr = np.einsum('bic,bc,bic,i->b', Y, D[:, cols[a - 1]], half, w0)
+        else:
+            tr = np.einsum('bic,bc,ic,i->b', Y, D[:, cols[a - 1]], end[:, cols[a - 1]], w0)
+        parts.append(fsum(sign * tr))
+        counts = _glynn_counts(delta, sign, adj, counts)
+    return fsum(parts), counts
+
+
+def _project(mats):
+    """Restricts the matrices to the space spanned by their columns; the traces of their products are unchanged."""
+    U, s, _ = np.linalg.svd(np.hstack(mats), full_matrices=False)
+    Q = U[:, :max(1, int((s > s[0] * len(s) * np.finfo(float).eps).sum()))]
+    return [Q.T @ M @ Q for M in mats] if Q.shape[1] < len(Q) else mats
+
+
+def _two_sides(adj):
+    """
+    Order (atom 0, the other side, its own side) when every allowed step joins two sides of equal size, else None.
+    Every closed walk then visits each side n/2 times, so one sign per side can be fixed: half the terms.
+    """
+    n = len(adj)
+    side = -np.ones(n, dtype=int)
+    side[0], stack = 0, [0]
+    while stack:
+        u = stack.pop()
+        for v in np.flatnonzero(adj[u]):
+            if side[v] < 0:
+                side[v] = 1 - side[u]
+                stack.append(v)
+            elif side[v] == side[u]:
+                return None
+    if n % 2 or n < 4 or (side < 0).any() or 2 * (side == 1).sum() != n:
+        return None
+    return [0] + [v for v in range(1, n) if side[v] == 1] + [v for v in range(1, n) if side[v] == 0]
+
+
+def _glynn_sum(mats, adj, n_cores, max_mem):
+    """
+    Sum over the permutations allowed by adj (None for all of them) and their number, with Glynn's identity.
+    The 2^(n-2) terms go in batches of max_mem MB over n_cores processes.
+    """
+    mats = _project(mats)
+    m, k = len(mats) - 1, mats[0].shape[0]
+    sym = all(np.abs(M - M.T).max() <= 1e-12 * np.abs(M).max() for M in mats) and (adj is None or (adj == adj.T).all())
+    if sym:
+        mats = [(M + M.T) / 2 for M in mats]
+
+    # The atom of lowest rank goes first; a second sign is fixed for two equal sides
+    ranks = [np.linalg.matrix_rank(M) for M in mats]
+    order = [int(np.argmin(ranks))] + [i for i in range(m + 1) if i != np.argmin(ranks)]
+    nfix = 1
+    if adj is not None:
+        adj = adj[np.ix_(order, order)]
+        sides = _two_sides(adj) if sym else None
+        if sides is not None:
+            order, adj, nfix = [order[i] for i in sides], adj[np.ix_(sides, sides)], 2
+    mats = [mats[i] for i in order]
+    nterms = 1 << (m - nfix)
+
+    kernel = _kernel_glynn_exact if adj is None else _kernel_glynn_walks
+    term_mem = 4 * k * k if adj is None else 4 * ranks[order[0]] * m * max(ranks)
+    batch = int(min(nterms, max(1, max_mem * 1e6 // (8 * term_mem))))
+    if n_cores > 1 and nterms > batch:
+        bounds = np.linspace(0, nterms, min(4 * n_cores, -(-nterms // batch)) + 1).astype(int)
+        with mp.Pool(n_cores) as pool:
+            results = pool.map(kernel, [(mats, adj, a, b, batch, sym) for a, b in zip(bounds[:-1], bounds[1:])],
+                               chunksize=1)
+    else:
+        results = [kernel((mats, adj, 0, nterms, batch, sym))]
+
+    total = fsum(t for t, _ in results) / nterms
+    if adj is None:
+        return total, factorial(m)
+    # Number of permutations from its residues (each one is nterms times the count)
+    count, mod = 0, 1
+    for i, p in enumerate(_count_primes(m)):
+        res = sum(c[i] for _, c in results) * pow(2, -(m - nfix), p) % p
+        count += mod * ((res - count) * pow(mod, -1, p) % p)
+        mod *= p
+    return total, count
+
+
+def _cycle_search(mats, adj):
+    """
+    Sum over the cycles of a sparse symmetric adjacency (few allowed steps, e.g. d = 1 on a fullerene) and their
+    number. Glynn's 2^(n-2) terms do not shrink with the adjacency, so here the cycles are searched directly,
+    dropping a path as soon as an unused atom cannot be entered and left any more.
+    """
+    mats = _project(mats)
+    n = len(mats)
+    _, U, W, V = _factors([mats[0]] + list(mats), False)
+    P = np.einsum('uka,vkb->uvab', V, U) * W[None, :, None, :]
+    nb = [[int(v) for v in np.flatnonzero(adj[u])] for u in range(n)]
+    visited, avail = [False] * n, [len(x) for x in nb]
+    visited[0] = True
+    total, count = [0.0], [0]
+
+    def search(end, depth, Y):
+        if depth == n:
+            if adj[end, 0]:
+                total[0] += np.sum(Y * P[end, 0].T)
+                count[0] += 1
+            return
+        for v in nb[end]:
+            if visited[v]:
+                continue
+            # end becomes interior: its other unused neighbours lose one way in or out (atom 0 stays open)
+            touched = [w for w in nb[end] if not visited[w] and w != v] if end else []
+            ok = True
+            for w in touched:
+                avail[w] -= 1
+                ok = ok and avail[w] >= 2
+            if ok and depth + 1 < n and v not in nb[0] and not any(not visited[w] and w != v for w in nb[0]):
+                ok = False  # atom 0 needs a neighbour left to close the cycle
+            if ok:
+                visited[v] = True
+                search(v, depth + 1, P[end, v] if Y is None else Y @ P[end, v])
+                visited[v] = False
+            for w in touched:
+                avail[w] += 1
+
+    search(0, 1, None)
+    return total[0], count[0]
+
+
+def _allowed_steps(arr, aom, alg, d, rings_thres, connec, delta):
+    """Adjacency matrices of the allowed steps, with their sign (mcialg 2 and 4: all <= d minus all <= d - 1)."""
+    n = len(arr)
+    if alg == 6:
+        di = find_di_no if wf_type(aom) == "no" else find_di
+        return [(1, np.array([[i != j and abs(di(aom, arr[i], arr[j])) > delta for j in range(n)] for i in range(n)]))]
+    if connec is None:
+        connec = build_connectivity(aom, rings_thres)
+    ring_connec = {atom: [nb for nb in connec.get(atom, []) if nb in arr] for atom in arr}
+    full_dists = find_node_distances_onlyodd(ring_connec) if alg in (4, 5) else find_node_distances(ring_connec)
+    dists = np.array([[full_dists[arr[i]].get(arr[j], 999999) for j in range(n)] for i in range(n)])
+    np.fill_diagonal(dists, 999999)
+    if alg in (3, 5):
+        return [(1, (dists <= d) & (dists % 2 == 1))]
+    if alg in (2, 4):
+        return [(1, dists <= d), (-1, dists <= d - 1)]
+    return [(1, dists <= d)]
+
+
+def _restricted_sum(mats, adj, n_cores, max_mem):
+    """Sum and number of the permutations allowed by adj: cycle search if sparse, Glynn otherwise."""
+    n = len(mats)
+    if not (adj.any(axis=0).all() and adj.any(axis=1).all()):
+        return 0.0, 0  # an atom without an allowed step in or out
+    if adj.sum() <= 4 * n and (adj == adj.T).all():
+        return _cycle_search(mats, adj)
+    return _glynn_sum(mats, None if adj.sum() == n * (n - 1) else adj, n_cores, max_mem)
+
+
+def compute_mci(arr, aom, partition='mulliken', n_cores=None, max_mem=None):
+    """
+    Computes the exact MCI with Glynn's identity (2^(n-2) terms, constant memory).
+
+    Parameters
+    ----------
+    arr : list
+        Atom indices involved in the ring.
+    aom : np.ndarray or tuple
+        Atomic Overlap Matrices. If tuple (AOMs, Occ), assumes Natural Orbitals.
+    partition : str
+        'mulliken', 'symmetric', etc.
+    n_cores : int, optional
+        Number of processes. Defaults to cpu_count.
+    max_mem : float, optional
+        Memory (MB) of each batch of terms per process. Default 64.
+    """
+    n = len(arr)
+    if n < 3: return 0.0
+    total_trace, _ = _glynn_sum(_prep_matrices(arr, aom), None, n_cores or mp.cpu_count(), max_mem or 64)
+
+    # Glynn sums every ordering, as the DFS with Mulliken; for symmetric AOMs the reversed ones are equal
+    is_sd = wf_type(aom) in ["rest", "unrest"]
+    prefactor = 2 ** (n - 1) if is_sd else 2 ** (n / 2)
+    return prefactor * 0.5 * total_trace
+
+
+def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
+               rings_thres=0.3, connec=None, **kwargs):
+    """
+    Computes Approximate MCI with topological filtering, with Glynn's identity on the allowed steps.
+
+    alg (int): 0=Exact, 1=Dist, 2=MaxDist, 3=Odd, 4=MaxDistOdd, 5=Odd(Alternate), 6=Active (kwarg delta)
+    Returns the MCI, the number of permutations and the time.
+    """
+    t0 = time()
+    n = len(arr)
+    is_mulliken = (partition in ["mulliken", "non-symmetric"])
+
+    if alg == 0:
+        val = compute_mci(arr, aom, partition, n_cores, max_mem=kwargs.get('max_mem'))
+        nperms = factorial(n - 1)
+        if not is_mulliken:
+            nperms *= 0.5
+        return val, nperms, time() - t0
+    if n < 3: return 0.0, 0, time() - t0
+
+    mats = _prep_matrices(arr, aom)
+    total_trace, total_perms = 0.0, 0
+    for sign, adj in _allowed_steps(arr, aom, alg, d, rings_thres, connec, kwargs.get('delta', 1e-4)):
+        t, p = _restricted_sum(mats, adj, n_cores, kwargs.get('max_mem') or 64)
+        total_trace += sign * t
+        total_perms += sign * p
+
+    # Each cycle is counted in both directions; for symmetric AOMs they are equal
+    is_sd = wf_type(aom) in ["rest", "unrest"]
+    prefactor = 2 ** (n - 1) if is_sd else 2 ** (n / 2)
+    if not is_mulliken:
+        total_perms //= 2
+    return prefactor * 0.5 * total_trace, total_perms, time() - t0
+
+
+def mci_profile(arr, aom, partition=None, alg=4, n_cores=1, rings_thres=0.3, connec=None, max_mem=64):
+    """
+    Contributions of mcialg 2 or 4 for every distance d at once (each cumulative sum, all steps <= d, is computed
+    once); they add up to the exact MCI. Returns a list of (d, contribution, cumulative MCI, permutations, seconds).
+    """
+    n = len(arr)
+    mats = _prep_matrices(arr, aom)
+    if connec is None:
+        connec = build_connectivity(aom, rings_thres)
+    is_sd = wf_type(aom) in ["rest", "unrest"]
+    prefactor = (2 ** (n - 1) if is_sd else 2 ** (n / 2)) * 0.5
+    halve = 1 if partition in ["mulliken", "non-symmetric"] else 2
+    profile, prev, prev_perms = [], 0.0, 0
+    for d in range(1, 2 * n):  # odd-walk distances can exceed n - 1
+        t0 = time()
+        adj = _allowed_steps(arr, aom, alg, d, rings_thres, connec, None)[0][1]
+        t, p = _restricted_sum(mats, adj, n_cores, max_mem)
+        profile.append((d, prefactor * (t - prev), prefactor * t, (p - prev_perms) // halve, time() - t0))
+        prev, prev_perms = t, p
+        if adj.sum() == n * (n - 1):
+            break
+    return profile
 
 
 def sequential_mci(arr, aom, partition='mulliken'):

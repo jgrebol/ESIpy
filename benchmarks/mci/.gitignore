@@ -1,0 +1,4 @@
+cache/
+*.log
+*.bak
+*.before_fix.jsonl
