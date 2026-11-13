@@ -138,12 +138,13 @@ class MeanField2:
         
         if not mo_read_success:
             # Natural orbitals from a density only for correlated wavefunctions (CI, CC, MP2 densities).
-            # For SCF wavefunctions the canonical MO coefficients are used: diagonalizing the SCF density gives
+            # For Gaussian SCF wavefunctions the canonical MO coefficients are used: diagonalizing the SCF density gives
             # occupations with numerical noise (e.g. 2 +- 1e-6 with near-linear dependencies), which made SCF
             # wavefunctions look correlated and sent them through the much slower natural-orbital path.
             d_labels = [('Total CI Density', 'Spin CI Density'), ('Total CI Rho(1) Density', 'Spin CI Rho(1) Density'), ('Total CC Density', 'Spin CC Density'), ('Total MP2 Density', 'Spin MP2 Density')]
-            if not has_corr and len(mo_a_flat) == 0:
-                d_labels.append(('Total SCF Density', 'Spin SCF Density'))   # no MOs in the file: use the density
+            # Q-Chem MO coefficients are not read reliably, so Q-Chem SCF files keep using the SCF density
+            if not has_corr and (len(mo_a_flat) == 0 or self.is_qchem):
+                d_labels.append(('Total SCF Density', 'Spin SCF Density'))
             found_density = False
             for t_lbl, s_lbl in d_labels:
                 dt_flat = read_list_from_fchk(t_lbl, path)
