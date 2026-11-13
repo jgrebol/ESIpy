@@ -158,6 +158,8 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False, nocc=None
                 mask = np.ones(len(occ), dtype=bool) # DO NOT MASK NATURAL ORBITALS
             if nocc is not None:
                 mask[nocc:] = False
+            # NO coefficients of the AOMs (ESI.no_coeff; needed to rotate the DM2 to the NO basis)
+            mol.no_coeff = mo_coeff[:, mask]
         else:
             occ = np.asarray(mo_occ)
             if np.any(np.isclose(occ, 1.0)):
