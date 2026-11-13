@@ -330,6 +330,8 @@ def process_fragments(aom, rings, done=False):
 
 def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_only=True):
     import re
+    if not partition:
+        return ""
     orig = partition
     p_method = partition.split()[0].lower()
     p_split = partition.split(None, 1)
@@ -342,6 +344,7 @@ def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_
     elif p_method in ["ml", "mlow", "m-low", "meta-low", "metalow", "mlowdin", "m-lowdin", "metalowdin", "meta_lowdin", "meta-lowdin"]: base = "meta-lowdin"
     elif p_method in ["n", "nao", "natural", "nat"]: base = "nao"
     elif p_method in ["i", "iao", "intrinsic", "intr"]: base = "iao"
+    elif p_method in ["q", "qt", "qtaim", "quant", "quantum"]: base = "qtaim"
     elif p_method in ["iao-autosad", "iaoauto", "iaoa", "iaa", "ia", "a", "autosad", "iaosad", "autos"]: base = "iao-autosad"
     elif p_method in ["iao-effao-gross", "iao-eg", "iaoeg", "iaog", "ig", "gross", "iag", "g"]: base = "iao-effao-gross"
     elif p_method in ["iao-effao-net", "iao-en", "iaoen", "iaon", "in", "net", "ian", "ne"]: base = "iao-effao-net"
@@ -396,7 +399,6 @@ def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_
     if is_iao and res_basis: label += f" {res_basis}"
 
     return label.lower()
-
 def format_short_partition(partition):
     p_method = partition.lower()
 

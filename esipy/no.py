@@ -70,12 +70,12 @@ def deloc_no(aom, molinfo, fragmap={}):
     print(" | Atom     N(Sij)    dlocF     dlocX      locF      locX ")
     print(" ---------------------------------------------------------- ")
 
-    # Weight matrices for Fermi (sqrt occ) and Exchange (occ) contributions
+    # Precompute the projected AOMs to avoid O(N^4) dense einsum traces
     occ_1d = np.diag(occ) if occ.ndim == 2 else occ
     occ_half_1d = np.sqrt(occ_1d)
-
-    W_F = occ_half_1d[:, None] * occ_half_1d[None, :]   # W_F_pq = sqrt(n_p) * sqrt(n_q)
-    W_X = occ_1d[:, None] * occ_1d[None, :]             # W_X_pq = n_p * n_q
+    
+    W_F = occ_half_1d[:, None] * occ_half_1d[None, :]
+    W_X = occ_1d[:, None] * occ_1d[None, :]
 
     for i in range(len(aom)):
         lif = np.sum(W_F * aom[i] * aom[i].T)

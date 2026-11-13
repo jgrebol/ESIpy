@@ -30,7 +30,6 @@ class ESIInput:
         # for readaoms: base name (without extension) to construct aoms/molinfo per partition
         self.aomname = None
         self.ncores = None
-        self.mciaprox = []
         self.exclude = []
         self.iaomix = None
         self.iaoref = 'minao'
@@ -38,6 +37,7 @@ class ESIInput:
         self.heavy_only = True
         self.full_basis = False
         self.nocc = None
+
 
     @staticmethod
     def from_string(input_str):
@@ -47,11 +47,24 @@ class ESIInput:
         i = 0
         while i < len(lines):
             line = lines[i]
-            if line.startswith('$READFCHK'):
+            if line.startswith('$READFILE'):
+                obj.mode = 'readfile'
+                parts = line.split()
+                if len(parts) > 1:
+                    obj.fchk_file = parts[1].strip()
+                else:
+                    i += 1
+                    if i < len(lines):
+                        obj.fchk_file = lines[i].strip()
+            elif line.startswith('$READFCHK') or line.startswith('$READMOLDEN') or line.startswith('$READORCA'):
                 obj.mode = 'fchk'
-                i += 1
-                if i < len(lines):
-                    obj.fchk_file = lines[i]
+                parts = line.split()
+                if len(parts) > 1:
+                    obj.fchk_file = parts[1].strip()
+                else:
+                    i += 1
+                    if i < len(lines):
+                        obj.fchk_file = lines[i].strip()
             elif line.startswith('$READINT'):
                 obj.mode = 'readint'
                 i += 1
@@ -127,9 +140,9 @@ class ESIInput:
                     all_effaos = ["iao-autosad", "iao-effao-net", "iao-effao-gross", "iao-effao-lowdin", "iao-effao-ml", "iao-effao-nao", "iao-effao-symmetric", "iao-effao-sps", "iao-effao-spsa"]
                     all_effaos = ["iao-autosad", "iao-effao-gross", "iao-effao-lowdin", "iao-effao-ml", "iao-effao-nao"] 
 
-                    if pup == 'ALL':
+                    if pup in ('ALL', 'A'):
                         obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao'])
-                    elif pup == 'ROBUST':
+                    elif pup in ('ROBUST', 'R'):
                         obj.partition.extend(['meta_lowdin', 'nao', 'iao'])
                     elif pup == "ALLWIP" or pup == "WIPALL":
                         obj.partition.extend(['mulliken', 'lowdin', 'meta_lowdin', 'nao', 'iao', 'iao-autosad'])
@@ -206,6 +219,16 @@ class ESIInput:
             elif line.startswith('$MAXLEN'):
                 i += 1
                 obj.maxlen = int(lines[i])
+            elif line.startswith('$SAVE'):
+                obj.save = True
+                if obj.mode in ('fchk', 'readfile') and obj.fchk_file:
+                    obj.save = os.path.splitext(os.path.basename(obj.fchk_file))[0]
+                elif obj.mode == 'readint' and obj.readpath:
+                    obj.save = os.path.basename(os.path.normpath(obj.readpath))
+                elif obj.mode == 'readaoms' and obj.aomname:
+                    obj.save = obj.aomname
+            elif line.startswith('$WRITEAOMS'):
+                obj.writeaoms = True
             elif line.startswith('$NCORES') or line.startswith('$NCORE'):
                 i += 1
                 obj.ncores = int(lines[i])
@@ -226,7 +249,19 @@ class ESIInput:
                     i += 1
                 i -= 1
             i += 1
+        
+        obj._finalize_save_name()
         return obj
+
+    def _finalize_save_name(self):
+        """Finalize save name based on input mode if it's still just True."""
+        if self.save is True:
+            if self.mode in ('fchk', 'readfile') and self.fchk_file:
+                self.save = os.path.splitext(os.path.basename(self.fchk_file))[0]
+            elif self.mode == 'readint' and self.readpath:
+                self.save = os.path.basename(os.path.normpath(self.readpath))
+            elif self.mode == 'readaoms' and self.aomname:
+                self.save = self.aomname
 
     @staticmethod
     def from_file(filepath):

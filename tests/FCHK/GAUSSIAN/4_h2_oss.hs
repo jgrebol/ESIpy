@@ -1,0 +1,5 @@
+$READFCHK
+4_h2_oss.fchk
+$FINDRING
+$PARTITION
+ALL

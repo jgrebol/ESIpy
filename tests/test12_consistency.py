@@ -79,28 +79,6 @@ class ConsistencyTest(unittest.TestCase):
         self.assertAlmostEqual(2 * find_di([aom, occ], 1, 2), find_di_no([aom, occ], 1, 2), places=10)
 
 
-class EffaoTest(unittest.TestCase):
-
-    def test_effao_closed_shell_consistency(self):
-        for part in ('iao-effao-nao', 'iao-effao-net', 'iao-autosad'):
-            esi_r = ESI(mol=mol, mf=rks, rings=ring, partition=part)
-            u = ESI(mol=mol, mf=uks, rings=ring, partition=part).indicators[0]
-            self.assertAlmostEqual(2 * sum(np.trace(a) for a in esi_r.aom), mol.nelectron, places=6, msg=part)
-            for p in ('iring', 'mci', 'pdi', 'flu'):
-                self.assertAlmostEqual(getattr(esi_r.indicators[0], p), getattr(u, p), places=5, msg=f"{part} {p}")
-
-
-class EffaoCorrelatedTest(unittest.TestCase):
-
-    def test_effao_mp2_uses_ao_density(self):
-        m = gto.M(atom=water, basis='cc-pvdz', verbose=0)
-        mp2 = mp.MP2(scf.RHF(m).run()).run()
-        for part in ('iao-effao-net', 'iao-effao-nao'):
-            aom, occ = make_aoms(m, mp2, partition=part)
-            pops = [np.sum(occ[:len(a)] * np.diag(a)) for a in aom]
-            self.assertAlmostEqual(pops[1], pops[2], places=6, msg=part)
-
-
 class MCITest(unittest.TestCase):
 
     def test_against_brute_force(self):
@@ -177,6 +155,28 @@ class GeometryTest(unittest.TestCase):
         self.assertAlmostEqual(compute_homer(ring, molinfo), expected, places=8)
         for r in ([3, 4, 5, 6, 1, 2], [6, 5, 4, 3, 2, 1]):
             self.assertAlmostEqual(compute_homer(r, molinfo), expected, places=8)
+
+
+class EffaoTest(unittest.TestCase):
+
+    def test_effao_closed_shell_consistency(self):
+        for part in ('iao-effao-nao', 'iao-effao-net', 'iao-autosad'):
+            esi_r = ESI(mol=mol, mf=rks, rings=ring, partition=part)
+            u = ESI(mol=mol, mf=uks, rings=ring, partition=part).indicators[0]
+            self.assertAlmostEqual(2 * sum(np.trace(a) for a in esi_r.aom), mol.nelectron, places=6, msg=part)
+            for p in ('iring', 'mci', 'pdi', 'flu'):
+                self.assertAlmostEqual(getattr(esi_r.indicators[0], p), getattr(u, p), places=5, msg=f"{part} {p}")
+
+
+class EffaoCorrelatedTest(unittest.TestCase):
+
+    def test_effao_mp2_uses_ao_density(self):
+        m = gto.M(atom=water, basis='cc-pvdz', verbose=0)
+        mp2 = mp.MP2(scf.RHF(m).run()).run()
+        for part in ('iao-effao-net', 'iao-effao-nao'):
+            aom, occ = make_aoms(m, mp2, partition=part)
+            pops = [np.sum(occ[:len(a)] * np.diag(a)) for a in aom]
+            self.assertAlmostEqual(pops[1], pops[2], places=6, msg=part)
 
 
 if __name__ == '__main__':

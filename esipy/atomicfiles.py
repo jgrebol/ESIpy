@@ -45,11 +45,12 @@ def read_aoms(path='.'):
             elif "Unrestricted" in line:
                 wf = "unrest"
                 break
-            elif "Restricted, natural" in line:
+            elif "Restricted, natural" in line or "Correlated" in line:
                 wf = "no"
                 break
         else:
             raise ValueError("Wavefunction type could not be determined.")
+
 
     if wf == "no":
         occs = read_occs(first_file)
@@ -72,7 +73,18 @@ def read_aoms(path='.'):
 
                     # We first get the number of shape of the alpha-alpha matrix
                     na, nb = read_orbs(intfile_path)
-                    if wf == "unrest":
+                    if na == 0 and nb == 0:
+                        if mul:
+                            nt = int(round(len(mat_lines) ** 0.5))
+                        else:
+                            nt = int(round((-1 + np.sqrt(1 + 8 * len(mat_lines))) / 2))
+                        if wf == 'unrest':
+                            na = nt // 2
+                            nb = nt - na
+                        else:
+                            na = nt
+                            nb = 0
+                    elif wf == 'unrest':
                         nt = na + nb
                     else:
                         nt = na
@@ -328,6 +340,9 @@ def read_molinfo(path):
     molinfo = {
         "method": "Not specified",
         "basisset": "Not specified",
+        "xc": "Not specified",
+        "energy": "Not specified",
+        "calctype": "Not specified",
         "geom": None,
         "partition": "qtaim",
     }
@@ -335,8 +350,8 @@ def read_molinfo(path):
     symbs, atm_nums = [], []
     found_energy = False
     ints = [intfile for intfile in os.listdir(path) if
-            intfile.endswith('.int') and os.path.isfile(os.path.join(path, intfile))]
-    int_files = sorted(ints, key=lambda x: int(re.search(r'\d+', x).group()))
+            intfile.endswith(".int") and os.path.isfile(os.path.join(path, intfile))]
+    int_files = sorted(ints, key=lambda x: int(re.search(r"\d+", x).group()))
 
     if not int_files:
         raise FileNotFoundError(f"No *.int files found in the directory '{path}'.")
@@ -348,81 +363,94 @@ def read_molinfo(path):
 
         for line in lines:
             if "Integration is" in line or "INTEGRATION IS" in line:
-                parts = re.findall(r'[A-Za-z]+|\d+', line.split()[-1].strip())
-                symbs.append(parts[-2])
-                atm_nums.append(parts[-1])
-            if "Restricted, closed-shell" in line or "Restricted Closed-Shell":
+                tokens = line.split()
+                parts = re.findall(r"[A-Za-z]+|\d+", " ".join(tokens[3:]))
+                if len(parts) >= 2:
+                    symbs.append(parts[-2])
+                    atm_nums.append(parts[-1])
+            if "Restricted, closed-shell" in line or "Restricted Closed-Shell" in line:
                 molinfo["calctype"] = "RHF"
-            if "Unrestricted" in line:
+            elif "Unrestricted" in line:
                 molinfo["calctype"] = "UHF"
-            elif "Restricted, natural" in line:
+            elif "Restricted, natural" in line or "Correlated" in line:
                 molinfo["calctype"] = "NO"
 
             if "The molecular energy from the wf" in line or "ENERGY" in line and not found_energy:
                 molinfo["energy"] = float(line.split()[-1])
                 found_energy = True
+            
+            if "Model:" in line:
+                molinfo["method"] = line.split("Model:")[1].strip()
+            if "Basis Set:" in line:
+                molinfo["basisset"] = line.split("Basis Set:")[1].strip()
+            if "Functional:" in line:
+                molinfo["xc"] = line.split("Functional:")[1].strip()
+            
+            if "Wfx File:" in line and "wfx_filename" not in molinfo:
+                molinfo["wfx_filename"] = line.split(":")[-1].strip()
+
     molinfo["symbols"] = symbs
     molinfo["atom_numbers"] = atm_nums
-    molinfo["geom"] = read_wfx_info(path)
+    molinfo["geom"] = read_wfx_info(path, molinfo.get("wfx_filename"))
 
     return molinfo
 
-def read_wfx_info(path):
+def read_wfx_info(path, wfx_filename=None):
     """
     Searches for a .wfx file in the given path or the previous path, reads the coordinates and charges,
     and stores them in molinfo["geom"].
 
     :param path: Directory path containing the file.
     :type path: str
-    :param molinfo: Dictionary to store molecular information.
-    :type molinfo: dict
-    :returns: NumPy array with <symbol> <x> <y> <z>.
+    :param wfx_filename: Optional filename of the .wfx file.
+    :type wfx_filename: str
+    :returns: NumPy array with coordinates.
     :rtype: numpy.ndarray
     """
     global wfxnotfound
 
-    # Look for a .wfx file in the given path (guard against empty or non-existing paths)
+    # Normalize paths
     if not path:
         path = os.getcwd()
+    path = os.path.normpath(path)
+    abs_path = os.path.abspath(path)
+    parent_path = os.path.dirname(abs_path)
 
-    # Prefer the .wfx files we write; fallback to legacy .wfx
-    if os.path.isdir(path):
-        wfx_files = [f for f in os.listdir(path) if f.endswith('.wfx')]
-        if len(wfx_files) > 1:
-            basename = os.path.basename(path).split('_')[0]
-            filtered = [f for f in wfx_files if f.startswith(basename)]
-            if len(filtered) == 1:
-                wfx_files = filtered
-    else:
-        wfx_files = []
+    # Possible locations to look for the file
+    # Prioritize current working directory and path parent
+    locations = [os.getcwd(), parent_path, path, abs_path]
+    # Remove duplicates while preserving order
+    unique_locations = []
+    for loc in locations:
+        if loc and loc not in unique_locations:
+            unique_locations.append(loc)
 
-    if not wfx_files or len(wfx_files) > 1:
-        # Try the previous path (parent directory) if no .wfx file is found
-        previous_path = os.path.dirname(path)
-        if not previous_path:
-            previous_path = os.getcwd()
+    wfx_file = None
 
-        if os.path.isdir(previous_path):
-            wfx_files = [f for f in os.listdir(previous_path) if f.endswith('.wfx')]
-            if len(wfx_files) > 1:
-                basename = os.path.basename(path).split('_')[0]
-                filtered = [f for f in wfx_files if f.startswith(basename)]
-                if len(filtered) == 1:
-                    wfx_files = filtered
+    # If we have a specific filename, look for it
+    if wfx_filename:
+        # It might be an absolute path already
+        if os.path.isabs(wfx_filename) and os.path.isfile(wfx_filename):
+            wfx_file = wfx_filename
         else:
-            wfx_files = []
+            # Look for this specific filename in all locations
+            base_wfx = os.path.basename(wfx_filename)
+            for loc in unique_locations:
+                if loc and os.path.isdir(loc):
+                    candidate = os.path.join(loc, base_wfx)
+                    if os.path.isfile(candidate):
+                        wfx_file = candidate
+                        break
 
-        if not wfx_files or len(wfx_files) > 1:
-            # Print the diagnostic message at most once per process
-            if not wfxnotfound:
-                print(" | Could not find .wfx file in", path, "\n | or", previous_path)
-                wfxnotfound = True
-            return None
 
-        path = previous_path
+    
+    if not wfx_file:
+        if not wfxnotfound:
+            print(f" | Could not find .wfx file in any of: {unique_locations}")
+            wfxnotfound = True
+        return None
 
-    wfx_file = os.path.join(path, wfx_files[0])
-    with open(wfx_file, 'r') as file:
+    with open(wfx_file, "r") as file:
         lines = file.readlines()
 
     start_coords = False
@@ -439,12 +467,11 @@ def read_wfx_info(path):
                 coordinates.append([float(x) for x in parts])
 
     if not coordinates:
-        raise ValueError("No coordinates found in the .wfx file.")
+        raise ValueError(f"No coordinates found in the .wfx file: {wfx_file}")
 
     # Combine symbols and coordinates into a NumPy array
     geom = np.array([coordinates[i] for i in range(len(coordinates))], dtype=object)
 
-    # Store the coordinates in molinfo["geom"]
     return geom
 
 
@@ -458,7 +485,7 @@ def get_partition(path, int_file):
     """
     with open(os.path.join(path, int_file), "r") as file:
         lines = file.readlines()
-    if "AIMInt" in lines[0]:
+    if "AIMInt" in lines[0] or "APOST3D" in lines[0]:
         return "qtaim"
     elif "ESIpy" in lines[0]:
         return lines[1].split()[1].strip()
@@ -494,8 +521,7 @@ def read_occs(file_path):
                 columns = line.split()
                 if len(columns) >= 3:
                     occ_mo_values.append(float(columns[2]))
-
-    return np.diag(occ_mo_values)
+    return np.array(occ_mo_values)
 
 def read_orbs(file_path):
     """
