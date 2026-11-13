@@ -1,7 +1,5 @@
 $READFCHK
 7_rmp2.fchk
-$RING
-1 2 3 4 5 6
+$FINDRING
 $PARTITION
 ALL
-

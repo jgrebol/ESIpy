@@ -1,0 +1,5 @@
+$READFCHK
+bz.fchk
+$FINDRING
+$PARTITION
+ALL

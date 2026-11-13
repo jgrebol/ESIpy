@@ -1,0 +1,5 @@
+$READFCHK
+13_anthracene.fchk
+$FINDRING
+$PARTITION
+ALL

@@ -1,0 +1,5 @@
+$READFCHK
+8_cisd.fchk
+$FINDRING
+$PARTITION
+ALL

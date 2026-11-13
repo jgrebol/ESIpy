@@ -1,7 +1,5 @@
 $READFCHK
 11_ump2.fchk
-$RING
-1 2
+$FINDRING
 $PARTITION
 ALL
-

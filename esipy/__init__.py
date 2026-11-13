@@ -1,4 +1,6 @@
 import os
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="pyscf.dft.libxc")
 _env = os.environ
 # Only set defaults if the user/program hasn't already set them (don't overwrite explicit choices)
 _env.setdefault("NUMEXPR_NUM_THREADS", "1")
@@ -16,6 +18,8 @@ import numpy as np
 from time import time
 
 from esipy.atomicfiles import write_aoms, read_aoms, read_molinfo
+from esipy.readfchk import readfchk
+from esipy.parser import convert_to_fchk, parse, parse_and_read
 from esipy.indicators import (
     compute_iring, sequential_mci, multiprocessing_mci,
     compute_av1245, compute_pdi, compute_flu, compute_boa, compute_homer, compute_homa, compute_bla,
@@ -38,8 +42,7 @@ class IndicatorsRest:
             rings (list): List of indices of the atoms in the ring connectivity. Can be a list of lists.
             mol (optional, obj): Molecule object "mol" from PySCF.
             mf (optional, obj): Calculation object "mf" from PySCF.
-            partition (optional, str): Type of Hilbert-space partition scheme.
-                Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
+            partition (optional, str): Type of Hilbert-space partition scheme. Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
             mci (optional, boolean): Whether to compute the MCI.
             av1245 (optional, boolean): Whether to compute the AV1245.
             flurefs (optional, dict): Custom FLU references.
@@ -221,7 +224,7 @@ class IndicatorsRest:
         :returns: The BOA value.
         :rtype: float
         """
-        return self._boa()[0]
+        return 2 * self._boa()[0]
 
     @property
     def boa_c(self):
@@ -231,7 +234,7 @@ class IndicatorsRest:
         :returns: The BOA_c value.
         :rtype: float
         """
-        return self._boa()[1]
+        return 2 * self._boa()[1]
 
     @property
     def homer(self):
@@ -343,8 +346,7 @@ class IndicatorsUnrest:
         rings (list): List of indices of the atoms in the ring connectivity. Can be a list of lists.
         mol (optional, obj): Molecule object "mol" from PySCF.
         mf (optional, obj): Calculation object "mf" from PySCF.
-        partition (optional, str): Type of Hilbert-space partition scheme.
-            Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
+        partition (optional, str): Type of Hilbert-space partition scheme. Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
         mci (optional, boolean): Whether to compute the MCI.
         av1245 (optional, boolean): Whether to compute the AV1245.
         flurefs (optional, dict): Custom FLU references.
@@ -901,8 +903,7 @@ class IndicatorsNatorb:
         mol (optional, obj): Molecule object "mol" from PySCF.
         mf (optional, obj): Calculation object "mf" from PySCF.
         myhf (optional, obj): Reference RHF object for IAO-Natural Orbitals calculation.
-        partition (optional, str): Type of Hilbert-space partition scheme.
-            Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
+        partition (optional, str): Type of Hilbert-space partition scheme. Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
         mci (optional, boolean): Whether to compute the MCI.
         av1245 (optional, boolean): Whether to compute the AV1245.
         flurefs (optional, dict): Custom FLU references.
@@ -1230,8 +1231,7 @@ class ESI:
     mol (optional, obj): Molecule object "mol" from PySCF.
     mf (optional, obj): Calculation object "mf" from PySCF.
     myhf (optional, obj): Reference RHF object for IAO-Natural Orbitals calculation.
-    partition (optional, str): Type of Hilbert-space partition scheme.
-        Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
+    partition (optional, str): Type of Hilbert-space partition scheme. Options are 'mulliken', 'lowdin', 'meta-lowdin', 'nao' and 'iao'.
     mci (optional, boolean): Whether to compute the MCI.
     av1245 (optional, boolean): Whether to compute the AV1245.
     flurefs (optional, dict): Custom FLU references.
@@ -1269,48 +1269,17 @@ class ESI:
         self.nocc = nocc
         self._effao_occ = None
         self._no_coeff = None
-        # The DM2 refers to the orbitals of the original 'mf', before the post-HF wrapping
+        self.mf = mf
+        # The DM2 refers to the orbitals of 'mf'
         self._dm2 = dm2
         self._dm2_mf = mf
         self._dm2_no = None
         self.is_fchk = is_fchk or getattr(mf, 'is_fchk', False)
-        
-        # Automatic post-HF wrapping
-        if mf is not None and hasattr(mf, 'make_rdm1') and not hasattr(mf, 'get_veff') and not self.is_fchk:
-            print(" | Post-HF PySCF object detected. Automatically generating Natural Orbitals...")
-            from pyscf import scf
-            mock_mol = mol if mol else getattr(mf, 'mol', getattr(getattr(mf, '_scf', None), 'mol', None))
-            class MockMF(scf.hf.RHF):
-                pass
-            mock = MockMF(mock_mol)
-            mock.is_fchk = False
-            
-            try:
-                from esipy.tools import get_natorbs
-                S = mock.mol.intor_symmetric('int1e_ovlp')
-                occ, coeff = get_natorbs(mf, S)
-                
-                idx = np.argsort(occ)[::-1]
-                mock.mo_occ = occ[idx]
-                mock.mo_coeff = coeff[:, idx]
-                mock.mo_occ[mock.mo_occ < 1e-12] = 0.0
-                mock.is_natorb = True
-                
-                # Make the mock act like an SCF object for compatibility
-                mock.get_ovlp = lambda *args, **kwargs: S
-                # Mock RDM1 using the NOs (in AO basis)
-                mock.make_rdm1 = lambda *args, **kwargs: np.dot(mock.mo_coeff * mock.mo_occ, mock.mo_coeff.T)
-                mock.e_tot = getattr(mf, 'e_tot', getattr(mf, 'e_corr', 0.0))
-                
-                self.mf = mock
-            except Exception as e:
-                raise RuntimeError(f"Could not automatically generate 1-RDM from post-HF object. Error: {e}")
-        else:
-            self.mf = mf
-            
         self.myhf = myhf
         self._molinfo = molinfo
         self._partition = format_partition(partition) if partition else None
+        if self._partition == "qtaim" and self.is_fchk:
+            raise ValueError("QTAIM partitioning is not integrated in ESIpy and cannot be computed from an FCHK file. It is only available via reading precalculated AOM files (READINT).")
         self._mci = mci
         self._av1245 = av1245
         # For custom references
