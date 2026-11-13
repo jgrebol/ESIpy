@@ -348,6 +348,7 @@ def format_partition(partition, iaoref='minao', iaopol=None, iaomix=None, heavy_
     elif p_method in ["iao-effao-lowdin", "iaoel", "iaol", "il", "iel", "iae"]: base = "iao-effao-lowdin"
     elif p_method in ["iao-effao-metalowdin", "iao-effao-meta-lowdin", "iaom", "im"]: base = "iao-effao-meta-lowdin"
     elif p_method in ["iao-effao-nao", "iaonao"]: base = "iao-effao-nao"
+    elif p_method in ["iao-prenao", "prenao", "iaoprenao"]: base = "iao-prenao"
     elif p_method in ["sym", "ias", "is", "iao-effao-symmetric"]: base = "iao-effao-symmetric"
     elif p_method in ["sps", "iao-effao-sps"]: base = "iao-effao-sps"
     elif p_method in ["spsa", "iao-effao-spsa"]: base = "iao-effao-spsa"
@@ -487,6 +488,109 @@ def get_natorbs(mf, S):
     return occ, coeff
 
 
+def make_dm2(mf):
+    """
+    Builds the spin-traced two-particle reduced density matrix (DM2) of a correlated PySCF calculation in the basis of
+    its molecular orbitals (mf.mo_coeff), with PySCF's convention dm2[p,q,r,s] = <p+ r+ s q>. For CASCI and CASSCF,
+    only the core and active orbitals are included.
+
+    :param mf: PySCF post-HF object (CASCI, CASSCF, CISD, CCSD or MP2).
+    :type mf: pyscf object
+    :returns: The DM2 in the MO basis.
+    :rtype: numpy.ndarray
+    """
+    from pyscf import mcscf
+
+    if isinstance(mf, mcscf.casci.CASBase):
+        dm1a, dm2a = mf.fcisolver.make_rdm12(mf.ci, mf.ncas, mf.nelecas)
+        nc = mf.ncore
+        dm2 = np.zeros((nc + mf.ncas,) * 4)
+        dm2[nc:, nc:, nc:, nc:] = dm2a
+        for i in range(nc):
+            for j in range(nc):
+                dm2[i, i, j, j] += 4
+                dm2[i, j, j, i] -= 2
+            dm2[i, i, nc:, nc:] += 2 * dm1a
+            dm2[nc:, nc:, i, i] += 2 * dm1a
+            dm2[i, nc:, nc:, i] -= dm1a.T
+            dm2[nc:, i, i, nc:] -= dm1a
+        return dm2
+    if hasattr(mf, 'make_rdm2'):
+        return mf.make_rdm2()
+    raise ValueError(" | Could not build the DM2 from 'mf'. Please provide it as an array")
+
+
+def dm2_energy(mol, mo_coeff, dm2, dm1=None):
+    """
+    Total energy from the DM2 in the basis of the first orbitals of mo_coeff:
+    E = E_nuc + sum_pq h_pq D_pq + 1/2 sum_pqrs (pq|rs) DM2_pqrs.
+    The DM1 is the partial trace of the DM2 if not provided (not valid for MP2, whose DM2 does not trace to the DM1).
+
+    :param mol: PySCF Mole object.
+    :type mol: pyscf.gto.Mole
+    :param mo_coeff: Molecular orbital coefficients in which the DM2 is expressed.
+    :type mo_coeff: numpy.ndarray
+    :param dm2: DM2 in the MO basis.
+    :type dm2: numpy.ndarray
+    :param dm1: DM1 in the same basis, optional.
+    :type dm1: numpy.ndarray
+    :returns: The total energy.
+    :rtype: float
+    """
+    from pyscf import ao2mo
+
+    n = dm2.shape[0]
+    mo = mo_coeff[:, :n]
+    if dm1 is None:
+        dm1 = np.einsum('pqrr->pq', dm2) / (mol.nelectron - 1)
+    h1 = mo.T @ (mol.intor('int1e_kin') + mol.intor('int1e_nuc')) @ mo
+    eri = ao2mo.restore(1, ao2mo.kernel(mol, mo), n)
+    return mol.energy_nuc() + np.einsum('pq,pq->', h1, dm1) + 0.5 * np.einsum('pqrs,pqrs->', eri, dm2)
+
+
+def rotate_dm2(dm2, U):
+    """
+    Changes the basis of the DM2: dm2'[a,b,c,d] = sum_pqrs dm2[p,q,r,s] U[p,a] U[q,b] U[r,c] U[s,d].
+    """
+    for _ in range(4):
+        dm2 = np.tensordot(dm2, U, axes=([0], [0]))
+    return dm2
+
+
+def build_di_matrix(aom, dm2=None):
+    """
+    Matrix with the localization indices in the diagonal and the delocalization indices off the diagonal. For
+    natural orbitals, the exact indices are obtained from the DM2 in the basis of the AOMs if provided,
+    LI_A = N_A^2 - sum DM2_pqrs S^A_pq S^A_rs and DI_AB = 2 (N_A N_B - sum DM2_pqrs S^A_pq S^B_rs),
+    and from the Fermi approximation (sqrt(n_p n_q)) otherwise.
+
+    :param aom: Atomic Overlap Matrices (AOMs) in the MO basis.
+    :type aom: list of matrices
+    :param dm2: DM2 in the basis of the AOMs (natural orbitals).
+    :type dm2: numpy.ndarray, optional
+    :returns: The LI and DI matrix.
+    :rtype: numpy.ndarray
+    """
+    wf = wf_type(aom)
+    if wf == "rest":
+        mat = 4 * np.einsum('aij,bji->ab', aom, aom)
+    elif wf == "unrest":
+        mat = 2 * np.einsum('aij,bji->ab', aom[0], aom[0]) + 2 * np.einsum('aij,bji->ab', aom[1], aom[1])
+    elif dm2 is None:
+        aom, occ = aom
+        mat = 2 * np.einsum('pq,apq,bqp->ab', np.sqrt(np.outer(occ, occ)), aom, aom)
+    else:
+        aom, occ = aom
+        n = len(occ)
+        N = np.einsum('p,app->a', occ, aom)
+        X = np.einsum('apq,pqrs,brs->ab', aom, dm2[:n, :n, :n, :n], aom, optimize=True)
+        mat = 2 * (np.outer(N, N) - X)
+        np.fill_diagonal(mat, N ** 2 - np.diag(X))
+        return mat
+    np.fill_diagonal(mat, np.diag(mat) / 2)
+    return mat
+
+
 def build_eta(mol):
     """
     Builds the eta matrices for the partitioning. They consist of a block-truncated matrix with all elements being
@@ -573,6 +677,8 @@ def build_iao_aoms(mol, coeffs, partition, mf=None, S=None, w_override=None, c_f
             C_iao, pmol = iao_mod.iao(mol, coeffs, source_basis=ref_bas, heavy_only=local_heavy_only)
     elif p_base in ["iao-autosad", "iao-autosad2"]:
         C_iao, pmol = iao_mod.autosad(mol, coeffs, polarized=False, heavy_only=local_heavy_only, mf=mf, source_basis=ref_bas)
+    elif p_base == "iao-prenao":
+        C_iao, pmol = iao_mod.effao(mol, coeffs, mode="prenao", polarized=False, heavy_only=local_heavy_only, mf=mf)
     elif p_base.startswith("iao-effao"):
         mode = p_base.replace("iao-effao-", "").replace("iao-effao", "net")
         if mode == "symmetric": mode = "sym"

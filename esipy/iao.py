@@ -204,11 +204,24 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
             mf_scf = mf
             if mf is not None and not isinstance(mf, scf.hf.SCF) and hasattr(mf, '_scf') and isinstance(mf._scf, scf.hf.SCF):
                 mf_scf = mf._scf
-            T_orth = lo.orth_ao(mf_scf if mode == "nao" else mol, method=method, s=S_mol)
+            if method == "lowdin":  # S^-1/2, as the 'lowdin' partition in make_aoms (no pre-orthogonalization)
+                T_orth = lo.orth.lowdin(S_mol)
+            else:
+                T_orth = lo.orth_ao(mf_scf if mode == "nao" else mol, method=method, s=S_mol)
             T_inv = np.linalg.inv(T_orth); P_mol = T_inv @ P_mol @ T_inv.T; S_mol = np.eye(mol.nao)
 
         elif mode == "gross":
             PS = P_mol @ S_mol; P_mol = (PS + PS.T) * 0.5; S_mol = np.eye(mol.nao)
+        elif mode == "prenao":  # pyscf's pre-NAOs: per atom and l, averaged (SPS)_AA c = w S_AA c
+            from pyscf.lo import nao as lo_nao
+            occ_pn, c_pn = lo_nao._prenao_sub(mol, S_mol @ P_mol @ S_mol, S_mol)
+            ao_l = np.concatenate([[mol.bas_angular(b)] * (mol.ao_loc_nr()[b + 1] - mol.ao_loc_nr()[b]) for b in range(mol.nbas)])
+            ao_shell = np.zeros(mol.nao, dtype=int)  # row of the AO in pyscf's (radial function, m) layout = rank of its pre-NAO
+            for b0, b1, _, _ in mol.aoslice_by_atom():
+                for l in set(mol._bas[b0:b1, gto.ANG_OF]):
+                    idx = np.hstack([np.arange(mol.ao_loc_nr()[b], mol.ao_loc_nr()[b + 1]) for b in range(b0, b1) if mol.bas_angular(b) == l])
+                    for k, row in enumerate(idx.reshape(-1, (l + 1) * (l + 2) // 2 if mol.cart else 2 * l + 1)):
+                        ao_shell[row] = k
     aoslices = mol.aoslice_by_atom(); col_idx = 0
     for ia in range(mol.natm):
         sym = mol.atom_pure_symbol(ia); p0, p1 = aoslices[ia, 2], aoslices[ia, 3]
@@ -232,7 +245,10 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
             elif mode == "sps": mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1]; ovlp_block = np.eye(p1 - p0)
             elif mode == "spsa": mat_block = (S_mol @ P_mol @ S_mol)[p0:p1, p0:p1]; ovlp_block = S_mol[p0:p1, p0:p1]
             else: mat_block = P_mol[p0:p1, p0:p1]; ovlp_block = S_mol[p0:p1, p0:p1]
-            w, c, l_map, shell_map = spherical_average(mol, ia, mat_block, ovlp_block)
+            if mode == "prenao":  # columns p0:p1 of the pre-NAOs are the ones of atom ia (eigenvalues in decreasing order)
+                w, c, l_map, shell_map = occ_pn[p0:p1], c_pn[p0:p1, p0:p1], ao_l[p0:p1], ao_shell[p0:p1]
+            else:
+                w, c, l_map, shell_map = spherical_average(mol, ia, mat_block, ovlp_block)
         final_idx = []
         unique_l = sorted(target_l_counts.keys())
         for l in unique_l:
@@ -249,6 +265,11 @@ def get_effaos(mol, coeffs, free_atom=True, mode='net', polarized=False, heavy_o
         if not hasattr(mol, '_effao_dict_tmp'):
             mol._effao_dict_tmp = {}
         mol._effao_dict_tmp[atom_label] = np.sort(w_keep)[::-1]
+        if not free_atom:  # every effAO of the atom (kept or not): occupation, AO coefficients, l, shell
+            v_all = np.zeros((mol.nao, c.shape[1])); v_all[p0:p1] = c
+            mol.effao_all = getattr(mol, 'effao_all', {})
+            mol.effao_all[atom_label] = dict(occ=w, vec=T_orth @ v_all if T_orth is not None else v_all, l=l_map,
+                                             shell=shell_map, kept=np.isin(np.arange(len(w)), final_idx))
     if T_orth is not None:
         veps_block = T_orth @ veps_block
     if hasattr(mol, '_effao_dict_tmp'):

@@ -3,7 +3,7 @@ import numpy as np
 from esipy.tools import format_partition
 
 
-def info_no(aom, molinfo, nfrags=0):
+def info_no(aom, molinfo, nfrags=0, edm2=None):
     """
     Prints the initial information for correlated wavefunctions.
 
@@ -11,6 +11,8 @@ def info_no(aom, molinfo, nfrags=0):
     :type aom: list of matrices or str
     :param molinfo: Contains the information about the molecule and the calculation.
     :type molinfo: dict
+    :param edm2: Total energy from the DM2, if provided.
+    :type edm2: float, optional
     """
 
     aom, occ = aom
@@ -39,13 +41,16 @@ def info_no(aom, molinfo, nfrags=0):
         print(" | Total energy:          {}".format(molinfo["energy"]))
     else:
         print(" | Total energy:             {:<13f}".format(molinfo["energy"]))
+    # Internal check: the DM2 must reproduce the total energy (not printed unless it fails)
+    if edm2 is not None and not isinstance(molinfo["energy"], str) and abs(edm2 - molinfo["energy"]) > 1e-5:
+        print(" | WARNING: the energy from the DM2 ({:.6f}) differs from the total energy".format(edm2))
     print(" ------------------------------------------- ")
     trace = np.sum([np.trace(matrix) for matrix in aom][:len(aom)-nfrags])
     print(" | Tr(Enter):    {:.13f}".format(trace))
     print(" ------------------------------------------- ")
 
 
-def deloc_no(aom, molinfo, fragmap={}):
+def deloc_no(aom, molinfo, fragmap={}, di_matrix=None):
     """
     Population analysis, localization and delocalization indices for correlated wavefunctions.
 
@@ -53,6 +58,8 @@ def deloc_no(aom, molinfo, fragmap={}):
     :type aom: list of matrices or str
     :param molinfo: Contains the information about the molecule and the calculation.
     :type molinfo: dict
+    :param di_matrix: Exact LIs (diagonal) and DIs (off-diagonal) from the DM2, if provided.
+    :type di_matrix: numpy.ndarray, optional
     """
 
     aom, occ = aom
@@ -108,27 +115,36 @@ def deloc_no(aom, molinfo, fragmap={}):
         Ntot, Ntot-lifstot, dixstot, lifstot, lixstot))
     print(" ---------------------------------------------------------- ")
 
-    print(" ---------------------------------- ")
-    print(" |    Pair       DI(F)     DI(X) ")
-    print(" ---------------------------------- ")
+    # Exact LIs and DIs from the DM2 (if provided) are shown as an extra column, DI(DM2)
+    dm2 = di_matrix is not None
+    line = " ---------------------------------- " if not dm2 else " -------------------------------------------- "
+    print(line)
+    print(" |    Pair       DI(F)     DI(X) " + ("  DI(DM2)" if dm2 else ""))
+    print(line)
     for i in range(len(aom)):
         for j in range(i, len(aom)):
             if symbols[i] == "FF" or symbols[j] == "FF":
                 continue
             if i == j:
-                print(" | {!s:>2}{:>2}-{!s:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
-                    symbols[i], i + 1, symbols[j], j + 1, lifs[i], lixs[i]))
+                vals = [lifs[i], lixs[i]]
             else:
-                dif = 2 * np.sum(W_F * aom[i] * aom[j].T)
-                dix = np.sum(W_X * aom[i] * aom[j].T)
-                if symbols[i] != "FF" and symbols[j] != "FF":  # Exclude FF atoms from contributing
-                    print(" | {!s:>2}{:>2}-{!s:>2}{:>2}  {:>8.4f}  {:>8.4f}".format(
-                        symbols[i], i + 1, symbols[j], j + 1, dif, dix))
-    print(" ---------------------------------- ")
-    print(" |   TOT:     {:>8.4f}  {:>8.4f}  ".format(Ntot, lixstot + dixstot))
-    print(" |   LOC:     {:>8.4f}  {:>8.4f} ".format(lifstot, lixstot))
-    print(" | DELOC:     {:>8.4f}  {:>8.4f} ".format(difstot, dixstot))
-    print(" ---------------------------------- ")
+                vals = [2 * np.sum(W_F * aom[i] * aom[j].T), np.sum(W_X * aom[i] * aom[j].T)]
+            if dm2:
+                vals.append(di_matrix[i, j])
+            print(" | {!s:>2}{:>2}-{!s:>2}{:>2}".format(symbols[i], i + 1, symbols[j], j + 1)
+                  + "".join("  {:>8.4f}".format(v) for v in vals))
+    print(line)
+    if dm2:
+        listot = np.trace(di_matrix)
+        distot = (np.sum(di_matrix) - listot) / 2
+        print(" |   TOT:     {:>8.4f}  {:>8.4f}  {:>8.4f}".format(Ntot, lixstot + dixstot, listot + distot))
+        print(" |   LOC:     {:>8.4f}  {:>8.4f}  {:>8.4f}".format(lifstot, lixstot, listot))
+        print(" | DELOC:     {:>8.4f}  {:>8.4f}  {:>8.4f}".format(difstot, dixstot, distot))
+    else:
+        print(" |   TOT:     {:>8.4f}  {:>8.4f}  ".format(Ntot, lixstot + dixstot))
+        print(" |   LOC:     {:>8.4f}  {:>8.4f} ".format(lifstot, lixstot))
+        print(" | DELOC:     {:>8.4f}  {:>8.4f} ".format(difstot, dixstot))
+    print(line)
 
 
 def arom_no(rings, molinfo, indicators, mci=False, av1245=False, partition=None, flurefs=None, homarefs=None,

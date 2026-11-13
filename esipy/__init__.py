@@ -24,6 +24,7 @@ from esipy.indicators import (
 )
 from esipy.make_aoms import make_aoms
 from esipy.tools import (mol_info, format_partition, load_file, format_short_partition, wf_type, save_file,
+                         make_dm2, dm2_energy, rotate_dm2, build_di_matrix, get_natorbs,
                          build_connec_rest, build_connec_unrest, build_connec_no, find_rings, process_fragments, build_connectivity)
 
 class IndicatorsRest:
@@ -1244,6 +1245,10 @@ class ESI:
     savemolinfo (optional): Name where to save the molecular information dictionary in binary.
     readpath (optional, str): Path to read the AOMs. Default is '.'.
     indicators (obj): Object containing the indicators of the calculation. Generated in the initialization.
+    nocc (optional, int): Number of natural orbitals used for correlated wavefunctions.
+    dm2 (optional, bool or array): For correlated wavefunctions, computes the exact LIs and DIs from the DM2. If True,
+        it is built from 'mf'. If an array, it must be the DM2 in the basis of mf.mo_coeff, as returned by PySCF's
+        make_rdm2() (with the core orbitals for CASCI/CASSCF).
 
     Methods:
     readaoms(): Reads the AOMs from a directory in AIMAll and ESIpy format.
@@ -1255,7 +1260,7 @@ class ESI:
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
                  ncores=1, save=None, readpath='.', read=False,
-                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None, is_fchk=False, verbose=None, nocc=None, **kwargs):
+                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None, is_fchk=False, verbose=None, nocc=None, dm2=None, **kwargs):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
@@ -1264,6 +1269,10 @@ class ESI:
         self.nocc = nocc
         self._effao_occ = None
         self._no_coeff = None
+        # The DM2 refers to the orbitals of the original 'mf', before the post-HF wrapping
+        self._dm2 = dm2
+        self._dm2_mf = mf
+        self._dm2_no = None
         self.is_fchk = is_fchk or getattr(mf, 'is_fchk', False)
         
         # Automatic post-HF wrapping
@@ -1667,6 +1676,17 @@ class ESI:
         return None
 
     @property
+    def effao_all(self):
+        """
+        Every effAO of each atom, kept in the reference or not: {'O1': {'occ', 'vec' (AO basis), 'l', 'shell', 'kept'}}.
+
+        :returns: Dictionary per atom or None.
+        :rtype: dict or None
+        """
+        if self.aom is not None:
+            return getattr(self.mol, 'effao_all', None)
+
+    @property
     def effao_occ(self):
         """
         Get the EFFAO occupations dictionary per atom (1-indexed, e.g. {'Li1': [...], 'H2': [...]}).
@@ -1712,6 +1732,49 @@ class ESI:
         Alias for no_coeff for backwards compatibility.
         """
         return self.no_coeff
+
+    @property
+    def dm2(self):
+        """
+        Get the DM2 in the basis of the molecular orbitals of 'mf', as returned by PySCF's make_rdm2().
+        It is built from 'mf' if dm2=True.
+
+        :returns: The DM2 or None.
+        :rtype: np.ndarray or None
+        """
+        if self._dm2 is True:
+            self._dm2 = make_dm2(self._dm2_mf)
+        if self._dm2 is None or self._dm2 is False:
+            return None
+        return self._dm2
+
+    @property
+    def dm2_no(self):
+        """
+        Get the DM2 in the natural-orbital basis of the AOMs.
+
+        :returns: The DM2 or None.
+        :rtype: np.ndarray or None
+        """
+        if self._dm2_no is None and self.dm2 is not None:
+            if self.no_coeff is None or wf_type(self.aom) != "no":
+                raise ValueError(" | The DM2 can only be used with natural orbitals computed from 'mol' and 'mf'")
+            n = len(self.aom[1])
+            mo = self._dm2_mf.mo_coeff[:, :len(self.dm2)]
+            S = self.mol.intor_symmetric('int1e_ovlp')
+            self._dm2_no = rotate_dm2(self.dm2, mo.T @ S @ self.no_coeff[:, :n])
+        return self._dm2_no
+
+    @property
+    def di_matrix(self):
+        """
+        Get the matrix with the localization indices in the diagonal and the delocalization indices off the diagonal.
+        For correlated wavefunctions, they are exact if the DM2 is provided and use the Fermi approximation otherwise.
+
+        :returns: The LI and DI matrix.
+        :rtype: np.ndarray
+        """
+        return build_di_matrix(self.aom, self.dm2_no)
 
     @property
     def partition(self):
@@ -1911,8 +1974,15 @@ class ESI:
 
         elif wf_type(self.aom) == "no":
             from esipy.no import info_no, deloc_no, arom_no
-            info_no(self.totalaom, self.molinfo, self.nfrags)
-            deloc_no(self.totalaom, self.molinfo, self.fragmap)
+            edm2 = None
+            if self.dm2 is not None:
+                S = self.mol.intor_symmetric('int1e_ovlp')
+                mo = self._dm2_mf.mo_coeff[:, :len(self.dm2)]
+                occ, coeff = get_natorbs(self._dm2_mf, S)
+                U = mo.T @ S @ coeff
+                edm2 = dm2_energy(self.mol, mo, self.dm2, (U * occ) @ U.T)
+            info_no(self.totalaom, self.molinfo, self.nfrags, edm2=edm2)
+            deloc_no(self.totalaom, self.molinfo, self.fragmap, di_matrix=self.di_matrix if self.dm2 is not None else None)
             if self.rings:
                 arom_no(rings=self.rings, molinfo=self.molinfo, indicators=self.indicators, mci=self.mci,
                     av1245=self.av1245,
