@@ -762,9 +762,8 @@ def find_rings(connec, minlen=6, maxlen=6, exclude=None):
         return True
 
     all_paths = []
-    starts = find_middle_nodes(connec)
-    if not starts:
-        starts = [1]
+    # Branching atoms first; in a bare monocycle every atom has two neighbours
+    starts = find_middle_nodes(connec) or [k for k, v in connec.items() if len(v) >= 2]
     for start in starts:
         for path in dfs(connec, minlen, maxlen, start):
             if unique(path, all_paths):

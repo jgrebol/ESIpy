@@ -1469,7 +1469,8 @@ class ESI:
             endrings = time()
 
             if not self._rings:
-                print(" | WARNING: Could not find any ring. Please check the minimum and maximum ring lengths.")
+                print(" | WARNING: Could not find any ring of {}-{} atoms with DI > {} between neighbours.".format(self.minlen, self.maxlen, self.rings_thres))
+                print(" |          Check $MINLEN/$MAXLEN, $RINGTHRES (or rings_thres) and $EXCLUDE.")
                 self.totalaom = self.aom
                 self.nfrags = 0
                 self.fragmap = {}
@@ -1572,7 +1573,8 @@ class ESI:
 
         if self.read:
             path = os.path.join(self.readpath, "{}_{}.aoms".format(self.molinfo.get('molname', 'mol'), self.partition))
-            if not os.path.exists(path):
+            has_ints = os.path.isdir(self.readpath) and any(f.endswith('.int') for f in os.listdir(self.readpath))
+            if not os.path.exists(path) and not has_ints:
                 print(" | WARNING: Expected AOM file {} was not found.".format(path))
 
     @property

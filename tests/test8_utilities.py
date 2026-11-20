@@ -26,6 +26,40 @@ class TestUtilities(unittest.TestCase):
         self.assertEqual(len(rings), 1)
         self.assertCountEqual(rings[0], [1, 2, 3, 4, 5, 6])
 
+    def test_find_rings_monocycle_without_atom1(self):
+        # Zn6O6 ring around a central atom 1 with no bonds (Cl@Zn6O6-): every ring atom has two neighbours
+        ring = [2, 9, 3, 8, 7, 13, 6, 12, 5, 11, 4, 10]
+        connec = {a: [ring[i - 1], ring[(i + 1) % len(ring)]] for i, a in enumerate(ring)}
+        rings = find_rings(connec, minlen=6, maxlen=12)
+        self.assertEqual(len(rings), 1)
+        self.assertCountEqual(rings[0], ring)
+
+    def test_iao_reference_basis(self):
+        from pyscf import scf
+        from pyscf.lo import iao, orth
+        mol = gto.M(atom='O 0 0 0.1193; H 0 0.7632 -0.4770; H 0 -0.7632 -0.4770', basis='6-31g', verbose=0)
+        mf = scf.RHF(mol).run()
+        S = mol.intor('int1e_ovlp')
+        C = mf.mo_coeff[:, mf.mo_occ > 0]
+        aoms = {}
+        for ref in ('minao', 'sto-3g'):
+            esi = esipy.ESI(mol=mol, mf=mf, partition='iao' if ref == 'minao' else f'iao {ref}')  # dev-iao: basis in the partition
+            U = orth.vec_lowdin(iao.iao(mol, C, minao=ref), S)
+            pmol = mol.copy(); pmol.build(False, False, basis=ref)
+            direct = [C.T @ S @ U[:, a:b] @ U[:, a:b].T @ S @ C for a, b in pmol.aoslice_by_atom()[:, 2:]]
+            for x, y in zip(esi.aom, direct):
+                np.testing.assert_allclose(x, y, atol=1e-10)
+            aoms[ref] = esi.aom
+        self.assertGreater(abs(np.trace(aoms['minao'][0]) - np.trace(aoms['sto-3g'][0])), 1e-4)
+
+    def test_input_ringthres_iaoref(self):
+        from esipy.input import ESIInput
+        inp = ESIInput.from_string("$READFCHK\nx.fchk\n$RINGTHRES\n0.2\n$RING\n1 2 3 4 5 6\n$IAOREF\nsto-3g\n")
+        self.assertAlmostEqual(inp.rings_thres, 0.2)
+        self.assertEqual(inp.iaoref, 'sto-3g')
+        self.assertEqual(inp.rings, [[1, 2, 3, 4, 5, 6]])  # $RINGTHRES is not taken as a $RING block
+        self.assertEqual(ESIInput.from_string("$READFCHK\nx.fchk\n").iaoref, 'minao')
+
     def test_find_di(self):
         # Create dummy AOMs
         aom = [np.eye(2), np.zeros((2,2))]

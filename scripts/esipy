@@ -63,6 +63,11 @@ def main():
                 flurefs[default_keys[i]] = v
 
     partitions = inp.partition if inp.partition else ['meta-lowdin']
+    # $IAOREF: reference basis for IAO-type partitions that do not name one ("IAO" -> "IAO sto-3g")
+    iaoref = (inp.iaoref or 'minao').strip()
+    if iaoref.lower() != 'minao':
+        partitions = [p + ' ' + iaoref if len(p.split()) == 1 and 'iao' in format_partition(p) else p
+                      for p in partitions]
 
     if inp.mci is True:
         mci_kwargs = {'mci': True}
@@ -89,6 +94,10 @@ def main():
     minlen = inp.minlen if inp.minlen else 6
     maxlen = inp.maxlen if inp.maxlen else 12
     nocc = inp.nocc
+    # $RINGTHRES: DI threshold for the ring search
+    extra = {}
+    if inp.rings_thres is not None:
+        extra['rings_thres'] = inp.rings_thres
 
     if findrings:
         rings = "find"
@@ -127,18 +136,18 @@ def main():
             aom = inp.aomname + '_' + f_partition + '.aoms'
             molinfo = inp.aomname + '_' + f_partition + '.molinfo'
             esi = ESI(aom=aom, rings=rings, partition=partition, molinfo=molinfo,
-                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, nocc=nocc, **mci_kwargs, ncores=ncores)
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, nocc=nocc, **mci_kwargs, ncores=ncores, **extra)
         elif inp.mode == 'readint':
             from esipy.tools import format_short_partition
             shortpart = format_short_partition(partition)
             cand_dir = inp.readpath + '_atomicfiles' if shortpart == "qtaim" else inp.readpath + '_' + shortpart + '_atomicfiles'
             partition_dir = cand_dir if os.path.exists(cand_dir) else (inp.readpath if os.path.exists(inp.readpath) else os.getcwd())
             esi = ESI(read=True, readpath=partition_dir, rings=rings, partition=partition,
-                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, nocc=nocc, **mci_kwargs, ncores=ncores)
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, nocc=nocc, **mci_kwargs, ncores=ncores, **extra)
             esi.readaoms()
         else:
             esi = ESI(mol=mol, mf=mf, rings=rings, partition=partition, flurefs=flurefs,
-                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, nocc=nocc, **mci_kwargs, ncores=ncores)
+                      av1245=av1245, save=save_name, minlen=minlen, maxlen=maxlen, exclude=exclude, nocc=nocc, **mci_kwargs, ncores=ncores, **extra)
         esi.print()
 
         if inp.writeaoms:

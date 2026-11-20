@@ -44,9 +44,9 @@ def compute_iring_no(arr, aom):
     aom_list, occ = aom
     product = np.identity(np.asarray(aom_list[0]).shape[0])
     for i in arr:
-        # Fulton approach: diag(occ) @ AOM[i-1]
-        product = np.dot(product, np.sqrt(occ)[:, None] * aom_list[i - 1])
-    return (2**(len(arr)/2)) * np.trace(product)
+        # As ESI-3D: Iring = tr(N S_1 N S_2 ... N S_n), N = diag(occupations)
+        product = np.dot(product, np.asarray(occ)[:, None] * aom_list[i - 1])
+    return np.trace(product)
 
 
 ########### MCI ###########

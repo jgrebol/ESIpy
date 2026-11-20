@@ -2,7 +2,7 @@
  3
 </Number of Nuclei>
 <Number of Occupied Molecular Orbitals>
- 7
+ 5
 </Number of Occupied Molecular Orbitals>
 <Number of Electrons>
  10
@@ -30,6 +30,11 @@
   0.000000000000e+00 -1.442312677587e+00 -9.014881785454e-01
 </Nuclear Cartesian Coordinates>
 <Molecular Orbital Occupation Numbers>
+  1.999996833071e+00
+  1.996300187855e+00
+  1.995700011504e+00
+  1.971390559822e+00
+  1.969068031705e+00
 </Molecular Orbital Occupation Numbers>
 <Molecular Orbital Spin Types>
  Alpha and Beta
@@ -37,12 +42,8 @@
  Alpha and Beta
  Alpha and Beta
  Alpha and Beta
- Alpha and Beta
- Alpha and Beta
 </Molecular Orbital Spin Types>
 <Molecular Orbital Energies>
-  0.000000000000e+00
-  0.000000000000e+00
   0.000000000000e+00
   0.000000000000e+00
   0.000000000000e+00

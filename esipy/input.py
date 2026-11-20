@@ -1,7 +1,7 @@
 import os
 """
 Input parser for ESIpy custom input blocks.
-Supports keywords: $READFCHK, $RING, $PARTITION, $FLUREF, $FINDRINGS, $AV1245, $MINLEN, $MAXLEN
+Supports keywords: $READFCHK, $RING, $PARTITION, $FLUREF, $FINDRINGS, $AV1245, $MINLEN, $MAXLEN, $RINGTHRES, $IAOREF
 """
 
 
@@ -37,6 +37,7 @@ class ESIInput:
         self.heavy_only = True
         self.full_basis = False
         self.nocc = None
+        self.rings_thres = None  # $RINGTHRES: minimum DI for two atoms to be connected when searching rings
 
 
     @staticmethod
@@ -102,6 +103,9 @@ class ESIInput:
                 obj.heavy_only = False
             elif line.startswith('$FULLBASIS'):
                 obj.full_basis = True
+            elif line.startswith('$RINGTHRES'):
+                i += 1
+                obj.rings_thres = float(lines[i])
             elif line.startswith('$RING') or line.startswith('$RINGS'):
                 obj.rings = []
                 i += 1

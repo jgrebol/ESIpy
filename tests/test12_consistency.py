@@ -75,7 +75,12 @@ class ConsistencyTest(unittest.TestCase):
         aom = esi.aom
         occ = np.random.default_rng(1).uniform(0, 2, aom[0].shape[0])
         self.assertAlmostEqual(2 * compute_iring([1, 2], aom), 2 * find_di(aom, 1, 2), places=10)
-        self.assertAlmostEqual(compute_iring_no([1, 2], [aom, occ]), find_di_no([aom, occ], 1, 2), places=10)
+        # NOs follow ESI-3D: the 2-centre Iring is DI(X) = sum_ij n_i n_j S1_ij S2_ji (DI(F) uses sqrt(n_i n_j))
+        di_x = np.einsum('i,ij,j,ji->', occ, aom[0], occ, aom[1])
+        self.assertAlmostEqual(compute_iring_no([1, 2], [aom, occ]), di_x, places=10)
+        # ... and reduces to the single-determinant Iring when all occupations are 2
+        two = np.full(aom[0].shape[0], 2.0)
+        self.assertAlmostEqual(compute_iring_no([1, 2, 3], [aom, two]), 2 * compute_iring([1, 2, 3], aom), places=10)
         self.assertAlmostEqual(2 * find_di([aom, occ], 1, 2), find_di_no([aom, occ], 1, 2), places=10)
 
 
