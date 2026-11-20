@@ -1,7 +1,7 @@
 import os
 """
 Input parser for ESIpy custom input blocks.
-Supports keywords: $READFCHK, $RING, $PARTITION, $FLUREF, $FINDRINGS, $AV1245, $MINLEN, $MAXLEN
+Supports keywords: $READFCHK, $RING, $PARTITION, $FLUREF, $FINDRINGS, $AV1245, $MINLEN, $MAXLEN, $RINGTHRES, $IAOREF
 """
 
 
@@ -31,6 +31,8 @@ class ESIInput:
         self.aomname = None
         self.ncores = None
         self.exclude = []
+        self.rings_thres = None  # $RINGTHRES: minimum DI for two atoms to be connected when searching rings
+        self.iaoref = 'minao'    # $IAOREF: minimal reference basis of the IAO partition
 
 
     @staticmethod
@@ -77,6 +79,9 @@ class ESIInput:
                 if i < len(lines):
                     obj.aomname = lines[i]
 
+            elif line.startswith('$RINGTHRES'):
+                i += 1
+                obj.rings_thres = float(lines[i])
             elif line.startswith('$RING') or line.startswith('$RINGS'):
                 obj.rings = []
                 i += 1
@@ -149,6 +154,9 @@ class ESIInput:
             elif line.startswith('$MAXLEN'):
                 i += 1
                 obj.maxlen = int(lines[i])
+            elif line.startswith('$IAOREF'):
+                i += 1
+                obj.iaoref = lines[i].split()[0]
             elif line.startswith('$SAVE'):
                 obj.save = True
                 if obj.mode in ('fchk', 'readfile') and obj.fchk_file:

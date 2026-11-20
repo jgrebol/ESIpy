@@ -6,7 +6,7 @@ from pyscf import scf
 
 from esipy.tools import save_file, format_partition, get_natorbs, build_eta
 
-def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
+def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False, iaoref='minao'):
     """
     Build the Atomic Overlap Matrices (AOMs) in the Molecular Orbitals basis. 
     """
@@ -23,10 +23,10 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
         from pyscf.lo import orth
         from pyscf import gto
         
-        pmol = mol.copy(); pmol.build(False, False, basis='minao')
+        pmol = mol.copy(); pmol.build(False, False, basis=iaoref)
         
         # Build IAO from coeffs (which might be truncated to n_ref for natural orbitals)
-        C_iao = pyscf_iao.iao(mol, coeffs, minao='minao')
+        C_iao = pyscf_iao.iao(mol, coeffs, minao=iaoref)
         U = orth.vec_lowdin(C_iao, S)
         U_ao = S @ U
         proj_c = c_full if c_full is not None else coeffs
@@ -116,7 +116,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
         else:
             # IAO logic
             from pyscf import gto
-            pmol = mol.copy(); pmol.build(False, False, basis='minao')
+            pmol = mol.copy(); pmol.build(False, False, basis=iaoref)
             n_ref = pmol.nao
             
             # Truncate natural orbitals to minimal basis size if is_natorb
@@ -214,7 +214,7 @@ def make_aoms(mol, mf, partition, myhf=None, save=None, is_fchk=False):
         else:
             # IAO logic
             from pyscf import gto
-            pmol = mol.copy(); pmol.build(False, False, basis='minao')
+            pmol = mol.copy(); pmol.build(False, False, basis=iaoref)
             n_ref = pmol.nao
             
             if is_natorb:

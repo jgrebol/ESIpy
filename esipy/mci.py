@@ -73,9 +73,9 @@ def _kernel_exact(args):
 def _prep_matrices(arr, aom):
     """Normalize input into list of matrices, handling NO tuples."""
     if isinstance(aom, (tuple, list)) and len(aom) == 2 and not isinstance(aom[0], np.ndarray):
-        # For Natural Orbitals: Pre-multiply Occ @ AOM
+        # For Natural Orbitals: Pre-multiply Occ @ AOM, as ESI-3D (S_ij * sqrt(n_i n_j) / 2 per AOM)
         real_aoms, occ = aom
-        return [np.sqrt(occ)[:, None] * real_aoms[idx - 1] for idx in arr]
+        return [np.asarray(occ)[:, None] * real_aoms[idx - 1] for idx in arr]
     return [aom[idx - 1] for idx in arr]
 
 
@@ -117,7 +117,8 @@ def compute_mci(arr, aom, partition='mulliken', n_cores=None):
     # Normalization
     # SD-wf is 2**(n-1), but we double count perms in non-symmetric cases
     is_sd = wf_type(aom) in ["rest", "unrest"]
-    prefactor = 2 ** (n - 2) if is_sd else 2 ** (n / 2 - 1)
+    # NOs: products of occ*AOM already carry 2**n for doubly occupied orbitals
+    prefactor = 2 ** (n - 2) if is_sd else 0.5
 
     return prefactor * total_trace
 
