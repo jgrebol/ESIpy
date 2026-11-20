@@ -1,0 +1,7 @@
+include README.md LICENSE requirements.txt
+recursive-include esipy *.py
+prune tests
+prune docs
+prune examples
+prune joan
+global-exclude *.pyc *.swp __pycache__

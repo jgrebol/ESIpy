@@ -149,8 +149,8 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
 
     if isinstance(aom, str):
         aom = load_file(aom)
-    if ring is None:
-        pass
+    if not ring:
+        ring = None
     elif isinstance(ring[0], int):
         ring = [ring]
 
@@ -170,7 +170,7 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
         nalpha = nbeta = [np.trace(aom) for aom in aom]
 
     elif wf == "no":
-        nalpha = nbeta = [float(np.trace(np.dot(np.diag(occ), aom))) for aom in aom]
+        nalpha = nbeta = [0.5 * float(np.trace(np.dot(np.diag(occ), aom))) for aom in aom]  # spin-summed occupations
 
     # Creating a new directory for the calculation
 
@@ -214,9 +214,12 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
                 f.write(" Using NAO atomic definition\n")
             elif partition == "iao":
                 f.write(" Using IAO atomic definition\n")
-            f.write(" Single-determinant wave function\n")
+            elif partition:
+                f.write(" Using {} atomic definition\n".format(partition.upper()))
+            f.write(" Correlated wave function (natural orbitals)\n" if wf == "no" else " Single-determinant wave function\n")
             f.write(" Molecular SCF ENERGY (AU)  =       {:.11f}\n\n".format(mf.e_tot))
-            f.write(" INTEGRATION IS OVER ATOM  {}\n".format(titles[i]))
+            f.write(" AIMInt-compatible layout (readable by ESI-3D)\n")
+            f.write(" Integration is over atom {}{}\n".format(mol.atom_symbol(i), atom_numbers[i]))
             f.write(" RESULTS OF THE INTEGRATION\n")
             if wf == "unrest":
                 f.write("          N   {:.10E}    NET CHARGE 0.0000000000E+00\n".format(
@@ -312,6 +315,7 @@ def write_aoms(mol, mf, name, aom, ring=[], partition=None):
                     )
             f.write("\n Alpha electrons (NAlpha)                        {:.10E}".format(nalpha[i]))
             f.write("\n Beta electrons (NBeta)                          {:.10E}\n".format(nbeta[i]))
+            f.write(" Total electrons (N)                             {:.10E}\n".format(nalpha[i] + nbeta[i]))
             f.write(" NORMAL TERMINATION OF PROAIMV")
             f.close()
 
@@ -585,7 +589,7 @@ def write_wfx(path, name, mol, mf, aom, wf, occ=None):
         return
     # Determine occupations matrix
     if wf == 'no' and occ is not None:
-        occ_mat = np.asarray(occ, dtype=float)
+        occ_mat = np.diag(occ) if np.ndim(occ) == 1 else np.asarray(occ, dtype=float)
     elif wf == 'rest':
         # for restricted, assume doubly-occupied MOs
         if isinstance(aom, list):
@@ -596,7 +600,8 @@ def write_wfx(path, name, mol, mf, aom, wf, occ=None):
     elif wf == 'unrest':
         # for unrestricted, build alpha+beta occupancy vector
         if isinstance(aom, list) and len(aom) == 2:
-            m = np.asarray(aom[0]).shape[0] + np.asarray(aom[1]).shape[0]
+            na = np.asarray(aom[0][0]).shape[0]
+            m = na + np.asarray(aom[1][0]).shape[0]
         else:
             m = np.asarray(aom).shape[0]
         occ_mat = np.diag([1.0] * m)
@@ -618,18 +623,8 @@ def write_wfx(path, name, mol, mf, aom, wf, occ=None):
         f.write(f" {mol.natm}\n")
         f.write('</Number of Nuclei>\n')
 
-        # number of occupied MOs: try mf.mo_coeff then fall back to AOM size
-        nocc = None
-        if mf is not None and hasattr(mf, 'mo_coeff') and getattr(mf, 'mo_coeff') is not None:
-            try:
-                nocc = mf.mo_coeff.shape[1]
-            except Exception:
-                nocc = None
-        if nocc is None:
-            try:
-                nocc = int(np.asarray(occ_mat).shape[0])
-            except Exception:
-                nocc = 0
+        # number of MOs in the AOMs (must match the occupation and spin lists below)
+        nocc = int(np.asarray(occ_mat).shape[0])
 
         f.write('<Number of Occupied Molecular Orbitals>\n')
         f.write(f" {nocc}\n")
@@ -689,7 +684,7 @@ def write_wfx(path, name, mol, mf, aom, wf, occ=None):
         f.write('<Molecular Orbital Spin Types>\n')
         try:
             for i in range(0, max(1, int(np.asarray(occ_mat).shape[0]))):
-                f.write(' Alpha and Beta\n')
+                f.write((' Alpha\n' if i < na else ' Beta\n') if wf == 'unrest' else ' Alpha and Beta\n')
         except Exception:
             pass
         f.write('</Molecular Orbital Spin Types>\n')

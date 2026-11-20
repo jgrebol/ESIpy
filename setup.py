@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 setup(
     name="esipython",
-    version="1.0.6",
+    version="1.1.0",
     description="Calculation of electronic aromaticity indicators",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -18,7 +18,6 @@ setup(
     install_requires=[
         "numpy>=1.26.4",
         "pyscf>=2.6,<=2.8.0",
-        "sphinx",
         "qc-iodata>=1.0.1",
     ],
     python_requires=">=3.10",

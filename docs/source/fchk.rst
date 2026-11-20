@@ -44,7 +44,7 @@ The rings can also be defined in various ways: they can be defined manually, or 
 - $FINDRING: If this keyword is present, ESIpy will search for all the rings in the molecule using its ring-finding algorithm.
 - $NORING: No ring specified.
 
-The ring-finding algorithm looks for all the closed circuits within a minimum and maximum length, defined by the $MAXLEN and $MINLEN keywords. Also, $EXCLUDE can be used to not consider a certain atom (by its index or atomic symbol) during the ring finding algorithm.
+The ring-finding algorithm looks for all the closed circuits within a minimum and maximum length, defined by the $MAXLEN and $MINLEN keywords. Also, $EXCLUDE can be used to not consider a certain atom (by its index or atomic symbol) during the ring finding algorithm. Two atoms are connected when their delocalization index (from NAO, or from the read AOMs) is larger than $RINGTHRES (default 0.3); lower it to find rings with weaker bonds, e.g. ``$RINGTHRES`` followed by ``0.02`` on the next line.
 
 Partition
 ^^^^^^^^^
@@ -61,6 +61,8 @@ The partition schemes are defined using the $PARTITION keyword, which can take t
 - ROBUST: Meta-Löwdin, NAO, and IAO.
 
 More than one partition can be specified at a time, in different lines. Appart from $PARTITION, one can use $ALLPARTS as an equivalent way to set $PARTITION to ALL.
+
+The IAO partition projects onto PySCF's MINAO minimal basis by default. $IAOREF followed by a PySCF basis name (e.g. ``sto-3g``) on the next line changes this reference basis. MINAO has no 4p shell for Zn and similar metals; for such atoms a reference with the valence p shell is recommended.
 
 Additional keywords
 ^^^^^^^^^^^^^^^^^^^

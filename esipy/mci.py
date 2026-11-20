@@ -299,9 +299,9 @@ def _kernel_layer(args):
 def _prep_matrices(arr, aom):
     """Normalize input into list of matrices, handling NO tuples."""
     if isinstance(aom, (tuple, list)) and len(aom) == 2 and not isinstance(aom[0], np.ndarray):
-        # For Natural Orbitals: occ^(1/4) AOM occ^(1/4), same traces as occ^(1/2) AOM and symmetric
         real_aoms, occ = aom
-        o = np.sqrt(np.sqrt(np.clip(occ, 0, None)))  # tiny negative occupations are zero
+        # As ESI-3D: products of sqrt(n) S sqrt(n) give tr(N S_1 N S_2 ...); tiny negative occupations are zero
+        o = np.sqrt(np.clip(occ, 0, None))
         return [o[:, None] * real_aoms[idx - 1] * o[None, :] for idx in arr]
     return [aom[idx - 1] for idx in arr]
 
@@ -348,7 +348,7 @@ def compute_mci_dfs(arr, aom, partition='mulliken', n_cores=None, max_mem=None):
 
     if max_mem is not None:
         is_sd = wf_type(aom) in ["rest", "unrest"]
-        return (2 ** (n - 2) if is_sd else 2 ** (n / 2 - 1)) * _mci_subsets(mats, n_cores or mp.cpu_count(), max_mem)
+        return (2 ** (n - 2) if is_sd else 0.5) * _mci_subsets(mats, n_cores or mp.cpu_count(), max_mem)
 
     is_mulliken = (partition in ["mulliken", "non-symmetric"])
     sym_prune = not is_mulliken
@@ -383,7 +383,8 @@ def compute_mci_dfs(arr, aom, partition='mulliken', n_cores=None, max_mem=None):
         total_trace = sum(_kernel_approx(t)[0] for t in tasks)
 
     is_sd = wf_type(aom) in ["rest", "unrest"]
-    prefactor = 2 ** (n - 1) if is_sd else 2 ** (n / 2)
+    # NOs: the occupations already carry 2**n for doubly occupied orbitals
+    prefactor = 2 ** (n - 1) if is_sd else 1
     if is_mulliken:
         total_trace *= 0.5
 
@@ -449,7 +450,7 @@ def mci_approx_dfs(arr, aom, partition=None, alg=0, d=1, n_cores=1,
                 total_perms += p_count
                 
         is_sd = wf_type(aom) in ["rest", "unrest"]
-        prefactor = 2 ** (n - 1) if is_sd else 2 ** (n / 2)
+        prefactor = 2 ** (n - 1) if is_sd else 1
         
         if is_mulliken:
             total_trace *= 0.5
@@ -527,7 +528,7 @@ def mci_approx_dfs(arr, aom, partition=None, alg=0, d=1, n_cores=1,
 
     # 3. Normalization
     is_sd = wf_type(aom) in ["rest", "unrest"]
-    prefactor = 2 ** (n - 1) if is_sd else 2 ** (n / 2)
+    prefactor = 2 ** (n - 1) if is_sd else 1
 
     if is_mulliken:
         total_trace *= 0.5
@@ -840,7 +841,7 @@ def compute_mci(arr, aom, partition='mulliken', n_cores=None, max_mem=None):
 
     # Glynn sums every ordering, as the DFS with Mulliken; for symmetric AOMs the reversed ones are equal
     is_sd = wf_type(aom) in ["rest", "unrest"]
-    prefactor = 2 ** (n - 1) if is_sd else 2 ** (n / 2)
+    prefactor = 2 ** (n - 1) if is_sd else 1
     return prefactor * 0.5 * total_trace
 
 
@@ -873,7 +874,7 @@ def mci_approx(arr, aom, partition=None, alg=0, d=1, n_cores=1,
 
     # Each cycle is counted in both directions; for symmetric AOMs they are equal
     is_sd = wf_type(aom) in ["rest", "unrest"]
-    prefactor = 2 ** (n - 1) if is_sd else 2 ** (n / 2)
+    prefactor = 2 ** (n - 1) if is_sd else 1
     if not is_mulliken:
         total_perms //= 2
     return prefactor * 0.5 * total_trace, total_perms, time() - t0
@@ -889,7 +890,7 @@ def mci_profile(arr, aom, partition=None, alg=4, n_cores=1, rings_thres=0.3, con
     if connec is None:
         connec = build_connectivity(aom, rings_thres)
     is_sd = wf_type(aom) in ["rest", "unrest"]
-    prefactor = (2 ** (n - 1) if is_sd else 2 ** (n / 2)) * 0.5
+    prefactor = (2 ** (n - 1) if is_sd else 1) * 0.5
     halve = 1 if partition in ["mulliken", "non-symmetric"] else 2
     profile, prev, prev_perms = [], 0.0, 0
     for d in range(1, 2 * n):  # odd-walk distances can exceed n - 1

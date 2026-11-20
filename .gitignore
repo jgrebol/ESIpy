@@ -7,6 +7,7 @@ __pycache__/
 *.aoms
 *.molinfo
 *.int
+!tests/ATOMICFILES/AIMALL/*_atomicfiles/*.int
 *.log
 !tests/IODATA/*.log
 
@@ -39,6 +40,11 @@ joan/
 # FCHK folders (keep the one in tests/)
 FCHK/
 !tests/FCHK/
+
+# Internal experimental test suites
+tests/IODATA/JOANTESTS/
+*.esipy.fchk
+*.egg-info/
 versions/
 *.swp
 iao2.tex
@@ -48,8 +54,3 @@ esipy/LEGACY/
 esipy/PARTITION_ANALYSIS.md
 build/
 dist/
-
-# Internal experimental test suites
-tests/IODATA/JOANTESTS/
-*.esipy.fchk
-*.egg-info/

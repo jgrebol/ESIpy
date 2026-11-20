@@ -1255,7 +1255,7 @@ class ESI:
                  mci=None, av1245=None, flurefs=None, homarefs=None,
                  homerrefs=None, connectivity=None, geom=None, molinfo=None,
                  ncores=1, save=None, readpath='.', read=False,
-                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None, is_fchk=False, verbose=None, **kwargs):
+                 maxlen=12, minlen=6, rings_thres=0.3, exclude=None, is_fchk=False, verbose=None, iaoref='minao', **kwargs):
         # For usual ESIpy calculations
         self._aom = aom
         self._aom_loaded = False
@@ -1291,6 +1291,7 @@ class ESI:
         self.maxlen = maxlen
         self.minlen = minlen
         self.rings_thres = rings_thres
+        self.iaoref = iaoref  # minimal reference basis of the IAO partition (PySCF basis name)
         self._exclude = exclude
         #self._printedrings = False
         self._connec = None
@@ -1443,7 +1444,8 @@ class ESI:
             endrings = time()
 
             if not self._rings:
-                print(" | WARNING: Could not find any ring. Please check the minimum and maximum ring lengths.")
+                print(" | WARNING: Could not find any ring of {}-{} atoms with DI > {} between neighbours.".format(self.minlen, self.maxlen, self.rings_thres))
+                print(" |          Check $MINLEN/$MAXLEN, $RINGTHRES (or rings_thres) and $EXCLUDE.")
                 self.totalaom = self.aom
                 self.nfrags = 0
                 self.fragmap = {}
@@ -1546,7 +1548,8 @@ class ESI:
 
         if self.read:
             path = os.path.join(self.readpath, "{}_{}.aoms".format(self.molinfo.get('molname', 'mol'), self.partition))
-            if not os.path.exists(path):
+            has_ints = os.path.isdir(self.readpath) and any(f.endswith('.int') for f in os.listdir(self.readpath))
+            if not os.path.exists(path) and not has_ints:
                 print(" | WARNING: Expected AOM file {} was not found.".format(path))
 
     @property
@@ -1581,7 +1584,10 @@ class ESI:
             if self.mol and self.mf and self.partition:
                 self._aom_loaded = True
                 # Don't save in make_aoms, we'll save it ourselves in the subdirectory
-                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf, is_fchk=self.is_fchk)
+                if self.partition == "iao" and self.iaoref != "minao":
+                    print(f" | IAO reference basis:      {self.iaoref}")
+                self._aom = make_aoms(self.mol, self.mf, partition=self.partition, save=None, myhf=self.myhf, is_fchk=self.is_fchk,
+                                      iaoref=self.iaoref)
 
                 if self.saveaoms:
                     os.makedirs(self.save_dir, exist_ok=True)
